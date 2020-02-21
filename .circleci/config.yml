@@ -52,9 +52,6 @@ jobs:
       - *set_environment_variables
       - run: go get -u golang.org/x/lint/golint
       - run: go list ./... | xargs golint -set_exit_status
-      - run: find -name "go.mod" -printf "%h\n" | xargs -n 1 -I~folder~ sh -c "cd ~folder~ && go list ./... | xargs go vet && cd .."
-      - run: go test ./... -p 1 -coverprofile=coverage.txt -covermode=atomic
-      - run: bash <(curl -s https://codecov.io/bash)
       - slack/status:
           fail_only: true
           only_for_branches: master
