@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/workload
+module github.com/fairwindsops/insights-plugins/trivy
 
 go 1.13
 
