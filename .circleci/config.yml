@@ -44,7 +44,7 @@ jobs:
           only_for_branches: master
 
   test:
-    working_directory: /go/src/github.com/fairwindsops/fairwinds-insights/
+    working_directory: /go/src/github.com/fairwindsops/insights-agent/
     docker:
       - image: circleci/golang:1.12
     steps:

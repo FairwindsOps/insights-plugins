@@ -1,4 +1,4 @@
-module github.com/fairwindsops/fairwinds-insights/plugins/workload
+module github.com/fairwindsops/insights-plugins/workload
 
 go 1.13
 
