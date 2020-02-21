@@ -1,4 +1,4 @@
-module github.com/fairwindsops/fairwinds-insights/plugins/kube-bench-daemon
+module github.com/fairwindsops/insights-plugins/kube-bench-daemon
 
 go 1.13
 
