@@ -61,14 +61,15 @@ func main() {
 	intervalHours := 2
 	intervalHoursString := os.Getenv("INTERVAL_HOURS")
 	if intervalHoursString != "" {
-		intervalHours, err := strconv.Atoi(intervalHoursString)
+		var err error
+		intervalHours, err = strconv.Atoi(intervalHoursString)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 	}
 	http.HandleFunc("/", getReportsHandler)
 
-	ticker := time.NewTicker(2 * time.Hour)
+	ticker := time.NewTicker(time.Duration(intervalHours) * time.Hour)
 	quit := make(chan struct{})
 	defer close(quit)
 	go func() {
