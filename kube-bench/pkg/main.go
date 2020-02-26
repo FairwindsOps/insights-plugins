@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,7 +17,7 @@ import (
 )
 
 const port = "8080"
-const outputFile = "/output/kubesec.json"
+const outputFile = "/output/kube-bench.json"
 
 type kubeBenchModel struct {
 	Name     string
@@ -67,6 +68,20 @@ func main() {
 			logrus.Fatal(err)
 		}
 	}
+	if strings.ToLower(os.Getenv("RUN_ONCE")) == "true" {
+		updateModel()
+		outputBytes, err := json.MarshalIndent(model, "", "  ")
+
+		if err != nil {
+			panic(err)
+		}
+		err = ioutil.WriteFile(outputFile, []byte(outputBytes), 0644)
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+
 	http.HandleFunc("/", getReportsHandler)
 
 	ticker := time.NewTicker(time.Duration(intervalHours) * time.Hour)
