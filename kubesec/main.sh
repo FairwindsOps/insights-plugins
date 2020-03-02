@@ -1,6 +1,7 @@
 #! /bin/bash
 set -e
-
+trap 'echo "Error on Line: $LINENO"' ERR
+echo "Starting kubesec"
 tmp_dir=/output/tmp
 mkdir -p $tmp_dir
 results_file=$tmp_dir/results.json
@@ -11,6 +12,7 @@ echo -e '{\n  "namespaces": {\n' > $results_file
 
 TYPES=( "deployments" "statefulsets" "daemonsets" )
 
+echo "Retrieving namespaces"
 namespaces=$(kubectl get namespaces -o name)
 IFS=$'\n' namespaces=($namespaces)
 for ns_idx in "${!namespaces[@]}"; do
