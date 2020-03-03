@@ -41,6 +41,7 @@ type Vulnerability struct {
 	Title            string
 	Description      string
 	InstalledVersion string
+	FixedVersion     string
 	PkgName          string
 	Severity         string
 	VulnerabilityID  string

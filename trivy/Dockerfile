@@ -16,7 +16,7 @@ RUN go build -a -o scan pkg/*.go
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
-RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.2.1/trivy_0.2.1_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
+RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.4.4/trivy_0.4.4_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
 
 FROM alpine:3.10
