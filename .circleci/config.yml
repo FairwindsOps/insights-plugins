@@ -27,7 +27,10 @@ references:
         for filename in deploy/*.config; do
           docker-pull -f $filename
           docker-build -f $filename
-          docker-push -f $filename
+          if [ "$CIRCLE_BRANCH" = "master" ]
+          then
+            docker-push -f $filename
+          fi
         done
 
 jobs:
@@ -64,8 +67,3 @@ workflows:
       - test
       - build_plugins:
           context: org-global
-          filters:
-            branches:
-              only:
-                - release
-                - master
