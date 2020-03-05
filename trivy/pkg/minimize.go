@@ -83,7 +83,12 @@ func minimize(images []ImageReport, lastReport MinimizedReport) MinimizedReport 
 			}
 			imageDetailsWithRefs.Report = append(imageDetailsWithRefs.Report, vulnRefList)
 		}
-		outputReport.Images = append(outputReport.Images, imageDetailsWithRefs)
+		found := funk.Find(outputReport.Images, func(image ImageDetailsWithRefs) bool {
+			return image.Namespace == imageDetailsWithRefs.Namespace && image.OwnerKind == imageDetailsWithRefs.OwnerKind && image.OwnerName == imageDetailsWithRefs.OwnerName
+		})
+		if found == nil {
+			outputReport.Images = append(outputReport.Images, imageDetailsWithRefs)
+		}
 	}
 	for vulnID := range outputReport.Vulnerabilities {
 		if !vulnerabilityExists[vulnID] {
