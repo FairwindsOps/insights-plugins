@@ -13,6 +13,9 @@ import (
 const port = "8080"
 const outputFile = "/output/kube-bench.json"
 
+// ID for the Policies category, which is not node specific.
+const policiesID = "5"
+
 type kubeBenchModel struct {
 	Name     string
 	Controls []check.Controls
@@ -53,7 +56,7 @@ func main() {
 		for _, control := range responseData.Controls {
 			key := control.ID
 			// ID 5 "Policies" should be the same for every node.
-			if key != "5" {
+			if key != policiesID {
 				key = responseData.Name + "/" + key
 			}
 			data[key] = control
