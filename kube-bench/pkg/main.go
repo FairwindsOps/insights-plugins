@@ -70,7 +70,16 @@ func main() {
 	}
 	if strings.ToLower(os.Getenv("RUN_ONCE")) == "true" {
 		updateModel()
-		outputBytes, err := json.MarshalIndent(model, "", "  ")
+		data := map[string]check.Controls{}
+		for _, control := range model.Controls {
+			key := control.ID
+			// ID 5 "Policies" should be the same for every node.
+			if key != "5" {
+				key = model.Name + "/" + key
+			}
+			data[key] = control
+		}
+		outputBytes, err := json.MarshalIndent(data, "", "  ")
 
 		if err != nil {
 			panic(err)
