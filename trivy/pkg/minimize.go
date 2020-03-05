@@ -5,6 +5,8 @@ package main
 
 import (
 	"time"
+
+	"github.com/thoas/go-funk"
 )
 
 type MinimizedReport struct {
