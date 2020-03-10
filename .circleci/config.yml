@@ -27,10 +27,7 @@ references:
         for filename in deploy/*.config; do
           docker-pull -f $filename
           docker-build -f $filename
-          if [ "$CIRCLE_BRANCH" = "master" ]
-          then
-            docker-push -f $filename
-          fi
+          docker-push -f $filename
         done
 
 jobs:
