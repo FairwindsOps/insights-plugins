@@ -67,3 +67,9 @@ workflows:
       - test
       - build_plugins:
           context: org-global
+      - rok8s-scripts/kubernetes_e2e_tests:
+          name: End-To-End Test on Kubernetes
+          requires: # TODO break out build/deploy
+            - build_plugins
+          pre_script: e2e/pre.sh
+          script: e2e/ci.sh
