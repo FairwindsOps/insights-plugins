@@ -17,7 +17,7 @@ spec:
     spec:
       initContainers:
       - image: <TESTIMAGE>
-        imagePullPolicy: Never
+        imagePullPolicy: Always
         name: <TESTNAME>
         resources:
           limits:
