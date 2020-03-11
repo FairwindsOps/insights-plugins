@@ -8,7 +8,7 @@ python3 e2e/testServer.py &
 pyServer=$!
 
 trap "kill $pyServer" EXIT
-insightsHost="http://$(awk 'END{print $1}' /etc/hosts)"
+insightsHost="http://$(awk 'END{print $1}' /etc/hosts):8080"
 kubectl create namespace insights-agent
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --namespace insights-agent \
