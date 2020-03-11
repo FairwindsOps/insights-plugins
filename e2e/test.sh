@@ -7,6 +7,7 @@ helm repo add stable https://kubernetes-charts.storage.googleapis.com
 python3 e2e/testServer.py &
 pyServer=$!
 insightsHost="http://$(awk 'END{print $1}' /etc/hosts)"
+kubectl create namespace insights-agent
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --namespace insights-agent \
   -f e2e/values.yaml \
