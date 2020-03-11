@@ -1,5 +1,5 @@
 set -eo pipefail
-cd ..
+cd /workspace
 for filename in deploy/*.config; do
 
     file="$(basename $filename)"
