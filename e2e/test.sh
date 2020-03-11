@@ -6,7 +6,7 @@ for filename in deploy/*.config; do
     baseFile="${file%.*}"
     export BASH_SOURCE=$filename
     . $filename
-    cat ./e2e/base.yaml | sed "s/<TESTNAME>/$baseFile/g" | sed "s/<TESTIMAGE>/$DOCKERTAG:$CI_BRANCH/g" | kubectl apply -f -
+    cat ./e2e/base.yaml | sed -e "s/<TESTNAME>/$baseFile/g" | sed -e "s/<TESTIMAGE>/${DOCKERTAG//\//\\\/}:$CI_BRANCH/g" | kubectl apply -f -
     kubectl wait --for=condition=running job/$baseFile --timeout=120s
     kubectl cp job/$baseFile:/output output/$baseFile -c insights-sleep
     kubectl delete job $baseFile
