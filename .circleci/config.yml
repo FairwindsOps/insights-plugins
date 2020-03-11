@@ -71,3 +71,4 @@ workflows:
             - build_plugins
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
+          enable_docker_image_layer_caching: true
