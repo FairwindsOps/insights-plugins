@@ -5,15 +5,26 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class FileHandler(BaseHTTPRequestHandler):
     store_path = pjoin(curdir, "../output")
+
     def do_POST(self):
-        if len(self.path.split(".")) == 1:
-            length = self.headers['content-length']
-            data = self.rfile.read(int(length))
+        try:
+            if len(self.path.split(".")) == 1:
+                length = self.headers['content-length']
+                data = self.rfile.read(int(length))
 
-            with open(pjoin(self.store_path, self.path.split("/")[-1] + ".json"), 'w') as fh:
-                fh.write(data.decode())
+                with open(pjoin(self.store_path, self.path.split("/")[-1] + ".json"), 'w') as fh:
+                    fh.write(data.decode())
 
-            self.send_response(200)
+                self.send_response(200, "success")
+            else:
+                self.send_response(404, "not found")
+        except Exception as e:
+            print(e)
+            
+            self.send_response(500)
+            self.wfile.write(str(e).encode(encoding="utf-8"))
+        self.end_headers() 
+        return
 
 
 server = HTTPServer(('', 8080), FileHandler)
