@@ -6,6 +6,8 @@ helm repo add fairwinds-stable https://charts.fairwinds.com/stable
 helm repo add stable https://kubernetes-charts.storage.googleapis.com
 python3 e2e/testServer.py &
 pyServer=$!
+
+trap "kill $pyServer" EXIT
 insightsHost="http://$(awk 'END{print $1}' /etc/hosts)"
 kubectl create namespace insights-agent
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
@@ -20,7 +22,7 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --set trivy.image.tag="$CI_BRANCH" \
   --set uploader.image.tag="$CI_BRANCH" 
 
-
+kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/kubesec --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
