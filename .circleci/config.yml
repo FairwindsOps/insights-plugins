@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@3.4.2
-  rok8s-scripts: fairwinds/rok8s-scripts@11.0.2
+  rok8s-scripts: fairwinds/rok8s-scripts@11.1.1
 
 references:
   set_environment_variables: &set_environment_variables
@@ -71,4 +71,3 @@ workflows:
             - build_plugins
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
-          enable_docker_layer_caching: true
