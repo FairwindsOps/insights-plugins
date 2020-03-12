@@ -4,8 +4,17 @@ from os.path import join as pjoin
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class FileHandler(BaseHTTPRequestHandler):
-    store_path = pjoin(curdir, "../output")
+    store_path = "/workspace/output"
     protocol_version = "HTTP/1.1"
+
+    def do_GET(self):
+        content = "".encode(encoding="utf-8")
+        self.send_response(404, "not found")
+        self.send_header("Content-type", "application/json")
+        self.send_header("Content-length", len(content))
+        self.end_headers()
+        self.wfile.write(content)
+        return
 
     def do_POST(self):
         content = "x".encode(encoding="utf-8")
