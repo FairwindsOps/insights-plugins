@@ -5,8 +5,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class FileHandler(BaseHTTPRequestHandler):
     store_path = pjoin(curdir, "../output")
+    protocol_version = "HTTP/1.1"
 
     def do_POST(self):
+        content = "x".encode(encoding="utf-8")
         try:
             if len(self.path.split(".")) == 1:
                 length = self.headers['content-length']
@@ -20,12 +22,14 @@ class FileHandler(BaseHTTPRequestHandler):
                 self.send_response(404, "not found")
         except Exception as e:
             print(e)
-            
+
             self.send_response(500)
-            self.wfile.write(str(e).encode(encoding="utf-8"))
-        self.end_headers() 
+            content = str(e).encode(encoding="utf-8")
+        self.send_header("Content-type", "application/text")
+        self.send_header("Content-length", len(content))
+        self.end_headers()
+        self.wfile.write(content)
         return
 
 
 server = HTTPServer(('', 8080), FileHandler)
-server.serve_forever()
