@@ -3,7 +3,11 @@ insights:
   cluster: k8test
 
 kubesec:
-  enabled: false
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
 
 trivy:
   enabled: true
