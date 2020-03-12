@@ -32,5 +32,5 @@ kubectl get jobs --namespace insights-agent
 jsonschema -i output/kube-bench.json kube-bench/results.schema
 jsonschema -i output/trivy.json trivy/results.schema
 jsonschema -i output/rbac-reporter.json rbac-reporter/results.schema
-jsonschema -i output/workload.json workload/results.schema
+jsonschema -i output/workloads.json workload/results.schema
 ls output
