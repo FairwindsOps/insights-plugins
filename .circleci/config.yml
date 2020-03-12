@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@3.4.2
-  rok8s-scripts: fairwinds/rok8s-scripts@11.0.2
+  rok8s-scripts: fairwinds/rok8s-scripts@11.1.1
 
 references:
   set_environment_variables: &set_environment_variables
@@ -27,10 +27,7 @@ references:
         for filename in deploy/*.config; do
           docker-pull -f $filename
           docker-build -f $filename
-          if [ "$CIRCLE_BRANCH" = "master" ]
-          then
-            docker-push -f $filename
-          fi
+          docker-push -f $filename
         done
 
 jobs:
@@ -39,7 +36,8 @@ jobs:
       - image: quay.io/reactiveops/ci-images:v11-stretch
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
+          docker_layer_caching: true
       - *set_environment_variables
       - *docker_build_and_push_plugins
       - slack/status:
@@ -67,3 +65,9 @@ workflows:
       - test
       - build_plugins:
           context: org-global
+      - rok8s-scripts/kubernetes_e2e_tests:
+          name: End-To-End Test on Kubernetes
+          requires: # TODO break out build/deploy
+            - build_plugins
+          pre_script: e2e/pre.sh
+          script: e2e/ci.sh

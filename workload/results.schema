@@ -1,0 +1,417 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "ServerVersion": {
+      "type": "string"
+    },
+    "CreationTime": {
+      "type": "string"
+    },
+    "SourceName": {
+      "type": "string"
+    },
+    "SourceType": {
+      "type": "string"
+    },
+    "Nodes": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "Name": {
+              "type": "string"
+            },
+            "Labels": {
+              "type": "object",
+              "properties": {
+                "beta.kubernetes.io/arch": {
+                  "type": "string"
+                },
+                "beta.kubernetes.io/os": {
+                  "type": "string"
+                },
+                "kubernetes.io/arch": {
+                  "type": "string"
+                },
+                "kubernetes.io/hostname": {
+                  "type": "string"
+                },
+                "kubernetes.io/os": {
+                  "type": "string"
+                },
+                "node-role.kubernetes.io/master": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "beta.kubernetes.io/arch",
+                "beta.kubernetes.io/os",
+                "kubernetes.io/arch",
+                "kubernetes.io/hostname",
+                "kubernetes.io/os",
+                "node-role.kubernetes.io/master"
+              ]
+            },
+            "Annotations": {
+              "type": "object",
+              "additionalPProperties": {
+               "type": "string"
+                
+              }
+            },
+            "CreationTimestamp": {
+              "type": "string"
+            },
+            "Capacity": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "ephemeral-storage": {
+                  "type": "string"
+                },
+                "hugepages-1Gi": {
+                  "type": "string"
+                },
+                "hugepages-2Mi": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                },
+                "pods": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cpu",
+                "ephemeral-storage",
+                "hugepages-1Gi",
+                "hugepages-2Mi",
+                "memory",
+                "pods"
+              ]
+            },
+            "Allocatable": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "ephemeral-storage": {
+                  "type": "string"
+                },
+                "hugepages-1Gi": {
+                  "type": "string"
+                },
+                "hugepages-2Mi": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                },
+                "pods": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cpu",
+                "ephemeral-storage",
+                "hugepages-1Gi",
+                "hugepages-2Mi",
+                "memory",
+                "pods"
+              ]
+            },
+            "AllocatedLimits": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                },
+                "pods": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cpu",
+                "memory",
+                "pods"
+              ]
+            },
+            "AllocatedRequests": {
+              "type": "object",
+              "properties": {
+                "cpu": {
+                  "type": "string"
+                },
+                "memory": {
+                  "type": "string"
+                },
+                "pods": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cpu",
+                "memory",
+                "pods"
+              ]
+            },
+            "Utilization": {
+              "type": "object",
+              "properties": {
+                "cpuRequestsFraction": {
+                  "type": "number"
+                },
+                "cpuLimitsFraction": {
+                  "type": "number"
+                },
+                "memoryRequestsFraction": {
+                  "type": "number"
+                },
+                "memoryLimitsFraction": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "cpuRequestsFraction",
+                "cpuLimitsFraction",
+                "memoryRequestsFraction",
+                "memoryLimitsFraction"
+              ]
+            },
+            "KubeletVersion": {
+              "type": "string"
+            },
+            "KubeProxyVersion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "Name",
+            "Labels",
+            "Annotations",
+            "CreationTimestamp",
+            "Capacity",
+            "Allocatable",
+            "AllocatedLimits",
+            "AllocatedRequests",
+            "Utilization",
+            "KubeletVersion",
+            "KubeProxyVersion"
+          ]
+        }
+      ]
+    },
+    "Namespaces": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "selfLink": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "creationTimestamp": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "selfLink",
+                "uid",
+                "resourceVersion",
+                "creationTimestamp"
+              ]
+            },
+            "spec": {
+              "type": "object",
+              "properties": {
+                "finalizers": {
+                  "type": "array",
+                  "items": [
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "finalizers"
+              ]
+            },
+            "status": {
+              "type": "object",
+              "properties": {
+                "phase": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "phase"
+              ]
+            }
+          },
+          "required": [
+            "metadata",
+            "spec",
+            "status"
+          ]
+        }
+      ]
+    },
+    "Controllers": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "Kind": {
+              "type": "string"
+            },
+            "Name": {
+              "type": "string"
+            },
+            "Namespace": {
+              "type": "string"
+            },
+            "Annotations": {
+              "type": "object",
+              "properties": {
+                "deployment.kubernetes.io/revision": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "deployment.kubernetes.io/revision"
+              ]
+            },
+            "Labels": {
+              "type": "object",
+              "properties": {
+                "k8s-app": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "k8s-app"
+              ]
+            },
+            "UID": {
+              "type": "string"
+            },
+            "ParentUID": {
+              "type": "string"
+            },
+            "Containers": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Image": {
+                      "type": "string"
+                    },
+                    "ImageID": {
+                      "type": "string"
+                    },
+                    "CreationTime": {
+                      "type": "string"
+                    },
+                    "Resource": {
+                      "type": "object",
+                      "properties": {
+                        "Requests": {
+                          "type": "object",
+                          "properties": {
+                            "Memory": {
+                              "type": "string"
+                            },
+                            "CPU": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "Memory",
+                            "CPU"
+                          ]
+                        },
+                        "Limits": {
+                          "type": "object",
+                          "properties": {
+                            "Memory": {
+                              "type": "string"
+                            },
+                            "CPU": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "Memory",
+                            "CPU"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "Requests",
+                        "Limits"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "Name",
+                    "Image",
+                    "ImageID",
+                    "CreationTime",
+                    "Resource"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "Kind",
+            "Name",
+            "Namespace",
+            "Annotations",
+            "Labels",
+            "UID",
+            "ParentUID",
+            "Containers"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "ServerVersion",
+    "CreationTime",
+    "SourceName",
+    "SourceType",
+    "Nodes",
+    "Namespaces",
+    "Controllers"
+  ]
+}
