@@ -16,12 +16,12 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   -f e2e/values.yaml \
   --set insights.host="$insightsHost" \
   --set insights.base64token="$(echo -n "Erehwon" | base64)" \
-  --set workloads.image.tag="$CI_BRANCH" \
-  --set rbacreporter.image.tag="$CI_BRANCH" \
-  --set kubesec.image.tag="$CI_BRANCH" \
-  --set kubebench.image.tag="$CI_BRANCH" \
-  --set trivy.image.tag="$CI_BRANCH" \
-  --set uploader.image.tag="$CI_BRANCH" 
+  --set workloads.image.tag="$CI_SHA1" \
+  --set rbacreporter.image.tag="$CI_SHA1" \
+  --set kubesec.image.tag="$CI_SHA1" \
+  --set kubebench.image.tag="$CI_SHA1" \
+  --set trivy.image.tag="$CI_SHA1" \
+  --set uploader.image.tag="$CI_SHA1" 
 sleep 5
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
