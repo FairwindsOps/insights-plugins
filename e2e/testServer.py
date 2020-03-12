@@ -33,3 +33,5 @@ class FileHandler(BaseHTTPRequestHandler):
 
 
 server = HTTPServer(('', 8080), FileHandler)
+
+server.serve_forever()
