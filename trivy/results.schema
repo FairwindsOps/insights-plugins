@@ -117,7 +117,9 @@
                     "Severity": {
                         "type": "string",
                         "enum": [
-                            "MEDIUM"
+                            "LOW",
+                            "MEDIUM",
+                            "HIGH"
                         ]
                     },
                     "VulnerabilityID": {
