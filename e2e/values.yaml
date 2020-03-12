@@ -1,0 +1,48 @@
+insights:
+  organization: ci-co
+  cluster: k8test
+
+kubesec:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+
+trivy:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+  namespaceBlacklist:
+  - kube-system
+  - default
+  - insights-agent
+
+  
+uploader:
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+
+goldilocks:
+  enabled: false
+
+polaris:
+  enabled: false
+
+releasewatcher:
+  enabled: false
+
+workloads:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+
+kubehunter:
+  enabled: false
+ 
