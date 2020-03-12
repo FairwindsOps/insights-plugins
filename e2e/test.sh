@@ -4,10 +4,11 @@ cd /workspace
 helm repo add fairwinds-incubator https://charts.fairwinds.com/incubator
 helm repo add fairwinds-stable https://charts.fairwinds.com/stable
 helm repo add stable https://kubernetes-charts.storage.googleapis.com
-python3 e2e/testServer.py &
+python3 -u e2e/testServer.py &> /workspace/py.log &
 pyServer=$!
 
-trap "kill $pyServer" EXIT
+trap "cat /workspace/py.log && kill $pyServer" EXIT
+sleep 5
 insightsHost="http://$(awk 'END{print $1}' /etc/hosts):8080"
 kubectl create namespace insights-agent
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
