@@ -23,7 +23,7 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --set uploader.image.tag="$CI_BRANCH" 
 sleep 5
 kubectl get all --namespace insights-agent
-#kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
+kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insights-agent
@@ -32,4 +32,5 @@ kubectl get jobs --namespace insights-agent
 jsonschema -i output/kube-bench.json kube-bench/results.schema
 jsonschema -i output/trivy.json trivy/results.schema
 jsonschema -i output/rbac-reporter.json rbac-reporter/results.schema
+jsonschema -i output/workload.json workload/results.schema
 ls output
