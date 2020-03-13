@@ -40,8 +40,7 @@ jobs:
           docker_layer_caching: true
       - *set_environment_variables
       - *docker_build_and_push_plugins
-      - slack/status:
-          fail_only: true
+      - slack/notify-on-failure:
           only_for_branches: master
 
   test:
@@ -53,8 +52,7 @@ jobs:
       - *set_environment_variables
       - run: go get -u golang.org/x/lint/golint
       - run: go list ./... | xargs golint -set_exit_status
-      - slack/status:
-          fail_only: true
+      - slack/notify-on-failure:
           only_for_branches: master
 
 
