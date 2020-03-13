@@ -9,7 +9,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975 // indirect
 	golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7 // indirect
-	k8s.io/api v0.17.3
+	k8s.io/api v0.17.4
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.17.3
 	k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c // indirect
