@@ -254,8 +254,9 @@ func runCommand(cmd *exec.Cmd, message string) error {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error %s: %s\n%s", message, err, string(output))
-		if strings.Contains(output, unknownOSMessage) {
+		outputString := string(output)
+		logrus.Errorf("Error %s: %s\n%s", message, err, outputString)
+		if strings.Contains(outputString, unknownOSMessage) {
 			return errors.New(unknownOSMessage)
 		}
 	}
