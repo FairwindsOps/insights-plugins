@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,13 +11,15 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
 
 const tmpDir = "/output/tmp"
 const outputFile = tmpDir + "/final-report.json"
-const retryCount = 5
+const unknownOSMessage = "Unknown OS"
+const retryCount = 3
 
 var nonWordRegexp = regexp.MustCompile("\\W+")
 var maxConcurrentScans = 5
@@ -180,13 +183,14 @@ func scanImages(images []Image) []ImageReport {
 	}
 
 	semaphore := make(chan bool, maxConcurrentScans)
-	for pullRef, _ := range reportByRef {
+	for pullRef := range reportByRef {
 		semaphore <- true
 		go func(pullRef string) {
 			defer func() { <-semaphore }()
 			for i := 0; i < retryCount; i++ { // Retry logic
-				reportByRef[pullRef] = runTrivy(pullRef)
-				if reportByRef[pullRef] != nil {
+				var err error
+				reportByRef[pullRef], err = runTrivy(pullRef)
+				if err == nil || err.Error() == unknownOSMessage {
 					break
 				}
 			}
@@ -211,7 +215,7 @@ func scanImages(images []Image) []ImageReport {
 	return allReports
 }
 
-func runTrivy(pullRef string) []VulnerabilityList {
+func runTrivy(pullRef string) ([]VulnerabilityList, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := tmpDir + "/trivy-report-" + imageID + ".json"
 	imageDir := tmpDir
@@ -224,33 +228,37 @@ func runTrivy(pullRef string) []VulnerabilityList {
 		os.Remove(reportFile)
 	}()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	err = runCommand(exec.Command("trivy", "--skip-update", "-d", "-f", "json", "-o", reportFile, "--input", imageDir+imageID), "scanning "+imageMessage)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	report := []VulnerabilityList{}
 	data, err := ioutil.ReadFile(reportFile)
 	if err != nil {
 		logrus.Errorf("Error reading report %s: %s", pullRef, err)
-		return nil
+		return nil, err
 	}
 	err = json.Unmarshal(data, &report)
 	if err != nil {
 		logrus.Errorf("Error decoding report %s: %s", pullRef, err)
-		return nil
+		return nil, err
 	}
 
-	return report
+	return report, nil
 }
 
 func runCommand(cmd *exec.Cmd, message string) error {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error %s: %s\n%s", message, err, string(output))
+		outputString := string(output)
+		logrus.Errorf("Error %s: %s\n%s", message, err, outputString)
+		if strings.Contains(outputString, unknownOSMessage) {
+			return errors.New(unknownOSMessage)
+		}
 	}
 	return err
 }
