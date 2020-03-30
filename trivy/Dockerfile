@@ -19,7 +19,7 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s 
 RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.4.4/trivy_0.4.4_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
 
-FROM alpine:3.11.3
+FROM alpine:3.11.5
 WORKDIR /trivy
 COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/trivy/scan ./scan
 COPY --from=build-env /usr/local/bin/kubectl /usr/local/bin/kubectl
