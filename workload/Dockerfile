@@ -16,7 +16,7 @@ COPY pkg pkg
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o workload pkg/*.go
 
 
-FROM alpine:3.11.3
+FROM alpine:3.11.5
 WORKDIR /usr/local/bin
 RUN apk --no-cache add ca-certificates
 
