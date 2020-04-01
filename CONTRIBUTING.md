@@ -53,11 +53,6 @@ If there are any breaking changes then make this a minor or major version increa
     1. Bump the version number in the version.txt file for the plugin modified.
     2. Update CHANGELOG.md
     3. Merge your PR
-2. Tag the latest branch for this repo
-    1. Pull the latest commit for the `master` branch (which you just merged in your PR)
-    2. Run `git tag $VERSION && git push --tags`
-    3. Make sure CircleCI runs successfully for the new tag - this will push images to quay.io and create a release in GitHub
-        1. If CircleCI fails, check with Codeowners ASAP
 
 ### Minor/Major releases
 Minor and major releases need to change both this repository and the
