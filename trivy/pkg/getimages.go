@@ -92,6 +92,9 @@ func GetImages() ([]Image, error) {
 			owner.Name = firstOwner.Name
 			fqKind := schema.FromAPIVersionAndKind(firstOwner.APIVersion, firstOwner.Kind)
 			mapping, err := restMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
+			if owner.Kind == "Node" {
+				break
+			}
 			if err != nil {
 				logrus.Warnf("Error retrieving mapping %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
 				break
@@ -104,11 +107,7 @@ func GetImages() ([]Image, error) {
 			owners = getParents.GetOwnerReferences()
 
 		}
-		key := owner.Namespace + "/" + owner.Kind + "/" + owner.Name
-		if _, ok := found[key]; ok {
-			continue
-		}
-		found[key] = true
+
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			im := Image{
 				Name:  containerStatus.Image,
@@ -120,6 +119,12 @@ func GetImages() ([]Image, error) {
 				im.PullRef = im.Name
 			}
 			im.Owner.Name += "/" + containerStatus.Name
+			key := im.Owner.Namespace + "/" + im.Owner.Kind + "/" + im.Owner.Name + "/" + im.Name + "/" + im.ID
+			if _, ok := found[key]; ok {
+				continue
+			}
+			found[key] = true
+
 			images = append(images, im)
 		}
 	}
