@@ -56,7 +56,7 @@ If there are any breaking changes then make this a minor or major version increa
 
 ### Minor/Major releases
 Minor and major releases need to change both this repository and the
-[Helm chart repo](https://github.com/FairwindsOps/charts/).
+[Helm chart repo](https://github.com/FairwindsOps/charts/stable/insights-agent).
 
 The steps are:
 1. Modify the [Helm chart](https://github.com/FairwindsOps/charts/stable/insights-agent)
