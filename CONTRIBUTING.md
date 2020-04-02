@@ -43,34 +43,6 @@ Each new pull request should:
 
 ## Creating a new release
 
-### Patch releases
-Patch releases only need to change this repo. The Helm chart and deploy scripts
-will automatically pull in the latest changes.
-
-If there are any breaking changes then make this a minor or major version increase.
-
-1. Create a PR for this repo
-    1. Bump the version number in the version.txt file for the plugin modified.
-    2. Update CHANGELOG.md
-    3. Merge your PR
-
-### Minor/Major releases
-Minor and major releases need to change both this repository and the
-[Helm chart repo](https://github.com/FairwindsOps/charts/stable/insights-agent).
-
-The steps are:
-1. Modify the [Helm chart](https://github.com/FairwindsOps/charts/stable/insights-agent)
-    1. Clone the helm charts repo
-        1. `git clone https://github.com/FairwindsOps/charts`
-        2. `git checkout -b yourname/update-insights-agent`
-    1. Bump the version number in:
-        2. stable/insights-agent/Chart.yaml
-        3. stable/insights-agent/values.yaml
-    2. Make any necessary changes to the chart to support the new version of the plugin (e.g. new RBAC permissions)
-    3. **Don't merge yet!**
-2. Create a PR for this repo
-    1. Create a new branch named `yourname/new-feature`
-    2. Bump the version number in the version.txt file for the plugin modified.
-    3. Merge your PR
-3. Create and merge a PR for your changes to the Helm chart
-
+* Make sure you update the `version.txt` in the plugin that you've changed
+* Update the `CHANGELOG.md` in the plugin with any changes
+* If you're changing the major/minor version, be sure to change the [Helm chart](https://github.com/FairwindsOps/charts/stable/insights-agent) accordingly.
