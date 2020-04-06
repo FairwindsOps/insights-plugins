@@ -36,7 +36,6 @@ jobs:
       - image: quay.io/reactiveops/ci-images:v11-stretch
     steps:
       - checkout
-      - setup_remote_docker:
       - *set_environment_variables
       - *docker_build_and_push_plugins
       - slack/notify-on-failure:
