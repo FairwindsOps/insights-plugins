@@ -1,3 +1,7 @@
+# Trivy
+
+This is a wrapper around Aqua Security [Trivy](https://github.com/aquasecurity/trivy) that will retrieve results and create a JSON result for the `uploader` to process.
+
 ## Running locally
 You can run the trivy plugin against e.g. a KIND cluster by running:
 ```
