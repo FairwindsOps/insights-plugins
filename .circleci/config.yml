@@ -37,6 +37,7 @@ jobs:
     steps:
       - checkout
       - *set_environment_variables
+      - setup_remote_docker
       - *docker_build_and_push_plugins
       - slack/notify-on-failure:
           only_for_branches: master
