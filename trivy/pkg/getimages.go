@@ -85,16 +85,16 @@ func GetImages() ([]Image, error) {
 
 		for len(owners) > 0 {
 			if len(owners) > 1 {
-				logrus.Warn("More than 1 owner found")
+				logrus.Warnf("More than 1 owner found for Namespace: %s Kind: %s Object: %s", owner.Namespace.owner.Kind, owner.Name)
 			}
 			firstOwner := owners[0]
 			owner.Kind = firstOwner.Kind
 			owner.Name = firstOwner.Name
-			fqKind := schema.FromAPIVersionAndKind(firstOwner.APIVersion, firstOwner.Kind)
-			mapping, err := restMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
 			if owner.Kind == "Node" {
 				break
 			}
+			fqKind := schema.FromAPIVersionAndKind(firstOwner.APIVersion, firstOwner.Kind)
+			mapping, err := restMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
 			if err != nil {
 				logrus.Warnf("Error retrieving mapping %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
 				break
