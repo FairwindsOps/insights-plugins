@@ -85,7 +85,7 @@ func GetImages() ([]Image, error) {
 
 		for len(owners) > 0 {
 			if len(owners) > 1 {
-				logrus.Warnf("More than 1 owner found for Namespace: %s Kind: %s Object: %s", owner.Namespace.owner.Kind, owner.Name)
+				logrus.Warnf("More than 1 owner found for Namespace: %s Kind: %s Object: %s", owner.Namespace, owner.Kind, owner.Name)
 			}
 			firstOwner := owners[0]
 			owner.Kind = firstOwner.Kind
