@@ -6,7 +6,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -35,6 +38,19 @@ func GetImages() ([]Image, error) {
 		return nil, err
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(kubeConf)
+	if err != nil {
+		logrus.Errorf("Error creating Dynamic client: %v", err)
+		return nil, err
+	}
+
+	resources, err := restmapper.GetAPIGroupResources(api.Discovery())
+	if err != nil {
+		logrus.Errorf("Error getting API Group resources: %v", err)
+		return nil, err
+	}
+	restMapper := restmapper.NewDiscoveryRESTMapper(resources)
+
 	listOpts := metav1.ListOptions{}
 	pods, err := api.CoreV1().Pods("").List(listOpts)
 
@@ -62,20 +78,36 @@ func GetImages() ([]Image, error) {
 		}
 		owner := Resource{
 			Namespace: pod.ObjectMeta.Namespace,
+			Kind:      "Pod",
+			Name:      pod.ObjectMeta.Name,
 		}
-		if len(pod.ObjectMeta.OwnerReferences) == 1 {
-			ownerInfo := pod.ObjectMeta.OwnerReferences[0]
-			owner.Kind = ownerInfo.Kind
-			owner.Name = ownerInfo.Name
-		} else {
-			owner.Kind = "Pod"
-			owner.Name = pod.ObjectMeta.Name
+		owners := pod.ObjectMeta.OwnerReferences
+
+		for len(owners) > 0 {
+			if len(owners) > 1 {
+				logrus.Warnf("More than 1 owner found for Namespace: %s Kind: %s Object: %s", owner.Namespace, owner.Kind, owner.Name)
+			}
+			firstOwner := owners[0]
+			owner.Kind = firstOwner.Kind
+			owner.Name = firstOwner.Name
+			if owner.Kind == "Node" {
+				break
+			}
+			fqKind := schema.FromAPIVersionAndKind(firstOwner.APIVersion, firstOwner.Kind)
+			mapping, err := restMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
+			if err != nil {
+				logrus.Warnf("Error retrieving mapping %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
+				break
+			}
+			getParents, err := dynamicClient.Resource(mapping.Resource).Namespace(pod.ObjectMeta.Namespace).Get(firstOwner.Name, metav1.GetOptions{})
+			if err != nil {
+				logrus.Warnf("Error retrieving parent object %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
+				break
+			}
+			owners = getParents.GetOwnerReferences()
+
 		}
-		key := owner.Namespace + "/" + owner.Kind + "/" + owner.Name
-		if _, ok := found[key]; ok {
-			continue
-		}
-		found[key] = true
+
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			im := Image{
 				Name:  containerStatus.Image,
@@ -87,6 +119,12 @@ func GetImages() ([]Image, error) {
 				im.PullRef = im.Name
 			}
 			im.Owner.Name += "/" + containerStatus.Name
+			key := im.Owner.Namespace + "/" + im.Owner.Kind + "/" + im.Owner.Name + "/" + im.Name + "/" + im.ID
+			if _, ok := found[key]; ok {
+				continue
+			}
+			found[key] = true
+
 			images = append(images, im)
 		}
 	}
