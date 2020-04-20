@@ -9,7 +9,7 @@ These can be installed with the official [Insights Agent Helm chart](https://git
 
 Each of these plugins retrieves data from a Kubernetes cluster and sends it to Insights for further analysis. Some of these plugins like `trivy` are wrappers around existing Open Source projects. Others like `workload` are self contained. `uploader` is a special case in that it doesn't have any logic in itself, but runs as a sidecar to handle the logic for uploading data to Insights.
 
-**Want to learn more?** Reach out on [the Slack channel](https://fairwindscommunity.slack.com/messages/fairwinds-insights), send an email to `opensource@fairwinds.com`, or join us for [office hours on Zoom](https://fairwindscommunity.slack.com/messages/office-hours)
+**Want to learn more?** Reach out on [the Slack channel](https://fairwindscommunity.slack.com/messages/fairwinds-insights) ([request invite](https://join.slack.com/t/fairwindscommunity/shared_invite/zt-cxss92z7-YjfnJwpUwlviViBFjYV2gg)), send an email to `opensource@fairwinds.com`, or join us for [office hours on Zoom](https://fairwindscommunity.slack.com/messages/office-hours)
 
 
 ## Repository Layout
