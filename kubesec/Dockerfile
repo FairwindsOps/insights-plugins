@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 # Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
 RUN apt-get update && apt-get install -y golang-go curl git jq python python-pip tar && apt-get clean
