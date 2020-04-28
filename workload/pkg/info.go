@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -103,7 +104,7 @@ func formatContainer(container corev1.Container, containerStatus corev1.Containe
 }
 
 // CreateResourceProviderFromAPI creates a new ResourceProvider from an existing k8s interface
-func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string) (*ClusterWorkloadReport, error) {
+func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interface, clusterName string) (*ClusterWorkloadReport, error) {
 	listOpts := metav1.ListOptions{}
 	interfaces := []ControllerResult{}
 	serverVersion, err := kube.Discovery().ServerVersion()
@@ -113,7 +114,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// Deployments
-	deploys, err := kube.AppsV1().Deployments("").List(listOpts)
+	deploys, err := kube.AppsV1().Deployments("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching Deployments %v", err)
 		return nil, err
@@ -129,7 +130,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// Statefulsets
-	statefulSets, err := kube.AppsV1().StatefulSets("").List(listOpts)
+	statefulSets, err := kube.AppsV1().StatefulSets("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching StatefulSets%v", err)
 		return nil, err
@@ -144,7 +145,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// DaemonSets
-	daemonSets, err := kube.AppsV1().DaemonSets("").List(listOpts)
+	daemonSets, err := kube.AppsV1().DaemonSets("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching DaemonSets %v", err)
 		return nil, err
@@ -160,7 +161,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// Jobs
-	jobs, err := kube.BatchV1().Jobs("").List(listOpts)
+	jobs, err := kube.BatchV1().Jobs("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching Jobs %v", err)
 		return nil, err
@@ -176,7 +177,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// CronJobs
-	cronJobs, err := kube.BatchV1beta1().CronJobs("").List(listOpts)
+	cronJobs, err := kube.BatchV1beta1().CronJobs("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching CronJobs %v", err)
 		return nil, err
@@ -192,7 +193,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// ReplicationControllers
-	replicationControllers, err := kube.CoreV1().ReplicationControllers("").List(listOpts)
+	replicationControllers, err := kube.CoreV1().ReplicationControllers("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching ReplicationControllers %v", err)
 		return nil, err
@@ -208,7 +209,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// ReplicaSet
-	replicationSetControllers, err := kube.AppsV1().ReplicaSets("").List(listOpts)
+	replicationSetControllers, err := kube.AppsV1().ReplicaSets("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching ReplicaSets %v", err)
 		return nil, err
@@ -224,7 +225,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// Nodes
-	nodes, err := kube.CoreV1().Nodes().List(listOpts)
+	nodes, err := kube.CoreV1().Nodes().List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching Nodes %v", err)
 		return nil, err
@@ -243,7 +244,7 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 			KubeletVersion:    item.Status.NodeInfo.KubeletVersion,
 			KubeProxyVersion:  item.Status.NodeInfo.KubeProxyVersion,
 		}
-		allocated, utilization, err := GetNodeAllocatedResource(kube, item)
+		allocated, utilization, err := GetNodeAllocatedResource(ctx, kube, item)
 		if err != nil {
 			logrus.Errorf("Error fetching node allocation: %v", err)
 			return nil, err
@@ -255,14 +256,14 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	}
 
 	// Namespaces
-	namespaces, err := kube.CoreV1().Namespaces().List(listOpts)
+	namespaces, err := kube.CoreV1().Namespaces().List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching Namespaces %v", err)
 		return nil, err
 	}
 
 	// Pods
-	pods, err := kube.CoreV1().Pods("").List(listOpts)
+	pods, err := kube.CoreV1().Pods("").List(ctx, listOpts)
 	if err != nil {
 		logrus.Errorf("Error fetching Pods %v", err)
 		return nil, err

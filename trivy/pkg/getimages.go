@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -25,7 +26,8 @@ type Resource struct {
 	Name      string
 }
 
-func GetImages() ([]Image, error) {
+// GetImages returns the images in the current cluster.
+func GetImages(ctx context.Context) ([]Image, error) {
 	kubeConf, configError := ctrl.GetConfig()
 	if configError != nil {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
@@ -52,7 +54,7 @@ func GetImages() ([]Image, error) {
 	restMapper := restmapper.NewDiscoveryRESTMapper(resources)
 
 	listOpts := metav1.ListOptions{}
-	pods, err := api.CoreV1().Pods("").List(listOpts)
+	pods, err := api.CoreV1().Pods("").List(ctx, listOpts)
 
 	if err != nil {
 		logrus.Errorf("Error fetching Kubernetes pods: %v", err)
@@ -99,7 +101,7 @@ func GetImages() ([]Image, error) {
 				logrus.Warnf("Error retrieving mapping %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
 				break
 			}
-			getParents, err := dynamicClient.Resource(mapping.Resource).Namespace(pod.ObjectMeta.Namespace).Get(firstOwner.Name, metav1.GetOptions{})
+			getParents, err := dynamicClient.Resource(mapping.Resource).Namespace(pod.ObjectMeta.Namespace).Get(ctx, firstOwner.Name, metav1.GetOptions{})
 			if err != nil {
 				logrus.Warnf("Error retrieving parent object %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
 				break

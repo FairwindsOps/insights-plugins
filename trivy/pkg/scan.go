@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -77,7 +78,8 @@ func main() {
 	}
 	checkEnvironmentVariables()
 	lastReport := getLastReport()
-	images, err := GetImages()
+	ctx := context.Background()
+	images, err := GetImages(ctx)
 	if err != nil {
 		panic(err)
 	}

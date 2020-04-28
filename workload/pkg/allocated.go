@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,15 +37,15 @@ type NodeUtilization struct {
 	MemoryLimitsFraction float64 `json:"memoryLimitsFraction"`
 }
 
-func GetNodeAllocatedResource(client k8sClient.Interface, node v1.Node) (NodeAllocatedResources, NodeUtilization, error) {
-	pods, err := getNodePods(client, node)
+func GetNodeAllocatedResource(ctx context.Context, client k8sClient.Interface, node v1.Node) (NodeAllocatedResources, NodeUtilization, error) {
+	pods, err := getNodePods(ctx, client, node)
 	if err != nil {
 		return NodeAllocatedResources{}, NodeUtilization{}, err
 	}
 	return getNodeAllocatedResources(node, pods)
 }
 
-func getNodePods(client k8sClient.Interface, node v1.Node) (*v1.PodList, error) {
+func getNodePods(ctx context.Context, client k8sClient.Interface, node v1.Node) (*v1.PodList, error) {
 	fieldSelector, err := fields.ParseSelector("spec.nodeName=" + node.Name +
 		",status.phase!=" + string(v1.PodSucceeded) +
 		",status.phase!=" + string(v1.PodFailed))
@@ -52,7 +54,7 @@ func getNodePods(client k8sClient.Interface, node v1.Node) (*v1.PodList, error) 
 		return nil, err
 	}
 
-	return client.CoreV1().Pods(v1.NamespaceAll).List(metaV1.ListOptions{
+	return client.CoreV1().Pods(v1.NamespaceAll).List(ctx, metaV1.ListOptions{
 		FieldSelector: fieldSelector.String(),
 	})
 }
