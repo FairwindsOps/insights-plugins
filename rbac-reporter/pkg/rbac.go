@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	v1 "k8s.io/api/rbac/v1"
@@ -19,7 +20,7 @@ type RBACReport struct {
 }
 
 // CreateResourceProviderFromAPI creates a new ResourceProvider from an existing k8s interface
-func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string) (*RBACReport, error) {
+func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interface, clusterName string) (*RBACReport, error) {
 	listOpts := metav1.ListOptions{}
 	serverVersion, err := kube.Discovery().ServerVersion()
 
@@ -28,16 +29,16 @@ func CreateResourceProviderFromAPI(kube kubernetes.Interface, clusterName string
 	clusterRoles := []v1.ClusterRole{}
 	clusterRoleBindings := []v1.ClusterRoleBinding{}
 
-	kubeClusterRoleBindings, err := kube.RbacV1().ClusterRoleBindings().List(listOpts)
+	kubeClusterRoleBindings, err := kube.RbacV1().ClusterRoleBindings().List(ctx, listOpts)
 	clusterRoleBindings = kubeClusterRoleBindings.Items
 
-	kubeClusterRoles, err := kube.RbacV1().ClusterRoles().List(listOpts)
+	kubeClusterRoles, err := kube.RbacV1().ClusterRoles().List(ctx, listOpts)
 	clusterRoles = kubeClusterRoles.Items
 
-	kubeRoleBindings, err := kube.RbacV1().RoleBindings("").List(listOpts)
+	kubeRoleBindings, err := kube.RbacV1().RoleBindings("").List(ctx, listOpts)
 	roleBindings = kubeRoleBindings.Items
 
-	kubeRoles, err := kube.RbacV1().Roles("").List(listOpts)
+	kubeRoles, err := kube.RbacV1().Roles("").List(ctx, listOpts)
 	roles = kubeRoles.Items
 
 	rbacReport := RBACReport{

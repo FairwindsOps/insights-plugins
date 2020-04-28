@@ -1,9 +1,11 @@
 FROM ubuntu:20.04
 
-# Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
-RUN apt-get update && apt-get install -y golang-go curl git jq python python-pip tar && apt-get clean
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN pip install yq
+# Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
+RUN apt-get update && apt-get install -y golang-go curl git jq python3 python3-pip tar && apt-get clean
+
+RUN pip3 install yq
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 

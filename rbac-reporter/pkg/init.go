@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -30,7 +31,7 @@ func main() {
 	}
 	logrus.Info("connected to kube")
 
-	resources, err := CreateResourceProviderFromAPI(api, kubeConf.Host)
+	resources, err := CreateResourceProviderFromAPI(context.Background(), api, kubeConf.Host)
 
 	if err != nil {
 		logrus.Fatalf("Error fetching Kubernetes resources %v", err)
