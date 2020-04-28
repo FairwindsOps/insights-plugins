@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	auditOutputFile := flag.String("output-file", "", "Destination file for audit results")
 	flag.Parse()
 
@@ -30,7 +32,7 @@ func main() {
 	}
 	logrus.Info("connected to kube")
 
-	resources, err := CreateResourceProviderFromAPI(api, kubeConf.Host)
+	resources, err := CreateResourceProviderFromAPI(ctx, api, kubeConf.Host)
 
 	if err != nil {
 		logrus.Fatalf("Error fetching Kubernetes resources %v", err)
