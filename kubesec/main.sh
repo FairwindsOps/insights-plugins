@@ -6,7 +6,6 @@ tmp_dir=/output/tmp
 mkdir -p $tmp_dir
 results_file=$tmp_dir/results.json
 list_file=$tmp_dir/list.json
-item_file=$tmp_dir/item.json
 
 echo -e '{\n  "namespaces": {\n' > $results_file
 
@@ -23,7 +22,10 @@ for ns_idx in "${!namespaces[@]}"; do
   do
     count=$(kubectl get $t -n $namespace -o name | wc -l)
     echo "found $count $t for namespace $namespace"
-    kubectl get $t -n $namespace -o json > $list_file
+    kubectl get $t -n $namespace -o json | jq ".items[$ctrl_idx]" | awk "{print > \"$tmp_dir/obj\" NR \".json\";}"
+    sync
+    
+      
     echo -e "      \"$t\": [" >> $results_file
     for ctrl_idx in $(seq 0 $((count-1)))
     do
@@ -33,7 +35,7 @@ for ns_idx in "${!namespaces[@]}"; do
       echo -e '          "name":' ${name}',' >> $results_file
       echo -e '          "namespace": "'${namespace}'",' >> $results_file
       echo -e '          "results": ' >> $results_file
-      cat $list_file | jq ".items[$ctrl_idx]" >> $item_file
+      item_file="$tmp_dir/obj${ctrl_idx}.json"
       kubesec scan $item_file >> $results_file
       if [[ $ctrl_idx -lt $(( count - 1 )) ]]; then
         echo -e '        },' >> $results_file
