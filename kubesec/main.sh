@@ -5,7 +5,6 @@ echo "Starting kubesec"
 tmp_dir=/output/tmp
 mkdir -p $tmp_dir
 results_file=$tmp_dir/results.json
-list_file=$tmp_dir/list.json
 
 echo -e '{\n  "namespaces": {\n' > $results_file
 
@@ -30,12 +29,13 @@ for ns_idx in "${!namespaces[@]}"; do
     for ctrl_idx in $(seq 0 $((count-1)))
     do
       echo "scanning $t number $ctrl_idx"
-      name=$(cat $list_file | jq ".items[$ctrl_idx].metadata.name")
+      item_file="$tmp_dir/obj${ctrl_idx}.json"
+      
+      name=$(cat $item_file | jq ".metadata.name")
       echo -e '        {' >> $results_file
       echo -e '          "name":' ${name}',' >> $results_file
       echo -e '          "namespace": "'${namespace}'",' >> $results_file
       echo -e '          "results": ' >> $results_file
-      item_file="$tmp_dir/obj${ctrl_idx}.json"
       kubesec scan $item_file >> $results_file
       if [[ $ctrl_idx -lt $(( count - 1 )) ]]; then
         echo -e '        },' >> $results_file
