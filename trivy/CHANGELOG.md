@@ -1,3 +1,6 @@
+# 0.6.1
+* Update to Trivy 0.6.0
+
 # 0.6.0
 * Updated to the new version of the Kubernetes API
 
