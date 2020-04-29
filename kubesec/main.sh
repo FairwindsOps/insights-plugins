@@ -34,9 +34,8 @@ for ns_idx in "${!namespaces[@]}"; do
       echo -e '          "namespace": "'${namespace}'",' >> $results_file
       echo -e '          "results": ' >> $results_file
       cat $list_file | jq ".items[$ctrl_idx]" > $item_file
-      set +e
-      kubesec scan $item_file >> $results_file
-      set -e
+      (kubesec scan $item_file >> $results_file) || true
+      
       if [[ $ctrl_idx -lt $(( count - 1 )) ]]; then
         echo -e '        },' >> $results_file
       else
