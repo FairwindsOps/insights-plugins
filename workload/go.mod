@@ -6,7 +6,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975 // indirect
 	golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7 // indirect
 	k8s.io/api v0.18.2
