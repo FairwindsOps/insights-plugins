@@ -5,7 +5,7 @@
 
 This is a repository with plugins for [Insights](https://insights.fairwinds.com).
 
-These can be installed with the official [Insights Agent Helm chart](https://github.com/FairwindsOps/charts/stable/insights-agent)
+These can be installed with the official [Insights Agent Helm chart](https://github.com/FairwindsOps/charts/tree/master/stable/insights-agent)
 
 Each of these plugins retrieves data from a Kubernetes cluster and sends it to Insights for further analysis. Some of these plugins like `trivy` are wrappers around existing Open Source projects. Others like `workload` are self contained. `uploader` is a special case in that it doesn't have any logic in itself, but runs as a sidecar to handle the logic for uploading data to Insights.
 
