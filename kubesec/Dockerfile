@@ -1,9 +1,8 @@
-FROM ubuntu:20.04
-
-ENV DEBIAN_FRONTEND=noninteractive
+FROM alpine:3.11
 
 # Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
-RUN apt-get update && apt-get install -y golang-go curl git jq python3 python3-pip tar && apt-get clean
+RUN apk update && apk upgrade
+RUN apk add curl python3 jq tar go bash
 
 RUN pip3 install yq
 
