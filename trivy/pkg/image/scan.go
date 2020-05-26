@@ -81,7 +81,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageRep
 	return ConvertTrivyResultsToImageReport(images, reportByRef)
 }
 
-func ConvertTrivyResultsToImageReport(images []models.VulnerabilityList, reportByRef map[string][]models.VulnerabilityList) []models.ImageReport {
+func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string][]models.VulnerabilityList) []models.ImageReport {
 	allReports := make([]models.ImageReport, len(images))
 	for idx, image := range images {
 		allReports[idx] = models.ImageReport{
@@ -97,21 +97,25 @@ func ConvertTrivyResultsToImageReport(images []models.VulnerabilityList, reportB
 	return allReports
 }
 
-func ScanImageFile(imagePath string) ([]models.VulnerabilityList, error) {
-	err = util.RunCommand(exec.Command("trivy", "--skip-update", "-d", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imageMessage)
+func ScanImageFile(imagePath string, imageID string) ([]models.VulnerabilityList, error) {
+	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
+	err := util.RunCommand(exec.Command("trivy", "--skip-update", "-d", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imagePath)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		os.Remove(reportFile)
+	}()
 
 	report := []models.VulnerabilityList{}
 	data, err := ioutil.ReadFile(reportFile)
 	if err != nil {
-		logrus.Errorf("Error reading report %s: %s", pullRef, err)
+		logrus.Errorf("Error reading report %s: %s", imageID, err)
 		return nil, err
 	}
 	err = json.Unmarshal(data, &report)
 	if err != nil {
-		logrus.Errorf("Error decoding report %s: %s", pullRef, err)
+		logrus.Errorf("Error decoding report %s: %s", imageID, err)
 		return nil, err
 	}
 
@@ -120,7 +124,7 @@ func ScanImageFile(imagePath string) ([]models.VulnerabilityList, error) {
 
 func downloadAndScanPullRef(pullRef string) ([]models.VulnerabilityList, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
-	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
+
 	imageDir := TempDir
 	imageMessage := fmt.Sprintf("image %s", pullRef)
 
@@ -128,11 +132,10 @@ func downloadAndScanPullRef(pullRef string) ([]models.VulnerabilityList, error) 
 	defer func() {
 		logrus.Info("removing " + imageID)
 		os.Remove(imageDir + imageID)
-		os.Remove(reportFile)
 	}()
 	if err != nil {
 		return nil, err
 	}
-	return ScanImageFile(imageDir + imageID)
+	return ScanImageFile(imageDir+imageID, imageID)
 
 }
