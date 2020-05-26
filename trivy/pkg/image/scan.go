@@ -98,7 +98,7 @@ func ConvertTrivyResultsToImageReport(images []models.VulnerabilityList, reportB
 }
 
 func ScanImageFile(imagePath string) ([]models.VulnerabilityList, error) {
-	err = util.RunCommand(exec.Command("trivy", "--skip-update", "-d", "-f", "json", "-o", reportFile, "--input", imageDir+imageID), "scanning "+imageMessage)
+	err = util.RunCommand(exec.Command("trivy", "--skip-update", "-d", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imageMessage)
 	if err != nil {
 		return nil, err
 	}
