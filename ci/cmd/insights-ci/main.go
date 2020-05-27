@@ -33,6 +33,8 @@ type optionConfig struct {
 	ScoreThreshold       float64 `yaml:"scoreThreshold"`
 	ScoreChangeThreshold float64 `yaml:"scoreChangeThreshold"`
 	TempFolder           string  `yaml:"tempFolder"`
+	Hostname string `yaml:"hostname"`
+	Organization string `yaml:"organization"`
 }
 
 type folderConfig struct {
@@ -202,7 +204,7 @@ func getResultsFromCommand(command string, args ...string) (string, error) {
 	return string(bytes), err
 }
 
-func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string, hostName string, token string) error {
+func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string, configurationObject configuration, token string) error {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
@@ -264,7 +266,7 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		"Authorization":                      "Bearer " + token,
 	}
 
-	url := hostName + "/v0/organizations/acme-co/ci/scan-results"
+	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		return err
