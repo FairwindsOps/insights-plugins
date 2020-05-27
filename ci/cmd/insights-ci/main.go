@@ -74,8 +74,8 @@ func main() {
 
 	// Parse out config
 
-	configFolder := configurationObject.Manifests.FolderName
-	imageFolder := configurationObject.Images.FolderName
+	configFolder := configurationObject.Manifests.FolderName + "/"
+	imageFolder := configurationObject.Images.FolderName + "/"
 	token := os.Getenv("FAIRWINDS_TOKEN")
 	// Scan YAML, find all images/kind/etc
 	images := make([]models.Image, 0)
