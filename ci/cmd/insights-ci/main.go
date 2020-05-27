@@ -22,12 +22,59 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type configuration struct {
+	Images    folderConfig `yaml:"images"`
+	Manifests folderConfig `yaml:"manifests"`
+	Options   optionConfig `yaml:"options"`
+}
+
+type optionConfig struct {
+	Fail                 bool    `yaml:"fail"`
+	ScoreThreshold       float64 `yaml:"scoreThreshold"`
+	ScoreChangeThreshold float64 `yaml:"scoreChangeThreshold"`
+	TempFolder           string  `yaml:"tempFolder"`
+}
+
+type folderConfig struct {
+	FolderName string   `yaml:"folder"`
+	Commands   []string `yaml:"cmd"`
+}
+
 func main() {
-	// TODO Parse out config?
-	const configFolder = "./temp/yaml"
-	const imageFolder = "./temp/images/"
-	const hostName = ""
-	const token = ""
+	const configFile = "./insights-config"
+	configurationObject := configuration{
+		Images: folderConfig{
+			FolderName: "./insights/images",
+		},
+		Manifests: folderConfig{
+			FolderName: "./insights/manifests",
+		},
+		Options: optionConfig{
+			ScoreThreshold:       0.6,
+			ScoreChangeThreshold: 0.4,
+			TempFolder:           "./insights/temp",
+		},
+	}
+	configHandler, err := os.Open(configFile)
+	if err != nil {
+		configContents, err := ioutil.ReadAll(configHandler)
+		if err != nil {
+			panic(err)
+		}
+		err = yaml.Unmarshal(configContents, &configurationObject)
+		if err != nil {
+			panic(err)
+		}
+	} else if !os.IsNotExist(err) {
+		panic(err)
+	}
+
+	// Parse out config
+
+	var configFolder := configurationObject.Manifests.FolderName
+	var imageFolder := configurationObject.Images.FolderName
+	const hostName = os.Getenv("FAIRWINDS_INSIGHTS_HOST")
+	const token = os.Getenv("FAIRWINDS_TOKEN")
 	// Scan YAML, find all images/kind/etc
 	images := make([]models.Image, 0)
 	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
