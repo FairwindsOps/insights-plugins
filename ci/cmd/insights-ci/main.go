@@ -296,6 +296,9 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		logrus.Warn("Unable to Post results to Insights")
 		return err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Invalid status code: %d", resp.StatusCode)
+	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
