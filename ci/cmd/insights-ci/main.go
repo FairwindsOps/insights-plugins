@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -42,6 +43,20 @@ type folderConfig struct {
 	FolderName string   `yaml:"folder"`
 	Commands   []string `yaml:"cmd"`
 }
+
+type scanResults struct {
+	BaselineScore float64
+	Score         float64
+	ActionItems   []actionItem
+}
+
+type actionItem struct {
+	Remediation string
+	Severity    float64
+	Title       string
+}
+
+const scoreOutOfBoundsMessage = "score out of bounds"
 
 func main() {
 	const configFile = "./insights-config"
@@ -192,6 +207,10 @@ func main() {
 
 	err = sendResults(trivyResults, trivyVersion, polarisVersion, configurationObject, token)
 	if err != nil {
+		if err.Error() == scoreOutOfBoundsMessage && !configurationObject.Options.Fail {
+			return
+
+		}
 		panic(err)
 	}
 }
@@ -306,7 +325,16 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		logrus.Warn("Unable to read results")
 		return err
 	}
-	logrus.Info(string(body))
+	var results scanResults
+	err = json.Unmarshal(body, &results)
+	if err != nil {
+		return err
+	}
+	if configurationObject.Options.ScoreThreshold < results.Score || configurationObject.Options.ScoreChangeThreshold < results.BaselineScore-results.Score {
+		logrus.Infof("Score is out of bounds, please fix some Action Items: %v", results.ActionItems)
+		return errors.New(scoreOutOfBoundsMessage)
+	}
+
 	return nil
 }
 
