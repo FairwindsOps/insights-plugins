@@ -182,7 +182,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	trivyVersion = strings.Split(trivyVersion, " ")[1]
+	trivyVersion = strings.Split(strings.Split(trivyVersion, "\n")[0], " ")[1]
 
 	polarisVersion, err := getResultsFromCommand("polaris", "--version")
 	if err != nil {
