@@ -258,7 +258,7 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		return err
 	}
 
-	origin, err := getResultsFromCommand("git", "remove", "get-url", "origin")
+	origin, err := getResultsFromCommand("git", "remote", "get-url", "origin")
 	if err != nil {
 		logrus.Warn("Unable to get GIT Origin")
 		return err
