@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -33,8 +34,8 @@ type optionConfig struct {
 	ScoreThreshold       float64 `yaml:"scoreThreshold"`
 	ScoreChangeThreshold float64 `yaml:"scoreChangeThreshold"`
 	TempFolder           string  `yaml:"tempFolder"`
-	Hostname string `yaml:"hostname"`
-	Organization string `yaml:"organization"`
+	Hostname             string  `yaml:"hostname"`
+	Organization         string  `yaml:"organization"`
 }
 
 type folderConfig struct {
@@ -73,13 +74,12 @@ func main() {
 
 	// Parse out config
 
-	var configFolder := configurationObject.Manifests.FolderName
-	var imageFolder := configurationObject.Images.FolderName
-	const hostName = os.Getenv("FAIRWINDS_INSIGHTS_HOST")
-	const token = os.Getenv("FAIRWINDS_TOKEN")
+	configFolder := configurationObject.Manifests.FolderName
+	imageFolder := configurationObject.Images.FolderName
+	token := os.Getenv("FAIRWINDS_TOKEN")
 	// Scan YAML, find all images/kind/etc
 	images := make([]models.Image, 0)
-	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
 		if strings.HasSuffix(info.Name(), ".yaml") {
 			file, err := os.Open(path)
 			if err != nil {
@@ -190,7 +190,7 @@ func main() {
 	}
 	polarisVersion = strings.Split(polarisVersion, " ")[2]
 
-	err = sendResults(trivyResults, trivyVersion, polarisVersion, hostName, token)
+	err = sendResults(trivyResults, trivyVersion, polarisVersion, configurationObject, token)
 	if err != nil {
 		panic(err)
 	}
