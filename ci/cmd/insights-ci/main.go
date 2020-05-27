@@ -175,7 +175,7 @@ func main() {
 		panic(err)
 	}
 	// Scan with Polaris
-	err = util.RunCommand(exec.Command("polaris", "-audit", "-audit-path", configFolder, "-output-file", "./temp/polaris.json"), "Audit with Polaris")
+	err = util.RunCommand(exec.Command("polaris", "-audit", "-audit-path", configFolder, "-output-file", configurationObject.Options.TempFolder+"/polaris.json"), "Audit with Polaris")
 
 	// Send Results up
 	trivyVersion, err := getResultsFromCommand("trivy", "--version")
@@ -222,7 +222,7 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 	if err != nil {
 		return err
 	}
-	r, err := os.Open("./temp/polaris.json")
+	r, err := os.Open(configurationObject.Options.TempFolder + "/polaris.json")
 	if err != nil {
 		return err
 	}
