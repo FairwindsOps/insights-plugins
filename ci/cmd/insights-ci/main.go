@@ -201,7 +201,7 @@ func getResultsFromCommand(command string, args ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(bytes), err
+	return strings.TrimSpace(string(bytes)), err
 }
 
 func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string, configurationObject configuration, token string) error {
