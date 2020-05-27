@@ -59,7 +59,7 @@ func main() {
 		},
 	}
 	configHandler, err := os.Open(configFile)
-	if err != nil {
+	if err == nil {
 		configContents, err := ioutil.ReadAll(configHandler)
 		if err != nil {
 			panic(err)
