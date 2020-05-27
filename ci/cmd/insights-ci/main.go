@@ -211,25 +211,30 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 	var fw io.Writer
 	fw, err := w.CreateFormFile("trivy", "trivy.json")
 	if err != nil {
+		logrus.Warn("Unable to create form for Trivy")
 		return err
 	}
 	_, err = fw.Write(trivyResults)
 	if err != nil {
+		logrus.Warn("Unable to write contents for Trivy")
 		return err
 	}
 
 	fw, err = w.CreateFormFile("polaris", "polaris.json")
 	if err != nil {
+		logrus.Warn("Unable to create form for Polaris")
 		return err
 	}
 	r, err := os.Open(configurationObject.Options.TempFolder + "/polaris.json")
 	if err != nil {
+		logrus.Warn("Unable to open file for Polaris")
 		return err
 	}
 	defer r.Close()
 	_, err = io.Copy(fw, r)
 
 	if err != nil {
+		logrus.Warn("Unable to write contents for Polaris")
 		return err
 	}
 
@@ -237,21 +242,25 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 
 	masterHash, err := getResultsFromCommand("git", "merge-base", "HEAD", "master")
 	if err != nil {
+		logrus.Warn("Unable to get GIT merge-base")
 		return err
 	}
 
 	currentHash, err := getResultsFromCommand("git", "rev-parse", "HEAD")
 	if err != nil {
+		logrus.Warn("Unable to get GIT Hash")
 		return err
 	}
 
 	branchName, err := getResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
+		logrus.Warn("Unable to get GIT Branch Name")
 		return err
 	}
 
 	origin, err := getResultsFromCommand("git", "remove", "get-url", "origin")
 	if err != nil {
+		logrus.Warn("Unable to get GIT Origin")
 		return err
 	}
 
@@ -269,6 +278,7 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
+		logrus.Warn("Unable to create Request")
 		return err
 	}
 
@@ -283,12 +293,14 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		logrus.Warn("Unable to Post results to Insights")
 		return err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		logrus.Warn("Unable to read results")
 		return err
 	}
 	logrus.Info(body)
