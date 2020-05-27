@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
+	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
@@ -37,6 +39,7 @@ type optionConfig struct {
 	TempFolder           string  `yaml:"tempFolder"`
 	Hostname             string  `yaml:"hostname"`
 	Organization         string  `yaml:"organization"`
+	JUnitOutput          string  `yaml:"junitOutput"`
 }
 
 type folderConfig struct {
@@ -51,9 +54,10 @@ type scanResults struct {
 }
 
 type actionItem struct {
-	Remediation string
-	Severity    float64
-	Title       string
+	Remediation  string
+	Severity     float64
+	Title        string
+	ResourceName string
 }
 
 const scoreOutOfBoundsMessage = "score out of bounds"
@@ -329,6 +333,34 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 	err = json.Unmarshal(body, &results)
 	if err != nil {
 		return err
+	}
+	if configurationObject.Options.JUnitOutput != "" {
+		cases := make([]formatter.JUnitTestCase, 0)
+
+		for _, actionItem := range results.ActionItems {
+			cases = append(cases, formatter.JUnitTestCase{
+				Name: actionItem.ResourceName + ": " + actionItem.Title,
+				Failure: &formatter.JUnitFailure{
+					Message: actionItem.Remediation,
+				},
+			})
+		}
+
+		testSuites := formatter.JUnitTestSuites{
+			Suites: []formatter.JUnitTestSuite{
+				formatter.JUnitTestSuite{
+					Tests:     len(results.ActionItems),
+					TestCases: cases,
+				},
+			},
+		}
+
+		xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
+		if err != nil {
+			return err
+		}
+		xmlBytes = append([]byte(xml.Header), xmlBytes...)
+		ioutil.WriteFile(configurationObject.Options.JUnitOutput, xmlBytes, 0644)
 	}
 	logrus.Infof("Score of %f with a baseline of %f", results.Score, results.BaselineScore)
 	if configurationObject.Options.ScoreThreshold < results.Score || configurationObject.Options.ScoreChangeThreshold < results.BaselineScore-results.Score {
