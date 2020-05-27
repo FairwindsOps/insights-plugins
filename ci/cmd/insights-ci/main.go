@@ -303,7 +303,7 @@ func sendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		logrus.Warn("Unable to read results")
 		return err
 	}
-	logrus.Info(body)
+	logrus.Info(string(body))
 	return nil
 }
 
