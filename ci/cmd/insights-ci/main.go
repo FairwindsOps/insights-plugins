@@ -161,7 +161,7 @@ func main() {
 		panic(err)
 	}
 	reportByRef := funk.Map(images, func(currentImage models.Image) (string, []models.VulnerabilityList) {
-		results, err := image.ScanImageFile(imageFolder+currentImage.PullRef, currentImage.PullRef)
+		results, err := image.ScanImageFile(imageFolder+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder)
 		if err != nil {
 			panic(err)
 		}

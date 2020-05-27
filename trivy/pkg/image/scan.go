@@ -97,8 +97,8 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	return allReports
 }
 
-func ScanImageFile(imagePath string, imageID string) ([]models.VulnerabilityList, error) {
-	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
+func ScanImageFile(imagePath string, imageID string, tempDir string) ([]models.VulnerabilityList, error) {
+	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
 	err := util.RunCommand(exec.Command("trivy", "--skip-update", "-d", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imagePath)
 	if err != nil {
 		return nil, err
@@ -136,6 +136,6 @@ func downloadAndScanPullRef(pullRef string) ([]models.VulnerabilityList, error) 
 	if err != nil {
 		return nil, err
 	}
-	return ScanImageFile(imageDir+imageID, imageID)
+	return ScanImageFile(imageDir+imageID, imageID, TempDir)
 
 }
