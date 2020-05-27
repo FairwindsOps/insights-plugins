@@ -76,7 +76,7 @@ func main() {
 
 	configFolder := configurationObject.Manifests.FolderName + "/"
 	imageFolder := configurationObject.Images.FolderName + "/"
-	token := os.Getenv("FAIRWINDS_TOKEN")
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	// Scan YAML, find all images/kind/etc
 	images := make([]models.Image, 0)
 	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
