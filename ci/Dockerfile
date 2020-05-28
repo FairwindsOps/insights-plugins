@@ -1,5 +1,5 @@
 FROM golang:1.14.3 AS build-env
-WORKDIR /go/src/github.com/fairwindsops/insights-plugins/ci/
+WORKDIR /go/src/github.com/fairwindsops/insights-plugins/
 
 
 ENV GO111MODULE=on
@@ -7,12 +7,13 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
 
-COPY go.mod .
-COPY go.sum .
+COPY ci/go.mod ci/
+COPY ci/go.sum ci/
 RUN go mod download
 
-COPY pkg ./pkg
-COPY cmd ./cmd
+COPY ci/pkg ci/pkg
+COPY ci/cmd ci/cmd
+COPY trivy trivy
 RUN go build ./cmd/insights-ci
 
 RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.6.0/trivy_0.6.0_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
