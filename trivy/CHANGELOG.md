@@ -1,3 +1,6 @@
+# 0.6.2
+* Refactor codebase
+
 # 0.6.1
 * Update to Trivy 0.6.0
 
