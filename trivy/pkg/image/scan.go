@@ -14,11 +14,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TempDir is the directory to use for temporary storage.
 const TempDir = "/output/tmp"
 const retryCount = 3
 
 var nonWordRegexp = regexp.MustCompile("\\W+")
 
+// GetLastReport returns the last report for Trivy from Fairwinds Insights
 func GetLastReport() models.MinimizedReport {
 	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") + "/data/trivy/latest.json"
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -54,6 +56,7 @@ func GetLastReport() models.MinimizedReport {
 
 }
 
+// ScanImages will download the set of images given and scan them with Trivy.
 func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
 	reportByRef := map[string][]models.VulnerabilityList{}
@@ -81,6 +84,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageRep
 	return ConvertTrivyResultsToImageReport(images, reportByRef)
 }
 
+// ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
 func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string][]models.VulnerabilityList) []models.ImageReport {
 	allReports := make([]models.ImageReport, len(images))
 	for idx, image := range images {
@@ -97,6 +101,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	return allReports
 }
 
+// ScanImageFile will scan a single file with Trivy and return the results.
 func ScanImageFile(imagePath string, imageID string, tempDir string) ([]models.VulnerabilityList, error) {
 	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
 	err := util.RunCommand(exec.Command("trivy", "--skip-update", "-d", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imagePath)

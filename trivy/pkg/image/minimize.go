@@ -10,6 +10,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+// Minimize compresses the format of the Trivy report to de-duplicate information about vulnerabilities.
 func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) models.MinimizedReport {
 	outputReport := lastReport
 	timestamp := time.Now()
