@@ -11,10 +11,13 @@ COPY ci/go.mod ci/
 COPY ci/go.sum ci/
 
 COPY trivy trivy
+
+WORKDIR /go/src/github.com/fairwindsops/insights-plugins/ci
+
 RUN go mod download
 
-COPY ci/pkg ci/pkg
-COPY ci/cmd ci/cmd
+COPY ci/pkg pkg
+COPY ci/cmd cmd
 RUN go build ./cmd/insights-ci
 
 RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.6.0/trivy_0.6.0_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
