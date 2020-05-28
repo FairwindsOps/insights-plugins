@@ -29,5 +29,5 @@ COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/ci/insigh
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=build-env /usr/local/bin/polaris /usr/local/bin/polaris
 
-RUN apk add --no-cache skopeo
+RUN apk add --no-cache skopeo git
 
