@@ -271,7 +271,8 @@ func SendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 			cases = append(cases, formatter.JUnitTestCase{
 				Name: actionItem.ResourceName + ": " + actionItem.Title,
 				Failure: &formatter.JUnitFailure{
-					Message: actionItem.Remediation,
+					Message:  actionItem.Remediation,
+					Contents: actionItem.Description,
 				},
 			})
 		}

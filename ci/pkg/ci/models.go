@@ -37,6 +37,7 @@ type actionItem struct {
 	Severity     float64
 	Title        string
 	ResourceName string
+	Description  string
 }
 
 // GetDefaultConfig returns the default set of configuration options
