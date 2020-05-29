@@ -297,7 +297,7 @@ func SendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		}
 	}
 	logrus.Infof("Score of %f with a baseline of %f", results.Score, results.BaselineScore)
-	if configurationObject.Options.ScoreThreshold < results.Score || configurationObject.Options.ScoreChangeThreshold < results.BaselineScore-results.Score {
+	if configurationObject.Options.ScoreThreshold > results.Score || configurationObject.Options.ScoreChangeThreshold < results.BaselineScore-results.Score {
 		logrus.Infof("Score is out of bounds, please fix some Action Items: %v", results.ActionItems)
 		return errors.New(ScoreOutOfBoundsMessage)
 	}
