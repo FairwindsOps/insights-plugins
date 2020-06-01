@@ -1,4 +1,4 @@
-FROM alpine:3.11
+FROM alpine:3.12.0
 
 # Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
 RUN apk update && apk upgrade
