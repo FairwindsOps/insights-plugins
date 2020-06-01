@@ -59,6 +59,7 @@ func main() {
 		if err != nil {
 			return err
 		}
+		matchedImage := false
 		for idx, currentImage := range images {
 			if currentImage.PullRef != "" {
 				continue
@@ -67,9 +68,15 @@ func main() {
 				logrus.Info(tag, currentImage.Name)
 				if tag == currentImage.Name {
 					images[idx].PullRef = info.Name()
+					matchedImage = true
 					break
 				}
 			}
+		}
+		if !matchedImage {
+			images = append(images, models.Image { 
+				PullRef: info.Name()
+			})
 		}
 		return nil
 	})
