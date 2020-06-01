@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
+	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -74,8 +75,8 @@ func main() {
 			}
 		}
 		if !matchedImage {
-			images = append(images, models.Image { 
-				PullRef: info.Name()
+			images = append(images, models.Image{
+				PullRef: info.Name(),
 			})
 		}
 		return nil
