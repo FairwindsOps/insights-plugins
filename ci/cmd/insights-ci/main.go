@@ -43,15 +43,41 @@ func main() {
 	// Parse out config
 
 	configFolder := configurationObject.Manifests.FolderName
-	imageFolder := configurationObject.Images.FolderName
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	// Scan YAML, find all images/kind/etc
 	images, resources, err := ci.GetImagesFromManifest(configFolder)
 	if err != nil {
 		panic(err)
 	}
+
+	// Scan manifests with Polaris
+	polarisReport, err := getPolarisReport(configurationObject)
+	if err != nil {
+		panic(err)
+	}
+	// Send Results up
+	trivyReport, err := getTrivyReport(images, configurationObject)
+	if err != nil {
+		panic(err)
+	}
+
+	err = ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport}, resources, configurationObject, token)
+	if err != nil {
+		if err.Error() == ci.ScoreOutOfBoundsMessage && !configurationObject.Options.Fail {
+			return
+
+		}
+		panic(err)
+	}
+}
+
+func getTrivyReport(images []models.Image, configurationObject ci.Configuration) (ci.ReportInfo, error) {
+	trivyReport := ci.ReportInfo{
+		Report:   "trivy",
+		Filename: "trivy.json",
+	}
 	// Untar images, read manifest.json/RepoTags, match tags to YAML
-	err = filepath.Walk(imageFolder, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(configurationObject.Images.FolderName, func(path string, info os.FileInfo, err error) error {
 		logrus.Info(path)
 		if info.IsDir() {
 			return nil
@@ -82,7 +108,7 @@ func main() {
 		return nil
 	})
 	if err != nil {
-		panic(err)
+		return trivyReport, err
 	}
 
 	// Download missing images
@@ -91,41 +117,24 @@ func main() {
 			continue
 		}
 
-		err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+currentImage.Name, "docker-archive:"+imageFolder+strconv.Itoa(idx)), "pulling "+currentImage.Name)
+		err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+currentImage.Name, "docker-archive:"+configurationObject.Images.FolderName+strconv.Itoa(idx)), "pulling "+currentImage.Name)
 		if err != nil {
-			panic(err)
+			return trivyReport, err
 		}
 		images[idx].PullRef = strconv.Itoa(idx)
 	}
 	// Scan Images with Trivy
 	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(images, configurationObject)
 	if err != nil {
-		panic(err)
+		return trivyReport, err
 	}
 	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/trivy.json", trivyResults, 0644)
 	if err != nil {
-		panic(err)
+		return trivyReport, err
 	}
-	trivyReport := ci.ReportInfo{
-		Report:   "trivy",
-		Filename: "trivy.json",
-		Version:  trivyVersion,
-	}
-	// Scan manifests with Polaris
-	polarisReport, err := getPolarisReport(configurationObject)
-	if err != nil {
-		panic(err)
-	}
-	// Send Results up
 
-	err = ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport}, resources, configurationObject, token)
-	if err != nil {
-		if err.Error() == ci.ScoreOutOfBoundsMessage && !configurationObject.Options.Fail {
-			return
-
-		}
-		panic(err)
-	}
+	trivyReport.Version = trivyVersion
+	return trivyReport, nil
 }
 
 func getPolarisReport(configurationObject ci.Configuration) (ci.ReportInfo, error) {
