@@ -33,8 +33,9 @@ func GetResultsFromCommand(command string, args ...string) (string, error) {
 }
 
 // GetImagesFromManifest scans a folder of yaml files and returns all of the images used.
-func GetImagesFromManifest(configFolder string) ([]models.Image, error) {
+func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, error) {
 	images := make([]models.Image, 0)
+	resources := make([]Resource, 0)
 	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
 		if strings.HasSuffix(info.Name(), ".yaml") {
 			file, err := os.Open(path)
@@ -43,9 +44,11 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, error) {
 			}
 			decoder := yaml.NewDecoder(file)
 			for {
-				yamlNode := make(map[string]interface{})
+				// yaml.Node has access to the comments
+				// This allows us to get at the Filename comments that Helm leaves
+				yamlNodeOriginal := yaml.Node{}
 
-				err = decoder.Decode(&yamlNode)
+				err = decoder.Decode(&yamlNodeOriginal)
 				if err != nil {
 					if err != io.EOF {
 						return err
@@ -53,13 +56,30 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, error) {
 					break
 
 				}
+				yamlNode := map[string]interface{}{}
+				err = yamlNodeOriginal.Decode(&yamlNode)
+				if err != nil {
+					return err
+				}
 				kind := yamlNode["kind"].(string)
 				if kind == "list" {
 					nodes := yamlNode["items"].([]interface{})
 					for _, node := range nodes {
+						resources = append(resources, Resource{
+							Kind:        node.(map[string]interface{})["kind"].(string),
+							Name:        node.(map[string]interface{})["metadata"].(map[string]interface{})["name"].(string),
+							Filename:    info.Name(),
+							FileComment: yamlNodeOriginal.HeadComment,
+						})
 						images = append(images, processYamlNode(node.(map[string]interface{}))...)
 					}
 				} else {
+					resources = append(resources, Resource{
+						Kind:        kind,
+						Name:        yamlNode["metadata"].(map[string]interface{})["name"].(string),
+						Filename:    info.Name(),
+						FileComment: yamlNodeOriginal.HeadComment,
+					})
 					images = append(images, processYamlNode(yamlNode)...)
 				}
 
@@ -68,7 +88,7 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, error) {
 		}
 		return nil
 	})
-	return images, err
+	return images, resources, err
 }
 
 func processYamlNode(yamlNode map[string]interface{}) []models.Image {
@@ -157,40 +177,29 @@ func GetRepoTags(path string) ([]string, error) {
 }
 
 // SendResults sends the results to Insights
-func SendResults(trivyResults []byte, trivyVersion string, polarisVersion string, configurationObject Configuration, token string) error {
+func SendResults(reports []ReportInfo, resources []Resource, configurationObject Configuration, token string) error {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
-	var fw io.Writer
-	fw, err := w.CreateFormFile("trivy", "trivy.json")
-	if err != nil {
-		logrus.Warn("Unable to create form for Trivy")
-		return err
-	}
-	_, err = fw.Write(trivyResults)
-	if err != nil {
-		logrus.Warn("Unable to write contents for Trivy")
-		return err
-	}
+	for _, report := range reports {
+		fw, err := w.CreateFormFile(report.Report, report.Filename)
+		if err != nil {
+			logrus.Warnf("Unable to create form for %s", report.Report)
+			return err
+		}
+		r, err := os.Open(configurationObject.Options.TempFolder + "/" + report.Filename)
+		if err != nil {
+			logrus.Warnf("Unable to open file for %s", report.Report)
+			return err
+		}
+		defer r.Close()
+		_, err = io.Copy(fw, r)
 
-	fw, err = w.CreateFormFile("polaris", "polaris.json")
-	if err != nil {
-		logrus.Warn("Unable to create form for Polaris")
-		return err
+		if err != nil {
+			logrus.Warnf("Unable to write contents for %s", report.Report)
+			return err
+		}
 	}
-	r, err := os.Open(configurationObject.Options.TempFolder + "/polaris.json")
-	if err != nil {
-		logrus.Warn("Unable to open file for Polaris")
-		return err
-	}
-	defer r.Close()
-	_, err = io.Copy(fw, r)
-
-	if err != nil {
-		logrus.Warn("Unable to write contents for Polaris")
-		return err
-	}
-
 	w.Close()
 
 	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", "master")
@@ -217,15 +226,12 @@ func SendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		return err
 	}
 
-	headers := map[string]string{
-		"Content-Type":                       w.FormDataContentType(),
-		"X-Fairwinds-Report-Version-Trivy":   trivyVersion,
-		"X-Fairwinds-Report-Version-Polaris": polarisVersion,
-		"X-Commit-Hash":                      currentHash,
-		"X-Branch-Name":                      branchName,
-		"X-Master-Hash":                      masterHash,
-		"X-Repository-Name":                  origin,
-		"Authorization":                      "Bearer " + token,
+	if strings.LastIndex(origin, "@") > 3 { // git@github.com URLs are allowed
+		logrus.Warn("Detected possible token in Git Origin, stripping git origin.")
+		originSplit := strings.Split(origin, "@")
+		// Take the substring after the last @ to avoid any tokens in an HTTPS URL
+		origin = originSplit[len(originSplit)-1]
+
 	}
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
@@ -235,8 +241,15 @@ func SendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 		return err
 	}
 
-	for k, v := range headers {
-		req.Header.Set(k, v)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("X-Commit-Hash", currentHash)
+	req.Header.Set("X-Branch-Name", branchName)
+	req.Header.Set("X-Master-Hash", masterHash)
+	req.Header.Set("X-Repository-Name", origin)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	for _, report := range reports {
+		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)
 	}
 
 	client := &http.Client{
@@ -264,6 +277,14 @@ func SendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 	if err != nil {
 		return err
 	}
+	for idx, actionItem := range results.ActionItems {
+		for _, resource := range resources {
+			if resource.Kind == actionItem.ResourceKind && resource.Name == actionItem.ResourceName {
+				results.ActionItems[idx].Notes = fmt.Sprintf("Resource was found in file: %s with comment of %s", resource.Filename, resource.FileComment)
+				break
+			}
+		}
+	}
 	if configurationObject.Options.JUnitOutput != "" {
 		cases := make([]formatter.JUnitTestCase, 0)
 
@@ -272,7 +293,7 @@ func SendResults(trivyResults []byte, trivyVersion string, polarisVersion string
 				Name: actionItem.ResourceName + ": " + actionItem.Title,
 				Failure: &formatter.JUnitFailure{
 					Message:  actionItem.Remediation,
-					Contents: actionItem.Description,
+					Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
 				},
 			})
 		}

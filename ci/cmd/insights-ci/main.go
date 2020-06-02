@@ -46,7 +46,7 @@ func main() {
 	imageFolder := configurationObject.Images.FolderName
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	// Scan YAML, find all images/kind/etc
-	images, err := ci.GetImagesFromManifest(configFolder)
+	images, resources, err := ci.GetImagesFromManifest(configFolder)
 	if err != nil {
 		panic(err)
 	}
@@ -102,21 +102,23 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// Scan with Polaris
-	err = util.RunCommand(exec.Command("polaris", "-audit", "-audit-path", configFolder, "-output-file", configurationObject.Options.TempFolder+"/polaris.json"), "Audit with Polaris")
-
+	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/trivy.json", trivyResults, 0644)
+	if err != nil {
+		panic(err)
+	}
+	trivyReport := ci.ReportInfo{
+		Report:   "trivy",
+		Filename: "trivy.json",
+		Version:  trivyVersion,
+	}
+	// Scan manifests with Polaris
+	polarisReport, err := getPolarisReport(configurationObject)
+	if err != nil {
+		panic(err)
+	}
 	// Send Results up
-	if err != nil {
-		panic(err)
-	}
 
-	polarisVersion, err := ci.GetResultsFromCommand("polaris", "--version")
-	if err != nil {
-		panic(err)
-	}
-	polarisVersion = strings.Split(polarisVersion, " ")[2]
-
-	err = ci.SendResults(trivyResults, trivyVersion, polarisVersion, configurationObject, token)
+	err = ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport}, resources, configurationObject, token)
 	if err != nil {
 		if err.Error() == ci.ScoreOutOfBoundsMessage && !configurationObject.Options.Fail {
 			return
@@ -124,4 +126,22 @@ func main() {
 		}
 		panic(err)
 	}
+}
+
+func getPolarisReport(configurationObject ci.Configuration) (ci.ReportInfo, error) {
+	report := ci.ReportInfo{
+		Report:   "polaris",
+		Filename: "polaris.json",
+	}
+	// Scan with Polaris
+	err := util.RunCommand(exec.Command("polaris", "-audit", "-audit-path", configurationObject.Manifests.FolderName, "-output-file", configurationObject.Options.TempFolder+"/polaris.json"), "Audit with Polaris")
+	if err != nil {
+		return report, err
+	}
+	polarisVersion, err := ci.GetResultsFromCommand("polaris", "--version")
+	if err != nil {
+		return report, err
+	}
+	report.Version = strings.Split(polarisVersion, " ")[2]
+	return report, nil
 }

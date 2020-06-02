@@ -25,9 +25,11 @@ RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/0.6.0/pol
 
 FROM alpine:3.11.6
 WORKDIR /insights
-COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/ci/insights-ci ./insights-ci
+COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/ci/insights-ci /usr/local/bin/insights-ci
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=build-env /usr/local/bin/polaris /usr/local/bin/polaris
 
 RUN apk add --no-cache skopeo git
 
+
+CMD ["insights-ci"]

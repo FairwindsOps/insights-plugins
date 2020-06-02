@@ -3,6 +3,21 @@ package ci
 // ScoreOutOfBoundsMessage is the message for the error when the score returned by Insights is out of bounds.
 const ScoreOutOfBoundsMessage = "score out of bounds"
 
+// Resource represents a Kubernetes resource with information about what file it came from.
+type Resource struct {
+	Kind        string
+	Name        string
+	Filename    string
+	FileComment string
+}
+
+// ReportInfo is the information about a run of one of the reports.
+type ReportInfo struct {
+	Report   string
+	Version  string
+	Filename string
+}
+
 // Configuration is a struct representing the config options for Insights CI/CD
 type Configuration struct {
 	Images    folderConfig `yaml:"images"`
@@ -37,7 +52,9 @@ type actionItem struct {
 	Severity     float64
 	Title        string
 	ResourceName string
+	ResourceKind string
 	Description  string
+	Notes        string
 }
 
 // GetDefaultConfig returns the default set of configuration options

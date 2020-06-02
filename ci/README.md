@@ -1,3 +1,21 @@
-# ci
+# CI
 
 A utility for the CI/CD integration of Fairwinds Insights.
+
+Create a configuration file in the root of your project, here's an example.
+
+```
+images:
+  folder: ./temp/images
+manifests:
+  folder: ./temp/manifests
+options:
+  tempFolder: ./temp/insights
+  organization: example-co
+  fail: true  # return a non-zero exit code if the scores returned don't meet the thresholds.
+  junitOutput: ./temp/insights.xml # Output action items as JUnit XML
+  scoreThreshold: 0.6
+  scoreChangeThreshold: 0.4
+```
+
+If you're running Docker locally then you can execute the CI with `docker run -v $PWD:/insights  -e FAIRWINDS_TOKEN=<CI token from Insights> -it quay.io/fairwinds/insights-ci:<tag>` if you set the `junitOutput` setting then you'll need to `docker cp` the resulting file out of the container.
