@@ -2,7 +2,7 @@ FROM alpine:3.12.0
 
 # Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
 RUN apk update && apk upgrade
-RUN apk add curl python3 jq tar go bash
+RUN apk add curl python3 jq tar go bash py3-pip
 
 RUN pip3 install yq
 
