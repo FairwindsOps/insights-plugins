@@ -23,7 +23,7 @@ func maybeAddSlash(input string) string {
 }
 
 func main() {
-	const configFile = "./insights-config"
+	const configFile = "./fairwinds-insights.yaml"
 	configurationObject := ci.GetDefaultConfig()
 	configHandler, err := os.Open(configFile)
 	if err == nil {

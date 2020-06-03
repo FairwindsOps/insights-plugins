@@ -2,7 +2,7 @@
 
 A utility for the CI/CD integration of Fairwinds Insights.
 
-Create a configuration file in the root of your project, here's an example.
+Create a configuration file in the root of your project named `fairwinds-insights.yaml`, here's an example.
 
 ```
 images:
