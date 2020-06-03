@@ -12,7 +12,8 @@ COPY go.sum .
 RUN go mod download
 
 COPY pkg ./pkg
-RUN go build -a -o scan pkg/*.go
+COPY cmd ./cmd
+RUN go build -a -o scan ./cmd/trivy
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 

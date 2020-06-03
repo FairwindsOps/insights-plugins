@@ -1,4 +1,4 @@
-package main
+package image
 
 import (
 	"context"
@@ -12,22 +12,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 )
 
-type Image struct {
-	Name    string
-	ID      string
-	PullRef string
-	Owner   Resource
-}
-type Resource struct {
-	Kind      string
-	Namespace string
-	Name      string
-}
-
 // GetImages returns the images in the current cluster.
-func GetImages(ctx context.Context) ([]Image, error) {
+func GetImages(ctx context.Context) ([]models.Image, error) {
 	kubeConf, configError := ctrl.GetConfig()
 	if configError != nil {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
@@ -65,7 +55,7 @@ func GetImages(ctx context.Context) ([]Image, error) {
 	// to miss certain images. E.g. mid-release, the new pods and the old pods
 	// will exist under the same owner.
 	found := map[string]bool{}
-	images := []Image{}
+	images := []models.Image{}
 	namespaceBlacklist := strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
 	for _, pod := range pods.Items {
 		foundNamespace := false
@@ -78,7 +68,7 @@ func GetImages(ctx context.Context) ([]Image, error) {
 		if foundNamespace {
 			continue
 		}
-		owner := Resource{
+		owner := models.Resource{
 			Namespace: pod.ObjectMeta.Namespace,
 			Kind:      "Pod",
 			Name:      pod.ObjectMeta.Name,
@@ -111,10 +101,10 @@ func GetImages(ctx context.Context) ([]Image, error) {
 		}
 
 		for _, containerStatus := range pod.Status.ContainerStatuses {
-			im := Image{
+			im := models.Image{
 				Name:  containerStatus.Image,
 				ID:    strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://"),
-				Owner: Resource(owner),
+				Owner: models.Resource(owner),
 			}
 			im.PullRef = im.ID
 			if im.PullRef == "" || strings.HasPrefix(im.PullRef, "sha256:") {
