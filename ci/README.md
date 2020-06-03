@@ -4,11 +4,22 @@ A utility for the CI/CD integration of Fairwinds Insights.
 
 Create a configuration file in the root of your project named `fairwinds-insights.yaml`, here's an example.
 
+prod.yaml > <helm comment>
+
 ```
 images:
   folder: ./temp/images
+  docker: # Saves images from Docker.
+  - image1:tag
+  - image2:tag
 manifests:
   folder: ./temp/manifests
+  helm: # Runs a helm template for files to process
+  - name: prod
+    path: ./deploy/test
+    variables: ./deploy/prod
+  yaml:
+  - ./deploy/test.yaml # Processes any files here
 options:
   tempFolder: ./temp/insights
   organization: example-co
