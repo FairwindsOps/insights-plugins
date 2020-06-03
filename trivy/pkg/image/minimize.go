@@ -1,49 +1,17 @@
 // This script minimizes the size of a trivy report by factoring out vulnerability details,
 // so that details for common vulnerabilities are not duplicated for each instance of that
 // vulnerability.
-package main
+package image
 
 import (
 	"time"
 
+	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/thoas/go-funk"
 )
 
-type MinimizedReport struct {
-	Images          []ImageDetailsWithRefs
-	Vulnerabilities map[string]VulnerabilityDetails
-}
-
-type ImageDetailsWithRefs struct {
-	ID        string
-	Name      string
-	OwnerName string
-	OwnerKind string
-	Namespace string
-	LastScan  *time.Time
-	Report    []VulnerabilityRefList
-}
-
-type VulnerabilityRefList struct {
-	Target          string
-	Vulnerabilities []VulnerabilityInstance
-}
-
-type VulnerabilityDetails struct {
-	Title           string
-	Description     string
-	Severity        string
-	VulnerabilityID string
-	References      []string
-}
-
-type VulnerabilityInstance struct {
-	InstalledVersion string
-	PkgName          string
-	VulnerabilityID  string
-}
-
-func minimize(images []ImageReport, lastReport MinimizedReport) MinimizedReport {
+// Minimize compresses the format of the Trivy report to de-duplicate information about vulnerabilities.
+func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) models.MinimizedReport {
 	outputReport := lastReport
 	timestamp := time.Now()
 	vulnerabilityExists := map[string]bool{}
@@ -55,21 +23,21 @@ func minimize(images []ImageReport, lastReport MinimizedReport) MinimizedReport 
 		}
 	}
 	for _, imageDetails := range images {
-		imageDetailsWithRefs := ImageDetailsWithRefs{
+		imageDetailsWithRefs := models.ImageDetailsWithRefs{
 			ID:        imageDetails.ID,
 			Name:      imageDetails.Name,
 			OwnerName: imageDetails.OwnerName,
 			OwnerKind: imageDetails.OwnerKind,
 			Namespace: imageDetails.Namespace,
-			Report:    []VulnerabilityRefList{},
+			Report:    []models.VulnerabilityRefList{},
 			LastScan:  &timestamp,
 		}
 		for _, vulnList := range imageDetails.Report {
-			vulnRefList := VulnerabilityRefList{
+			vulnRefList := models.VulnerabilityRefList{
 				Target: vulnList.Target,
 			}
 			for _, vuln := range vulnList.Vulnerabilities {
-				outputReport.Vulnerabilities[vuln.VulnerabilityID] = VulnerabilityDetails{
+				outputReport.Vulnerabilities[vuln.VulnerabilityID] = models.VulnerabilityDetails{
 					Title:           vuln.Title,
 					Description:     vuln.Description,
 					References:      vuln.References,
@@ -77,7 +45,7 @@ func minimize(images []ImageReport, lastReport MinimizedReport) MinimizedReport 
 					VulnerabilityID: vuln.VulnerabilityID,
 				}
 				vulnerabilityExists[vuln.VulnerabilityID] = true
-				vulnRefList.Vulnerabilities = append(vulnRefList.Vulnerabilities, VulnerabilityInstance{
+				vulnRefList.Vulnerabilities = append(vulnRefList.Vulnerabilities, models.VulnerabilityInstance{
 					InstalledVersion: vuln.InstalledVersion,
 					PkgName:          vuln.PkgName,
 					VulnerabilityID:  vuln.VulnerabilityID,
@@ -85,7 +53,7 @@ func minimize(images []ImageReport, lastReport MinimizedReport) MinimizedReport 
 			}
 			imageDetailsWithRefs.Report = append(imageDetailsWithRefs.Report, vulnRefList)
 		}
-		found := funk.Find(outputReport.Images, func(image ImageDetailsWithRefs) bool {
+		found := funk.Find(outputReport.Images, func(image models.ImageDetailsWithRefs) bool {
 			return image.Namespace == imageDetailsWithRefs.Namespace && image.OwnerKind == imageDetailsWithRefs.OwnerKind && image.OwnerName == imageDetailsWithRefs.OwnerName
 		})
 		if found == nil {
