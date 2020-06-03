@@ -37,55 +37,56 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 	images := make([]models.Image, 0)
 	resources := make([]Resource, 0)
 	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(info.Name(), ".yaml") {
-			file, err := os.Open(path)
+		if !strings.HasSuffix(info.Name(), ".yaml") {
+			return nil
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		decoder := yaml.NewDecoder(file)
+		for {
+			// yaml.Node has access to the comments
+			// This allows us to get at the Filename comments that Helm leaves
+			yamlNodeOriginal := yaml.Node{}
+
+			err = decoder.Decode(&yamlNodeOriginal)
+			if err != nil {
+				if err != io.EOF {
+					return err
+				}
+				break
+
+			}
+			yamlNode := map[string]interface{}{}
+			err = yamlNodeOriginal.Decode(&yamlNode)
 			if err != nil {
 				return err
 			}
-			decoder := yaml.NewDecoder(file)
-			for {
-				// yaml.Node has access to the comments
-				// This allows us to get at the Filename comments that Helm leaves
-				yamlNodeOriginal := yaml.Node{}
-
-				err = decoder.Decode(&yamlNodeOriginal)
-				if err != nil {
-					if err != io.EOF {
-						return err
-					}
-					break
-
-				}
-				yamlNode := map[string]interface{}{}
-				err = yamlNodeOriginal.Decode(&yamlNode)
-				if err != nil {
-					return err
-				}
-				kind := yamlNode["kind"].(string)
-				if kind == "list" {
-					nodes := yamlNode["items"].([]interface{})
-					for _, node := range nodes {
-						resources = append(resources, Resource{
-							Kind:        node.(map[string]interface{})["kind"].(string),
-							Name:        node.(map[string]interface{})["metadata"].(map[string]interface{})["name"].(string),
-							Filename:    info.Name(),
-							FileComment: yamlNodeOriginal.HeadComment,
-						})
-						images = append(images, processYamlNode(node.(map[string]interface{}))...)
-					}
-				} else {
+			kind := yamlNode["kind"].(string)
+			if kind == "list" {
+				nodes := yamlNode["items"].([]interface{})
+				for _, node := range nodes {
 					resources = append(resources, Resource{
-						Kind:        kind,
-						Name:        yamlNode["metadata"].(map[string]interface{})["name"].(string),
+						Kind:        node.(map[string]interface{})["kind"].(string),
+						Name:        node.(map[string]interface{})["metadata"].(map[string]interface{})["name"].(string),
 						Filename:    info.Name(),
 						FileComment: yamlNodeOriginal.HeadComment,
 					})
-					images = append(images, processYamlNode(yamlNode)...)
+					images = append(images, processYamlNode(node.(map[string]interface{}))...)
 				}
-
+			} else {
+				resources = append(resources, Resource{
+					Kind:        kind,
+					Name:        yamlNode["metadata"].(map[string]interface{})["name"].(string),
+					Filename:    info.Name(),
+					FileComment: yamlNodeOriginal.HeadComment,
+				})
+				images = append(images, processYamlNode(yamlNode)...)
 			}
 
 		}
+
 		return nil
 	})
 	return images, resources, err
@@ -177,27 +178,29 @@ func GetRepoTags(path string) ([]string, error) {
 }
 
 // SendResults sends the results to Insights
-func SendResults(reports []ReportInfo, resources []Resource, configurationObject Configuration, token string) error {
+func SendResults(reports []ReportInfo, resources []Resource, configurationObject Configuration, token string) (ScanResults, error) {
 	var b bytes.Buffer
+	var results ScanResults
+
 	w := multipart.NewWriter(&b)
 
 	for _, report := range reports {
 		fw, err := w.CreateFormFile(report.Report, report.Filename)
 		if err != nil {
 			logrus.Warnf("Unable to create form for %s", report.Report)
-			return err
+			return results, err
 		}
 		r, err := os.Open(configurationObject.Options.TempFolder + "/" + report.Filename)
 		if err != nil {
 			logrus.Warnf("Unable to open file for %s", report.Report)
-			return err
+			return results, err
 		}
 		defer r.Close()
 		_, err = io.Copy(fw, r)
 
 		if err != nil {
 			logrus.Warnf("Unable to write contents for %s", report.Report)
-			return err
+			return results, err
 		}
 	}
 	w.Close()
@@ -205,25 +208,25 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", "master")
 	if err != nil {
 		logrus.Warn("Unable to get GIT merge-base")
-		return err
+		return results, err
 	}
 
 	currentHash, err := GetResultsFromCommand("git", "rev-parse", "HEAD")
 	if err != nil {
 		logrus.Warn("Unable to get GIT Hash")
-		return err
+		return results, err
 	}
 
 	branchName, err := GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		logrus.Warn("Unable to get GIT Branch Name")
-		return err
+		return results, err
 	}
 
 	origin, err := GetResultsFromCommand("git", "remote", "get-url", "origin")
 	if err != nil {
 		logrus.Warn("Unable to get GIT Origin")
-		return err
+		return results, err
 	}
 
 	if strings.LastIndex(origin, "@") > 3 { // git@github.com URLs are allowed
@@ -238,7 +241,7 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		logrus.Warn("Unable to create Request")
-		return err
+		return results, err
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -260,23 +263,23 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warn("Unable to Post results to Insights")
-		return err
+		return results, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Invalid status code: %d", resp.StatusCode)
+		return results, fmt.Errorf("Invalid status code: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
-		return err
+		return results, err
 	}
-	var results ScanResults
 	err = json.Unmarshal(body, &results)
 	if err != nil {
-		return err
+		return results, err
 	}
+
 	for idx, actionItem := range results.ActionItems {
 		for _, resource := range resources {
 			if resource.Kind == actionItem.ResourceKind && resource.Name == actionItem.ResourceName {
@@ -285,6 +288,13 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 			}
 		}
 	}
+
+	return results, nil
+}
+
+// SaveJUnitFile will save the
+func SaveJUnitFile(results ScanResults, configurationObject Configuration) error {
+
 	if configurationObject.Options.JUnitOutput != "" {
 		cases := make([]formatter.JUnitTestCase, 0)
 
@@ -317,7 +327,12 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 			return err
 		}
 	}
-	logrus.Infof("Score of %f with a baseline of %f", results.Score, results.BaselineScore)
+
+	return nil
+}
+
+// CheckScore checks if the score meets all of the thresholds.
+func CheckScore(results ScanResults, configurationObject Configuration) error {
 	if configurationObject.Options.ScoreThreshold > results.Score || configurationObject.Options.ScoreChangeThreshold < results.BaselineScore-results.Score {
 		logrus.Infof("Score is out of bounds, please fix some Action Items: %v", results.ActionItems)
 		return errors.New(ScoreOutOfBoundsMessage)

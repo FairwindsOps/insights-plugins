@@ -40,10 +40,10 @@ func main() {
 	}
 	configurationObject.Manifests.FolderName = maybeAddSlash(configurationObject.Manifests.FolderName)
 	configurationObject.Images.FolderName = maybeAddSlash(configurationObject.Images.FolderName)
-	// Parse out config
 
 	configFolder := configurationObject.Manifests.FolderName
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+
 	// Scan YAML, find all images/kind/etc
 	images, resources, err := ci.GetImagesFromManifest(configFolder)
 	if err != nil {
@@ -55,19 +55,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// Send Results up
+
 	trivyReport, err := getTrivyReport(images, configurationObject)
 	if err != nil {
 		panic(err)
 	}
 
-	err = ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport}, resources, configurationObject, token)
+	results, err := ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport}, resources, configurationObject, token)
 	if err != nil {
-		if err.Error() == ci.ScoreOutOfBoundsMessage && !configurationObject.Options.Fail {
-			return
-
-		}
 		panic(err)
+	}
+	logrus.Infof("Score of %f with a baseline of %f", results.Score, results.BaselineScore)
+
+	if configurationObject.Options.JUnitOutput != "" {
+		err = ci.SaveJUnitFile(results, configurationObject)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if configurationObject.Options.Fail {
+		err = ci.CheckScore(results, configurationObject)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -128,7 +138,7 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 	if err != nil {
 		return trivyReport, err
 	}
-	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/trivy.json", trivyResults, 0644)
+	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/"+trivyReport.Filename, trivyResults, 0644)
 	if err != nil {
 		return trivyReport, err
 	}
