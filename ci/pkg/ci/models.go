@@ -33,6 +33,7 @@ type optionConfig struct {
 	Hostname             string  `yaml:"hostname"`
 	Organization         string  `yaml:"organization"`
 	JUnitOutput          string  `yaml:"junitOutput"`
+	RepositoryName       string  `yaml:"repositoryName"`
 }
 
 type folderConfig struct {

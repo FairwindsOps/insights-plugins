@@ -4,8 +4,6 @@ A utility for the CI/CD integration of Fairwinds Insights.
 
 Create a configuration file in the root of your project named `fairwinds-insights.yaml`, here's an example.
 
-prod.yaml > <helm comment>
-
 ```yaml
 images:
   folder: ./temp/images
@@ -27,6 +25,7 @@ options:
   junitOutput: ./temp/insights.xml # Output action items as JUnit XML
   scoreThreshold: 0.6
   scoreChangeThreshold: 0.4
+  repositoryName: FairwindsOps/insights-plugins # Optional, defaults to Git Origin
 ```
 
 If you're running Docker locally then you can execute the CI with `docker run -v $PWD:/insights  -e FAIRWINDS_TOKEN=<CI token from Insights> -it quay.io/fairwinds/insights-ci:<tag>` if you set the `junitOutput` setting then you'll need to `docker cp` the resulting file out of the container.

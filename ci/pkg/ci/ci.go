@@ -228,13 +228,17 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 		logrus.Warn("Unable to get GIT Origin")
 		return results, err
 	}
-
-	if strings.LastIndex(origin, "@") > 3 { // git@github.com URLs are allowed
-		logrus.Warn("Detected possible token in Git Origin, stripping git origin.")
-		originSplit := strings.Split(origin, "@")
-		// Take the substring after the last @ to avoid any tokens in an HTTPS URL
-		origin = originSplit[len(originSplit)-1]
-
+	if configurationObject.Options.RepositoryName != "" {
+		origin = configurationObject.Options.RepositoryName
+	} else {
+		if strings.Contains(origin, "@") { // git@github.com URLs are allowed
+			originSplit := strings.Split(origin, "@")
+			// Take the substring after the last @ to avoid any tokens in an HTTPS URL
+			origin = originSplit[len(originSplit)-1]
+		} else if strings.Contains(origin, "//") {
+			originSplit := strings.Split(origin, "//")
+			origin = originSplit[len(originSplit)-1]
+		}
 	}
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
