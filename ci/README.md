@@ -6,7 +6,7 @@ Create a configuration file in the root of your project named `fairwinds-insight
 
 prod.yaml > <helm comment>
 
-```
+```yaml
 images:
   folder: ./temp/images
   docker: # Saves images from Docker.
