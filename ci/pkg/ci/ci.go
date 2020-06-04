@@ -346,6 +346,7 @@ func CheckScore(results ScanResults, configurationObject Configuration) error {
 	return nil
 }
 
+// ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
 func ProcessHelmTemplates(configurationObject Configuration) error {
 	for _, helmObject := range configurationObject.Manifests.Helm {
 		err := util.RunCommand(exec.Command("helm", "dependency", "update", helmObject.Path), "Updating dependencies for "+helmObject.Name)

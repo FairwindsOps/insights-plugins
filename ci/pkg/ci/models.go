@@ -77,7 +77,7 @@ func GetDefaultConfig() Configuration {
 		Images: folderConfig{
 			FolderName: "./insights/images",
 		},
-		Manifests: folderConfig{
+		Manifests: ManifestConfig{
 			FolderName: "./insights/manifests",
 		},
 		Options: optionConfig{
