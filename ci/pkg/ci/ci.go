@@ -348,11 +348,11 @@ func CheckScore(results ScanResults, configurationObject Configuration) error {
 
 func ProcessHelmTemplates(configurationObject Configuration) error {
 	for _, helmObject := range configurationObject.Manifests.Helm {
-		err := util.RunCommand(exec.Command("helm", "dependency", "update", helmObject.Path))
+		err := util.RunCommand(exec.Command("helm", "dependency", "update", helmObject.Path), "Updating dependencies for "+helmObject.Name)
 		if err != nil {
 			return err
 		}
-		err = util.RunCommand(exec.Command("helm", "template", helmObject.Name, helmObject.Path, "-f", helmObject.VariableFile, "--output-dir", configurationObject.Manifests.FolderName+"/"+helmObject.Name))
+		err = util.RunCommand(exec.Command("helm", "template", helmObject.Name, helmObject.Path, "-f", helmObject.VariableFile, "--output-dir", configurationObject.Manifests.FolderName+"/"+helmObject.Name), "Templating: "+helmObject.Name)
 		if err != nil {
 			return err
 		}
