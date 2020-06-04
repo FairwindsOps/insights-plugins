@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
 	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -343,4 +344,19 @@ func CheckScore(results ScanResults, configurationObject Configuration) error {
 	}
 
 	return nil
+}
+
+func ProcessHelmTemplates(configurationObject Configuration) error {
+	for _, helmObject := range configurationObject.Manifests.Helm {
+		err := util.RunCommand(exec.Command("helm", "dependency", "update", helmObject.Path))
+		if err != nil {
+			return err
+		}
+		err = util.RunCommand(exec.Command("helm", "template", helmObject.Name, helmObject.Path, "-f", helmObject.VariableFile, "--output-dir", configurationObject.Manifests.FolderName+"/"+helmObject.Name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
 }
