@@ -43,8 +43,8 @@ func main() {
 
 	configFolder := configurationObject.Manifests.FolderName
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-	if len(configurationObject.Manifest.Helm) > 0 {
-		err := ProcessHelmTemplates(configurationObject)
+	if len(configurationObject.Manifests.Helm) > 0 {
+		err := ci.ProcessHelmTemplates(configurationObject)
 		if err != nil {
 			panic(err)
 		}
