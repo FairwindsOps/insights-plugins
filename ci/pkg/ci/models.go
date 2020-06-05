@@ -20,9 +20,22 @@ type ReportInfo struct {
 
 // Configuration is a struct representing the config options for Insights CI/CD
 type Configuration struct {
-	Images    folderConfig `yaml:"images"`
-	Manifests folderConfig `yaml:"manifests"`
-	Options   optionConfig `yaml:"options"`
+	Images    folderConfig   `yaml:"images"`
+	Manifests ManifestConfig `yaml:"manifests"`
+	Options   optionConfig   `yaml:"options"`
+}
+
+// ManifestConfig is a struct representing the config options for Manifests
+type ManifestConfig struct {
+	FolderName string       `yaml:"folder"`
+	Helm       []HelmConfig `yaml:"helm"`
+}
+
+// HelmConfig is the configuration for helm.
+type HelmConfig struct {
+	Name         string `yaml:"name"`
+	Path         string `yaml:"path"`
+	VariableFile string `yaml:"variables"`
 }
 
 type optionConfig struct {
@@ -64,7 +77,7 @@ func GetDefaultConfig() Configuration {
 		Images: folderConfig{
 			FolderName: "./insights/images",
 		},
-		Manifests: folderConfig{
+		Manifests: ManifestConfig{
 			FolderName: "./insights/manifests",
 		},
 		Options: optionConfig{
