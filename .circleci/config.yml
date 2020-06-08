@@ -86,12 +86,16 @@ workflows:
       - build_plugins:
           filters:
             branches:
-              only: /pull\/[0-9]+/
+              only: 
+              - /pull\/[0-9]+/
+              - /dependabot\/.*/
       - build_and_push_plugins:
           context: org-global
           filters:
             branches:
-              ignore: /pull\/[0-9]+/
+              ignore: 
+              - /pull\/[0-9]+/
+              - /dependabot\/.*/
       - rok8s-scripts/kubernetes_e2e_tests:
           name: End-To-End Test on Kubernetes
           requires: 
