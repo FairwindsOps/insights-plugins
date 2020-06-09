@@ -11,21 +11,23 @@ images:
   - image1:tag
   - image2:tag
 manifests:
-  folder: ./temp/manifests
   helm: # Runs a helm template for files to process
   - name: prod
     path: ./deploy/test
-    variables: ./deploy/prod
+    variableFile: ./deploy/prod
+    variables:
+      x: y
+      a: b
   yaml:
-  - ./deploy/test.yaml # Processes any files here
+  - ./deploy/test.yaml # Processes any of the files present here.
 options:
   tempFolder: ./temp/insights
   organization: example-co
-  fail: true  # return a non-zero exit code if the scores returned don't meet the thresholds.
+  setExitCode: true  # return a non-zero exit code if the scores returned don't meet the thresholds.
   junitOutput: ./temp/insights.xml # Output action items as JUnit XML
-  scoreThreshold: 0.6
-  scoreChangeThreshold: 0.4
   repositoryName: FairwindsOps/insights-plugins # Optional, defaults to Git Origin
+  newActionItemThreshold: 5
+  severityThreshold: danger # Could also be a number between 0 and 1. Fails if any new action item has a severity above this threshold.
 ```
 
 If you're running Docker locally then you can execute the CI with `docker run -v $PWD:/insights  -e FAIRWINDS_TOKEN=<CI token from Insights> -it quay.io/fairwinds/insights-ci:<tag>` if you set the `junitOutput` setting then you'll need to `docker cp` the resulting file out of the container.

@@ -38,13 +38,23 @@ func main() {
 	} else if !os.IsNotExist(err) {
 		panic(err)
 	}
-	configurationObject.Manifests.FolderName = maybeAddSlash(configurationObject.Manifests.FolderName)
+	configurationObject.Options.TempFolder = maybeAddSlash(configurationObject.Options.TempFolder)
 	configurationObject.Images.FolderName = maybeAddSlash(configurationObject.Images.FolderName)
 
-	configFolder := configurationObject.Manifests.FolderName
+	configFolder := configurationObject.Options.TempFolder + "/configuration/"
+	err = os.Mkdir(configFolder, 0644)
+	if err != nil {
+		panic(err)
+	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if len(configurationObject.Manifests.Helm) > 0 {
-		err := ci.ProcessHelmTemplates(configurationObject)
+		err := ci.ProcessHelmTemplates(configurationObject, configFolder)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if len(configurationObject.Manifests.YamlPaths) > 0 {
+		err := ci.CopyYaml(configurationObject, configFolder)
 		if err != nil {
 			panic(err)
 		}
@@ -56,7 +66,7 @@ func main() {
 	}
 
 	// Scan manifests with Polaris
-	polarisReport, err := getPolarisReport(configurationObject)
+	polarisReport, err := getPolarisReport(configurationObject, configFolder)
 	if err != nil {
 		panic(err)
 	}
@@ -70,7 +80,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	logrus.Infof("Score of %f with a baseline of %f", results.Score, results.BaselineScore)
+	logrus.Infof("New Action Item Count: %f Fixed Action Item Count: %f", len(results.NewActionItems), len(results.FixedActionItems))
 
 	if configurationObject.Options.JUnitOutput != "" {
 		err = ci.SaveJUnitFile(results, configurationObject)
@@ -78,7 +88,7 @@ func main() {
 			panic(err)
 		}
 	}
-	if configurationObject.Options.Fail {
+	if configurationObject.Options.SetExitCode {
 		err = ci.CheckScore(results, configurationObject)
 		if err != nil {
 			panic(err)
@@ -152,13 +162,13 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 	return trivyReport, nil
 }
 
-func getPolarisReport(configurationObject ci.Configuration) (ci.ReportInfo, error) {
+func getPolarisReport(configurationObject ci.Configuration, manifestFolder string) (ci.ReportInfo, error) {
 	report := ci.ReportInfo{
 		Report:   "polaris",
 		Filename: "polaris.json",
 	}
 	// Scan with Polaris
-	err := util.RunCommand(exec.Command("polaris", "-audit", "-audit-path", configurationObject.Manifests.FolderName, "-output-file", configurationObject.Options.TempFolder+"/polaris.json"), "Audit with Polaris")
+	err := util.RunCommand(exec.Command("polaris", "-audit", "-audit-path", manifestFolder, "-output-file", configurationObject.Options.TempFolder+"/"+report.Filename), "Audit with Polaris")
 	if err != nil {
 		return report, err
 	}
