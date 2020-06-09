@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,6 +15,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
+
+const workloadsReportVersion = "0.1.0"
 
 func maybeAddSlash(input string) string {
 	if strings.HasSuffix(input, "/") {
@@ -76,7 +79,12 @@ func main() {
 		panic(err)
 	}
 
-	results, err := ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport}, resources, configurationObject, token)
+	workloadReport, err := getWorkloadReport(resources, configurationObject)
+	if err != nil {
+		panic(err)
+	}
+
+	results, err := ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport, workloadReport}, resources, configurationObject, token)
 	if err != nil {
 		panic(err)
 	}
@@ -160,6 +168,24 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 
 	trivyReport.Version = trivyVersion
 	return trivyReport, nil
+}
+
+func getWorkloadReport(resources []ci.Resource, configurationObject ci.Configuration) (ci.ReportInfo, error) {
+	workloadsReport := ci.ReportInfo{
+		Report:   "scan-workloads",
+		Filename: "scan-workloads.json",
+	}
+	resourceBytes, err := json.Marshal(resources)
+	if err != nil {
+		return workloadsReport, err
+	}
+	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/"+workloadsReport.Filename, resourceBytes, 0644)
+	if err != nil {
+		return workloadsReport, err
+	}
+
+	workloadsReport.Version = workloadsReportVersion
+	return workloadsReport, nil
 }
 
 func getPolarisReport(configurationObject ci.Configuration, manifestFolder string) (ci.ReportInfo, error) {

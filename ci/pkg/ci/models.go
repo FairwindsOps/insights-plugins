@@ -5,10 +5,10 @@ const ScoreOutOfBoundsMessage = "score out of bounds"
 
 // Resource represents a Kubernetes resource with information about what file it came from.
 type Resource struct {
-	Kind        string
-	Name        string
-	Filename    string
-	FileComment string
+	Kind      string
+	Name      string
+	Filename  string
+	Namespace string
 }
 
 // ReportInfo is the information about a run of one of the reports.

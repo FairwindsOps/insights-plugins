@@ -42,6 +42,7 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 		if !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
 		}
+		relativePath, err := filepath.Rel(configFolder, path)
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -66,23 +67,37 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 				return err
 			}
 			kind := yamlNode["kind"].(string)
+			fileName := relativePath
+			if yamlNodeOriginal.HeadComment != "" {
+				fileName = fileName + " > " + yamlNodeOriginal.HeadComment
+			}
 			if kind == "list" {
 				nodes := yamlNode["items"].([]interface{})
 				for _, node := range nodes {
+					metadata := node.(map[string]interface{})["metadata"].(map[string]interface{})
+					namespace := ""
+					if namespaceObj, ok := metadata["namespace"]; ok {
+						namespace = namespaceObj.(string)
+					}
 					resources = append(resources, Resource{
-						Kind:        node.(map[string]interface{})["kind"].(string),
-						Name:        node.(map[string]interface{})["metadata"].(map[string]interface{})["name"].(string),
-						Filename:    info.Name(),
-						FileComment: yamlNodeOriginal.HeadComment,
+						Kind:      node.(map[string]interface{})["kind"].(string),
+						Name:      metadata["name"].(string),
+						Namespace: namespace,
+						Filename:  fileName,
 					})
 					images = append(images, processYamlNode(node.(map[string]interface{}))...)
 				}
 			} else {
+				metadata := yamlNode["metadata"].(map[string]interface{})
+				namespace := ""
+				if namespaceObj, ok := metadata["namespace"]; ok {
+					namespace = namespaceObj.(string)
+				}
 				resources = append(resources, Resource{
-					Kind:        kind,
-					Name:        yamlNode["metadata"].(map[string]interface{})["name"].(string),
-					Filename:    info.Name(),
-					FileComment: yamlNodeOriginal.HeadComment,
+					Kind:      kind,
+					Name:      metadata["name"].(string),
+					Namespace: namespace,
+					Filename:  fileName,
 				})
 				images = append(images, processYamlNode(yamlNode)...)
 			}
@@ -289,7 +304,7 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	for idx, actionItem := range results.NewActionItems {
 		for _, resource := range resources {
 			if resource.Kind == actionItem.ResourceKind && resource.Name == actionItem.ResourceName {
-				results.NewActionItems[idx].Notes = fmt.Sprintf("Resource was found in file: %s with comment of %s", resource.Filename, resource.FileComment)
+				results.NewActionItems[idx].Notes = fmt.Sprintf("Resource was found in file: %s", resource.Filename)
 				break
 			}
 		}
