@@ -175,7 +175,7 @@ func getWorkloadReport(resources []ci.Resource, configurationObject ci.Configura
 		Report:   "scan-workloads",
 		Filename: "scan-workloads.json",
 	}
-	resourceBytes, err := json.Marshal(resources)
+	resourceBytes, err := json.Marshal(map[string]interface{}{"Resources": resources})
 	if err != nil {
 		return workloadsReport, err
 	}
