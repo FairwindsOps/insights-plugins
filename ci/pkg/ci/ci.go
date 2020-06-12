@@ -269,6 +269,7 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	req.Header.Set("X-Commit-Hash", currentHash)
 	req.Header.Set("X-Branch-Name", branchName)
 	req.Header.Set("X-Master-Hash", masterHash)
+	req.Header.Set("X-Base-Branch", configurationObject.Options.BaseBranch)
 	req.Header.Set("X-Repository-Name", origin)
 	req.Header.Set("Authorization", "Bearer "+token)
 

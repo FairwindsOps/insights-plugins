@@ -23,6 +23,7 @@ manifests:
 options:
   tempFolder: ./temp/insights
   organization: example-co
+  baseBranch: master # Branch to compare results against, either a branch name or SELF to compare against the last succesful scan of the current branch.
   setExitCode: true  # return a non-zero exit code if the scores returned don't meet the thresholds.
   junitOutput: ./temp/insights.xml # Output action items as JUnit XML
   repositoryName: FairwindsOps/insights-plugins # Optional, defaults to Git Origin
