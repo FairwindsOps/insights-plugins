@@ -41,6 +41,7 @@ type HelmConfig struct {
 
 type optionConfig struct {
 	SetExitCode            bool   `yaml:"setExitCode"`
+	BaseBranch             string `yaml:"baseBranch"`
 	NewActionItemThreshold int    `yaml:"newActionItemThreshold"`
 	SeverityThreshold      string `yaml:"severityThreshold"`
 	TempFolder             string `yaml:"tempFolder"`
