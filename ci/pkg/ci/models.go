@@ -59,6 +59,7 @@ type imageConfig struct {
 type ScanResults struct {
 	NewActionItems   []actionItem
 	FixedActionItems []actionItem
+	Pass             bool
 }
 
 type actionItem struct {

@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
@@ -271,6 +270,8 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	req.Header.Set("X-Master-Hash", masterHash)
 	req.Header.Set("X-Base-Branch", configurationObject.Options.BaseBranch)
 	req.Header.Set("X-Repository-Name", origin)
+	req.Header.Set("X-New-AI-Threshold", configurationObject.Options.NewActionItemThreshold)
+	req.Header.Set("X-Severity-Threshold", configurationObject.Options.SeverityThreshold)
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	for _, report := range reports {
@@ -359,23 +360,10 @@ func SaveJUnitFile(results ScanResults, configurationObject Configuration) error
 	return nil
 }
 
-func getSeverity(severityString string) float64 {
-	if severityString == "danger" {
-		return 0.66
-	}
-	severity, err := strconv.ParseFloat(severityString, 64)
-	if err != nil {
-		panic(err)
-	}
-	return severity
-}
-
 // CheckScore checks if the score meets all of the thresholds.
 func CheckScore(results ScanResults, configurationObject Configuration) error {
-	if len(results.NewActionItems) > configurationObject.Options.NewActionItemThreshold || funk.MaxFloat64(funk.Map(results.NewActionItems, func(ai actionItem) float64 {
-		return ai.Severity
-	}).([]float64)).(float64) >= getSeverity(configurationObject.Options.SeverityThreshold) {
-		logrus.Infof("Score is out of bounds, please fix some Action Items: %v", results.NewActionItems)
+	if !results.Pass {
+		logrus.Infof("Fairwinds Insights CI check has failed, please fix some Action Items: %v", results.NewActionItems)
 		return errors.New(ScoreOutOfBoundsMessage)
 	}
 
