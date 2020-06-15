@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
@@ -270,7 +271,7 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	req.Header.Set("X-Master-Hash", masterHash)
 	req.Header.Set("X-Base-Branch", configurationObject.Options.BaseBranch)
 	req.Header.Set("X-Repository-Name", origin)
-	req.Header.Set("X-New-AI-Threshold", configurationObject.Options.NewActionItemThreshold)
+	req.Header.Set("X-New-AI-Threshold", strconv.Itoa(configurationObject.Options.NewActionItemThreshold))
 	req.Header.Set("X-Severity-Threshold", configurationObject.Options.SeverityThreshold)
 	req.Header.Set("Authorization", "Bearer "+token)
 
