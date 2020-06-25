@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
@@ -41,6 +42,7 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 		if !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
 		}
+		relativePath, err := filepath.Rel(configFolder, path)
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -65,23 +67,37 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 				return err
 			}
 			kind := yamlNode["kind"].(string)
+			fileName := relativePath
+			if yamlNodeOriginal.HeadComment != "" {
+				fileName = fileName + " > " + yamlNodeOriginal.HeadComment
+			}
 			if kind == "list" {
 				nodes := yamlNode["items"].([]interface{})
 				for _, node := range nodes {
+					metadata := node.(map[string]interface{})["metadata"].(map[string]interface{})
+					namespace := ""
+					if namespaceObj, ok := metadata["namespace"]; ok {
+						namespace = namespaceObj.(string)
+					}
 					resources = append(resources, Resource{
-						Kind:        node.(map[string]interface{})["kind"].(string),
-						Name:        node.(map[string]interface{})["metadata"].(map[string]interface{})["name"].(string),
-						Filename:    info.Name(),
-						FileComment: yamlNodeOriginal.HeadComment,
+						Kind:      node.(map[string]interface{})["kind"].(string),
+						Name:      metadata["name"].(string),
+						Namespace: namespace,
+						Filename:  fileName,
 					})
 					images = append(images, processYamlNode(node.(map[string]interface{}))...)
 				}
 			} else {
+				metadata := yamlNode["metadata"].(map[string]interface{})
+				namespace := ""
+				if namespaceObj, ok := metadata["namespace"]; ok {
+					namespace = namespaceObj.(string)
+				}
 				resources = append(resources, Resource{
-					Kind:        kind,
-					Name:        yamlNode["metadata"].(map[string]interface{})["name"].(string),
-					Filename:    info.Name(),
-					FileComment: yamlNodeOriginal.HeadComment,
+					Kind:      kind,
+					Name:      metadata["name"].(string),
+					Namespace: namespace,
+					Filename:  fileName,
 				})
 				images = append(images, processYamlNode(yamlNode)...)
 			}
@@ -253,7 +269,10 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 	req.Header.Set("X-Commit-Hash", currentHash)
 	req.Header.Set("X-Branch-Name", branchName)
 	req.Header.Set("X-Master-Hash", masterHash)
+	req.Header.Set("X-Base-Branch", configurationObject.Options.BaseBranch)
 	req.Header.Set("X-Repository-Name", origin)
+	req.Header.Set("X-New-AI-Threshold", strconv.Itoa(configurationObject.Options.NewActionItemThreshold))
+	req.Header.Set("X-Severity-Threshold", configurationObject.Options.SeverityThreshold)
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	for _, report := range reports {
@@ -285,10 +304,10 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 		return results, err
 	}
 
-	for idx, actionItem := range results.ActionItems {
+	for idx, actionItem := range results.NewActionItems {
 		for _, resource := range resources {
 			if resource.Kind == actionItem.ResourceKind && resource.Name == actionItem.ResourceName {
-				results.ActionItems[idx].Notes = fmt.Sprintf("Resource was found in file: %s with comment of %s", resource.Filename, resource.FileComment)
+				results.NewActionItems[idx].Notes = fmt.Sprintf("Resource was found in file: %s", resource.Filename)
 				break
 			}
 		}
@@ -303,7 +322,7 @@ func SaveJUnitFile(results ScanResults, configurationObject Configuration) error
 	if configurationObject.Options.JUnitOutput != "" {
 		cases := make([]formatter.JUnitTestCase, 0)
 
-		for _, actionItem := range results.ActionItems {
+		for _, actionItem := range results.NewActionItems {
 			cases = append(cases, formatter.JUnitTestCase{
 				Name: actionItem.ResourceName + ": " + actionItem.Title,
 				Failure: &formatter.JUnitFailure{
@@ -313,10 +332,16 @@ func SaveJUnitFile(results ScanResults, configurationObject Configuration) error
 			})
 		}
 
+		for _, actionItem := range results.FixedActionItems {
+			cases = append(cases, formatter.JUnitTestCase{
+				Name: actionItem.ResourceName + ": " + actionItem.Title,
+			})
+		}
+
 		testSuites := formatter.JUnitTestSuites{
 			Suites: []formatter.JUnitTestSuite{
 				{
-					Tests:     len(results.ActionItems),
+					Tests:     len(results.NewActionItems) + len(results.FixedActionItems),
 					TestCases: cases,
 				},
 			},
@@ -338,8 +363,8 @@ func SaveJUnitFile(results ScanResults, configurationObject Configuration) error
 
 // CheckScore checks if the score meets all of the thresholds.
 func CheckScore(results ScanResults, configurationObject Configuration) error {
-	if configurationObject.Options.ScoreThreshold > results.Score || configurationObject.Options.ScoreChangeThreshold < results.BaselineScore-results.Score {
-		logrus.Infof("Score is out of bounds, please fix some Action Items: %v", results.ActionItems)
+	if !results.Pass {
+		logrus.Infof("Fairwinds Insights CI check has failed, please fix some Action Items: %v", results.NewActionItems)
 		return errors.New(ScoreOutOfBoundsMessage)
 	}
 
@@ -347,17 +372,42 @@ func CheckScore(results ScanResults, configurationObject Configuration) error {
 }
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
-func ProcessHelmTemplates(configurationObject Configuration) error {
+func ProcessHelmTemplates(configurationObject Configuration, configFolder string) error {
 	for _, helmObject := range configurationObject.Manifests.Helm {
 		err := util.RunCommand(exec.Command("helm", "dependency", "update", helmObject.Path), "Updating dependencies for "+helmObject.Name)
 		if err != nil {
 			return err
 		}
-		err = util.RunCommand(exec.Command("helm", "template", helmObject.Name, helmObject.Path, "-f", helmObject.VariableFile, "--output-dir", configurationObject.Manifests.FolderName+"/"+helmObject.Name), "Templating: "+helmObject.Name)
+		params := []string{
+			"template", helmObject.Name,
+			helmObject.Path,
+
+			"--output-dir",
+			configFolder + helmObject.Name,
+		}
+		if helmObject.VariableFile != "" {
+			params = append(params, "-f",
+				helmObject.VariableFile)
+		}
+		for variable, value := range helmObject.Variables {
+			params = append(params, "--set", fmt.Sprintf("%s=%s", variable, value))
+		}
+		err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helmObject.Name)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 
+}
+
+// CopyYaml adds all Yaml found in a given spot into the manifest folder.
+func CopyYaml(configurationObject Configuration, configFolder string) error {
+	for _, path := range configurationObject.Manifests.YamlPaths {
+		err := util.RunCommand(exec.Command("cp", "-r", path, configFolder), "Copying yaml file")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
