@@ -43,7 +43,7 @@ func updateModel() {
 	decoder := json.NewDecoder(strings.NewReader(string(response)))
 	allControls := make([]check.Controls, 0)
 	for {
-		var controls check.Controls
+		var controls []check.Controls
 		err = decoder.Decode(&controls)
 		if err == io.EOF {
 			break
@@ -51,7 +51,7 @@ func updateModel() {
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		allControls = append(allControls, controls)
+		allControls = append(allControls, controls...)
 	}
 	model.Controls = allControls
 	logrus.Info("Data updated.")
