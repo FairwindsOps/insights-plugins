@@ -17,6 +17,8 @@ github.com/aquasecurity/kube-bench v0.2.3 h1:yBVTEN2GksFdMt1aW/72VRksMdMegQo9bGV
 github.com/aquasecurity/kube-bench v0.2.3/go.mod h1:PbX+qnXTTmATU+Mah4zYIJ737shD+aOV/cqb47XRD/Y=
 github.com/aquasecurity/kube-bench v0.3.0 h1:xHOa/Q4DrSLY42HP9BNlrrt5JS+agAY75BwLGpG18iY=
 github.com/aquasecurity/kube-bench v0.3.0/go.mod h1:PbX+qnXTTmATU+Mah4zYIJ737shD+aOV/cqb47XRD/Y=
+github.com/aquasecurity/kube-bench v0.3.1 h1:jAszBC7H7PP1nEK6UsIoAfQ9AKvjlSZ3AproozKbeRY=
+github.com/aquasecurity/kube-bench v0.3.1/go.mod h1:PbX+qnXTTmATU+Mah4zYIJ737shD+aOV/cqb47XRD/Y=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
