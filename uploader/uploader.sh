@@ -71,7 +71,7 @@ do
   attempts=$(( $attempts + 1 ))
   # Every 10 attempts query Kubernetes.
   # This avoids overloading the API servers.
-  if ! (( attempts % 10 )); then
+  if ! $(( $attempts % 10 )); then
     # Check if any container inside this pod failed.
     if kubectl get pod $POD_NAME -o go-template="{{range .status.containerStatuses}}{{.state.terminated.reason}}{{end}}" | grep Error; then
         url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/failure
