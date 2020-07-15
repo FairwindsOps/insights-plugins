@@ -71,7 +71,7 @@ do
   attempts=$(( $attempts + 1 ))
   # Every 10 attempts query Kubernetes.
   # This avoids overloading the API servers.
-  if ! (( attempts % 10 )); then
+  if ! $(( $attempts % 10 )); then
     # Check if any container inside this pod failed.
     if kubectl get pod $POD_NAME -o go-template="{{range .status.containerStatuses}}{{.state.terminated.reason}}{{end}}" | grep Error; then
         url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/failure
@@ -80,6 +80,7 @@ do
         # data-binary to preserve newline characters.
         if [ "$SEND_FAILURES" = "true" ]; then
             kubectl logs $POD_NAME -c $(kubectl get pod $POD_NAME -o jsonpath="{.spec.containers[?(@.name != 'insights-uploader')].name}") | \
+            set +x
             curl -X POST $url \
                 -L \
                 --data-binary @- \
@@ -89,12 +90,14 @@ do
                 -H "X-Fairwinds-Report-Version: ${version}" \
                 -H "X-Fairwinds-Agent-Chart-Version: $FAIRWINDS_AGENT_CHART_VERSION" \
                 --fail
+            set -x
         fi
         exit 1
     fi
   fi
   if [ -f $file ]; then
     url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype
+    set +x
     curl -X POST $url \
       -L \
       -d @$file \
@@ -104,6 +107,7 @@ do
       -H "X-Fairwinds-Report-Version: ${version}" \
       -H "X-Fairwinds-Agent-Chart-Version: $FAIRWINDS_AGENT_CHART_VERSION" \
       --fail
+    set -x
     exit 0
   fi
   sleep 1
