@@ -20,6 +20,7 @@ type ControllerResult struct {
 	Labels      map[string]string
 	UID         string
 	ParentUID   string
+	PodCount    float64
 	Containers  []ContainerResult
 }
 
@@ -70,13 +71,22 @@ type ClusterWorkloadReport struct {
 	Controllers   []ControllerResult
 }
 
-func formatControllers(Kind string, Name string, Namespace string, UID string, ownerReferences []metav1.OwnerReference,
-	Containers []ContainerResult, Annotations map[string]string, Labels map[string]string) ControllerResult {
+func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
 	ownerUID := ""
 	if len(ownerReferences) > 0 {
 		ownerUID = string(ownerReferences[0].UID)
 	}
-	controller := ControllerResult{Kind, Name, Namespace, Annotations, Labels, UID, ownerUID, Containers}
+	return ownerUID
+}
+
+func formatControllers(Kind string, Name string, Namespace string, UID string, ownerReferences []metav1.OwnerReference,
+	Containers []ContainerResult, Annotations map[string]string, Labels map[string]string) ControllerResult {
+	var podCount float64 = 0
+	if Kind == "Pod" {
+		podCount = 1
+	}
+	ownerUID := getOwnerUID(ownerReferences)
+	controller := ControllerResult{Kind, Name, Namespace, Annotations, Labels, UID, ownerUID, podCount, Containers}
 	return controller
 }
 
@@ -160,22 +170,6 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 		interfaces = append(interfaces, daemonSet)
 	}
 
-	// Jobs
-	jobs, err := kube.BatchV1().Jobs("").List(ctx, listOpts)
-	if err != nil {
-		logrus.Errorf("Error fetching Jobs %v", err)
-		return nil, err
-	}
-
-	for _, item := range jobs.Items {
-		var containers []ContainerResult
-		for _, container := range item.Spec.Template.Spec.Containers {
-			containers = append(containers, formatContainer(container, corev1.ContainerStatus{}, item.Spec.Template.GetCreationTimestamp()))
-		}
-		job := formatControllers("Job", item.Name, item.Namespace, string(item.UID), item.GetObjectMeta().GetOwnerReferences(), containers, item.Annotations, item.Labels)
-		interfaces = append(interfaces, job)
-	}
-
 	// CronJobs
 	cronJobs, err := kube.BatchV1beta1().CronJobs("").List(ctx, listOpts)
 	if err != nil {
@@ -224,6 +218,146 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 		interfaces = append(interfaces, replicationController)
 	}
 
+	controllerMap := map[string]*ControllerResult{}
+	for idx := range interfaces {
+		controllerMap[interfaces[idx].UID] = &interfaces[idx]
+	}
+	topController := map[string]bool{}
+	children := map[string][]string{}
+	for _, pointer := range controllerMap {
+		lastParent := pointer
+		for lastParent.ParentUID != "" {
+			newParent := controllerMap[lastParent.ParentUID]
+			if newParent == nil {
+				break
+			}
+			lastParent = newParent
+		}
+		topController[lastParent.UID] = true
+		if pointer.ParentUID != "" {
+			children[lastParent.UID] = append(children[lastParent.UID], pointer.UID)
+		}
+	}
+
+	type jobMetadata struct {
+		startTime time.Time
+		endTime   time.Time
+	}
+	cronChildren := map[string][]jobMetadata{}
+	// Jobs
+	jobs, err := kube.BatchV1().Jobs("").List(ctx, listOpts)
+	if err != nil {
+		logrus.Errorf("Error fetching Jobs %v", err)
+		return nil, err
+	}
+
+	for _, item := range jobs.Items {
+		var containers []ContainerResult
+		if item.Status.Active+item.Status.Failed > 0 {
+			continue
+		}
+		ownerUID := getOwnerUID(item.GetObjectMeta().GetOwnerReferences())
+		if ownerUID != "" {
+			ownerController := controllerMap[ownerUID]
+			if ownerController != nil {
+				if item.Status.StartTime != nil && item.Status.CompletionTime != nil {
+					cronChildren[ownerUID] = append(cronChildren[ownerUID], jobMetadata{
+						startTime: item.Status.StartTime.Time,
+						endTime:   item.Status.CompletionTime.Time,
+					})
+				}
+				continue
+			}
+		}
+		for _, container := range item.Spec.Template.Spec.Containers {
+			containers = append(containers, formatContainer(container, corev1.ContainerStatus{}, item.Spec.Template.GetCreationTimestamp()))
+		}
+		job := formatControllers("Job", item.Name, item.Namespace, string(item.UID), item.GetObjectMeta().GetOwnerReferences(), containers, item.Annotations, item.Labels)
+		interfaces = append(interfaces, job)
+	}
+
+	// Pods
+	pods, err := kube.CoreV1().Pods("").List(ctx, listOpts)
+	if err != nil {
+		logrus.Errorf("Error fetching Pods %v", err)
+		return nil, err
+	}
+
+	for _, item := range pods.Items {
+		var containers []ContainerResult
+		if item.Status.Phase != corev1.PodRunning && item.Status.Phase != corev1.PodPending {
+			continue
+		}
+		for _, container := range item.Spec.Containers {
+			for _, status := range item.Status.ContainerStatuses {
+				if status.Name == container.Name {
+					containers = append(containers, formatContainer(container, status, item.GetObjectMeta().GetCreationTimestamp()))
+					break
+				}
+			}
+		}
+		ownerReferences := item.GetObjectMeta().GetOwnerReferences()
+		ownerUID := getOwnerUID(ownerReferences)
+
+		if ownerUID != "" {
+			ownerController := controllerMap[ownerUID]
+			if ownerController != nil {
+				controllerMap[ownerUID].PodCount++
+				ownerContainers := controllerMap[ownerUID].Containers
+				if len(ownerContainers) == 0 || (len(containers) > 0 && containers[0].CreationTime.After(ownerContainers[0].CreationTime)) {
+					controllerMap[ownerUID].Containers = containers
+				}
+				continue
+			}
+			if ownerReferences[0].Kind == "Job" {
+				continue
+			}
+		}
+		pod := formatControllers("Pod", item.Name, item.Namespace, string(item.UID), ownerReferences, containers, item.Annotations, item.Labels)
+		controllerMap[pod.UID] = &pod
+		topController[pod.UID] = true
+	}
+
+	finalInterfaces := []ControllerResult{}
+	for id := range topController {
+		controller := controllerMap[id]
+		var count float64 = controller.PodCount
+		if controller.Kind != "CronJob" {
+			for _, childID := range children[id] {
+				count += controllerMap[childID].PodCount
+			}
+		} else {
+			// calculate min time
+			// Calculate max time
+			// Calculator avg runtime * count - 1
+			// Divide sum runtime by length of max-min
+			// If 0 jobs then 1 pod
+			// If 1 job then 1 pod
+			children := cronChildren[id]
+			if len(children) > 1 {
+				minTime := children[0].startTime
+				maxTime := children[0].startTime
+				var durationSum float64 = 0
+				for _, timeStamps := range cronChildren[id] {
+					durationSum += timeStamps.endTime.Sub(timeStamps.startTime).Seconds()
+					if timeStamps.startTime.Before(minTime) {
+						minTime = timeStamps.startTime
+					}
+					if timeStamps.startTime.After(maxTime) {
+						maxTime = timeStamps.startTime
+					}
+				}
+				totalTime := maxTime.Sub(minTime).Seconds()
+				durationSum = (durationSum / float64(len(children))) * float64(len(children)-1)
+				count = durationSum / totalTime
+			} else {
+				count = 1
+			}
+		}
+		controller.PodCount = count
+		finalInterfaces = append(finalInterfaces, *controller)
+	}
+
 	// Nodes
 	nodes, err := kube.CoreV1().Nodes().List(ctx, listOpts)
 	if err != nil {
@@ -262,27 +396,6 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 		return nil, err
 	}
 
-	// Pods
-	pods, err := kube.CoreV1().Pods("").List(ctx, listOpts)
-	if err != nil {
-		logrus.Errorf("Error fetching Pods %v", err)
-		return nil, err
-	}
-
-	for _, item := range pods.Items {
-		var containers []ContainerResult
-		for _, container := range item.Spec.Containers {
-			for _, status := range item.Status.ContainerStatuses {
-				if status.Name == container.Name {
-					containers = append(containers, formatContainer(container, status, item.CreationTimestamp))
-					break
-				}
-			}
-		}
-		pod := formatControllers("Pod", item.Name, item.Namespace, string(item.UID), item.GetObjectMeta().GetOwnerReferences(), containers, item.Annotations, item.Labels)
-		interfaces = append(interfaces, pod)
-	}
-
 	clusterWorkloadReport := ClusterWorkloadReport{
 		ServerVersion: serverVersion.Major + "." + serverVersion.Minor,
 		SourceType:    "Cluster",
@@ -290,7 +403,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 		CreationTime:  time.Now(),
 		Nodes:         nodesSummaries,
 		Namespaces:    namespaces.Items,
-		Controllers:   interfaces,
+		Controllers:   finalInterfaces,
 	}
 	return &clusterWorkloadReport, nil
 }
