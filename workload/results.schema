@@ -23,6 +23,9 @@
             "Name": {
               "type": "string"
             },
+            "InternalIP: {
+              "type": "string"
+            }
             "Labels": {
               "type": "object",
               "properties": {

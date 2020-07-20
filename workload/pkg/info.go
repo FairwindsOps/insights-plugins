@@ -47,6 +47,7 @@ type ResourcesInfo struct {
 // NodeSummary gives highlevel overview of node informations
 type NodeSummary struct {
 	Name              string
+	InternalIP        string
 	Labels            map[string]string
 	Annotations       map[string]string
 	CreationTimestamp time.Time
@@ -234,8 +235,16 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 	nodesSummaries := make([]NodeSummary, 0)
 
 	for _, item := range nodes.Items {
+		var internalIP string
+		for _, nodeAddress := range item.Status.Addresses {
+			if nodeAddress.Type == corev1.NodeInternalIP {
+				internalIP = nodeAddress.Address
+			}
+
+		}
 		node := NodeSummary{
 			Name:              item.GetName(),
+			InternalIP:        internalIP,
 			Labels:            item.GetLabels(),
 			Annotations:       item.GetAnnotations(),
 			CreationTimestamp: item.GetCreationTimestamp().UTC(),
