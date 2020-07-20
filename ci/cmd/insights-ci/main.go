@@ -194,14 +194,14 @@ func getPolarisReport(configurationObject ci.Configuration, manifestFolder strin
 		Filename: "polaris.json",
 	}
 	// Scan with Polaris
-	err := util.RunCommand(exec.Command("polaris", "-audit", "-audit-path", manifestFolder, "-output-file", configurationObject.Options.TempFolder+"/"+report.Filename), "Audit with Polaris")
+	err := util.RunCommand(exec.Command("polaris", "audit", "--audit-path", manifestFolder, "--output-file", configurationObject.Options.TempFolder+"/"+report.Filename), "Audit with Polaris")
 	if err != nil {
 		return report, err
 	}
-	polarisVersion, err := ci.GetResultsFromCommand("polaris", "--version")
+	polarisVersion, err := ci.GetResultsFromCommand("polaris", "version")
 	if err != nil {
 		return report, err
 	}
-	report.Version = strings.Split(polarisVersion, " ")[2]
+	report.Version = strings.Split(polarisVersion, ":")[1]
 	return report, nil
 }
