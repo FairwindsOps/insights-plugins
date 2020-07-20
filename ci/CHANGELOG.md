@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+* Updating Polaris version from 0.6 to 1.1
+
 ## 0.2.0
 
 * New config format
