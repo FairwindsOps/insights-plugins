@@ -295,26 +295,10 @@
               "type": "string"
             },
             "Annotations": {
-              "type": "object",
-              "properties": {
-                "deployment.kubernetes.io/revision": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "deployment.kubernetes.io/revision"
-              ]
+              "type": "object"
             },
             "Labels": {
-              "type": "object",
-              "properties": {
-                "k8s-app": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "k8s-app"
-              ]
+              "type": "object"
             },
             "UID": {
               "type": "string"
