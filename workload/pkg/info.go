@@ -273,7 +273,9 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 			containers = append(containers, formatContainer(container, corev1.ContainerStatus{}, item.Spec.Template.GetCreationTimestamp()))
 		}
 		job := formatControllers("Job", item.Name, item.Namespace, string(item.UID), item.GetObjectMeta().GetOwnerReferences(), containers, item.Annotations, item.Labels)
-		interfaces = append(interfaces, job)
+		job.PodCount = float64(item.Status.CompletionTime.Time.Sub(item.Status.StartTime.Time).Seconds()) / float64(time.Now().Sub(item.Status.StartTime.Time).Seconds())
+		controllerMap[job.UID] = &job
+		topController[job.UID] = true
 	}
 
 	// Pods
@@ -302,7 +304,9 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 		if ownerUID != "" {
 			ownerController := controllerMap[ownerUID]
 			if ownerController != nil {
-				controllerMap[ownerUID].PodCount++
+				if ownerReferences[0].Kind != "Job" {
+					controllerMap[ownerUID].PodCount++
+				}
 				ownerContainers := controllerMap[ownerUID].Containers
 				if len(ownerContainers) == 0 || (len(containers) > 0 && containers[0].CreationTime.After(ownerContainers[0].CreationTime)) {
 					controllerMap[ownerUID].Containers = containers
@@ -352,6 +356,9 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 				count = durationSum / totalTime
 			} else {
 				count = 1
+				if len(children) == 1 {
+					count = float64(children[0].endTime.Sub(children[0].startTime).Seconds()) / float64(time.Now().Sub(children[0].startTime).Seconds())
+				}
 			}
 		}
 		controller.PodCount = count
