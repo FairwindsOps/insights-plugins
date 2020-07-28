@@ -14,7 +14,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
 )
 
-var maxConcurrentScans = 5
+var maxConcurrentScans = 10
 var numberToScan = 10
 
 const outputFile = image.TempDir + "/final-report.json"
