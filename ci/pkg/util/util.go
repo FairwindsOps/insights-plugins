@@ -14,7 +14,6 @@ func RunCommand(cmd *exec.Cmd, message string) error {
 		outputString := string(output)
 		logrus.Errorf("Error running %s: %s", cmd, err)
 		fmt.Println(outputString)
-		fmt.Println(err)
 	}
 	return err
 }
