@@ -5,9 +5,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
 )
 
 // ScanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.

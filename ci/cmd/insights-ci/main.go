@@ -11,7 +11,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -88,7 +88,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	logrus.Infof("New Action Item Count: %f Fixed Action Item Count: %f", len(results.NewActionItems), len(results.FixedActionItems))
+	logrus.Infof("New Action Item Count: %d Fixed Action Item Count: %d", len(results.NewActionItems), len(results.FixedActionItems))
 
 	if configurationObject.Options.JUnitOutput != "" {
 		err = ci.SaveJUnitFile(results, configurationObject)

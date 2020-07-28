@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
