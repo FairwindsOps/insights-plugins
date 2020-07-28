@@ -45,6 +45,26 @@ commands:
             docker-push -f $filename
           done
 
+  check_version_changed:
+    description: Check that version.txt changed if folder changed
+    steps:
+    - run:
+        name: Check version.txt
+        command: |
+          for dir in `find . -type d`
+          do
+            if [ -f "$dir/version.txt" ]; then
+              if [ git diff --exit-code origin/master $dir ]; then
+                if [ git diff --exit-code origin/master "$dir/version.txt" ]; then
+                  echo "updated version file"
+                else
+                  echo "Please update $dir/version.txt"
+                  exit 1
+                fi
+              fi
+            fi
+          done
+
 executors:
   docker-build:
     docker:
@@ -72,6 +92,7 @@ jobs:
     steps:
       - checkout
       - set_environment_variables
+      - check_version_changed
       - run: go get -u golang.org/x/lint/golint
       - run: go list ./... | xargs golint -set_exit_status
       - slack/notify-on-failure:
