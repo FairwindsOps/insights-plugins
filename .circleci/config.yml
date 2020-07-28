@@ -54,13 +54,14 @@ commands:
           for dir in `find . -type d`
           do
             if [ -f "$dir/version.txt" ]; then
-              if [ git diff --exit-code origin/master $dir ]; then
-                if [ git diff --exit-code origin/master "$dir/version.txt" ]; then
-                  echo "updated version file"
-                else
-                  echo "Please update $dir/version.txt"
-                  exit 1
-                fi
+              if git diff --exit-code origin/master $dir ; then
+                continue
+              fi
+              if git diff --exit-code origin/master "$dir/version.txt" ; then
+                echo "Please update $dir/version.txt"
+                exit 1
+              else
+                echo "Update to $dir/version.txt found"
               fi
             fi
           done
