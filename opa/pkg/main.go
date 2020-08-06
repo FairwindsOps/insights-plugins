@@ -44,6 +44,7 @@ func main() {
 		panic(err)
 	}
 	restMapper := restmapper.NewDiscoveryRESTMapper(groupResources)
+	// TODO filter by namesapce
 	checkInstances, err := dynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
 
 	if err != nil {
@@ -73,7 +74,8 @@ func main() {
 		}
 		actionItems = append(actionItems, newItems...)
 	}
-	value, err := json.Marshal(actionItems)
+	outputFormat := Output{ActionItems: actionItems}
+	value, err := json.Marshal(outputFormat)
 	if err != nil {
 		panic(err)
 	}
@@ -95,6 +97,7 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 					return nil, err
 				}
 				gvr := mapping.Resource
+				// TODO allow namespace specific checks
 				list, err := dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 				if err != nil {
 					return nil, err

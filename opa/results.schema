@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "ActionItems": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "ResourceNamespace": {
+              "type": "string"
+            },
+            "ResourceKind": {
+              "type": "string"
+            },
+            "ResourceName": {
+              "type": "string"
+            },
+            "Title": {
+              "type": "string"
+            },
+            "Description": {
+              "type": "string"
+            },
+            "Remediation": {
+              "type": "string"
+            },
+            "Severity": {
+              "type": "number"
+            },
+            "Category": {
+              "type": "string"
+            },
+            "ResourceKind": {
+              "type": "string"
+            },
+          },
+          "required": [
+            "ResourceNamespace",
+            "ResourceKind",
+            "ResourceName",
+            "Title",
+            "Description",
+            "Remediation",
+            "Severity",
+            "Category"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "ActionItems"
+  ]
+}

@@ -4,6 +4,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Output is the format for the output file
+type Output struct {
+	ActionItems []ActionItem
+}
+
 // ActionItem represents an action item from a report
 type ActionItem struct {
 	ResourceNamespace string
