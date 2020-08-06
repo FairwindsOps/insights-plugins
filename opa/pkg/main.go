@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 
+	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
+	"github.com/open-policy-agent/opa/types"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -17,6 +20,8 @@ import (
 	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+const outputFile = "/output/opa.json"
 
 func main() {
 	ctx := context.TODO()
@@ -62,16 +67,23 @@ func main() {
 			panic(err)
 		}
 
-		actionItems = append(actionItems, processCheck(ctx, checkObject, checkInstanceObject, restMapper, dynamicInterface)...)
+		newItems, err := processCheck(ctx, checkObject, checkInstanceObject, restMapper, dynamicInterface)
+		if err != nil {
+			panic(err)
+		}
+		actionItems = append(actionItems, newItems...)
 	}
 	value, err := json.Marshal(actionItems)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print(string(value))
+	err = ioutil.WriteFile(outputFile, value, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
 
-func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance, restMapper meta.RESTMapper, dynamicInterface dynamic.Interface) []ActionItem {
+func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance, restMapper meta.RESTMapper, dynamicInterface dynamic.Interface) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 
 	for _, target := range checkInstance.Spec.Targets {
@@ -80,36 +92,75 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 				fmt.Printf("Starting to process %s %s\n\n", apiGroup, kind)
 				mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: kind})
 				if err != nil {
-					panic(err)
+					return nil, err
 				}
 				gvr := mapping.Resource
 				list, err := dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 				if err != nil {
-					panic(err)
-				}
-				query, err := rego.New(
-					rego.Query("results = data"),
-					rego.Module("fairwinds", check.Spec.Rego),
-				).PrepareForEval(ctx)
-				if err != nil {
-					panic(err)
+					return nil, err
 				}
 				for _, obj := range list.Items {
+					query, err := rego.New(
+						rego.Query("results = data"),
+						rego.Module("fairwinds", check.Spec.Rego),
+						rego.Function1(
+							&rego.Function{
+								Name: "kubernetes",
+								Decl: types.NewFunction(types.Args(types.S), types.S),
+							},
+							func(_ rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
+
+								str, ok := a.Value.(ast.String)
+								if !ok {
+									return nil, nil
+								}
+								var apiGroup string
+								for _, target := range check.Spec.AdditionalKubernetesData {
+									if str.String() == target.Kinds[0] {
+										apiGroup = target.ApiGroups[0]
+									}
+								}
+								mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: kind})
+								if err != nil {
+									return nil, err
+								}
+								gvr := mapping.Resource
+								list, err := dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
+								if err != nil {
+									return nil, err
+								}
+								itemValue, err := ast.InterfaceToValue(list.Items)
+								if err != nil {
+									return nil, err
+								}
+								return ast.NewTerm(itemValue), nil
+							}),
+					).PrepareForEval(ctx)
+					if err != nil {
+						return nil, err
+					}
 					obj.Object["parameters"] = checkInstance.Spec.Parameters
+					// TODO Find another way to get parameters in - Should they be a function or input?
+					// TODO Add Additional Kubernetes data - Done, test it out
+					// TODO Caching
 					evaluatedInput := rego.EvalInput(obj.Object)
 					results, err := query.Eval(ctx, evaluatedInput)
 					if err != nil {
-						panic(err)
+						return nil, err
 					}
-					actionItems = append(actionItems, processResults(obj, results, check, checkInstance)...)
+					newItems, err := processResults(obj, results, check, checkInstance)
+					if err != nil {
+						return nil, err
+					}
+					actionItems = append(actionItems, newItems...)
 				}
 			}
 		}
 	}
-	return actionItems
+	return actionItems, nil
 }
 
-func processResults(resource unstructured.Unstructured, results rego.ResultSet, check customCheck, checkInstance customCheckInstance) []ActionItem {
+func processResults(resource unstructured.Unstructured, results rego.ResultSet, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	instanceOutput := checkInstance.Spec.Output
 	checkOutput := check.Spec.Output
@@ -120,6 +171,7 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 					severity := instanceOutput.Severity
 					title := checkOutput.Title
 					remediation := checkOutput.Remediation
+					category := checkOutput.Category
 					if instanceOutput.Severity != nil {
 						severity = instanceOutput.Severity
 					}
@@ -128,6 +180,9 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 					}
 					if instanceOutput.Remediation != nil {
 						remediation = instanceOutput.Remediation
+					}
+					if instanceOutput.Category != nil {
+						category = instanceOutput.Category
 					}
 					strMethod, ok := output.(string)
 					var description string
@@ -140,7 +195,7 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 							if mapMethod["severity"] != nil {
 								severityFloat, err := strconv.ParseFloat(mapMethod["severity"].(string), 64)
 								if err != nil {
-									panic(err)
+									return nil, err
 								}
 								severity = &severityFloat
 							}
@@ -170,8 +225,10 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 						newRemediation := ""
 						remediation = &newRemediation
 					}
-					//TODO add to CRD
-					category := "Efficiency"
+					if category == nil {
+						newCategory := "Reliability"
+						category = &newCategory
+					}
 
 					actionItems = append(actionItems, ActionItem{
 						ResourceNamespace: resource.GetNamespace(),
@@ -181,11 +238,11 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 						Description:       description,
 						Remediation:       *remediation,
 						Severity:          *severity,
-						Category:          category,
+						Category:          *category,
 					})
 				}
 			}
 		}
 	}
-	return actionItems
+	return actionItems, nil
 }

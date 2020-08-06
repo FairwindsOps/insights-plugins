@@ -37,6 +37,7 @@ type outputFormat struct {
 	Title       *string
 	Severity    *float64
 	Remediation *string
+	Category    *string
 }
 
 type customCheck struct {
