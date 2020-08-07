@@ -123,7 +123,7 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 										apiGroup = target.ApiGroups[0]
 									}
 								}
-								mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: kind})
+								mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: str.String()})
 								if err != nil {
 									return nil, err
 								}
