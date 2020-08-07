@@ -142,7 +142,7 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 								if err != nil {
 									return nil, err
 								}
-								items := make([]map[string]interface{}, 0)
+								items := make([]interface{}, 0)
 								for _, item := range list.Items {
 									items = append(items, item.Object)
 								}
