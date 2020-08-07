@@ -117,16 +117,23 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 								if !ok {
 									return nil, nil
 								}
+								strValue := str.String()
+								if len(strValue) > 0 && strValue[0] == '"' {
+									strValue = strValue[1:]
+								}
+								if len(strValue) > 0 && strValue[len(strValue)-1] == '"' {
+									strValue = strValue[:len(strValue)-1]
+								}
 								var apiGroup string
 								for _, target := range check.Spec.AdditionalKubernetesData {
-									fmt.Printf("Checking if %s matches %s", str.String(), target.Kinds[0])
-									if str.String() == target.Kinds[0] {
+									fmt.Printf("Checking if %s matches %s", strValue, target.Kinds[0])
+									if strValue == target.Kinds[0] {
 										fmt.Printf("It does!")
 										apiGroup = target.ApiGroups[0]
 										break
 									}
 								}
-								mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: str.String()})
+								mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: strValue})
 								if err != nil {
 									return nil, err
 								}
