@@ -33,7 +33,7 @@ commands:
             docker-pull -f $filename
             docker-build -f $filename
           done
-    
+
   docker_push_plugins:
     description: Push docker images that were built
     steps:
@@ -93,11 +93,19 @@ jobs:
     steps:
       - checkout
       - set_environment_variables
-      - check_version_changed
       - run: go get -u golang.org/x/lint/golint
       - run: go list ./... | xargs golint -set_exit_status
       - slack/notify-on-failure:
           only_for_branches: master
+
+  check_version_changed:
+    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - set_environment_variables
+      - check_version_changed
 
 
 workflows:
@@ -105,22 +113,29 @@ workflows:
   release:
     jobs:
       - test
+      - check_version_changed:
+          filters:
+            branches:
+              ignore:
+              - /dependabot\/.*/
       - build_plugins:
           filters:
             branches:
-              only: 
+              only:
               - /pull\/[0-9]+/
               - /dependabot\/.*/
       - build_and_push_plugins:
           context: org-global
+          requires:
+            - check_version_changed
           filters:
             branches:
-              ignore: 
+              ignore:
               - /pull\/[0-9]+/
               - /dependabot\/.*/
       - rok8s-scripts/kubernetes_e2e_tests:
           name: End-To-End Test on Kubernetes
-          requires: 
+          requires:
             - build_and_push_plugins
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
