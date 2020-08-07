@@ -124,4 +124,5 @@ func (c Configuration) CheckForErrors() error {
 	if c.Options.Organization == "" {
 		return errors.New("options.organization not set")
 	}
+	return nil
 }
