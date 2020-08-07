@@ -1,5 +1,10 @@
 package ci
 
+import (
+	"errors"
+	"strings"
+)
+
 // ScoreOutOfBoundsMessage is the message for the error when the score returned by Insights is out of bounds.
 const ScoreOutOfBoundsMessage = "score out of bounds"
 
@@ -85,5 +90,38 @@ func GetDefaultConfig() Configuration {
 			SeverityThreshold:      "danger",
 			TempFolder:             "./insights/temp",
 		},
+	}
+}
+
+func maybeAddSlash(input string) string {
+	if strings.HasSuffix(input, "/") {
+		return input
+	}
+	return input + "/"
+}
+
+func (c *Configuration) SetDefaults() {
+	if c.Options.TempFolder == "" {
+		c.Options.TempFolder = "./_insightsTemp/"
+	}
+	if c.Images.FolderName == "" {
+		c.Images.FolderName = "./_insightsTempImages/"
+	}
+	if c.Options.BaseBranch == "" {
+		c.Options.BaseBranch = "master"
+	}
+	if c.Options.Hostname == "" {
+		c.Options.Hostname = "https://insights.fairwinds.com"
+	}
+	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
+	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
+}
+
+func (c Configuration) CheckForErrors() error {
+	if c.Options.RepositoryName == "" {
+		return errors.New("options.repositoryName not set")
+	}
+	if c.Options.Organization == "" {
+		return errors.New("options.organization not set")
 	}
 }
