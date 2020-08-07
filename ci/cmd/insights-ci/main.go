@@ -19,13 +19,6 @@ import (
 
 const workloadsReportVersion = "0.1.0"
 
-func maybeAddSlash(input string) string {
-	if strings.HasSuffix(input, "/") {
-		return input
-	}
-	return input + "/"
-}
-
 func exitWithError(message string, err error) {
 	if err != nil {
 		logrus.Fatalf("%s: %s", message, err.Error)
@@ -36,7 +29,7 @@ func exitWithError(message string, err error) {
 
 func main() {
 	const configFile = "./fairwinds-insights.yaml"
-	configurationObject := ci.GetDefaultConfig()
+	configurationObject := ci.Configuration{}
 	configHandler, err := os.Open(configFile)
 	if err == nil {
 		configContents, err := ioutil.ReadAll(configHandler)
@@ -52,15 +45,23 @@ func main() {
 	} else {
 		exitWithError("Please add fairwinds-insights.yaml to the base of your repository.", nil)
 	}
-	configurationObject.Options.TempFolder = maybeAddSlash(configurationObject.Options.TempFolder)
-	configurationObject.Images.FolderName = maybeAddSlash(configurationObject.Images.FolderName)
+	configurationObject.SetDefaults()
+	err = configurationObject.CheckForErrors()
+	if err != nil {
+		exitWithError("Error parsing fairwinds-insights.yaml", err)
+	}
 
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
 	err = os.Mkdir(configFolder, 0644)
 	if err != nil {
 		exitWithError("Could not make directory "+configFolder, nil)
 	}
+
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
+	}
+
 	if len(configurationObject.Manifests.Helm) > 0 {
 		err := ci.ProcessHelmTemplates(configurationObject, configFolder)
 		if err != nil {
@@ -73,6 +74,7 @@ func main() {
 			exitWithError("Error while copying YAML files", err)
 		}
 	}
+
 	// Scan YAML, find all images/kind/etc
 	images, resources, err := ci.GetImagesFromManifest(configFolder)
 	if err != nil {
