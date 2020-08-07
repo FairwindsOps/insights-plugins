@@ -39,10 +39,10 @@ type ManifestConfig struct {
 
 // HelmConfig is the configuration for helm.
 type HelmConfig struct {
-	Name         string            `yaml:"name"`
-	Path         string            `yaml:"path"`
-	VariableFile string            `yaml:"variableFile"`
-	Variables    map[string]string `yaml:"variables"`
+	Name       string                 `yaml:"name"`
+	Path       string                 `yaml:"path"`
+	ValuesFile string                 `yaml:"valuesFile"`
+	Values     map[string]interface{} `yaml:"values"`
 }
 
 type optionConfig struct {
