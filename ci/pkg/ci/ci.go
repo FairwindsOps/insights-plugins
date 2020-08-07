@@ -17,8 +17,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
+	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -317,45 +317,47 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 }
 
 // SaveJUnitFile will save the
-func SaveJUnitFile(results ScanResults, configurationObject Configuration) error {
+func SaveJUnitFile(results ScanResults, filename string) error {
+	cases := make([]formatter.JUnitTestCase, 0)
 
-	if configurationObject.Options.JUnitOutput != "" {
-		cases := make([]formatter.JUnitTestCase, 0)
-
-		for _, actionItem := range results.NewActionItems {
-			cases = append(cases, formatter.JUnitTestCase{
-				Name: actionItem.ResourceName + ": " + actionItem.Title,
-				Failure: &formatter.JUnitFailure{
-					Message:  actionItem.Remediation,
-					Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
-				},
-			})
-		}
-
-		for _, actionItem := range results.FixedActionItems {
-			cases = append(cases, formatter.JUnitTestCase{
-				Name: actionItem.ResourceName + ": " + actionItem.Title,
-			})
-		}
-
-		testSuites := formatter.JUnitTestSuites{
-			Suites: []formatter.JUnitTestSuite{
-				{
-					Tests:     len(results.NewActionItems) + len(results.FixedActionItems),
-					TestCases: cases,
-				},
+	for _, actionItem := range results.NewActionItems {
+		cases = append(cases, formatter.JUnitTestCase{
+			Name: actionItem.ResourceName + ": " + actionItem.Title,
+			Failure: &formatter.JUnitFailure{
+				Message:  actionItem.Remediation,
+				Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
 			},
-		}
+		})
+	}
 
-		xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
-		if err != nil {
-			return err
-		}
-		xmlBytes = append([]byte(xml.Header), xmlBytes...)
-		err = ioutil.WriteFile(configurationObject.Options.JUnitOutput, xmlBytes, 0644)
-		if err != nil {
-			return err
-		}
+	for _, actionItem := range results.FixedActionItems {
+		cases = append(cases, formatter.JUnitTestCase{
+			Name: actionItem.ResourceName + ": " + actionItem.Title,
+		})
+	}
+
+	testSuites := formatter.JUnitTestSuites{
+		Suites: []formatter.JUnitTestSuite{
+			{
+				Tests:     len(results.NewActionItems) + len(results.FixedActionItems),
+				TestCases: cases,
+			},
+		},
+	}
+
+	err := os.MkdirAll(filepath.Dir(filename), 0644)
+	if err != nil {
+		return err
+	}
+
+	xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
+	if err != nil {
+		return err
+	}
+	xmlBytes = append([]byte(xml.Header), xmlBytes...)
+	err = ioutil.WriteFile(filename, xmlBytes, 0644)
+	if err != nil {
+		return err
 	}
 
 	return nil

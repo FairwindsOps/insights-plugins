@@ -52,7 +52,7 @@ func main() {
 	}
 
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
-	err = os.Mkdir(configFolder, 0644)
+	err = os.MkdirAll(configFolder, 0644)
 	if err != nil {
 		exitWithError("Could not make directory "+configFolder, nil)
 	}
@@ -104,7 +104,7 @@ func main() {
 	logrus.Infof("New Action Item Count: %d Fixed Action Item Count: %d", len(results.NewActionItems), len(results.FixedActionItems))
 
 	if configurationObject.Options.JUnitOutput != "" {
-		err = ci.SaveJUnitFile(results, configurationObject)
+		err = ci.SaveJUnitFile(results, configurationObject.Options.JUnitOutput)
 		if err != nil {
 			exitWithError("Could not save jUnit results", nil)
 		}
