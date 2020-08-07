@@ -79,21 +79,6 @@ type actionItem struct {
 	Notes        string
 }
 
-// GetDefaultConfig returns the default set of configuration options
-func GetDefaultConfig() Configuration {
-	return Configuration{
-		Images: imageConfig{
-			FolderName: "./insights/images",
-		},
-		Manifests: ManifestConfig{},
-		Options: optionConfig{
-			NewActionItemThreshold: 5,
-			SeverityThreshold:      "danger",
-			TempFolder:             "./insights/temp",
-		},
-	}
-}
-
 func maybeAddSlash(input string) string {
 	if strings.HasSuffix(input, "/") {
 		return input
@@ -101,6 +86,7 @@ func maybeAddSlash(input string) string {
 	return input + "/"
 }
 
+// SetDefaults sets configurationd defaults
 func (c *Configuration) SetDefaults() {
 	if c.Options.TempFolder == "" {
 		c.Options.TempFolder = "./_insightsTemp/"
@@ -117,10 +103,14 @@ func (c *Configuration) SetDefaults() {
 	if c.Options.RepositoryName == "" {
 		c.Options.RepositoryName = os.Getenv("ORIGIN_REPO")
 	}
+	if c.Options.SeverityThreshold == "" {
+		c.Options.SeverityThreshold = "danger"
+	}
 	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
 }
 
+// CheckForErrors checks to make sure the configuration is valid
 func (c Configuration) CheckForErrors() error {
 	if c.Options.RepositoryName == "" {
 		return errors.New("options.repositoryName not set")
