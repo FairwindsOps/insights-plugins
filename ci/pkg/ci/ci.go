@@ -383,17 +383,20 @@ func ProcessHelmTemplates(configurationObject Configuration, configFolder string
 		params := []string{
 			"template", helmObject.Name,
 			helmObject.Path,
-
 			"--output-dir",
 			configFolder + helmObject.Name,
 		}
-		if helmObject.VariableFile != "" {
-			params = append(params, "-f",
-				helmObject.VariableFile)
+		valuesFile := helmObject.ValuesFile
+		if valuesFile == "" {
+			valuesFile = configurationObject.Options.TempFolder + "helmValues.yaml"
+			yaml, err := yaml.Marshal(helmObject.Values)
+			if err != nil {
+				return err
+			}
+			err = ioutil.WriteFile(valuesFile, yaml, 0644)
 		}
-		for variable, value := range helmObject.Variables {
-			params = append(params, "--set", fmt.Sprintf("%s=%s", variable, value))
-		}
+		params = append(params, "-f", helmObject.ValuesFile)
+
 		err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helmObject.Name)
 		if err != nil {
 			return err
