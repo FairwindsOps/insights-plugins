@@ -2,33 +2,32 @@
 
 A utility for the CI/CD integration of Fairwinds Insights.
 
-Create a configuration file in the root of your project named `fairwinds-insights.yaml`, here's an example.
+Create a configuration file in the root of your project named `fairwinds-insights.yaml`.
 
+Here's a minimal example:
+> Be sure to replace `acme-co` with your Insights organization!
 ```yaml
+options:
+  setExitCode: true
+  organization: acme-co
+
 images:
-  folder: ./temp/images
-  docker: # Saves images from Docker.
-  - image1:tag
-  - image2:tag
+  docker:
+  - nginx:1.18-alpine
+
 manifests:
-  helm: # Runs a helm template for files to process
+  yaml:
+  - ./deploy/test.yaml
+  helm:
   - name: prod
-    path: ./deploy/test
+    path: ./deploy/chart
     variableFile: ./deploy/prod
+  - name: staging
+    path: ./deploy/chart
     variables:
       x: y
       a: b
-  yaml:
-  - ./deploy/test.yaml # Processes any of the files present here.
-options:
-  tempFolder: ./temp/insights
-  organization: example-co
-  baseBranch: master # Branch to compare results against, either a branch name or SELF to compare against the last succesful scan of the current branch.
-  setExitCode: true  # return a non-zero exit code if the scores returned don't meet the thresholds.
-  junitOutput: ./temp/insights.xml # Output action items as JUnit XML
-  repositoryName: FairwindsOps/insights-plugins # Optional, defaults to Git Origin
-  newActionItemThreshold: 5
-  severityThreshold: danger # Could also be a number between 0 and 1. Fails if any new action item has a severity above this threshold.
 ```
 
-If you're running Docker locally then you can execute the CI with `docker run -v $PWD:/insights  -e FAIRWINDS_TOKEN=<CI token from Insights> -it quay.io/fairwinds/insights-ci:<tag>` if you set the `junitOutput` setting then you'll need to `docker cp` the resulting file out of the container.
+For a full list of options, as well as additional documentation, visit
+[insights.docs.fairwinds.com](https://insights.docs.fairwinds.com/features/continuous-integration/)
