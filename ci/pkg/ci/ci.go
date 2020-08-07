@@ -17,8 +17,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
 	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -317,45 +317,47 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 }
 
 // SaveJUnitFile will save the
-func SaveJUnitFile(results ScanResults, configurationObject Configuration) error {
+func SaveJUnitFile(results ScanResults, filename string) error {
+	cases := make([]formatter.JUnitTestCase, 0)
 
-	if configurationObject.Options.JUnitOutput != "" {
-		cases := make([]formatter.JUnitTestCase, 0)
-
-		for _, actionItem := range results.NewActionItems {
-			cases = append(cases, formatter.JUnitTestCase{
-				Name: actionItem.ResourceName + ": " + actionItem.Title,
-				Failure: &formatter.JUnitFailure{
-					Message:  actionItem.Remediation,
-					Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
-				},
-			})
-		}
-
-		for _, actionItem := range results.FixedActionItems {
-			cases = append(cases, formatter.JUnitTestCase{
-				Name: actionItem.ResourceName + ": " + actionItem.Title,
-			})
-		}
-
-		testSuites := formatter.JUnitTestSuites{
-			Suites: []formatter.JUnitTestSuite{
-				{
-					Tests:     len(results.NewActionItems) + len(results.FixedActionItems),
-					TestCases: cases,
-				},
+	for _, actionItem := range results.NewActionItems {
+		cases = append(cases, formatter.JUnitTestCase{
+			Name: actionItem.ResourceName + ": " + actionItem.Title,
+			Failure: &formatter.JUnitFailure{
+				Message:  actionItem.Remediation,
+				Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
 			},
-		}
+		})
+	}
 
-		xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
-		if err != nil {
-			return err
-		}
-		xmlBytes = append([]byte(xml.Header), xmlBytes...)
-		err = ioutil.WriteFile(configurationObject.Options.JUnitOutput, xmlBytes, 0644)
-		if err != nil {
-			return err
-		}
+	for _, actionItem := range results.FixedActionItems {
+		cases = append(cases, formatter.JUnitTestCase{
+			Name: actionItem.ResourceName + ": " + actionItem.Title,
+		})
+	}
+
+	testSuites := formatter.JUnitTestSuites{
+		Suites: []formatter.JUnitTestSuite{
+			{
+				Tests:     len(results.NewActionItems) + len(results.FixedActionItems),
+				TestCases: cases,
+			},
+		},
+	}
+
+	err := os.MkdirAll(filepath.Dir(filename), 0644)
+	if err != nil {
+		return err
+	}
+
+	xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
+	if err != nil {
+		return err
+	}
+	xmlBytes = append([]byte(xml.Header), xmlBytes...)
+	err = ioutil.WriteFile(filename, xmlBytes, 0644)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -381,17 +383,20 @@ func ProcessHelmTemplates(configurationObject Configuration, configFolder string
 		params := []string{
 			"template", helmObject.Name,
 			helmObject.Path,
-
 			"--output-dir",
 			configFolder + helmObject.Name,
 		}
-		if helmObject.VariableFile != "" {
-			params = append(params, "-f",
-				helmObject.VariableFile)
+		valuesFile := helmObject.ValuesFile
+		if valuesFile == "" {
+			valuesFile = configurationObject.Options.TempFolder + "helmValues.yaml"
+			yaml, err := yaml.Marshal(helmObject.Values)
+			if err != nil {
+				return err
+			}
+			err = ioutil.WriteFile(valuesFile, yaml, 0644)
 		}
-		for variable, value := range helmObject.Variables {
-			params = append(params, "--set", fmt.Sprintf("%s=%s", variable, value))
-		}
+		params = append(params, "-f", helmObject.ValuesFile)
+
 		err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helmObject.Name)
 		if err != nil {
 			return err
