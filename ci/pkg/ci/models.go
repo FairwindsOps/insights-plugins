@@ -2,7 +2,6 @@ package ci
 
 import (
 	"errors"
-	"os"
 	"strings"
 )
 
