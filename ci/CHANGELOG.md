@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0
+* created a separate `RunCommand` that doesn't have trivy-specific logic
+* started logging stdout/stderr directly instead of through logrus, to preserve newlines
+* fixed formatting on message
+* remove `panic`s
+* push helm values to file instead of using `--set`
+* change output message
+* set config defaults
+
 ## 0.3.0
 
 * Updating Polaris version from 0.6 to 1.1

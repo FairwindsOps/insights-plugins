@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -10,96 +11,111 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
 const workloadsReportVersion = "0.1.0"
 
-func maybeAddSlash(input string) string {
-	if strings.HasSuffix(input, "/") {
-		return input
+func exitWithError(message string, err error) {
+	if err != nil {
+		logrus.Fatalf("%s: %s", message, err.Error)
+	} else {
+		logrus.Fatal(message)
 	}
-	return input + "/"
 }
 
 func main() {
 	const configFile = "./fairwinds-insights.yaml"
-	configurationObject := ci.GetDefaultConfig()
+	configurationObject := ci.Configuration{}
 	configHandler, err := os.Open(configFile)
 	if err == nil {
 		configContents, err := ioutil.ReadAll(configHandler)
 		if err != nil {
-			panic(err)
+			exitWithError("Could not read fairwinds-insights.yaml", err)
 		}
 		err = yaml.Unmarshal(configContents, &configurationObject)
 		if err != nil {
-			panic(err)
+			exitWithError("Could not parse fairwinds-insights.yaml", err)
 		}
 	} else if !os.IsNotExist(err) {
-		panic(err)
+		exitWithError("Could not open fairwinds-insights.yaml", err)
+	} else {
+		exitWithError("Please add fairwinds-insights.yaml to the base of your repository.", nil)
 	}
-	configurationObject.Options.TempFolder = maybeAddSlash(configurationObject.Options.TempFolder)
-	configurationObject.Images.FolderName = maybeAddSlash(configurationObject.Images.FolderName)
+	configurationObject.SetDefaults()
+	err = configurationObject.CheckForErrors()
+	if err != nil {
+		exitWithError("Error parsing fairwinds-insights.yaml", err)
+	}
 
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
-	err = os.Mkdir(configFolder, 0644)
+	err = os.MkdirAll(configFolder, 0644)
 	if err != nil {
-		panic(err)
+		exitWithError("Could not make directory "+configFolder, nil)
 	}
+
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
+	}
+
 	if len(configurationObject.Manifests.Helm) > 0 {
 		err := ci.ProcessHelmTemplates(configurationObject, configFolder)
 		if err != nil {
-			panic(err)
+			exitWithError("Error while processing helm templates", err)
 		}
 	}
 	if len(configurationObject.Manifests.YamlPaths) > 0 {
 		err := ci.CopyYaml(configurationObject, configFolder)
 		if err != nil {
-			panic(err)
+			exitWithError("Error while copying YAML files", err)
 		}
 	}
+
 	// Scan YAML, find all images/kind/etc
 	images, resources, err := ci.GetImagesFromManifest(configFolder)
 	if err != nil {
-		panic(err)
+		exitWithError("Error while extracting images from YAML manifests", err)
 	}
 
 	// Scan manifests with Polaris
 	polarisReport, err := getPolarisReport(configurationObject, configFolder)
 	if err != nil {
-		panic(err)
+		exitWithError("Error while running Polaris", err)
 	}
 
 	trivyReport, err := getTrivyReport(images, configurationObject)
 	if err != nil {
-		panic(err)
+		exitWithError("Error while running Trivy", err)
 	}
 
 	workloadReport, err := getWorkloadReport(resources, configurationObject)
 	if err != nil {
-		panic(err)
+		exitWithError("Error while aggregating workloads", err)
 	}
 
 	results, err := ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport, workloadReport}, resources, configurationObject, token)
 	if err != nil {
-		panic(err)
+		exitWithError("Error while sending results back to "+configurationObject.Options.Hostname, err)
 	}
-	logrus.Infof("New Action Item Count: %f Fixed Action Item Count: %f", len(results.NewActionItems), len(results.FixedActionItems))
+	logrus.Infof("New Action Item Count: %d Fixed Action Item Count: %d", len(results.NewActionItems), len(results.FixedActionItems))
 
 	if configurationObject.Options.JUnitOutput != "" {
-		err = ci.SaveJUnitFile(results, configurationObject)
+		err = ci.SaveJUnitFile(results, configurationObject.Options.JUnitOutput)
 		if err != nil {
-			panic(err)
+			exitWithError("Could not save jUnit results", nil)
 		}
 	}
-	if configurationObject.Options.SetExitCode {
-		err = ci.CheckScore(results, configurationObject)
-		if err != nil {
-			panic(err)
+	err = ci.CheckScore(results, configurationObject)
+	if err != nil {
+		fmt.Printf(
+			"\n\nFairwinds Insights checks failed:\n%v\n\nVisit %s/orgs/%s/repositories for more information\n\n",
+			err, configurationObject.Options.Hostname, configurationObject.Options.Organization)
+		if configurationObject.Options.SetExitCode {
+			os.Exit(1)
 		}
 	}
 }
