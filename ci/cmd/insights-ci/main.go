@@ -58,7 +58,7 @@ func main() {
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
 	err = os.Mkdir(configFolder, 0644)
 	if err != nil {
-		exitWithError("Could not make directory " + configFolder)
+		exitWithError("Could not make directory "+configFolder, nil)
 	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if len(configurationObject.Manifests.Helm) > 0 {
@@ -104,7 +104,7 @@ func main() {
 	if configurationObject.Options.JUnitOutput != "" {
 		err = ci.SaveJUnitFile(results, configurationObject)
 		if err != nil {
-			exitWithError("Could not save jUnit results")
+			exitWithError("Could not save jUnit results", nil)
 		}
 	}
 	err = ci.CheckScore(results, configurationObject)
