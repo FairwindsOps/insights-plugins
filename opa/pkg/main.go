@@ -44,7 +44,7 @@ func main() {
 		panic(err)
 	}
 	restMapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-	// TODO filter by namesapce
+	// TODO filter by namespace
 	checkInstances, err := dynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
 
 	if err != nil {
@@ -97,7 +97,6 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 					return nil, err
 				}
 				gvr := mapping.Resource
-				// TODO allow namespace specific checks
 				list, err := dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 				if err != nil {
 					return nil, err
@@ -158,7 +157,6 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 					}
 					obj.Object["parameters"] = checkInstance.Spec.Parameters
 					// TODO Find another way to get parameters in - Should they be a function or input?
-					// TODO Add Additional Kubernetes data - Done, test it out
 					// TODO Caching
 					evaluatedInput := rego.EvalInput(obj.Object)
 					results, err := query.Eval(ctx, evaluatedInput)
