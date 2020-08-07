@@ -142,7 +142,11 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 								if err != nil {
 									return nil, err
 								}
-								itemValue, err := ast.InterfaceToValue(list.Items)
+								items := make([]map[string]interface{}, 0)
+								for _, item := range list.Items {
+									items = append(items, item.Object)
+								}
+								itemValue, err := ast.InterfaceToValue(items)
 								if err != nil {
 									return nil, err
 								}
