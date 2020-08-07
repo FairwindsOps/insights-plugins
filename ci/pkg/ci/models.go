@@ -100,9 +100,6 @@ func (c *Configuration) SetDefaults() {
 	if c.Options.Hostname == "" {
 		c.Options.Hostname = "https://insights.fairwinds.com"
 	}
-	if c.Options.RepositoryName == "" {
-		c.Options.RepositoryName = os.Getenv("ORIGIN_REPO")
-	}
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"
 	}
