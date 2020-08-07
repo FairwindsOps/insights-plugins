@@ -2,6 +2,7 @@ package ci
 
 import (
 	"errors"
+	"os"
 	"strings"
 )
 
@@ -112,6 +113,9 @@ func (c *Configuration) SetDefaults() {
 	}
 	if c.Options.Hostname == "" {
 		c.Options.Hostname = "https://insights.fairwinds.com"
+	}
+	if c.Options.RepositoryName == "" {
+		c.Options.RepositoryName = os.Getenv("ORIGIN_REPO")
 	}
 	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
