@@ -273,7 +273,11 @@ func CreateResourceProviderFromAPI(ctx context.Context, kube kubernetes.Interfac
 			containers = append(containers, formatContainer(container, corev1.ContainerStatus{}, item.Spec.Template.GetCreationTimestamp()))
 		}
 		job := formatControllers("Job", item.Name, item.Namespace, string(item.UID), item.GetObjectMeta().GetOwnerReferences(), containers, item.Annotations, item.Labels)
-		job.PodCount = float64(item.Status.CompletionTime.Time.Sub(item.Status.StartTime.Time).Seconds()) / float64(time.Now().Sub(item.Status.StartTime.Time).Seconds())
+		if item.Status.CompletionTime != nil && item.Status.StartTime != nil {
+			job.PodCount = float64(item.Status.CompletionTime.Time.Sub(item.Status.StartTime.Time).Seconds()) / float64(time.Now().Sub(item.Status.StartTime.Time).Seconds())
+		} else {
+			job.PodCount = 1
+		}
 		controllerMap[job.UID] = &job
 		topController[job.UID] = true
 	}
