@@ -1,7 +1,9 @@
 package main
 
 import (
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 )
 
 // Output is the format for the output file
@@ -17,8 +19,14 @@ type ActionItem struct {
 	Title             string
 	Description       string
 	Remediation       string
+	EventType         string
 	Severity          float64
 	Category          string
+}
+
+type kubeClient struct {
+	restMapper       meta.RESTMapper
+	dynamicInterface dynamic.Interface
 }
 
 type customCheckInstance struct {
