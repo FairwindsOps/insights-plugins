@@ -96,10 +96,8 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 	return actionItems, nil
 }
 
-func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance, restMapper meta.RESTMapper, dynamicInterface dynamic.Interface) ([]ActionItem, error) {
-	actionItems := make([]ActionItem, 0)
-
-	getKubernetesData := func(_ rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
+func getKubernetesDataFunction(ctx context.Context, check customCheck, restMapper meta.RESTMapper, dynamicInterface dynamic.Interface) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
+	return func(_ rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
 
 		str, ok := a.Value.(ast.String)
 		if !ok {
@@ -117,7 +115,7 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 			fmt.Printf("Checking if %s matches %s", strValue, target.Kinds[0])
 			if strValue == target.Kinds[0] {
 				fmt.Printf("It does!")
-				apiGroup = target.ApiGroups[0]
+				apiGroup = target.APIGroups[0]
 				break
 			}
 		}
@@ -142,8 +140,13 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 		return ast.NewTerm(itemValue), nil
 	}
 
+}
+func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance, restMapper meta.RESTMapper, dynamicInterface dynamic.Interface) ([]ActionItem, error) {
+	actionItems := make([]ActionItem, 0)
+
+	getKubernetesData := getKubernetesDataFunction(ctx, check, restMapper, dynamicInterface)
 	for _, target := range checkInstance.Spec.Targets {
-		for _, apiGroup := range target.ApiGroups {
+		for _, apiGroup := range target.APIGroups {
 			for _, kind := range target.Kinds {
 				fmt.Printf("Starting to process %s %s\n\n", apiGroup, kind)
 				mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: kind})
@@ -208,7 +211,7 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 	actionItems := make([]ActionItem, 0)
 	instanceOutput := checkInstance.Spec.Output
 	checkOutput := check.Spec.Output
-	for _, output := range getOutpuArray(results) {
+	for _, output := range getOutputArray(results) {
 		severity := checkOutput.Severity
 		title := checkOutput.Title
 		remediation := checkOutput.Remediation

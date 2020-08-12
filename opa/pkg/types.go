@@ -34,7 +34,7 @@ type customCheckInstanceSpec struct {
 }
 
 type kubeTarget struct {
-	ApiGroups []string
+	APIGroups []string `json:"apiGroups"`
 	Kinds     []string
 }
 
