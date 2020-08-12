@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strconv"
@@ -210,21 +211,34 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 		} else {
 			mapMethod, ok := output.(map[string]interface{})
 			if ok {
-				description = mapMethod["description"].(string)
+				description, ok = mapMethod["description"].(string)
+				if !ok {
+					return nil, errors.New("description was not a string")
+				}
 				if mapMethod["severity"] != nil {
-					severityFloat, err := strconv.ParseFloat(mapMethod["severity"].(string), 64)
+					severityString, ok := mapMethod["severity"].(string)
+					if !ok {
+						return nil, errors.New("severity was not a string")
+					}
+					severityFloat, err := strconv.ParseFloat(severityString, 64)
 					if err != nil {
 						return nil, err
 					}
 					severity = &severityFloat
 				}
 				if mapMethod["title"] != nil {
-					titleString := mapMethod["title"].(string)
+					titleString, ok := mapMethod["title"].(string)
+					if !ok {
+						return nil, errors.New("title was not a string")
+					}
 					title = &titleString
 				}
 
 				if mapMethod["remediation"] != nil {
-					remediationString := mapMethod["remediation"].(string)
+					remediationString, ok := mapMethod["remediation"].(string)
+					if !ok {
+						return nil, errors.New("remediation was not a string")
+					}
 					remediation = &remediationString
 
 				}
