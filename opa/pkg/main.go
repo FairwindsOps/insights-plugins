@@ -62,7 +62,7 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 		check, err := client.dynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
 		if err != nil {
 			actionItems = append(actionItems, ActionItem{
-				EventType:         fmt.Sprintf("%s-no-check", checkInstanceObject.Name),
+				EventType:         "no-check",
 				ResourceName:      checkInstanceObject.Name,
 				ResourceNamespace: checkInstanceObject.Namespace,
 				ResourceKind:      instanceGvr.Resource,
@@ -111,7 +111,7 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 	if err != nil {
 		r := fmt.Sprintf("Make sure that the instance targets are correct %s/%s.", gk.Group, gk.Kind)
 		actionItems = append(actionItems, ActionItem{
-			EventType:         fmt.Sprintf("%s-api-version", checkInstance.Name),
+			EventType:         "api-version",
 			ResourceName:      checkInstance.Name,
 			ResourceNamespace: checkInstance.Namespace,
 			ResourceKind:      instanceGvr.Resource,
@@ -141,7 +141,7 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 		).PrepareForEval(ctx)
 		if err != nil {
 			actionItems = append(actionItems, ActionItem{
-				EventType:         fmt.Sprintf("%s-rego-parsing", checkInstance.Name),
+				EventType:         "rego-parsing",
 				ResourceName:      checkInstance.Name,
 				ResourceNamespace: checkInstance.Namespace,
 				ResourceKind:      instanceGvr.Resource,
@@ -164,7 +164,7 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 		newItems, err := processResults(obj, results, check, checkInstance)
 		if err != nil {
 			actionItems = append(actionItems, ActionItem{
-				EventType:         fmt.Sprintf("%s-results-parsing", checkInstance.Name),
+				EventType:         "results-parsing",
 				ResourceName:      checkInstance.Name,
 				ResourceNamespace: checkInstance.Namespace,
 				ResourceKind:      instanceGvr.Resource,
