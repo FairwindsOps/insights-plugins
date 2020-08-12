@@ -23,10 +23,11 @@ import (
 
 const outputFile = "/output/opa.json"
 
+var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customcheckinstances"}
+var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
+
 func main() {
-	ctx := context.TODO()
-	instanceGvr := schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1", Resource: "customcheckinstances"}
-	checkGvr := schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1", Resource: "customchecks"}
+	ctx := context.Background()
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		panic(err)
@@ -50,29 +51,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	actionItems := make([]ActionItem, 0)
+	actionItems, err := processAllChecks(ctx, checkInstances.Items, restMapper, dynamicInterface)
 
-	for _, checkInstance := range checkInstances.Items {
-		var checkInstanceObject customCheckInstance
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
-		if err != nil {
-			panic(err)
-		}
-		check, err := dynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
-		if err != nil {
-			panic(err)
-		}
-		var checkObject customCheck
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
-		if err != nil {
-			panic(err)
-		}
-
-		newItems, err := processCheck(ctx, checkObject, checkInstanceObject, restMapper, dynamicInterface)
-		if err != nil {
-			panic(err)
-		}
-		actionItems = append(actionItems, newItems...)
+	if err != nil {
+		panic(err)
 	}
 	outputFormat := Output{ActionItems: actionItems}
 	value, err := json.Marshal(outputFormat)
@@ -85,8 +67,80 @@ func main() {
 	}
 }
 
+func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured, restMapper meta.RESTMapper, dynamicInterface dynamic.Interface) ([]ActionItem, error) {
+
+	actionItems := make([]ActionItem, 0)
+
+	for _, checkInstance := range checkInstances {
+		var checkInstanceObject customCheckInstance
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
+		if err != nil {
+			return nil, err
+		}
+		check, err := dynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		var checkObject customCheck
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
+		if err != nil {
+			return nil, err
+		}
+
+		newItems, err := processCheck(ctx, checkObject, checkInstanceObject, restMapper, dynamicInterface)
+		if err != nil {
+			return nil, err
+		}
+		actionItems = append(actionItems, newItems...)
+	}
+	return actionItems, nil
+}
+
 func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance, restMapper meta.RESTMapper, dynamicInterface dynamic.Interface) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
+
+	getKubernetesData := func(_ rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
+
+		str, ok := a.Value.(ast.String)
+		if !ok {
+			return nil, nil
+		}
+		strValue := str.String()
+		if len(strValue) > 0 && strValue[0] == '"' {
+			strValue = strValue[1:]
+		}
+		if len(strValue) > 0 && strValue[len(strValue)-1] == '"' {
+			strValue = strValue[:len(strValue)-1]
+		}
+		var apiGroup string
+		for _, target := range check.Spec.AdditionalKubernetesData {
+			fmt.Printf("Checking if %s matches %s", strValue, target.Kinds[0])
+			if strValue == target.Kinds[0] {
+				fmt.Printf("It does!")
+				apiGroup = target.ApiGroups[0]
+				break
+			}
+		}
+		mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: strValue})
+		if err != nil {
+			return nil, err
+		}
+		gvr := mapping.Resource
+		list, err := dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		items := make([]interface{}, 0)
+		for _, item := range list.Items {
+			items = append(items, item.Object)
+		}
+		itemValue, err := ast.InterfaceToValue(items)
+		if err != nil {
+			return nil, err
+		}
+
+		return ast.NewTerm(itemValue), nil
+	}
 
 	for _, target := range checkInstance.Spec.Targets {
 		for _, apiGroup := range target.ApiGroups {
@@ -110,47 +164,7 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 								Name: "kubernetes",
 								Decl: types.NewFunction(types.Args(types.S), types.S),
 							},
-							func(_ rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
-
-								str, ok := a.Value.(ast.String)
-								if !ok {
-									return nil, nil
-								}
-								strValue := str.String()
-								if len(strValue) > 0 && strValue[0] == '"' {
-									strValue = strValue[1:]
-								}
-								if len(strValue) > 0 && strValue[len(strValue)-1] == '"' {
-									strValue = strValue[:len(strValue)-1]
-								}
-								var apiGroup string
-								for _, target := range check.Spec.AdditionalKubernetesData {
-									fmt.Printf("Checking if %s matches %s", strValue, target.Kinds[0])
-									if strValue == target.Kinds[0] {
-										fmt.Printf("It does!")
-										apiGroup = target.ApiGroups[0]
-										break
-									}
-								}
-								mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: strValue})
-								if err != nil {
-									return nil, err
-								}
-								gvr := mapping.Resource
-								list, err := dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
-								if err != nil {
-									return nil, err
-								}
-								items := make([]interface{}, 0)
-								for _, item := range list.Items {
-									items = append(items, item.Object)
-								}
-								itemValue, err := ast.InterfaceToValue(items)
-								if err != nil {
-									return nil, err
-								}
-								return ast.NewTerm(itemValue), nil
-							}),
+							getKubernetesData),
 					).PrepareForEval(ctx)
 					if err != nil {
 						return nil, err
@@ -175,89 +189,99 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 	return actionItems, nil
 }
 
-func processResults(resource unstructured.Unstructured, results rego.ResultSet, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
-	actionItems := make([]ActionItem, 0)
-	instanceOutput := checkInstance.Spec.Output
-	checkOutput := check.Spec.Output
+func getOutputArray(results rego.ResultSet) []interface{} {
+	returnSet := make([]interface{}, 0)
+
 	for _, result := range results {
 		for _, pack := range result.Bindings["results"].(map[string]interface{}) {
 			for _, outputArray := range pack.(map[string]interface{}) {
 				for _, output := range outputArray.([]interface{}) {
-					severity := instanceOutput.Severity
-					title := checkOutput.Title
-					remediation := checkOutput.Remediation
-					category := checkOutput.Category
-					if instanceOutput.Severity != nil {
-						severity = instanceOutput.Severity
-					}
-					if instanceOutput.Title != nil {
-						title = instanceOutput.Title
-					}
-					if instanceOutput.Remediation != nil {
-						remediation = instanceOutput.Remediation
-					}
-					if instanceOutput.Category != nil {
-						category = instanceOutput.Category
-					}
-					strMethod, ok := output.(string)
-					var description string
-					if ok {
-						description = fmt.Sprintf("String: %s", strMethod)
-					} else {
-						mapMethod, ok := output.(map[string]interface{})
-						if ok {
-							description = fmt.Sprintf("Map: Desc: %v", mapMethod["description"])
-							if mapMethod["severity"] != nil {
-								severityFloat, err := strconv.ParseFloat(mapMethod["severity"].(string), 64)
-								if err != nil {
-									return nil, err
-								}
-								severity = &severityFloat
-							}
-							if mapMethod["title"] != nil {
-								titleString := mapMethod["title"].(string)
-								title = &titleString
-							}
-
-							if mapMethod["remediation"] != nil {
-								remediationString := mapMethod["remediation"].(string)
-								remediation = &remediationString
-
-							}
-						} else {
-							description = fmt.Sprintf("Could not decipher output format of %+v %T", output, output)
-						}
-					}
-					if severity == nil {
-						var severityFloat float64 = 0.0
-						severity = &severityFloat
-					}
-					if title == nil {
-						newTitle := "Unknown Title"
-						title = &newTitle
-					}
-					if remediation == nil {
-						newRemediation := ""
-						remediation = &newRemediation
-					}
-					if category == nil {
-						newCategory := "Reliability"
-						category = &newCategory
-					}
-
-					actionItems = append(actionItems, ActionItem{
-						ResourceNamespace: resource.GetNamespace(),
-						ResourceKind:      resource.GetKind(),
-						ResourceName:      resource.GetName(),
-						Title:             *title,
-						Description:       description,
-						Remediation:       *remediation,
-						Severity:          *severity,
-						Category:          *category,
-					})
+					returnSet = append(returnSet, output)
 				}
 			}
 		}
 	}
+	return returnSet
+}
+
+func processResults(resource unstructured.Unstructured, results rego.ResultSet, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
+	actionItems := make([]ActionItem, 0)
+	instanceOutput := checkInstance.Spec.Output
+	checkOutput := check.Spec.Output
+	for _, output := range getOutpuArray(results) {
+		severity := checkOutput.Severity
+		title := checkOutput.Title
+		remediation := checkOutput.Remediation
+		category := checkOutput.Category
+		if instanceOutput.Severity != nil {
+			severity = instanceOutput.Severity
+		}
+		if instanceOutput.Title != nil {
+			title = instanceOutput.Title
+		}
+		if instanceOutput.Remediation != nil {
+			remediation = instanceOutput.Remediation
+		}
+		if instanceOutput.Category != nil {
+			category = instanceOutput.Category
+		}
+		strMethod, ok := output.(string)
+		var description string
+		if ok {
+			description = strMethod
+		} else {
+			mapMethod, ok := output.(map[string]interface{})
+			if ok {
+				description = mapMethod["description"].(string)
+				if mapMethod["severity"] != nil {
+					severityFloat, err := strconv.ParseFloat(mapMethod["severity"].(string), 64)
+					if err != nil {
+						return nil, err
+					}
+					severity = &severityFloat
+				}
+				if mapMethod["title"] != nil {
+					titleString := mapMethod["title"].(string)
+					title = &titleString
+				}
+
+				if mapMethod["remediation"] != nil {
+					remediationString := mapMethod["remediation"].(string)
+					remediation = &remediationString
+
+				}
+			} else {
+				return nil, fmt.Errorf("Could not decipher output format of %+v %T", output, output)
+			}
+		}
+		if severity == nil {
+			var severityFloat float64 = 0.0
+			severity = &severityFloat
+		}
+		if title == nil {
+			newTitle := "Unknown Title"
+			title = &newTitle
+		}
+		if remediation == nil {
+			newRemediation := ""
+			remediation = &newRemediation
+		}
+		if category == nil {
+			newCategory := "Reliability"
+			category = &newCategory
+		}
+
+		actionItems = append(actionItems, ActionItem{
+			ResourceNamespace: resource.GetNamespace(),
+			ResourceKind:      resource.GetKind(),
+			ResourceName:      resource.GetName(),
+			Title:             *title,
+			Description:       description,
+			Remediation:       *remediation,
+			Severity:          *severity,
+			Category:          *category,
+		})
+	}
+
 	return actionItems, nil
 }
