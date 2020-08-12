@@ -127,6 +127,7 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 	gvr := mapping.Resource
 	list, err := client.dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
+		// TODO look for RBAC errors and create an Action Item
 		return nil, err
 	}
 	for _, obj := range list.Items {
@@ -160,6 +161,7 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 		evaluatedInput := rego.EvalInput(obj.Object)
 		results, err := query.Eval(ctx, evaluatedInput)
 		if err != nil {
+			// Runtime error of Rego
 			return nil, err
 		}
 		newItems, err := processResults(obj, results, check, checkInstance)
@@ -243,7 +245,7 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 
 				}
 			} else {
-				return nil, fmt.Errorf("Could not decipher output format of %+v %T", output, output)
+				return nil, fmt.Errorf("could not decipher output format of %+v %T", output, output)
 			}
 		}
 		if severity == nil {
