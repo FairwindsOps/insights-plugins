@@ -10,6 +10,7 @@ import (
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
+	"github.com/sirupsen/logrus"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -77,9 +78,18 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 		if err != nil {
 			return nil, err
 		}
+		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
 		check, err := dynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			actionItems = append(actionItems, ActionItem{
+				Title:       checkInstanceObject.Name,
+				Description: "An error occured retrieving the Custom Check for this instance",
+				Remediation: "Make sure that the custom check exists and it is in the same namespace as this instance.",
+				Severity:    0.4,
+				Category:    "Reliability",
+			})
+			logrus.Warnf("Error while retrieving check %+v", err)
+			continue
 		}
 		var checkObject customCheck
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
@@ -148,10 +158,18 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 	for _, target := range checkInstance.Spec.Targets {
 		for _, apiGroup := range target.APIGroups {
 			for _, kind := range target.Kinds {
-				fmt.Printf("Starting to process %s %s\n\n", apiGroup, kind)
+				logrus.Infof("Starting to process %s %s\n\n", apiGroup, kind)
 				mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: kind})
 				if err != nil {
-					return nil, err
+					actionItems = append(actionItems, ActionItem{
+						Title:       checkInstance.Name,
+						Description: "An error occured retrieving the API Version for this instance",
+						Remediation: fmt.Sprintf("Make sure that the instance targets are correct %s/%s.", apiGroup, kind),
+						Severity:    0.4,
+						Category:    "Reliability",
+					})
+					logrus.Warnf("Error while retrieving API Version %+v", err)
+					return actionItems, nil
 				}
 				gvr := mapping.Resource
 				list, err := dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
@@ -170,7 +188,15 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 							getKubernetesData),
 					).PrepareForEval(ctx)
 					if err != nil {
-						return nil, err
+						actionItems = append(actionItems, ActionItem{
+							Title:       checkInstance.Name,
+							Description: "An error occured parsing the Rego for this custom check",
+							Remediation: "Make sure that the Rego is valid for this check.",
+							Severity:    0.4,
+							Category:    "Reliability",
+						})
+						logrus.Warnf("Error while parsing Rego %+v", err)
+						return actionItems, nil
 					}
 					obj.Object["parameters"] = checkInstance.Spec.Parameters
 					// TODO Find another way to get parameters in - Should they be a function or input?
@@ -182,7 +208,15 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 					}
 					newItems, err := processResults(obj, results, check, checkInstance)
 					if err != nil {
-						return nil, err
+						actionItems = append(actionItems, ActionItem{
+							Title:       checkInstance.Name,
+							Description: "An error occured processing the results of this check.",
+							Remediation: "Make sure that the return values are all correct.",
+							Severity:    0.4,
+							Category:    "Reliability",
+						})
+						logrus.Warnf("Error while parsing results %+v", err)
+						return actionItems, nil
 					}
 					actionItems = append(actionItems, newItems...)
 				}

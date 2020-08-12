@@ -11,6 +11,7 @@ require (
 	github.com/open-policy-agent/opa v0.22.0
 	github.com/prometheus/common v0.11.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
+	github.com/sirupsen/logrus v1.6.0
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de // indirect
