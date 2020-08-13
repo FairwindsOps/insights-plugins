@@ -274,7 +274,6 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				break
 			}
 		}
-		// TODO test this
 		// TODO add owner ref
 		newCheck := &unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -333,7 +332,23 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 					"name":      supposedInstance.AdditionalData.Name,
 					"namespace": thisNamespace,
 				},
-				"spec": customCheckInstanceSpec{},
+				"spec": map[string]interface{}{
+					"customCheckName": supposedInstance.CheckName,
+					"output": map[string]interface{}{
+						"remediation": supposedInstance.AdditionalData.Output.Remediation,
+						"title":       supposedInstance.AdditionalData.Output.Title,
+						"severity":    supposedInstance.AdditionalData.Output.Severity,
+						"category":    supposedInstance.AdditionalData.Output.Category,
+					},
+					"parameters": supposedInstance.AdditionalData.Properties,
+					"targets": funk.Map(supposedInstance.Targets, func(s string) map[string]interface{} {
+						splitValues := strings.Split(s, "/")
+						return map[string]interface{}{
+							"apiGroups": []string{splitValues[0]},
+							"kinds":     []string{splitValues[1]},
+						}
+					}).([]map[string]interface{}),
+				},
 			},
 		}
 		if !found {

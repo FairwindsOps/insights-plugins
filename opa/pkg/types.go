@@ -84,6 +84,7 @@ type checkSetting struct {
 	Targets        []string
 	AdditionalData struct {
 		Name       string
+		Output     outputFormat
 		Properties map[string]interface{}
 	}
 }
