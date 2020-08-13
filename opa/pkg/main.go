@@ -284,21 +284,21 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 					"name":      supposedCheck.Name,
 					"namespace": thisNamespace,
 				},
-				"spec": customCheckSpec{
-					Rego: supposedCheck.Rego,
-					Output: outputFormat{
-						Remediation: supposedCheck.Remediation,
-						Title:       supposedCheck.Title,
-						Severity:    supposedCheck.Severity,
-						Category:    supposedCheck.Category,
+				"spec": map[string]interface{}{
+					"rego": supposedCheck.Rego,
+					"output": map[string]interface{}{
+						"remediation": supposedCheck.Remediation,
+						"title":       supposedCheck.Title,
+						"severity":    supposedCheck.Severity,
+						"category":    supposedCheck.Category,
 					},
-					AdditionalKubernetesData: funk.Map(supposedCheck.AdditionalKubernetesData, func(s string) kubeTarget {
+					"additionalKubernetesData": funk.Map(supposedCheck.AdditionalKubernetesData, func(s string) map[string]interface{} {
 						splitValues := strings.Split(s, "/")
-						return kubeTarget{
-							APIGroups: []string{splitValues[0]},
-							Kinds:     []string{splitValues[1]},
+						return map[string]interface{}{
+							"apiGroups": []string{splitValues[0]},
+							"kinds":     []string{splitValues[1]},
 						}
-					}).([]kubeTarget),
+					}).([]map[string]interface{}),
 				},
 			},
 		}
