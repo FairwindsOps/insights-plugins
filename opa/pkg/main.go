@@ -278,6 +278,8 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 		// TODO add owner ref
 		newCheck := &unstructured.Unstructured{
 			Object: map[string]interface{}{
+				"kind":       checkGvr.Resource,
+				"apiVersion": checkGvr.Group + "/" + checkGvr.Version,
 				"metadata": map[string]interface{}{
 					"name":      supposedCheck.Name,
 					"namespace": thisNamespace,
@@ -325,6 +327,8 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 		// TODO fix this
 		newInstance := &unstructured.Unstructured{
 			Object: map[string]interface{}{
+				"kind":       instanceGvr.Resource,
+				"apiVersion": instanceGvr.Group + "/" + instanceGvr.Version,
 				"metadata": map[string]interface{}{
 					"name":      supposedInstance.AdditionalData.Name,
 					"namespace": thisNamespace,
