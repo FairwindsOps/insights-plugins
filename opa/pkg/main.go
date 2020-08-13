@@ -340,7 +340,7 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 						"severity":    supposedInstance.AdditionalData.Output.Severity,
 						"category":    supposedInstance.AdditionalData.Output.Category,
 					},
-					"parameters": supposedInstance.AdditionalData.Properties,
+					"parameters": supposedInstance.AdditionalData.Parameters,
 					"targets": funk.Map(supposedInstance.Targets, func(s string) map[string]interface{} {
 						splitValues := strings.Split(s, "/")
 						return map[string]interface{}{
