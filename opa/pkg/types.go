@@ -63,3 +63,27 @@ type customCheckSpec struct {
 	Output                   outputFormat
 	Rego                     string
 }
+
+type clusterCheckModel struct {
+	Checks    []opaCustomCheck
+	Instances []checkSetting
+}
+
+type opaCustomCheck struct {
+	Name                     string
+	Rego                     string
+	Title                    *string
+	Severity                 *float64
+	Remediation              *string
+	Category                 *string
+	AdditionalKubernetesData []string
+}
+
+type checkSetting struct {
+	CheckName      string
+	Targets        []string
+	AdditionalData struct {
+		Name       string
+		Properties map[string]interface{}
+	}
+}
