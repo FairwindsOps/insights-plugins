@@ -295,7 +295,7 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 					AdditionalKubernetesData: funk.Map(supposedCheck.AdditionalKubernetesData, func(s string) kubeTarget {
 						splitValues := strings.Split(s, "/")
 						return kubeTarget{
-							ApiGroups: []string{splitValues[0]},
+							APIGroups: []string{splitValues[0]},
 							Kinds:     []string{splitValues[1]},
 						}
 					}).([]kubeTarget),
