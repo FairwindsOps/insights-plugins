@@ -9,12 +9,10 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -194,6 +192,36 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 	return actionItems, nil
 }
 
+func getInsightsChecks() (clusterCheckModel, error) {
+	var jsonResponse clusterCheckModel
+
+	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") +
+		"/data/opa/customChecks"
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return jsonResponse, err
+	}
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("FAIRWINDS_TOKEN"))
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return jsonResponse, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return jsonResponse, fmt.Errorf("failed to retrieve updated checks with a status code of : %d", resp.StatusCode)
+	}
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return jsonResponse, err
+	}
+	err = json.Unmarshal(responseBody, &jsonResponse)
+	if err != nil {
+		return jsonResponse, err
+	}
+	return jsonResponse, nil
+}
+
 func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface) error {
 
 	thisNamespace := "insights-agent"
@@ -209,28 +237,7 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 	if err != nil {
 		return err
 	}
-	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") +
-		"/data/opa/customChecks"
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("FAIRWINDS_TOKEN"))
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("failed to retrieve updated checks with a status code of : %d", resp.StatusCode)
-	}
-	responseBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	var jsonResponse clusterCheckModel
-	err = json.Unmarshal(responseBody, &jsonResponse)
+	jsonResponse, err := getInsightsChecks()
 	if err != nil {
 		return err
 	}
@@ -274,42 +281,7 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				break
 			}
 		}
-		output := map[string]interface{}{}
-		if supposedCheck.Remediation != nil {
-			output["remedidation"] = supposedCheck.Remediation
-		}
-		if supposedCheck.Title != nil {
-			output["title"] = supposedCheck.Title
-		}
-		if supposedCheck.Severity != nil {
-			output["severity"] = supposedCheck.Severity
-		}
-		if supposedCheck.Category != nil {
-			output["category"] = supposedCheck.Category
-		}
-
-		// TODO add owner ref
-		newCheck := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"kind":       "CustomCheck",
-				"apiVersion": checkGvr.Group + "/" + checkGvr.Version,
-				"metadata": map[string]interface{}{
-					"name":      supposedCheck.Name,
-					"namespace": thisNamespace,
-				},
-				"spec": map[string]interface{}{
-					"rego":   supposedCheck.Rego,
-					"output": output,
-					"additionalKubernetesData": funk.Map(supposedCheck.AdditionalKubernetesData, func(s string) map[string]interface{} {
-						splitValues := strings.Split(s, "/")
-						return map[string]interface{}{
-							"apiGroups": []string{splitValues[0]},
-							"kinds":     []string{splitValues[1]},
-						}
-					}).([]map[string]interface{}),
-				},
-			},
-		}
+		newCheck := supposedCheck.GetUnstructuredObject(thisNamespace)
 		if found {
 			err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Delete(ctx, supposedCheck.Name, metav1.DeleteOptions{})
 			if err != nil {
@@ -330,42 +302,7 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				break
 			}
 		}
-		output := map[string]interface{}{}
-		if supposedInstance.AdditionalData.Output.Remediation != nil {
-			output["remedidation"] = supposedInstance.AdditionalData.Output.Remediation
-		}
-		if supposedInstance.AdditionalData.Output.Title != nil {
-			output["title"] = supposedInstance.AdditionalData.Output.Title
-		}
-		if supposedInstance.AdditionalData.Output.Severity != nil {
-			output["severity"] = supposedInstance.AdditionalData.Output.Severity
-		}
-		if supposedInstance.AdditionalData.Output.Category != nil {
-			output["category"] = supposedInstance.AdditionalData.Output.Category
-		}
-
-		newInstance := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"kind":       "CustomCheckInstance",
-				"apiVersion": instanceGvr.Group + "/" + instanceGvr.Version,
-				"metadata": map[string]interface{}{
-					"name":      supposedInstance.AdditionalData.Name,
-					"namespace": thisNamespace,
-				},
-				"spec": map[string]interface{}{
-					"customCheckName": supposedInstance.CheckName,
-					"output":          output,
-					"parameters":      supposedInstance.AdditionalData.Parameters,
-					"targets": funk.Map(supposedInstance.Targets, func(s string) map[string]interface{} {
-						splitValues := strings.Split(s, "/")
-						return map[string]interface{}{
-							"apiGroups": []string{splitValues[0]},
-							"kinds":     []string{splitValues[1]},
-						}
-					}).([]map[string]interface{}),
-				},
-			},
-		}
+		newInstance := supposedInstance.GetUnstructuredObject(thisNamespace)
 		if found {
 
 			err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Delete(ctx, supposedInstance.AdditionalData.Name, metav1.DeleteOptions{})
