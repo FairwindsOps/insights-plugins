@@ -274,6 +274,20 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				break
 			}
 		}
+		output := map[string]interface{}{}
+		if supposedCheck.Remediation != nil {
+			output["remedidation"] = supposedCheck.Remediation
+		}
+		if supposedCheck.Title != nil {
+			output["title"] = supposedCheck.Title
+		}
+		if supposedCheck.Severity != nil {
+			output["severity"] = supposedCheck.Severity
+		}
+		if supposedCheck.Category != nil {
+			output["category"] = supposedCheck.Category
+		}
+
 		// TODO add owner ref
 		newCheck := &unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -284,13 +298,8 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 					"namespace": thisNamespace,
 				},
 				"spec": map[string]interface{}{
-					"rego": supposedCheck.Rego,
-					"output": map[string]interface{}{
-						"remediation": supposedCheck.Remediation,
-						"title":       supposedCheck.Title,
-						"severity":    supposedCheck.Severity,
-						"category":    supposedCheck.Category,
-					},
+					"rego":   supposedCheck.Rego,
+					"output": output,
 					"additionalKubernetesData": funk.Map(supposedCheck.AdditionalKubernetesData, func(s string) map[string]interface{} {
 						splitValues := strings.Split(s, "/")
 						return map[string]interface{}{
@@ -301,18 +310,17 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				},
 			},
 		}
-		if !found {
-			_, err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Create(ctx, newCheck, metav1.CreateOptions{})
-			if err != nil {
-				return err
-			}
-		} else {
-
-			_, err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Update(ctx, newCheck, metav1.UpdateOptions{})
+		if found {
+			err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Delete(ctx, supposedCheck.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
 		}
+		_, err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Create(ctx, newCheck, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+
 	}
 	for _, supposedInstance := range jsonResponse.Instances {
 		found := false
@@ -322,8 +330,20 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				break
 			}
 		}
+		output := map[string]interface{}{}
+		if supposedInstance.AdditionalData.Output.Remediation != nil {
+			output["remedidation"] = supposedInstance.AdditionalData.Output.Remediation
+		}
+		if supposedInstance.AdditionalData.Output.Title != nil {
+			output["title"] = supposedInstance.AdditionalData.Output.Title
+		}
+		if supposedInstance.AdditionalData.Output.Severity != nil {
+			output["severity"] = supposedInstance.AdditionalData.Output.Severity
+		}
+		if supposedInstance.AdditionalData.Output.Category != nil {
+			output["category"] = supposedInstance.AdditionalData.Output.Category
+		}
 
-		// TODO fix this
 		newInstance := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       "CustomCheckInstance",
@@ -334,13 +354,8 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				},
 				"spec": map[string]interface{}{
 					"customCheckName": supposedInstance.CheckName,
-					"output": map[string]interface{}{
-						"remediation": supposedInstance.AdditionalData.Output.Remediation,
-						"title":       supposedInstance.AdditionalData.Output.Title,
-						"severity":    supposedInstance.AdditionalData.Output.Severity,
-						"category":    supposedInstance.AdditionalData.Output.Category,
-					},
-					"parameters": supposedInstance.AdditionalData.Parameters,
+					"output":          output,
+					"parameters":      supposedInstance.AdditionalData.Parameters,
 					"targets": funk.Map(supposedInstance.Targets, func(s string) map[string]interface{} {
 						splitValues := strings.Split(s, "/")
 						return map[string]interface{}{
@@ -351,14 +366,17 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 				},
 			},
 		}
-		if !found {
+		if found {
 
-			_, err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Create(ctx, newInstance, metav1.CreateOptions{})
+			err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Delete(ctx, supposedInstance.AdditionalData.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
-		} else {
-			_, err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Update(ctx, newInstance, metav1.UpdateOptions{})
+		}
+
+		_, err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Create(ctx, newInstance, metav1.CreateOptions{})
+		if err != nil {
+			return err
 		}
 	}
 	return nil
