@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+* Fixed a bug in error output
+
 ## 0.4.0
 * created a separate `RunCommand` that doesn't have trivy-specific logic
 * started logging stdout/stderr directly instead of through logrus, to preserve newlines
