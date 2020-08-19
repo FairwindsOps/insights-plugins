@@ -21,7 +21,7 @@ const workloadsReportVersion = "0.1.0"
 
 func exitWithError(message string, err error) {
 	if err != nil {
-		logrus.Fatalf("%s: %s", message, err.Error)
+		logrus.Fatalf("%s: %s", message, err.Error())
 	} else {
 		logrus.Fatal(message)
 	}
