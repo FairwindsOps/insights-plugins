@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/open-policy-agent/opa/rego"
@@ -15,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const outputFile = "/output/opa.json"
@@ -33,6 +36,10 @@ func main() {
 
 	if err != nil {
 		panic(err)
+	}
+	err = refreshLocalChecks(ctx, client.dynamicInterface)
+	if err != nil {
+		logrus.Warnf("An error occured refreshing the local cache of checks: %+v", err)
 	}
 	actionItems, err := processAllChecks(ctx, checkInstances.Items, *client)
 
@@ -183,6 +190,133 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 	}
 
 	return actionItems, nil
+}
+
+func getInsightsChecks() (clusterCheckModel, error) {
+	var jsonResponse clusterCheckModel
+
+	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") +
+		"/data/opa/customChecks"
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return jsonResponse, err
+	}
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("FAIRWINDS_TOKEN"))
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return jsonResponse, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return jsonResponse, fmt.Errorf("failed to retrieve updated checks with a status code of : %d", resp.StatusCode)
+	}
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return jsonResponse, err
+	}
+	err = json.Unmarshal(responseBody, &jsonResponse)
+	if err != nil {
+		return jsonResponse, err
+	}
+	return jsonResponse, nil
+}
+
+func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface) error {
+
+	thisNamespace := "insights-agent"
+	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err == nil { //Ignore errors because that means this isn't running in a container
+		thisNamespace = string(namespaceBytes)
+	}
+	checkInstances, err := dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	checks, err := dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	jsonResponse, err := getInsightsChecks()
+	if err != nil {
+		return err
+	}
+
+	for _, check := range checks.Items {
+		found := false
+		for _, supposedCheck := range jsonResponse.Checks {
+			if check.GetName() == supposedCheck.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			err = dynamicInterface.Resource(checkGvr).Namespace(check.GetNamespace()).Delete(ctx, check.GetName(), metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+
+		}
+	}
+	for _, instance := range checkInstances.Items {
+		found := false
+		for _, supposedInstance := range jsonResponse.Instances {
+			if instance.GetName() == supposedInstance.AdditionalData.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			err = dynamicInterface.Resource(instanceGvr).Namespace(instance.GetNamespace()).Delete(ctx, instance.GetName(), metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+	}
+	for _, supposedCheck := range jsonResponse.Checks {
+		found := false
+		for _, check := range checks.Items {
+			if check.GetName() == supposedCheck.Name {
+				found = true
+				break
+			}
+		}
+		newCheck := supposedCheck.GetUnstructuredObject(thisNamespace)
+		if found {
+			err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Delete(ctx, supposedCheck.Name, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+		_, err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Create(ctx, newCheck, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+
+	}
+	for _, supposedInstance := range jsonResponse.Instances {
+		found := false
+		for _, instance := range checkInstances.Items {
+			if instance.GetName() == supposedInstance.AdditionalData.Name {
+				found = true
+				break
+			}
+		}
+		newInstance := supposedInstance.GetUnstructuredObject(thisNamespace)
+		if found {
+
+			err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Delete(ctx, supposedInstance.AdditionalData.Name, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Create(ctx, newInstance, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func processResults(resource unstructured.Unstructured, results rego.ResultSet, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
