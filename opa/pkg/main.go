@@ -26,31 +26,36 @@ var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", V
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func main() {
+	logrus.Info("Starting OPA reporter")
 	ctx := context.Background()
 	client, err := getKubeClient()
 	if err != nil {
 		panic(err)
 	}
-	// TODO filter by namespace
-	checkInstances, err := client.dynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
 
-	if err != nil {
-		panic(err)
-	}
 	err = refreshLocalChecks(ctx, client.dynamicInterface)
 	if err != nil {
 		logrus.Warnf("An error occured refreshing the local cache of checks: %+v", err)
 	}
-	actionItems, err := processAllChecks(ctx, checkInstances.Items, *client)
 
+	checkInstances, err := client.dynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		panic(err)
 	}
+	logrus.Infof("Found %d checks", len(checkInstances.Items))
+
+	actionItems, err := processAllChecks(ctx, checkInstances.Items, *client)
+	if err != nil {
+		panic(err)
+	}
+	logrus.Info("Finished processing OPA checks")
+
 	outputFormat := Output{ActionItems: actionItems}
 	value, err := json.Marshal(outputFormat)
 	if err != nil {
 		panic(err)
 	}
+
 	err = ioutil.WriteFile(outputFile, value, 0644)
 	if err != nil {
 		panic(err)
