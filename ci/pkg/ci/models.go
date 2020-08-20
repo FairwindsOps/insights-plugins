@@ -108,9 +108,6 @@ func (c *Configuration) SetDefaults() {
 
 // CheckForErrors checks to make sure the configuration is valid
 func (c Configuration) CheckForErrors() error {
-	if c.Options.RepositoryName == "" {
-		return errors.New("options.repositoryName not set")
-	}
 	if c.Options.Organization == "" {
 		return errors.New("options.organization not set")
 	}
