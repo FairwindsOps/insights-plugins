@@ -228,17 +228,21 @@ func getInsightsChecks() (clusterCheckModel, error) {
 }
 
 func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface) error {
-
+	logrus.Infof("Reconciling checks with Insights backend")
 	thisNamespace := "insights-agent"
 	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err == nil { //Ignore errors because that means this isn't running in a container
 		thisNamespace = string(namespaceBytes)
 	}
-	checkInstances, err := dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
+
+	checkClient := dynamicInterface.Resource(checkGvr)
+	instanceClient := dynamicInterface.Resource(instanceGvr)
+
+	checkInstances, err := instanceClient.Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	checks, err := dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
+	checks, err := checkClient.Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -247,6 +251,10 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 		return err
 	}
 
+	logrus.Infof("Found %d checks in Insights, and %d checks in the cluster", len(jsonResponse.Checks), len(checks.Items))
+	logrus.Infof("Found %d check instances in Insights, and %d check instances in the cluster", len(jsonResponse.Instances), len(checkInstances.Items))
+
+	logrus.Infof("Deleting stale checks from the cluster")
 	for _, check := range checks.Items {
 		found := false
 		for _, supposedCheck := range jsonResponse.Checks {
@@ -256,13 +264,15 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 			}
 		}
 		if !found {
-			err = dynamicInterface.Resource(checkGvr).Namespace(check.GetNamespace()).Delete(ctx, check.GetName(), metav1.DeleteOptions{})
+			err = checkClient.Namespace(check.GetNamespace()).Delete(ctx, check.GetName(), metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
 
 		}
 	}
+
+	logrus.Infof("Deleting stale check instances from the cluster")
 	for _, instance := range checkInstances.Items {
 		found := false
 		for _, supposedInstance := range jsonResponse.Instances {
@@ -272,12 +282,14 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 			}
 		}
 		if !found {
-			err = dynamicInterface.Resource(instanceGvr).Namespace(instance.GetNamespace()).Delete(ctx, instance.GetName(), metav1.DeleteOptions{})
+			err = instanceClient.Namespace(instance.GetNamespace()).Delete(ctx, instance.GetName(), metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
 		}
 	}
+
+	logrus.Infof("Updating checks in the cluster")
 	for _, supposedCheck := range jsonResponse.Checks {
 		found := false
 		for _, check := range checks.Items {
@@ -288,17 +300,19 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 		}
 		newCheck := supposedCheck.GetUnstructuredObject(thisNamespace)
 		if found {
-			err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Delete(ctx, supposedCheck.Name, metav1.DeleteOptions{})
+			err = checkClient.Namespace(thisNamespace).Delete(ctx, supposedCheck.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
 		}
-		_, err = dynamicInterface.Resource(checkGvr).Namespace(thisNamespace).Create(ctx, newCheck, metav1.CreateOptions{})
+		_, err = checkClient.Namespace(thisNamespace).Create(ctx, newCheck, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
 
 	}
+
+	logrus.Infof("Updating check instances in the cluster")
 	for _, supposedInstance := range jsonResponse.Instances {
 		found := false
 		for _, instance := range checkInstances.Items {
@@ -310,13 +324,13 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 		newInstance := supposedInstance.GetUnstructuredObject(thisNamespace)
 		if found {
 
-			err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Delete(ctx, supposedInstance.AdditionalData.Name, metav1.DeleteOptions{})
+			err = instanceClient.Namespace(thisNamespace).Delete(ctx, supposedInstance.AdditionalData.Name, metav1.DeleteOptions{})
 			if err != nil {
 				return err
 			}
 		}
 
-		_, err = dynamicInterface.Resource(instanceGvr).Namespace(thisNamespace).Create(ctx, newInstance, metav1.CreateOptions{})
+		_, err = instanceClient.Namespace(thisNamespace).Create(ctx, newInstance, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
