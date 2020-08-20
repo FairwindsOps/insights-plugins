@@ -1,4 +1,9 @@
 # Changelog
+## 0.4.4
+* Update CHANGELOG
+
+## 0.4.3
+* Made `repositoryName` optional
 
 ## 0.4.2
 * Fixed a bug in error output
