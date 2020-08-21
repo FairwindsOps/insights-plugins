@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+* Fixed bug for null parameters
+
 ## 0.2.1
 * Added examples
 
