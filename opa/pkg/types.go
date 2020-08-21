@@ -107,7 +107,21 @@ func (supposedInstance checkSetting) GetUnstructuredObject(namespace string) *un
 	if supposedInstance.AdditionalData.Output.Category != nil {
 		output["category"] = supposedInstance.AdditionalData.Output.Category
 	}
+	spec := map[string]interface{}{
+		"customCheckName": supposedInstance.CheckName,
+		"output":          output,
+		"targets": funk.Map(supposedInstance.Targets, func(s string) map[string]interface{} {
+			splitValues := strings.Split(s, "/")
+			return map[string]interface{}{
+				"apiGroups": []string{splitValues[0]},
+				"kinds":     []string{splitValues[1]},
+			}
+		}).([]map[string]interface{}),
+	}
 
+	if supposedInstance.AdditionalData.Parameters != nil {
+		spec["parameters"] = supposedInstance.AdditionalData.Parameters
+	}
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "CustomCheckInstance",
@@ -116,18 +130,7 @@ func (supposedInstance checkSetting) GetUnstructuredObject(namespace string) *un
 				"name":      supposedInstance.AdditionalData.Name,
 				"namespace": namespace,
 			},
-			"spec": map[string]interface{}{
-				"customCheckName": supposedInstance.CheckName,
-				"output":          output,
-				"parameters":      supposedInstance.AdditionalData.Parameters,
-				"targets": funk.Map(supposedInstance.Targets, func(s string) map[string]interface{} {
-					splitValues := strings.Split(s, "/")
-					return map[string]interface{}{
-						"apiGroups": []string{splitValues[0]},
-						"kinds":     []string{splitValues[1]},
-					}
-				}).([]map[string]interface{}),
-			},
+			"spec": spec,
 		},
 	}
 }

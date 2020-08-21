@@ -162,7 +162,11 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 			logrus.Warnf("Error while parsing Rego %+v", err)
 			return actionItems, nil
 		}
-		obj.Object["parameters"] = checkInstance.Spec.Parameters
+		if checkInstance.Spec.Parameters != nil {
+			obj.Object["parameters"] = checkInstance.Spec.Parameters
+		} else {
+			obj.Object["parameters"] = map[string]interface{}{}
+		}
 		// TODO Find another way to get parameters in - Should they be a function or input?
 		// TODO Caching
 		evaluatedInput := rego.EvalInput(obj.Object)
