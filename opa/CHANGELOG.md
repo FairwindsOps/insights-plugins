@@ -1,4 +1,7 @@
 # Changelog
+## 0.2.3
+* Refresh checks before retrieving them
+* Added some logging
 
 ## 0.2.2
 * Fixed bug for null parameters
