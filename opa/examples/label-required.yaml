@@ -11,8 +11,9 @@ rego: |
           missing := required - provided
           count(missing) > 0
           description := sprintf("Label %v is missing", [missing])
+          severity := 0.1 * count(missing)
           results := {
             description: description,
-            severity: 0.1 * count(missing),
+            severity: severity,
           }
         }
