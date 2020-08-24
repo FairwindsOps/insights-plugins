@@ -12,8 +12,9 @@ COPY go.sum go.sum
 RUN go mod download
 
 COPY pkg pkg
+COPY main.go main.go
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o fw-opa pkg/*.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o fw-opa main.go
 
 
 FROM alpine:3.12.0
