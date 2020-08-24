@@ -1,4 +1,4 @@
-package main
+package opa
 
 import (
 	"strings"
@@ -9,11 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 )
-
-// Output is the format for the output file
-type Output struct {
-	ActionItems []ActionItem
-}
 
 // ActionItem represents an action item from a report
 type ActionItem struct {
