@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
+	"reflect"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
@@ -320,12 +320,19 @@ func maybeGetStringField(m map[string]interface{}, key string) (*string, error) 
 }
 
 func maybeGetFloatField(m map[string]interface{}, key string) (*float64, error) {
-	str, err := maybeGetStringField(m, key)
-	if str == nil || err != nil {
+	if m[key] == nil {
+		return nil, nil
+	}
+	fmt.Println("key", key, m[key], reflect.TypeOf(m[key]))
+	n, ok := m[key].(json.Number)
+	if !ok {
+		return nil, errors.New(key + " was not a float")
+	}
+	f, err := n.Float64()
+	if err != nil {
 		return nil, err
 	}
-	f, err := strconv.ParseFloat(*str, 64)
-	return &f, err
+	return &f, nil
 }
 
 func getDetailsFromMap(m map[string]interface{}) (outputFormat, error) {
@@ -358,23 +365,22 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 	actionItems := make([]ActionItem, 0)
 	for _, output := range getOutputArray(results) {
 		strMethod, ok := output.(string)
-		var description string
+		outputDetails := outputFormat{}
 		if ok {
-			description = strMethod
+			outputDetails.Description = &strMethod
 		} else {
 			mapMethod, ok := output.(map[string]interface{})
 			if ok {
-				dynamicDetails, err := getDetailsFromMap(mapMethod)
+				var err error
+				outputDetails, err = getDetailsFromMap(mapMethod)
 				if err != nil {
 					return nil, err
 				}
-				details.SetDefaults(dynamicDetails)
-
 			} else {
 				return nil, fmt.Errorf("could not decipher output format of %+v %T", output, output)
 			}
 		}
-		details.SetDefaults(outputFormat{
+		outputDetails.SetDefaults(details, outputFormat{
 			Severity:    &defaultSeverity,
 			Title:       &defaultTitle,
 			Remediation: &defaultRemediation,
@@ -383,15 +389,15 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 		})
 
 		actionItems = append(actionItems, ActionItem{
+			EventType:         name,
 			ResourceNamespace: resource.GetNamespace(),
 			ResourceKind:      resource.GetKind(),
 			ResourceName:      resource.GetName(),
-			Title:             *details.Title,
-			EventType:         name,
-			Description:       description,
-			Remediation:       *details.Remediation,
-			Severity:          *details.Severity,
-			Category:          *details.Category,
+			Title:             *outputDetails.Title,
+			Description:       *outputDetails.Description,
+			Remediation:       *outputDetails.Remediation,
+			Severity:          *outputDetails.Severity,
+			Category:          *outputDetails.Category,
 		})
 	}
 
