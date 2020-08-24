@@ -60,6 +60,9 @@ func (o *outputFormat) SetDefaults(others ...outputFormat) {
 		if o.Category == nil {
 			o.Category = other.Category
 		}
+		if o.Description == nil {
+			o.Description = other.Description
+		}
 	}
 }
 
