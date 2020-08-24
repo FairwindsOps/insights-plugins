@@ -20,20 +20,22 @@ type Output struct {
 func main() {
 	logrus.Info("Starting OPA reporter")
 	ctx := context.Background()
-	actionItems, err := opa.Run(ctx)
-	if err != nil {
-		panic(err)
-	}
-	logrus.Info("Finished processing OPA checks")
+	actionItems, runError := opa.Run(ctx)
+	if actionItems != nil {
+		logrus.Info("Finished processing OPA checks")
 
-	output := Output{ActionItems: actionItems}
-	value, err := json.Marshal(output)
-	if err != nil {
-		panic(err)
-	}
+		output := Output{ActionItems: actionItems}
+		value, err := json.Marshal(output)
+		if err != nil {
+			panic(err)
+		}
 
-	err = ioutil.WriteFile(outputFile, value, 0644)
-	if err != nil {
-		panic(err)
+		err = ioutil.WriteFile(outputFile, value, 0644)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if runError != nil {
+		panic(runError)
 	}
 }
