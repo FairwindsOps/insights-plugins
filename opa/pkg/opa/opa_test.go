@@ -60,6 +60,17 @@ labelblock[description] {
 }
 `
 
+const regoWithK8s = `
+package fairwinds
+k8s[actionItem] {
+  deps := kubernetes("apps", "Deployment")
+  count(deps) == 0
+  actionItem := {
+  	"title": "Shouldn't have any deployments"
+  }
+}
+`
+
 func TestOPAParseFail(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
@@ -146,3 +157,19 @@ func TestReturnFull(t *testing.T) {
 	assert.Equal(t, defaultSeverity, ais[0].Severity)
 	assert.Equal(t, defaultCategory, ais[0].Category)
 }
+
+/*
+FIXME: fake API not working...
+func TestK8sAPI(t *testing.T) {
+	kube.SetFakeClient()
+	ctx := context.TODO()
+	details := outputFormat{}
+
+	params := map[string]interface{}{}
+	results, err := runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object)
+	assert.NoError(t, err)
+	ais, err := processResults(fakeObj, results, "my-test", details)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(ais))
+}
+*/
