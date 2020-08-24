@@ -7,7 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	opa "github.com/fairwindsops/insights-plugins/opa/pkg"
+	opa "github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 )
 
 const outputFile = "/output/opa.json"
