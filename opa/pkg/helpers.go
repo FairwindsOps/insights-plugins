@@ -42,27 +42,22 @@ func getOutputArray(results rego.ResultSet) []interface{} {
 	return returnSet
 }
 
-func getKubernetesDataFunction(ctx context.Context, check customCheck, client kubeClient) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
-	return func(_ rego.BuiltinContext, a *ast.Term) (*ast.Term, error) {
-		str, ok := a.Value.(ast.String)
-		if !ok {
-			return nil, errors.New("the kubernetes function should be used with a string")
+func getStringFromAST(astTerm *ast.Term) (string, error) {
+	astString, ok := astTerm.Value.(ast.String)
+	if !ok {
+		return "", errors.New("Expected a string")
+	}
+	return strings.Trim(astString.String(), "\""), nil
+}
+
+func getKubernetesDataFunction(ctx context.Context, check customCheck, client kubeClient) func(rego.BuiltinContext, *ast.Term, *ast.Term) (*ast.Term, error) {
+	return func(_ rego.BuiltinContext, groupAST, kindAST *ast.Term) (*ast.Term, error) {
+		group, err1 := getStringFromAST(groupAST)
+		kind, err2 := getStringFromAST(kindAST)
+		if err1 != nil || err2 != nil {
+			return nil, errors.New("the kubernetes function should be passed a group and kind as strings")
 		}
-		strValue := str.String()
-		strValue = strings.Trim(strValue, "\"")
-		var apiGroup string
-		found := false
-		for _, target := range check.Spec.AdditionalKubernetesData {
-			if strValue == target.Kinds[0] {
-				apiGroup = target.APIGroups[0]
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, errors.New("kubernetes kind specifeid was not found in AdditionalKubernetesData object")
-		}
-		mapping, err := client.restMapper.RESTMapping(schema.GroupKind{Group: apiGroup, Kind: strValue})
+		mapping, err := client.restMapper.RESTMapping(schema.GroupKind{Group: group, Kind: kind})
 		if err != nil {
 			return nil, err
 		}

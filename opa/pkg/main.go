@@ -146,7 +146,7 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 		query, err := rego.New(
 			rego.Query("results = data"),
 			rego.Module("fairwinds", check.Spec.Rego),
-			rego.Function1(
+			rego.Function2(
 				&rego.Function{
 					Name: "kubernetes",
 					Decl: types.NewFunction(types.Args(types.S), types.S),
