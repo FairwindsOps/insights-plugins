@@ -4,10 +4,8 @@ import (
 	"strings"
 
 	"github.com/thoas/go-funk"
-	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/dynamic"
 )
 
 // ActionItem represents an action item from a report
@@ -21,11 +19,6 @@ type ActionItem struct {
 	EventType         string
 	Severity          float64
 	Category          string
-}
-
-type kubeClient struct {
-	restMapper       meta.RESTMapper
-	dynamicInterface dynamic.Interface
 }
 
 type customCheckInstance struct {

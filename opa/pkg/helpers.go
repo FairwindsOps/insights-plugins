@@ -9,10 +9,8 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/restmapper"
-	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 )
 
 func getGroupKinds(targets []kubeTarget) []schema.GroupKind {
@@ -50,19 +48,20 @@ func getStringFromAST(astTerm *ast.Term) (string, error) {
 	return strings.Trim(astString.String(), "\""), nil
 }
 
-func getKubernetesDataFunction(ctx context.Context, check customCheck, client kubeClient) func(rego.BuiltinContext, *ast.Term, *ast.Term) (*ast.Term, error) {
+func getKubernetesDataFunction(ctx context.Context) func(rego.BuiltinContext, *ast.Term, *ast.Term) (*ast.Term, error) {
+	client := kube.GetKubeClient()
 	return func(_ rego.BuiltinContext, groupAST, kindAST *ast.Term) (*ast.Term, error) {
 		group, err1 := getStringFromAST(groupAST)
 		kind, err2 := getStringFromAST(kindAST)
 		if err1 != nil || err2 != nil {
 			return nil, errors.New("the kubernetes function should be passed a group and kind as strings")
 		}
-		mapping, err := client.restMapper.RESTMapping(schema.GroupKind{Group: group, Kind: kind})
+		mapping, err := client.RestMapper.RESTMapping(schema.GroupKind{Group: group, Kind: kind})
 		if err != nil {
 			return nil, err
 		}
 		gvr := mapping.Resource
-		list, err := client.dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
+		list, err := client.DynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -78,30 +77,4 @@ func getKubernetesDataFunction(ctx context.Context, check customCheck, client ku
 		return ast.NewTerm(itemValue), nil
 	}
 
-}
-
-func getKubeClient() (*kubeClient, error) {
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	dynamicInterface, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	kube, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	groupResources, err := restmapper.GetAPIGroupResources(kube.Discovery())
-	if err != nil {
-		return nil, err
-	}
-	restMapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-
-	client := kubeClient{
-		restMapper,
-		dynamicInterface,
-	}
-	return &client, nil
 }
