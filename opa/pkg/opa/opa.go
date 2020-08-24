@@ -21,6 +21,14 @@ import (
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 )
 
+var (
+	defaultSeverity    = 0.5
+	defaultTitle       = "Unknown title"
+	defaultDescription = ""
+	defaultRemediation = ""
+	defaultCategory    = "Security"
+)
+
 var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customcheckinstances"}
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
@@ -125,7 +133,9 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 		if err != nil {
 			return nil, err
 		}
-		newItems, err := processResults(obj, results, check, checkInstance)
+		aiDetails := outputFormat{}
+		aiDetails.SetDefaults(check.Spec.Output, checkInstance.Spec.Output)
+		newItems, err := processResults(obj, results, checkInstance.Name, aiDetails)
 		actionItems = append(actionItems, newItems...)
 	}
 	return actionItems, nil
@@ -298,27 +308,55 @@ func refreshLocalChecks(ctx context.Context) error {
 	return nil
 }
 
-func processResults(resource unstructured.Unstructured, results rego.ResultSet, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
+func maybeGetStringField(m map[string]interface{}, key string) (*string, error) {
+	if m[key] == nil {
+		return nil, nil
+	}
+	str, ok := m[key].(string)
+	if !ok {
+		return nil, errors.New(key + " was not a string")
+	}
+	return &str, nil
+}
+
+func maybeGetFloatField(m map[string]interface{}, key string) (*float64, error) {
+	str, err := maybeGetStringField(m, key)
+	if str == nil || err != nil {
+		return nil, err
+	}
+	f, err := strconv.ParseFloat(*str, 64)
+	return &f, err
+}
+
+func getDetailsFromMap(m map[string]interface{}) (outputFormat, error) {
+	output := outputFormat{}
+	var err error
+	output.Description, err = maybeGetStringField(m, "description")
+	if err != nil {
+		return output, err
+	}
+	output.Title, err = maybeGetStringField(m, "title")
+	if err != nil {
+		return output, err
+	}
+	output.Category, err = maybeGetStringField(m, "category")
+	if err != nil {
+		return output, err
+	}
+	output.Remediation, err = maybeGetStringField(m, "remediation")
+	if err != nil {
+		return output, err
+	}
+	output.Severity, err = maybeGetFloatField(m, "severity")
+	if err != nil {
+		return output, err
+	}
+	return output, nil
+}
+
+func processResults(resource unstructured.Unstructured, results rego.ResultSet, name string, details outputFormat) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
-	instanceOutput := checkInstance.Spec.Output
-	checkOutput := check.Spec.Output
 	for _, output := range getOutputArray(results) {
-		severity := checkOutput.Severity
-		title := checkOutput.Title
-		remediation := checkOutput.Remediation
-		category := checkOutput.Category
-		if instanceOutput.Severity != nil {
-			severity = instanceOutput.Severity
-		}
-		if instanceOutput.Title != nil {
-			title = instanceOutput.Title
-		}
-		if instanceOutput.Remediation != nil {
-			remediation = instanceOutput.Remediation
-		}
-		if instanceOutput.Category != nil {
-			category = instanceOutput.Category
-		}
 		strMethod, ok := output.(string)
 		var description string
 		if ok {
@@ -326,68 +364,34 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 		} else {
 			mapMethod, ok := output.(map[string]interface{})
 			if ok {
-				description, ok = mapMethod["description"].(string)
-				if !ok {
-					return nil, errors.New("description was not a string")
+				dynamicDetails, err := getDetailsFromMap(mapMethod)
+				if err != nil {
+					return nil, err
 				}
-				if mapMethod["severity"] != nil {
-					severityString, ok := mapMethod["severity"].(string)
-					if !ok {
-						return nil, errors.New("severity was not a string")
-					}
-					severityFloat, err := strconv.ParseFloat(severityString, 64)
-					if err != nil {
-						return nil, err
-					}
-					severity = &severityFloat
-				}
-				if mapMethod["title"] != nil {
-					titleString, ok := mapMethod["title"].(string)
-					if !ok {
-						return nil, errors.New("title was not a string")
-					}
-					title = &titleString
-				}
+				details.SetDefaults(dynamicDetails)
 
-				if mapMethod["remediation"] != nil {
-					remediationString, ok := mapMethod["remediation"].(string)
-					if !ok {
-						return nil, errors.New("remediation was not a string")
-					}
-					remediation = &remediationString
-
-				}
 			} else {
 				return nil, fmt.Errorf("could not decipher output format of %+v %T", output, output)
 			}
 		}
-		if severity == nil {
-			var severityFloat float64 = 0.0
-			severity = &severityFloat
-		}
-		if title == nil {
-			newTitle := "Unknown Title"
-			title = &newTitle
-		}
-		if remediation == nil {
-			newRemediation := ""
-			remediation = &newRemediation
-		}
-		if category == nil {
-			newCategory := "Reliability"
-			category = &newCategory
-		}
+		details.SetDefaults(outputFormat{
+			Severity:    &defaultSeverity,
+			Title:       &defaultTitle,
+			Remediation: &defaultRemediation,
+			Category:    &defaultCategory,
+			Description: &defaultDescription,
+		})
 
 		actionItems = append(actionItems, ActionItem{
 			ResourceNamespace: resource.GetNamespace(),
 			ResourceKind:      resource.GetKind(),
 			ResourceName:      resource.GetName(),
-			Title:             *title,
-			EventType:         checkInstance.Name,
+			Title:             *details.Title,
+			EventType:         name,
 			Description:       description,
-			Remediation:       *remediation,
-			Severity:          *severity,
-			Category:          *category,
+			Remediation:       *details.Remediation,
+			Severity:          *details.Severity,
+			Category:          *details.Category,
 		})
 	}
 

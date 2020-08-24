@@ -13,6 +13,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stoewer/go-strcase v1.2.0 // indirect
+	github.com/stretchr/testify v1.5.1
 	github.com/thoas/go-funk v0.7.0
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de // indirect
