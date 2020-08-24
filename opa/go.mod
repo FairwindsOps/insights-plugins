@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/opa
 
-go 1.14
+go 1.13
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
