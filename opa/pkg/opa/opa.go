@@ -51,42 +51,36 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	client := kube.GetKubeClient()
+	var lastError error = nil
 
 	for _, checkInstance := range checkInstances {
 		var checkInstanceObject customCheckInstance
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
 		if err != nil {
-			return nil, err
+			lastError = fmt.Errorf("Failed to parse a check instance")
+			continue
 		}
 		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
 		check, err := client.DynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
 		if err != nil {
-			actionItems = append(actionItems, ActionItem{
-				EventType:         "no-check",
-				ResourceName:      checkInstanceObject.Name,
-				ResourceNamespace: checkInstanceObject.Namespace,
-				ResourceKind:      instanceGvr.Resource,
-				Title:             "An error occured retrieving the Custom Check for this instance",
-				Remediation:       "Make sure that the custom check exists and it is in the same namespace as this instance.",
-				Severity:          0.4,
-				Category:          "Reliability",
-			})
-			logrus.Warnf("Error while retrieving check %+v", err)
+			lastError = fmt.Errorf("Failed to find check %s/%s referenced by instance %s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name)
 			continue
 		}
 		var checkObject customCheck
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
 		if err != nil {
-			return nil, err
+			lastError = fmt.Errorf("Failed to parse check %s/%s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName)
+			continue
 		}
 
 		newItems, err := processCheck(ctx, checkObject, checkInstanceObject)
 		if err != nil {
-			return nil, err
+			lastError = fmt.Errorf("Error while processing check instance %s/%s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName)
+			continue
 		}
 		actionItems = append(actionItems, newItems...)
 	}
-	return actionItems, nil
+	return actionItems, lastError
 }
 
 func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
@@ -109,19 +103,7 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 	actionItems := make([]ActionItem, 0)
 	mapping, err := client.RestMapper.RESTMapping(gk)
 	if err != nil {
-		r := fmt.Sprintf("Make sure that the instance targets are correct %s/%s.", gk.Group, gk.Kind)
-		actionItems = append(actionItems, ActionItem{
-			EventType:         "api-version",
-			ResourceName:      checkInstance.Name,
-			ResourceNamespace: checkInstance.Namespace,
-			ResourceKind:      instanceGvr.Resource,
-			Title:             "An error occured retrieving the API Version for this instance",
-			Remediation:       r,
-			Severity:          0.4,
-			Category:          "Reliability",
-		})
-		logrus.Warnf("Error while retrieving API Version %+v", err)
-		return actionItems, nil
+		return actionItems, err
 	}
 	gvr := mapping.Resource
 	list, err := client.DynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
