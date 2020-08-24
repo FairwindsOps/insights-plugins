@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"reflect"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
@@ -131,7 +130,7 @@ func runRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 		rego.Function2(
 			&rego.Function{
 				Name: "kubernetes",
-				Decl: types.NewFunction(types.Args(types.S, types.S), types.S),
+				Decl: types.NewFunction(types.Args(types.S, types.S), types.A),
 			},
 			dataFunction)).PrepareForEval(ctx)
 	if err != nil {
@@ -305,7 +304,6 @@ func maybeGetFloatField(m map[string]interface{}, key string) (*float64, error) 
 	if m[key] == nil {
 		return nil, nil
 	}
-	fmt.Println("key", key, m[key], reflect.TypeOf(m[key]))
 	n, ok := m[key].(json.Number)
 	if !ok {
 		return nil, errors.New(key + " was not a float")

@@ -1,25 +1,41 @@
 package kube
 
 import (
+	"context"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicFake "k8s.io/client-go/dynamic/fake"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/restmapper"
 )
 
 func SetFakeClient() *Client {
-	objects := []k8sruntime.Object{}
-	kube := k8sfake.NewSimpleClientset(objects...)
+	//objects := []k8sruntime.Object{}
+	//kube := k8sfake.NewSimpleClientset(objects...)
 	dynamic := dynamicFake.NewSimpleDynamicClient(k8sruntime.NewScheme())
-	groupResources, err := restmapper.GetAPIGroupResources(kube.Discovery())
-	if err != nil {
-		panic(err)
-	}
-	restMapper := restmapper.NewDiscoveryRESTMapper(groupResources)
+	gv := schema.GroupVersion{Group: "apps", Version: "v1"}
+	gvk := gv.WithKind("Deployment")
+	restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{gv})
+	restMapper.Add(gvk, meta.RESTScopeNamespace)
 	client := Client{
 		restMapper,
 		dynamic,
 	}
 	singletonClient = &client
 	return singletonClient
+}
+
+func AddFakeDeployment() {
+	client := GetKubeClient()
+	mapping, err := client.RestMapper.RESTMapping(schema.GroupKind{Group: "apps", Kind: "Deployment"})
+	if err != nil {
+		panic(err)
+	}
+	gvr := mapping.Resource
+	_, err = client.DynamicInterface.Resource(gvr).Namespace("test").Create(context.TODO(), &unstructured.Unstructured{}, metav1.CreateOptions{})
+	if err != nil {
+		panic(err)
+	}
 }
