@@ -19,15 +19,16 @@ type Client struct {
 }
 
 func GetKubeClient() *Client {
+	once.Do(func() {
+		if singletonClient == nil {
+			var err error
+			singletonClient, err = getKubeClient()
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
 	return singletonClient
-}
-
-func init() {
-	var err error
-	singletonClient, err = getKubeClient()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func getKubeClient() (*Client, error) {
