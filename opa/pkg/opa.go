@@ -17,34 +17,32 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+
+	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 )
 
 var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customcheckinstances"}
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func Run(ctx context.Context) ([]ActionItem, error) {
-	client, err := getKubeClient()
-	if err != nil {
-		return nil, err
-	}
-
-	err = refreshLocalChecks(ctx, client.dynamicInterface)
+	err := refreshLocalChecks(ctx)
 	if err != nil {
 		logrus.Warnf("An error occured refreshing the local cache of checks: %+v", err)
 	}
 
-	checkInstances, err := client.dynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
+	client := kube.GetKubeClient()
+	checkInstances, err := client.DynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d checks", len(checkInstances.Items))
 
-	return processAllChecks(ctx, checkInstances.Items, *client)
+	return processAllChecks(ctx, checkInstances.Items)
 }
 
-func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured, client kubeClient) ([]ActionItem, error) {
+func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
+	client := kube.GetKubeClient()
 
 	for _, checkInstance := range checkInstances {
 		var checkInstanceObject customCheckInstance
@@ -53,7 +51,7 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 			return nil, err
 		}
 		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
-		check, err := client.dynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
+		check, err := client.DynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
 		if err != nil {
 			actionItems = append(actionItems, ActionItem{
 				EventType:         "no-check",
@@ -74,7 +72,7 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 			return nil, err
 		}
 
-		newItems, err := processCheck(ctx, checkObject, checkInstanceObject, client)
+		newItems, err := processCheck(ctx, checkObject, checkInstanceObject)
 		if err != nil {
 			return nil, err
 		}
@@ -83,11 +81,11 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 	return actionItems, nil
 }
 
-func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance, client kubeClient) ([]ActionItem, error) {
+func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
-		newAI, err := processCheckTarget(ctx, check, checkInstance, gk, client)
+		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
 			return nil, err
 		}
@@ -98,10 +96,10 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 	return actionItems, nil
 }
 
-func processCheckTarget(ctx context.Context, check customCheck, checkInstance customCheckInstance, gk schema.GroupKind, client kubeClient) ([]ActionItem, error) {
+func processCheckTarget(ctx context.Context, check customCheck, checkInstance customCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
+	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
-	getKubernetesData := getKubernetesDataFunction(ctx, check, client)
-	mapping, err := client.restMapper.RESTMapping(gk)
+	mapping, err := client.RestMapper.RESTMapping(gk)
 	if err != nil {
 		r := fmt.Sprintf("Make sure that the instance targets are correct %s/%s.", gk.Group, gk.Kind)
 		actionItems = append(actionItems, ActionItem{
@@ -118,68 +116,44 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 		return actionItems, nil
 	}
 	gvr := mapping.Resource
-	list, err := client.dynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
+	list, err := client.DynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		// TODO look for RBAC errors and create an Action Item
 		return nil, err
 	}
 	for _, obj := range list.Items {
-		query, err := rego.New(
-			rego.Query("results = data"),
-			rego.Module("fairwinds", check.Spec.Rego),
-			rego.Function2(
-				&rego.Function{
-					Name: "kubernetes",
-					Decl: types.NewFunction(types.Args(types.S), types.S),
-				},
-				getKubernetesData),
-		).PrepareForEval(ctx)
+		results, err := runRegoForItem(ctx, check.Spec.Rego, checkInstance.Spec.Parameters, obj.Object)
 		if err != nil {
-			actionItems = append(actionItems, ActionItem{
-				EventType:         "rego-parsing",
-				ResourceName:      checkInstance.Name,
-				ResourceNamespace: checkInstance.Namespace,
-				ResourceKind:      instanceGvr.Resource,
-				Title:             "An error occured parsing the Rego for this custom check",
-				Remediation:       "Make sure that the Rego is valid for this check.",
-				Severity:          0.4,
-				Category:          "Reliability",
-			})
-			logrus.Warnf("Error while parsing Rego %+v", err)
-			return actionItems, nil
-		}
-		if checkInstance.Spec.Parameters != nil {
-			obj.Object["parameters"] = checkInstance.Spec.Parameters
-		} else {
-			obj.Object["parameters"] = map[string]interface{}{}
-		}
-		// TODO Find another way to get parameters in - Should they be a function or input?
-		// TODO Caching
-		evaluatedInput := rego.EvalInput(obj.Object)
-		results, err := query.Eval(ctx, evaluatedInput)
-		if err != nil {
-			// Runtime error of Rego
 			return nil, err
 		}
 		newItems, err := processResults(obj, results, check, checkInstance)
-		if err != nil {
-			actionItems = append(actionItems, ActionItem{
-				EventType:         "results-parsing",
-				ResourceName:      checkInstance.Name,
-				ResourceNamespace: checkInstance.Namespace,
-				ResourceKind:      instanceGvr.Resource,
-				Title:             "An error occured processing the results of this check.",
-				Remediation:       "Make sure that the return values are all correct.",
-				Severity:          0.4,
-				Category:          "Reliability",
-			})
-			logrus.Warnf("Error while parsing results %+v", err)
-			return actionItems, nil
-		}
 		actionItems = append(actionItems, newItems...)
 	}
-
 	return actionItems, nil
+}
+
+func runRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}) (rego.ResultSet, error) {
+	dataFunction := getKubernetesDataFunction(ctx)
+	query, err := rego.New(
+		rego.Query("results = data"),
+		rego.Module("fairwinds", regoStr),
+		rego.Function2(
+			&rego.Function{
+				Name: "kubernetes",
+				Decl: types.NewFunction(types.Args(types.S), types.S),
+			},
+			dataFunction)).PrepareForEval(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if params == nil {
+		params = map[string]interface{}{}
+	}
+
+	// TODO Find another way to get parameters in - Should they be a function or input?
+	obj["parameters"] = params
+
+	evaluatedInput := rego.EvalInput(obj)
+	return query.Eval(ctx, evaluatedInput)
 }
 
 func getInsightsChecks() (clusterCheckModel, error) {
@@ -212,7 +186,8 @@ func getInsightsChecks() (clusterCheckModel, error) {
 	return jsonResponse, nil
 }
 
-func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface) error {
+func refreshLocalChecks(ctx context.Context) error {
+	client := kube.GetKubeClient()
 	logrus.Infof("Reconciling checks with Insights backend")
 	thisNamespace := "insights-agent"
 	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
@@ -220,8 +195,8 @@ func refreshLocalChecks(ctx context.Context, dynamicInterface dynamic.Interface)
 		thisNamespace = string(namespaceBytes)
 	}
 
-	checkClient := dynamicInterface.Resource(checkGvr)
-	instanceClient := dynamicInterface.Resource(instanceGvr)
+	checkClient := client.DynamicInterface.Resource(checkGvr)
+	instanceClient := client.DynamicInterface.Resource(instanceGvr)
 
 	checkInstances, err := instanceClient.Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
