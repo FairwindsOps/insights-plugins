@@ -43,6 +43,24 @@ type outputFormat struct {
 	Severity    *float64
 	Remediation *string
 	Category    *string
+	Description *string
+}
+
+func (o *outputFormat) SetDefaults(others ...outputFormat) {
+	for _, other := range others {
+		if o.Title == nil {
+			o.Title = other.Title
+		}
+		if o.Severity == nil {
+			o.Severity = other.Severity
+		}
+		if o.Remediation == nil {
+			o.Remediation = other.Remediation
+		}
+		if o.Category == nil {
+			o.Category = other.Category
+		}
+	}
 }
 
 type customCheck struct {

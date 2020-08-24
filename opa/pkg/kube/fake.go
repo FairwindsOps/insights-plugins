@@ -7,13 +7,13 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
-func SetFakeClient() (*Client, error) {
+func SetFakeClient() *Client {
 	objects := []k8sruntime.Object{}
 	kube := k8sfake.NewSimpleClientset(objects...)
 	dynamic := dynamicFake.NewSimpleDynamicClient(k8sruntime.NewScheme())
 	groupResources, err := restmapper.GetAPIGroupResources(kube.Discovery())
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	restMapper := restmapper.NewDiscoveryRESTMapper(groupResources)
 	client := Client{
@@ -21,5 +21,5 @@ func SetFakeClient() (*Client, error) {
 		dynamic,
 	}
 	singletonClient = &client
-	return singletonClient, nil
+	return singletonClient
 }
