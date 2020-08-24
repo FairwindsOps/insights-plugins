@@ -15,13 +15,13 @@ func TestOPAParse(t *testing.T) {
 	ctx := context.TODO()
 	rego := `
         package fairwinds
-        annotationblock[description] {
-          provided := {annotation | input.metadata.annotations[annotation]}
-          required := {annotation | annotation := input.parameters.annotations[_]}
+        labelblock[description] {
+          provided := {label | input.metadata.labels[label]}
+          required := {label | label := input.parameters.labels[_]}
           missing := required - provided
           found := required - missing
           count(found) > 0
-          description := sprintf("annotation %v is present", [found])
+          description := sprintf("label %v is present", [found])
         }
 	`
 
@@ -42,5 +42,17 @@ func TestOPAParse(t *testing.T) {
 	details := outputFormat{}
 
 	ais, err := processResults(resource, results, "my-test", details)
+	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ais))
+
+	params["labels"] = []string{"foo"}
+	results, err = runRegoForItem(ctx, rego, params, obj)
+	ais, err = processResults(resource, results, "my-test", details)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ais))
+	assert.Equal(t, defaultSeverity, ais[0].Severity)
+	assert.Equal(t, defaultTitle, ais[0].Title)
+	assert.Equal(t, defaultRemediation, ais[0].Remediation)
+	assert.Equal(t, defaultCategory, ais[0].Category)
+	assert.Equal(t, "label {\"foo\"} is present", ais[0].Description)
 }
