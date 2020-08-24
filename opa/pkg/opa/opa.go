@@ -149,7 +149,7 @@ func runRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 		rego.Function2(
 			&rego.Function{
 				Name: "kubernetes",
-				Decl: types.NewFunction(types.Args(types.S), types.S),
+				Decl: types.NewFunction(types.Args(types.S, types.S), types.S),
 			},
 			dataFunction)).PrepareForEval(ctx)
 	if err != nil {
