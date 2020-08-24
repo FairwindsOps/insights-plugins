@@ -1,4 +1,4 @@
-package main
+package opa
 
 import (
 	"context"
@@ -20,17 +20,13 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-const outputFile = "/output/opa.json"
-
 var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customcheckinstances"}
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
-func main() {
-	logrus.Info("Starting OPA reporter")
-	ctx := context.Background()
+func Run(ctx context.Context) ([]ActionItem, error) {
 	client, err := getKubeClient()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	err = refreshLocalChecks(ctx, client.dynamicInterface)
@@ -40,26 +36,11 @@ func main() {
 
 	checkInstances, err := client.dynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	logrus.Infof("Found %d checks", len(checkInstances.Items))
 
-	actionItems, err := processAllChecks(ctx, checkInstances.Items, *client)
-	if err != nil {
-		panic(err)
-	}
-	logrus.Info("Finished processing OPA checks")
-
-	outputFormat := Output{ActionItems: actionItems}
-	value, err := json.Marshal(outputFormat)
-	if err != nil {
-		panic(err)
-	}
-
-	err = ioutil.WriteFile(outputFile, value, 0644)
-	if err != nil {
-		panic(err)
-	}
+	return processAllChecks(ctx, checkInstances.Items, *client)
 }
 
 func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured, client kubeClient) ([]ActionItem, error) {
