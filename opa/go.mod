@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/opa
 
-go 1.14
+go 1.13
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
@@ -12,7 +12,7 @@ require (
 	github.com/prometheus/common v0.11.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
 	github.com/sirupsen/logrus v1.6.0
-	github.com/stoewer/go-strcase v1.2.0 // indirect
+	github.com/stretchr/testify v1.5.1
 	github.com/thoas/go-funk v0.7.0
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de // indirect
@@ -25,13 +25,10 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
-	k8s.io/api v0.18.6 // indirect
+	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.18.4
-	k8s.io/code-generator v0.18.6 // indirect
-	k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac // indirect
 	k8s.io/klog/v2 v2.1.0 // indirect
 	k8s.io/utils v0.0.0-20200731180307-f00132d28269 // indirect
 	sigs.k8s.io/controller-runtime v0.6.1
