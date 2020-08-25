@@ -32,9 +32,10 @@ var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", V
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func Run(ctx context.Context) ([]ActionItem, error) {
-	err := refreshLocalChecks(ctx)
-	if err != nil {
-		logrus.Warnf("An error occured refreshing the local cache of checks: %+v", err)
+	refreshErr := refreshLocalChecks(ctx)
+	if refreshErr != nil {
+		logrus.Warnf("An error occured refreshing the local cache of checks: %v", refreshErr)
+		// Continue despite the error
 	}
 
 	client := kube.GetKubeClient()
@@ -44,7 +45,11 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	}
 	logrus.Infof("Found %d checks", len(checkInstances.Items))
 
-	return processAllChecks(ctx, checkInstances.Items)
+	ais, err := processAllChecks(ctx, checkInstances.Items)
+	if err != nil {
+		return nil, err
+	}
+	return ais, refreshErr
 }
 
 func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured) ([]ActionItem, error) {
@@ -56,25 +61,29 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 		var checkInstanceObject customCheckInstance
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
 		if err != nil {
-			lastError = fmt.Errorf("Failed to parse a check instance")
+			lastError = fmt.Errorf("Failed to parse a check instance: %v", err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
 		check, err := client.DynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
 		if err != nil {
-			lastError = fmt.Errorf("Failed to find check %s/%s referenced by instance %s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name)
+			lastError = fmt.Errorf("Failed to find check %s/%s referenced by instance %s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name, err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 		var checkObject customCheck
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
 		if err != nil {
-			lastError = fmt.Errorf("Failed to parse check %s/%s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName)
+			lastError = fmt.Errorf("Failed to parse check %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 
 		newItems, err := processCheck(ctx, checkObject, checkInstanceObject)
 		if err != nil {
-			lastError = fmt.Errorf("Error while processing check instance %s/%s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName)
+			lastError = fmt.Errorf("Error while processing check instance %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Name, err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 		actionItems = append(actionItems, newItems...)

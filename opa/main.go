@@ -22,7 +22,7 @@ func main() {
 	ctx := context.Background()
 	actionItems, runError := opa.Run(ctx)
 	if actionItems != nil {
-		logrus.Info("Finished processing OPA checks")
+		logrus.Infof("Finished processing OPA checks, found %d Action Items", len(actionItems))
 
 		output := Output{ActionItems: actionItems}
 		value, err := json.Marshal(output)
