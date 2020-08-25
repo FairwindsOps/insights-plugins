@@ -56,25 +56,29 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 		var checkInstanceObject customCheckInstance
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
 		if err != nil {
-			lastError = fmt.Errorf("Failed to parse a check instance")
+			lastError = fmt.Errorf("Failed to parse a check instance: %v", err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
 		check, err := client.DynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
 		if err != nil {
-			lastError = fmt.Errorf("Failed to find check %s/%s referenced by instance %s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name)
+			lastError = fmt.Errorf("Failed to find check %s/%s referenced by instance %s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name, err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 		var checkObject customCheck
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
 		if err != nil {
-			lastError = fmt.Errorf("Failed to parse check %s/%s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName)
+			lastError = fmt.Errorf("Failed to parse check %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 
 		newItems, err := processCheck(ctx, checkObject, checkInstanceObject)
 		if err != nil {
-			lastError = fmt.Errorf("Error while processing check instance %s/%s", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName)
+			lastError = fmt.Errorf("Error while processing check instance %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Name, err)
+			logrus.Warn(lastError.Error())
 			continue
 		}
 		actionItems = append(actionItems, newItems...)
