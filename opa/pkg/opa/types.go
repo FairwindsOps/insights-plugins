@@ -1,19 +1,12 @@
-package main
+package opa
 
 import (
 	"strings"
 
 	"github.com/thoas/go-funk"
-	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/dynamic"
 )
-
-// Output is the format for the output file
-type Output struct {
-	ActionItems []ActionItem
-}
 
 // ActionItem represents an action item from a report
 type ActionItem struct {
@@ -26,11 +19,6 @@ type ActionItem struct {
 	EventType         string
 	Severity          float64
 	Category          string
-}
-
-type kubeClient struct {
-	restMapper       meta.RESTMapper
-	dynamicInterface dynamic.Interface
 }
 
 type customCheckInstance struct {
@@ -55,6 +43,27 @@ type outputFormat struct {
 	Severity    *float64
 	Remediation *string
 	Category    *string
+	Description *string
+}
+
+func (o *outputFormat) SetDefaults(others ...outputFormat) {
+	for _, other := range others {
+		if o.Title == nil {
+			o.Title = other.Title
+		}
+		if o.Severity == nil {
+			o.Severity = other.Severity
+		}
+		if o.Remediation == nil {
+			o.Remediation = other.Remediation
+		}
+		if o.Category == nil {
+			o.Category = other.Category
+		}
+		if o.Description == nil {
+			o.Description = other.Description
+		}
+	}
 }
 
 type customCheck struct {
