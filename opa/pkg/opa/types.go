@@ -172,13 +172,6 @@ func (supposedCheck opaCustomCheck) GetUnstructuredObject(namespace string) *uns
 			"spec": map[string]interface{}{
 				"rego":   supposedCheck.Rego,
 				"output": output,
-				"additionalKubernetesData": funk.Map(supposedCheck.AdditionalKubernetesData, func(s string) map[string]interface{} {
-					splitValues := strings.Split(s, "/")
-					return map[string]interface{}{
-						"apiGroups": []string{splitValues[0]},
-						"kinds":     []string{splitValues[1]},
-					}
-				}).([]map[string]interface{}),
 			},
 		},
 	}
