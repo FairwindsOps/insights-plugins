@@ -20,8 +20,20 @@ func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]int
 	return nil, nil
 }
 
+func GetRegoQuery(body string, dataFn KubeDataFunction) *rego.Rego {
+	return rego.New(
+		rego.Query("results = data"),
+		rego.Module("fairwinds", body),
+		rego.Function2(
+			&rego.Function{
+				Name: "kubernetes",
+				Decl: types.NewFunction(types.Args(types.S, types.S), types.A),
+			},
+			getDataFunction(dataFn.GetData)))
+}
+
 func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction) ([]interface{}, error) {
-	r := getRegoQuery(regoStr, dataFn)
+	r := GetRegoQuery(regoStr, dataFn)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return nil, err
@@ -59,18 +71,6 @@ func getDataFunction(fn func(context.Context, string, string) ([]interface{}, er
 
 		return ast.NewTerm(itemValue), nil
 	}
-}
-
-func getRegoQuery(body string, dataFn KubeDataFunction) *rego.Rego {
-	return rego.New(
-		rego.Query("results = data"),
-		rego.Module("fairwinds", body),
-		rego.Function2(
-			&rego.Function{
-				Name: "kubernetes",
-				Decl: types.NewFunction(types.Args(types.S, types.S), types.A),
-			},
-			getDataFunction(dataFn.GetData)))
 }
 
 func getOutputArray(results rego.ResultSet) []interface{} {
