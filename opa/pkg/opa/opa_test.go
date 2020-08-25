@@ -167,7 +167,6 @@ func TestK8sAPI(t *testing.T) {
 
 	params := map[string]interface{}{}
 	results, err := runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object)
-	fmt.Println("res", err, results)
 	assert.NoError(t, err)
 	ais, err := processResults(fakeObj, results, "my-test", details)
 	assert.NoError(t, err)
