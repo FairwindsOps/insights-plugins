@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/open-policy-agent/opa/rego"
-	"github.com/open-policy-agent/opa/types"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -18,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
 )
 
 var (
@@ -131,29 +130,9 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 	return actionItems, nil
 }
 
-func runRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}) (rego.ResultSet, error) {
-	dataFunction := getKubernetesDataFunction(ctx)
-	query, err := rego.New(
-		rego.Query("results = data"),
-		rego.Module("fairwinds", regoStr),
-		rego.Function2(
-			&rego.Function{
-				Name: "kubernetes",
-				Decl: types.NewFunction(types.Args(types.S, types.S), types.A),
-			},
-			dataFunction)).PrepareForEval(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if params == nil {
-		params = map[string]interface{}{}
-	}
-
-	// TODO Find another way to get parameters in - Should they be a function or input?
-	obj["parameters"] = params
-
-	evaluatedInput := rego.EvalInput(obj)
-	return query.Eval(ctx, evaluatedInput)
+func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}) ([]interface{}, error) {
+	client := kube.GetKubeClient()
+	return rego.RunRegoForItem(ctx, body, params, obj, *client)
 }
 
 func getInsightsChecks() (clusterCheckModel, error) {
@@ -350,9 +329,9 @@ func getDetailsFromMap(m map[string]interface{}) (outputFormat, error) {
 	return output, nil
 }
 
-func processResults(resource unstructured.Unstructured, results rego.ResultSet, name string, details outputFormat) ([]ActionItem, error) {
+func processResults(resource unstructured.Unstructured, results []interface{}, name string, details outputFormat) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
-	for _, output := range getOutputArray(results) {
+	for _, output := range results {
 		strMethod, ok := output.(string)
 		outputDetails := outputFormat{}
 		if ok {
@@ -391,4 +370,16 @@ func processResults(resource unstructured.Unstructured, results rego.ResultSet, 
 	}
 
 	return actionItems, nil
+}
+
+func getGroupKinds(targets []kubeTarget) []schema.GroupKind {
+	kinds := make([]schema.GroupKind, 0)
+	for _, target := range targets {
+		for _, apiGroup := range target.APIGroups {
+			for _, kind := range target.Kinds {
+				kinds = append(kinds, schema.GroupKind{Group: apiGroup, Kind: kind})
+			}
+		}
+	}
+	return kinds
 }
