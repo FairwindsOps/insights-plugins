@@ -32,9 +32,10 @@ var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", V
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func Run(ctx context.Context) ([]ActionItem, error) {
-	err := refreshLocalChecks(ctx)
-	if err != nil {
-		logrus.Warnf("An error occured refreshing the local cache of checks: %+v", err)
+	refreshErr := refreshLocalChecks(ctx)
+	if refreshErr != nil {
+		logrus.Warnf("An error occured refreshing the local cache of checks: %v", refreshErr)
+		// Continue despite the error
 	}
 
 	client := kube.GetKubeClient()
@@ -44,7 +45,11 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	}
 	logrus.Infof("Found %d checks", len(checkInstances.Items))
 
-	return processAllChecks(ctx, checkInstances.Items)
+	ais, err := processAllChecks(ctx, checkInstances.Items)
+	if err != nil {
+		return nil, err
+	}
+	return ais, refreshErr
 }
 
 func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured) ([]ActionItem, error) {
