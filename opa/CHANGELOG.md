@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.2.6
+* Update examples
+
 ## 0.2.3
 * Refresh checks before retrieving them
 * Added some logging
