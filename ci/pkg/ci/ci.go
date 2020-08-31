@@ -255,8 +255,11 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 			originSplit := strings.Split(origin, "//")
 			origin = originSplit[len(originSplit)-1]
 		}
-		// Remove prefix and suffix to get clean $org/$repo structure
-		origin = strings.TrimPrefix("github.com:")
+		// Remove "******.com:" prefix and ".git" suffix to get clean $org/$repo structure
+		if strings.Contains(origin, ":") {
+			originSplit := strings.Split(origin, ":")
+			origin = originSplit[len(originSplit)-1]
+		}
 		origin = strings.TrimSuffix(".git")
 	}
 
