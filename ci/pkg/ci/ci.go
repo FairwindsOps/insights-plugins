@@ -260,7 +260,7 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 			originSplit := strings.Split(origin, ":")
 			origin = originSplit[len(originSplit)-1]
 		}
-		origin = strings.TrimSuffix(".git")
+		origin = strings.TrimSuffix(origin, ".git")
 	}
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
