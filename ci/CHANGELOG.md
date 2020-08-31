@@ -1,4 +1,7 @@
 # Changelog
+## 0.4.5
+* Remove "******.com:" prefix and ".git" suffix from default repo name
+
 ## 0.4.4
 * Update CHANGELOG
 
