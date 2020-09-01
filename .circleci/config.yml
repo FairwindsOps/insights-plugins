@@ -85,7 +85,6 @@ jobs:
     executor: docker-build
     steps:
       - docker_build
-      - insights_test
       - slack/notify-on-failure:
           only_for_branches: master
 
@@ -93,8 +92,8 @@ jobs:
     executor: docker-build
     steps:
       - docker_build
-      - insights_test
       - docker_push_plugins
+      - insights_test
       - slack/notify-on-failure:
           only_for_branches: master
 
