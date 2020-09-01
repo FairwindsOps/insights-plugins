@@ -3,4 +3,13 @@ options:
 
 images:
   docker:
-    - quay.io/fairwinds/insights-ci:$CI_SHA1
+    - quay.io/fairwinds/fw-kube-bench:latest
+    - quay.io/fairwinds/fw-kube-bench-aggregator:latest
+    - quay.io/fairwinds/fw-kubesec:latest
+    - quay.io/fairwinds/fw-opa:latest
+    - quay.io/fairwinds/fw-trivy:latest
+    - quay.io/fairwinds/insights-ci:latest
+    - quay.io/fairwinds/insights-uploader:latest
+    - quay.io/fairwinds/kubectl:latest
+    - quay.io/fairwinds/rbac-reporter:latest
+    - quay.io/fairwinds/workloads:latest
