@@ -3,4 +3,4 @@ options:
 
 images:
   docker:
-    - quay.io/fairwinds/ci:$CI_SHA1
+    - quay.io/fairwinds/insights-ci:$CI_SHA1
