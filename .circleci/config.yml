@@ -20,6 +20,7 @@ commands:
           echo 'export CI_TAG=$(echo "${CIRCLE_TAG:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')' >> ${BASH_ENV}
           echo 'export AWS_DEFAULT_REGION=us-east-1' >> ${BASH_ENV}
           echo 'export GOPROXY=https://proxy.golang.org' >> ${BASH_ENV}
+
   docker_build:
     description: Build docker Images
     steps:
@@ -44,6 +45,14 @@ commands:
           for filename in deploy/*.config; do
             docker-push -f $filename
           done
+
+  insights_test:
+    description: Fairwinds Insights CI integration
+    steps:
+    - run:
+        name: Run Insights CI script
+        command: curl https://insights.fairwinds.com/v0/insights-ci.sh | bash
+
 
   check_version_changed:
     description: Check that version.txt changed if folder changed
@@ -76,6 +85,7 @@ jobs:
     executor: docker-build
     steps:
       - docker_build
+      - insights_test
       - slack/notify-on-failure:
           only_for_branches: master
 
@@ -83,9 +93,11 @@ jobs:
     executor: docker-build
     steps:
       - docker_build
+      - insights_test
       - docker_push_plugins
       - slack/notify-on-failure:
           only_for_branches: master
+
   test:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
