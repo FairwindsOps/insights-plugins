@@ -1,9 +1,12 @@
 package kube
 
 import (
+	"context"
 	"sync"
 
 	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
@@ -55,4 +58,21 @@ func getKubeClient() (*Client, error) {
 		dynamicInterface,
 	}
 	return &client, nil
+}
+
+func (client Client) GetData(ctx context.Context, group, kind string) ([]interface{}, error) {
+	mapping, err := client.RestMapper.RESTMapping(schema.GroupKind{Group: group, Kind: kind})
+	if err != nil {
+		return nil, err
+	}
+	gvr := mapping.Resource
+	list, err := client.DynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	items := make([]interface{}, 0)
+	for _, item := range list.Items {
+		items = append(items, item.Object)
+	}
+	return items, nil
 }
