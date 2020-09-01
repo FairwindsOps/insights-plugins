@@ -1,0 +1,6 @@
+options:
+  organization: fairwinds-production
+
+images:
+  docker:
+    - quay.io/fairwinds/ci:$CI_SHA1
