@@ -240,14 +240,13 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 		return results, err
 	}
 
-	origin, err := GetResultsFromCommand("git", "remote", "get-url", "origin")
-	if err != nil {
-		logrus.Warn("Unable to get GIT Origin")
-		return results, err
-	}
-	if configurationObject.Options.RepositoryName != "" {
-		origin = configurationObject.Options.RepositoryName
-	} else {
+	origin := configurationObject.Options.RepositoryName
+	if origin == "" {
+		origin, err = GetResultsFromCommand("git", "remote", "get-url", "origin")
+		if err != nil {
+			logrus.Warn("Unable to get GIT Origin")
+			return results, err
+		}
 		if strings.Contains(origin, "@") { // git@github.com URLs are allowed
 			originSplit := strings.Split(origin, "@")
 			// Take the substring after the last @ to avoid any tokens in an HTTPS URL
@@ -256,6 +255,12 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 			originSplit := strings.Split(origin, "//")
 			origin = originSplit[len(originSplit)-1]
 		}
+		// Remove "******.com:" prefix and ".git" suffix to get clean $org/$repo structure
+		if strings.Contains(origin, ":") {
+			originSplit := strings.Split(origin, ":")
+			origin = originSplit[len(originSplit)-1]
+		}
+		origin = strings.TrimSuffix(origin, ".git")
 	}
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
