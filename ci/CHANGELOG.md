@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.4.6
+* Added name to images that aren't in manifest
+
 ## 0.4.5
 * Remove "******.com:" prefix and ".git" suffix from default repo name
 
