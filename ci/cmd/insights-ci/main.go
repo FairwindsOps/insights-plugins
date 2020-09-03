@@ -149,8 +149,9 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 				}
 			}
 		}
-		if !matchedImage {
+		if !matchedImage && len(repoTags) > 0 {
 			images = append(images, models.Image{
+				Name:    repoTags[0],
 				PullRef: info.Name(),
 			})
 		}
