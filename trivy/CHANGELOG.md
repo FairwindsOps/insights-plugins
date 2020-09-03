@@ -1,3 +1,6 @@
+# 0.6.4
+* Fix bug with multiple contains in one object
+
 # 0.6.2
 * Refactor codebase
 

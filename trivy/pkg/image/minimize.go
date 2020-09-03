@@ -54,7 +54,7 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 			imageDetailsWithRefs.Report = append(imageDetailsWithRefs.Report, vulnRefList)
 		}
 		found := funk.Find(outputReport.Images, func(image models.ImageDetailsWithRefs) bool {
-			return image.Namespace == imageDetailsWithRefs.Namespace && image.OwnerKind == imageDetailsWithRefs.OwnerKind && image.OwnerName == imageDetailsWithRefs.OwnerName
+			return image.Namespace == imageDetailsWithRefs.Namespace && image.OwnerKind == imageDetailsWithRefs.OwnerKind && image.OwnerName == imageDetailsWithRefs.OwnerName && image.Name == imageDetailsWithRefs.Name
 		})
 		if found == nil {
 			outputReport.Images = append(outputReport.Images, imageDetailsWithRefs)
