@@ -31,7 +31,7 @@ commands:
             echo "detected change in $dir"
             changed+=(${dir#"./plugins/"})
           done
-          echo 'export CHANGED=($changed)' >> ${BASH_ENV}
+          echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
 
   docker_build:
     description: Build docker Images
