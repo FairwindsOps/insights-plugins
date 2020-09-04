@@ -1,3 +1,6 @@
+# 0.6.5
+* Update Trivy to 0.11.0
+
 # 0.6.4
 * Fix bug with multiple contains in one object
 
