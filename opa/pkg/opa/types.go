@@ -21,24 +21,27 @@ type ActionItem struct {
 	Category          string
 }
 
-type customCheckInstance struct {
+// CustomCheckInstance is an instance of a custom check
+type CustomCheckInstance struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	Spec              customCheckInstanceSpec
+	Spec              CustomCheckInstanceSpec
 }
 
-type customCheckInstanceSpec struct {
+// CustomCheckInstanceSpec is the body of an instance of a custom check
+type CustomCheckInstanceSpec struct {
 	Parameters      map[string]interface{}
-	Targets         []kubeTarget
-	Output          outputFormat
+	Targets         []KubeTarget
+	Output          OutputFormat
 	CustomCheckName string
 }
 
-type kubeTarget struct {
+// KubeTarget is a mapping of kinds and API groups
+type KubeTarget struct {
 	APIGroups []string `json:"apiGroups"`
 	Kinds     []string
 }
 
-type outputFormat struct {
+type OutputFormat struct {
 	Title       *string
 	Severity    *float64
 	Remediation *string
@@ -46,7 +49,7 @@ type outputFormat struct {
 	Description *string
 }
 
-func (o *outputFormat) SetDefaults(others ...outputFormat) {
+func (o *OutputFormat) SetDefaults(others ...OutputFormat) {
 	for _, other := range others {
 		if o.Title == nil {
 			o.Title = other.Title
@@ -66,23 +69,25 @@ func (o *outputFormat) SetDefaults(others ...outputFormat) {
 	}
 }
 
-type customCheck struct {
+// CustomCheck is a custom OPA check.
+type CustomCheck struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	Spec              customCheckSpec
+	Spec              CustomCheckSpec
 }
 
-type customCheckSpec struct {
-	AdditionalKubernetesData []kubeTarget
-	Output                   outputFormat
+// CustomCheckSpec is the body of a Custom Check object
+type CustomCheckSpec struct {
+	AdditionalKubernetesData []KubeTarget
+	Output                   OutputFormat
 	Rego                     string
 }
 
 type clusterCheckModel struct {
-	Checks    []opaCustomCheck
-	Instances []checkSetting
+	Checks    []OPACustomCheck
+	Instances []CheckSetting
 }
 
-type opaCustomCheck struct {
+type OPACustomCheck struct {
 	Name                     string
 	Rego                     string
 	Title                    *string
@@ -92,17 +97,17 @@ type opaCustomCheck struct {
 	AdditionalKubernetesData []string
 }
 
-type checkSetting struct {
+type CheckSetting struct {
 	CheckName      string
 	Targets        []string
 	AdditionalData struct {
 		Name       string
-		Output     outputFormat
+		Output     OutputFormat
 		Parameters map[string]interface{}
 	}
 }
 
-func (supposedInstance checkSetting) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
+func (supposedInstance CheckSetting) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
 	output := map[string]interface{}{}
 	if supposedInstance.AdditionalData.Output.Remediation != nil {
 		output["remedidation"] = supposedInstance.AdditionalData.Output.Remediation
@@ -144,7 +149,7 @@ func (supposedInstance checkSetting) GetUnstructuredObject(namespace string) *un
 	}
 }
 
-func (supposedCheck opaCustomCheck) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
+func (supposedCheck OPACustomCheck) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
 
 	output := map[string]interface{}{}
 	if supposedCheck.Remediation != nil {
