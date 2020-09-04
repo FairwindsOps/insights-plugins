@@ -23,5 +23,5 @@ echo "export kubebench_tag=$kubebench_tag >> tags.sh"
 echo "export trivy_tag=$trivy_tag >> tags.sh"
 echo "export opa_tag=$opa_tag >> tags.sh"
 echo "export uploader_tag=$uploader_tag >> tags.sh"
-docker cp tags.sh e2e-command-runner:/tags.sh
+docker cp tags.sh e2e-command-runner:/workspace/tags.sh
 

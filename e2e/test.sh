@@ -12,8 +12,8 @@ sleep 5
 insightsHost="http://$(awk 'END{print $1}' /etc/hosts):8080"
 kubectl create namespace insights-agent
 
-cat /tags.sh
-source /tags.sh
+cat ./tags.sh
+source ./tags.sh
 
 # TODO: add some OPA checks
 
