@@ -11,23 +11,37 @@ trap "cat /workspace/py.log && kill $pyServer" EXIT
 sleep 5
 insightsHost="http://$(awk 'END{print $1}' /etc/hosts):8080"
 kubectl create namespace insights-agent
+
+workloads_tag=$(cat ./plugins/workloads/version.txt)
+rbac_tag=$(cat ./plugins/rbac-reporter/version.txt)
+kubesec_tag=$(cat ./plugins/kubesec/version.txt)
+kubebench_tag=$(cat ./plugins/kube-bench/version.txt)
+trivy_tag=$(cat ./plugins/trivy/version.txt)
+opa_tag=$(cat ./plugins/opa/version.txt)
+uploader_tag=$(cat ./plugins/uploader/version.txt)
+
+# TODO: add some OPA checks
+
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --namespace insights-agent \
   -f e2e/values.yaml \
   --set insights.host="$insightsHost" \
   --set insights.base64token="$(echo -n "Erehwon" | base64)" \
-  --set workloads.image.tag="$CI_SHA1" \
-  --set rbacreporter.image.tag="$CI_SHA1" \
-  --set kubesec.image.tag="$CI_SHA1" \
-  --set kubebench.image.tag="$CI_SHA1" \
-  --set trivy.image.tag="$CI_SHA1" \
-  --set uploader.image.tag="$CI_SHA1" 
+  --set workloads.image.tag="$workloads_tag" \
+  --set rbacreporter.image.tag="$rbac_tag" \
+  --set kubesec.image.tag="$kubesec_tag" \
+  --set kubebench.image.tag="$kubebench_tag" \
+  --set trivy.image.tag="$trivy_tag" \
+  --set opa.image.tag="$opa_tag" \
+  --set uploader.image.tag="$uploader_tag"
+
 sleep 5
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insights-agent
+kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
 kubectl wait --for=condition=complete job/kubesec --timeout=480s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
