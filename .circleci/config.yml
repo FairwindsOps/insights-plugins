@@ -31,8 +31,8 @@ commands:
         command: |
           for dir in `find ./plugins -type d`; do
             if ! git diff --name-only --exit-code origin/master "$dir/" ; then
-              docker-pull -f $filename
-              docker-build -f $filename
+              docker-pull -f $dir/build.config
+              docker-build -f $dir/build.config
             fi
           done
 
