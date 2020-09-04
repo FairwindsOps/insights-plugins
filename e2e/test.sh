@@ -13,12 +13,18 @@ insightsHost="http://$(awk 'END{print $1}' /etc/hosts):8080"
 kubectl create namespace insights-agent
 
 workloads_tag=$(cat ./plugins/workloads/version.txt)
-rbac_tag=$(cat ./plugins/rbac-reporter/version.txt)
+rbacreporter_tag=$(cat ./plugins/rbac-reporter/version.txt)
 kubesec_tag=$(cat ./plugins/kubesec/version.txt)
 kubebench_tag=$(cat ./plugins/kube-bench/version.txt)
 trivy_tag=$(cat ./plugins/trivy/version.txt)
 opa_tag=$(cat ./plugins/opa/version.txt)
 uploader_tag=$(cat ./plugins/uploader/version.txt)
+
+for plugin in "${CHANGED[@]}"; do
+  varname=$(echo $plugin | sed -e 's/-//g')
+  export $varname_tag=$CI_SHA1
+done
+
 
 # TODO: add some OPA checks
 
@@ -28,7 +34,7 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --set insights.host="$insightsHost" \
   --set insights.base64token="$(echo -n "Erehwon" | base64)" \
   --set workloads.image.tag="$workloads_tag" \
-  --set rbacreporter.image.tag="$rbac_tag" \
+  --set rbacreporter.image.tag="$rbacreporter_tag" \
   --set kubesec.image.tag="$kubesec_tag" \
   --set kubebench.image.tag="$kubebench_tag" \
   --set trivy.image.tag="$trivy_tag" \
