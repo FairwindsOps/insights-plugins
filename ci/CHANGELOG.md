@@ -1,4 +1,6 @@
 # Changelog
+## 0.4.7
+* Update Trivy to 0.11.0
 
 ## 0.4.6
 * Added name to images that aren't in manifest
