@@ -84,19 +84,19 @@ func TestOPAParseFail(t *testing.T) {
 func TestReturnDescription(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
-	details := outputFormat{}
+	details := OutputFormat{}
 
 	params := map[string]interface{}{}
 	results, err := runRegoForItem(ctx, basicRego, params, fakeObj.Object)
 	assert.NoError(t, err)
-	ais, err := processResults(fakeObj, results, "my-test", details)
+	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ais))
 
 	params["labels"] = []string{"foo"}
 	results, err = runRegoForItem(ctx, basicRego, params, fakeObj.Object)
 	assert.NoError(t, err)
-	ais, err = processResults(fakeObj, results, "my-test", details)
+	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(ais))
 	assert.Equal(t, defaultSeverity, ais[0].Severity)
@@ -109,12 +109,12 @@ func TestReturnDescription(t *testing.T) {
 func TestReturnFull(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
-	details := outputFormat{}
+	details := OutputFormat{}
 
 	params := map[string]interface{}{}
 	results, err := runRegoForItem(ctx, returnFull, params, fakeObj.Object)
 	assert.NoError(t, err)
-	ais, err := processResults(fakeObj, results, "my-test", details)
+	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(ais))
 	assert.Equal(t, "title", ais[0].Title)
@@ -128,7 +128,7 @@ func TestReturnFull(t *testing.T) {
 	defaultRemediation := "default remediation"
 	defaultCategory := "Reliability"
 	defaultDescription := "default description"
-	details = outputFormat{
+	details = OutputFormat{
 		Title:       &defaultTitle,
 		Severity:    &defaultSeverity,
 		Remediation: &defaultRemediation,
@@ -138,7 +138,7 @@ func TestReturnFull(t *testing.T) {
 
 	results, err = runRegoForItem(ctx, returnFull, params, fakeObj.Object)
 	assert.NoError(t, err)
-	ais, err = processResults(fakeObj, results, "my-test", details)
+	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(ais))
 	assert.Equal(t, "title", ais[0].Title)
@@ -149,7 +149,7 @@ func TestReturnFull(t *testing.T) {
 
 	results, err = runRegoForItem(ctx, returnEmpty, params, fakeObj.Object)
 	assert.NoError(t, err)
-	ais, err = processResults(fakeObj, results, "my-test", details)
+	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(ais))
 	assert.Equal(t, defaultTitle, ais[0].Title)
@@ -162,19 +162,19 @@ func TestReturnFull(t *testing.T) {
 func TestK8sAPI(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
-	details := outputFormat{}
+	details := OutputFormat{}
 
 	params := map[string]interface{}{}
 	results, err := runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object)
 	assert.NoError(t, err)
-	ais, err := processResults(fakeObj, results, "my-test", details)
+	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ais))
 
 	kube.AddFakeDeployment()
 	results, err = runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object)
 	assert.NoError(t, err)
-	ais, err = processResults(fakeObj, results, "my-test", details)
+	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(ais))
 	assert.Equal(t, "Found a deployment in test", ais[0].Description)

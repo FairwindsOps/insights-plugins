@@ -57,7 +57,7 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 	var lastError error = nil
 
 	for _, checkInstance := range checkInstances {
-		var checkInstanceObject customCheckInstance
+		var checkInstanceObject CustomCheckInstance
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
 		if err != nil {
 			lastError = fmt.Errorf("Failed to parse a check instance: %v", err)
@@ -71,7 +71,7 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 			logrus.Warn(lastError.Error())
 			continue
 		}
-		var checkObject customCheck
+		var checkObject CustomCheck
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
 		if err != nil {
 			lastError = fmt.Errorf("Failed to parse check %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, err)
@@ -90,7 +90,7 @@ func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstruc
 	return actionItems, lastError
 }
 
-func processCheck(ctx context.Context, check customCheck, checkInstance customCheckInstance) ([]ActionItem, error) {
+func processCheck(ctx context.Context, check CustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
@@ -105,7 +105,7 @@ func processCheck(ctx context.Context, check customCheck, checkInstance customCh
 	return actionItems, nil
 }
 
-func processCheckTarget(ctx context.Context, check customCheck, checkInstance customCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
+func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance CustomCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
 	mapping, err := client.RestMapper.RESTMapping(gk)
@@ -118,16 +118,25 @@ func processCheckTarget(ctx context.Context, check customCheck, checkInstance cu
 		return nil, err
 	}
 	for _, obj := range list.Items {
-		results, err := runRegoForItem(ctx, check.Spec.Rego, checkInstance.Spec.Parameters, obj.Object)
+		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace())
 		if err != nil {
 			return nil, err
 		}
-		aiDetails := outputFormat{}
-		aiDetails.SetDefaults(check.Spec.Output, checkInstance.Spec.Output)
-		newItems, err := processResults(obj, results, checkInstance.Name, aiDetails)
 		actionItems = append(actionItems, newItems...)
 	}
 	return actionItems, nil
+}
+
+func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string) ([]ActionItem, error) {
+
+	results, err := runRegoForItem(ctx, check.Spec.Rego, instance.Spec.Parameters, obj)
+	if err != nil {
+		return nil, err
+	}
+	aiDetails := OutputFormat{}
+	aiDetails.SetDefaults(check.Spec.Output, instance.Spec.Output)
+	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, instance.Name, aiDetails)
+	return newItems, err
 }
 
 func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}) ([]interface{}, error) {
@@ -303,8 +312,8 @@ func maybeGetFloatField(m map[string]interface{}, key string) (*float64, error) 
 	return &f, nil
 }
 
-func getDetailsFromMap(m map[string]interface{}) (outputFormat, error) {
-	output := outputFormat{}
+func getDetailsFromMap(m map[string]interface{}) (OutputFormat, error) {
+	output := OutputFormat{}
 	var err error
 	output.Description, err = maybeGetStringField(m, "description")
 	if err != nil {
@@ -329,11 +338,11 @@ func getDetailsFromMap(m map[string]interface{}) (outputFormat, error) {
 	return output, nil
 }
 
-func processResults(resource unstructured.Unstructured, results []interface{}, name string, details outputFormat) ([]ActionItem, error) {
+func processResults(resourceName, resourceKind, resourceNamespace string, results []interface{}, name string, details OutputFormat) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	for _, output := range results {
 		strMethod, ok := output.(string)
-		outputDetails := outputFormat{}
+		outputDetails := OutputFormat{}
 		if ok {
 			outputDetails.Description = &strMethod
 		} else {
@@ -348,7 +357,7 @@ func processResults(resource unstructured.Unstructured, results []interface{}, n
 				return nil, fmt.Errorf("could not decipher output format of %+v %T", output, output)
 			}
 		}
-		outputDetails.SetDefaults(details, outputFormat{
+		outputDetails.SetDefaults(details, OutputFormat{
 			Severity:    &defaultSeverity,
 			Title:       &defaultTitle,
 			Remediation: &defaultRemediation,
@@ -358,9 +367,9 @@ func processResults(resource unstructured.Unstructured, results []interface{}, n
 
 		actionItems = append(actionItems, ActionItem{
 			EventType:         name,
-			ResourceNamespace: resource.GetNamespace(),
-			ResourceKind:      resource.GetKind(),
-			ResourceName:      resource.GetName(),
+			ResourceNamespace: resourceNamespace,
+			ResourceKind:      resourceKind,
+			ResourceName:      resourceName,
 			Title:             *outputDetails.Title,
 			Description:       *outputDetails.Description,
 			Remediation:       *outputDetails.Remediation,
@@ -372,7 +381,7 @@ func processResults(resource unstructured.Unstructured, results []interface{}, n
 	return actionItems, nil
 }
 
-func getGroupKinds(targets []kubeTarget) []schema.GroupKind {
+func getGroupKinds(targets []KubeTarget) []schema.GroupKind {
 	kinds := make([]schema.GroupKind, 0)
 	for _, target := range targets {
 		for _, apiGroup := range target.APIGroups {
