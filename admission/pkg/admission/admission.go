@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 
 	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
 )
@@ -25,7 +26,7 @@ func init() {
 }
 
 // SendResults sends the results to Insights
-func SendResults(reports []models.ReportInfo, token string) (bool, error) {
+func SendResults(reports []models.ReportInfo, token string) (bool, []string, error) {
 	var b bytes.Buffer
 
 	results := false
@@ -35,13 +36,13 @@ func SendResults(reports []models.ReportInfo, token string) (bool, error) {
 		fw, err := w.CreateFormFile(report.Report, report.Report+".json")
 		if err != nil {
 			logrus.Warnf("Unable to create form for %s", report.Report)
-			return false, err
+			return false, nil, err
 		}
 		_, err = fw.Write(report.Contents)
 		logrus.Infof("Adding report %s %s", report.Report, string(report.Contents))
 		if err != nil {
 			logrus.Warnf("Unable to write contents for %s", report.Report)
-			return results, err
+			return results, nil, err
 		}
 	}
 	w.Close()
@@ -50,7 +51,7 @@ func SendResults(reports []models.ReportInfo, token string) (bool, error) {
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		logrus.Warn("Unable to create Request")
-		return results, err
+		return results, nil, err
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -68,25 +69,33 @@ func SendResults(reports []models.ReportInfo, token string) (bool, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warn("Unable to Post results to Insights")
-		return results, err
+		return results, nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return results, fmt.Errorf("Invalid status code: %d", resp.StatusCode)
+		return results, nil, fmt.Errorf("Invalid status code: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
-		return results, err
+		return results, nil, err
 	}
-	var resultMap map[string]bool
+	var resultMap map[string]interface{}
 	err = json.Unmarshal(body, &resultMap)
 	if err != nil {
-		return results, err
+		return results, nil, err
 	}
-	results = resultMap["Success"]
+	results = resultMap["Success"].(bool)
+	actionItems := resultMap["ActionItems"]
+	var warnings []string
+	if actionItems != nil {
+		warnings = funk.Map(actionItems.([]interface{}), func(ai interface{}) string {
+			aiMap := ai.(map[string]interface{})
+			return fmt.Sprintf("%s : Failure: %t", aiMap["Title"].(string), aiMap["Failure"].(bool))
+		}).([]string)
+	}
 
 	logrus.Infof("Completed request %t", results)
-	return results, nil
+	return results, warnings, nil
 }
