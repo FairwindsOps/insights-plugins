@@ -1,4 +1,4 @@
-set -eo pipefail
+set -xeo pipefail
 ls -lah
 mkdir output
 echo "export CI_BRANCH='$(echo "${CIRCLE_BRANCH:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')'" >> env.sh
