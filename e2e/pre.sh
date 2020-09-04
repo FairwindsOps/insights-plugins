@@ -1,8 +1,10 @@
 set -eo pipefail
+ls -lah
 mkdir output
 echo "export CI_BRANCH='$(echo "${CIRCLE_BRANCH:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')'" >> env.sh
 docker cp . e2e-command-runner:/workspace
 
+ls -lah ./plugins
 workloads_tag=$(cat ./plugins/workloads/version.txt)
 rbacreporter_tag=$(cat ./plugins/rbac-reporter/version.txt)
 kubesec_tag=$(cat ./plugins/kubesec/version.txt)
