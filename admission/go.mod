@@ -8,6 +8,7 @@ require (
 	github.com/fairwindsops/pluto/v3 v3.4.1
 	github.com/fairwindsops/polaris v0.0.0-20200826172321-7a0efb785352
 	github.com/sirupsen/logrus v1.6.0
+	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.7.0
 	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.18.8

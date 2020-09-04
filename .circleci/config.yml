@@ -103,6 +103,7 @@ jobs:
       - run: go get -u golang.org/x/lint/golint
       - run: go list ./... | xargs golint -set_exit_status
       - run: cd plugins/opa ; go test ./... ; cd ../..
+      - run: cd plugins/admission ; go test ./... ; cd ../..
       - slack/notify-on-failure:
           only_for_branches: master
 
