@@ -32,9 +32,6 @@ commands:
           done
           echo 'export CHANGED=($changed)' >> ${BASH_ENV}
 
-for value in "${changed[@]}"; do
-  echo "changed $value"
-done
   docker_build:
     description: Build docker Images
     steps:
