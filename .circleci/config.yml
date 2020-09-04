@@ -30,7 +30,7 @@ commands:
         name: Build Plugin Docker Images
         command: |
           for dir in `find ./plugins -type d`; do
-            if ! git diff --exit-code origin/master "$dir/" ; then
+            if ! git diff --name-only --exit-code origin/master "$dir/" ; then
               docker-pull -f $filename
               docker-build -f $filename
             fi
@@ -44,7 +44,7 @@ commands:
         command: |
           docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
           for dir in `find ./plugins -type d`; do
-            if ! git diff --exit-code origin/master "$dir/" ; then
+            if ! git diff --name-only --exit-code origin/master "$dir/" ; then
               docker-push -f $dir/build.config
             fi
           done
@@ -57,10 +57,10 @@ commands:
         command: |
           for dir in `find ./plugins -type d`; do
             if [ -f "$dir/version.txt" ]; then
-              if git diff --exit-code origin/master $dir ; then
+              if git diff --name-only --exit-code origin/master $dir ; then
                 continue
               fi
-              if git diff --exit-code origin/master "$dir/version.txt" ; then
+              if git diff --name-only --exit-code origin/master "$dir/version.txt" ; then
                 echo "Please update $dir/version.txt"
                 exit 1
               else
