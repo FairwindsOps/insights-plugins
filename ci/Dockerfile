@@ -20,7 +20,7 @@ COPY ci/pkg pkg
 COPY ci/cmd cmd
 RUN go build ./cmd/insights-ci
 
-RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.6.0/trivy_0.6.0_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
+RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.11.0/trivy_0.6.0_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/1.1.1/polaris_1.1.1_Linux_amd64.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
 RUN DESIRED_VERSION=3.2.1 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 FROM alpine:3.11.6
