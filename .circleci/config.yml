@@ -28,6 +28,7 @@ commands:
             if git diff --name-only --exit-code --no-renames origin/master "$dir/" > /dev/null 2>&1 ; then
               continue
             fi
+            echo "detected change in $dir"
             changed+=(${dir#"./plugins/"})
           done
           echo 'export CHANGED=($changed)' >> ${BASH_ENV}
