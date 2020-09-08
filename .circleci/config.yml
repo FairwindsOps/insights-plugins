@@ -20,6 +20,19 @@ commands:
           echo 'export CI_TAG=$(echo "${CIRCLE_TAG:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')' >> ${BASH_ENV}
           echo 'export AWS_DEFAULT_REGION=us-east-1' >> ${BASH_ENV}
           echo 'export GOPROXY=https://proxy.golang.org' >> ${BASH_ENV}
+          changed=()
+          for dir in `find ./plugins -maxdepth 1 -type d`; do
+            if [ $dir == "./plugins" ]; then
+              continue
+            fi
+            if git diff --name-only --exit-code --no-renames origin/master "$dir/" > /dev/null 2>&1 ; then
+              continue
+            fi
+            echo "detected change in $dir"
+            changed+=(${dir#"./plugins/"})
+          done
+          echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
+
   docker_build:
     description: Build docker Images
     steps:
@@ -29,9 +42,9 @@ commands:
     - run:
         name: Build Plugin Docker Images
         command: |
-          for filename in deploy/*.config; do
-            docker-pull -f $filename
-            docker-build -f $filename
+          for plugin in "${CHANGED[@]}"; do
+            docker-pull -f ./plugins/$plugin/build.config
+            docker-build -f ./plugins/$plugin/build.config
           done
 
   docker_push_plugins:
@@ -41,8 +54,8 @@ commands:
         name: Push Plugin Docker Images
         command: |
           docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
-          for filename in deploy/*.config; do
-            docker-push -f $filename
+          for plugin in "${CHANGED[@]}"; do
+            docker-push -f ./plugins/$plugin/build.config
           done
 
   check_version_changed:
@@ -51,18 +64,12 @@ commands:
     - run:
         name: Check version.txt
         command: |
-          for dir in `find . -type d`
-          do
-            if [ -f "$dir/version.txt" ]; then
-              if git diff --exit-code origin/master $dir ; then
-                continue
-              fi
-              if git diff --exit-code origin/master "$dir/version.txt" ; then
-                echo "Please update $dir/version.txt"
-                exit 1
-              else
-                echo "Update to $dir/version.txt found"
-              fi
+          for plugin in "${CHANGED[@]}"; do
+            if git diff --name-only --exit-code origin/master "./plugins/$plugin/version.txt" ; then
+              echo "Please update ./plugins/$plugin/version.txt"
+              exit 1
+            else
+              echo "Update to ./plugins/$plugin/version.txt found"
             fi
           done
 
@@ -95,7 +102,7 @@ jobs:
       - set_environment_variables
       - run: go get -u golang.org/x/lint/golint
       - run: go list ./... | xargs golint -set_exit_status
-      - run: cd opa ; go test ./... ; cd ..
+      - run: cd plugins/opa ; go test ./... ; cd ../..
       - slack/notify-on-failure:
           only_for_branches: master
 
@@ -107,7 +114,6 @@ jobs:
       - checkout
       - set_environment_variables
       - check_version_changed
-
 
 workflows:
   version: 2
