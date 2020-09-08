@@ -11,6 +11,9 @@ trivy_tag=$(cat ./plugins/trivy/version.txt)
 opa_tag=$(cat ./plugins/opa/version.txt)
 uploader_tag=$(cat ./plugins/uploader/version.txt)
 
+echo "changed: $CHANGED"
+echo "changed arr: ${CHANGED[@]}"
+
 for plugin in "${CHANGED[@]}"; do
   varname=$(echo $plugin | sed -e 's/-//g')
   export $varname_tag=$CI_SHA1
