@@ -19,7 +19,9 @@ func GetPolarisReport(ctx context.Context, config polarisconfiguration.Configura
 	}
 	// Scan with Polaris
 	pod, originalObject, err := fwebhook.GetObjectFromRawRequest(manifest)
-
+	if err != nil {
+		return report, err
+	}
 	controller, err := kube.NewGenericWorkloadFromPod(pod, originalObject)
 	if err != nil {
 		return report, err

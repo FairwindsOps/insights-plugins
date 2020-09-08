@@ -12,10 +12,13 @@ import (
 	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
 )
 
+const opaVersion = "0.2.8"
+
 // ProcessOPA runs all checks against the provided Custom Check
 func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, configuration models.Configuration) (models.ReportInfo, error) {
 	report := models.ReportInfo{
-		Report: "opa",
+		Report:  "opa",
+		Version: opaVersion,
 	}
 	actionItems := make([]opa.ActionItem, 0)
 	for _, instanceObject := range configuration.OPA.CustomCheckInstances {
