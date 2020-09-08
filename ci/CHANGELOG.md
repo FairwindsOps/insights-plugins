@@ -1,4 +1,7 @@
 # Changelog
+## 0.4.8
+* Add log statement to Trivy
+
 ## 0.4.7
 * Update Trivy to 0.11.0
 
