@@ -1,3 +1,6 @@
+# 0.6.6
+* Add log statement
+
 # 0.6.5
 * Update Trivy to 0.11.0
 
