@@ -32,6 +32,7 @@ commands:
             changed+=(${dir#"./plugins/"})
           done
           echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
+          ./.circleci/set_tags.sh
 
   docker_build:
     description: Build docker Images
