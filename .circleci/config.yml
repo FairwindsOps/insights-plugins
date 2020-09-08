@@ -65,7 +65,11 @@ commands:
     steps:
     - run:
         name: Run Insights CI script
-        command: curl https://insights.fairwinds.com/v0/insights-ci.sh | bash
+        command: |
+          curl https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
+          chmod +x ci-script.sh
+          printenv
+          ./ci-script.sh
 
 
   check_version_changed:
