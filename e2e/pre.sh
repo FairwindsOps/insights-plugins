@@ -29,7 +29,7 @@ echo "changed arr: ${changed[@]}"
 
 for plugin in "${changed[@]}"; do
   varname=$(echo $plugin | sed -e 's/-//g')
-  export $varname_tag=$CI_SHA1
+  export ${varname}_tag=$CI_SHA1
 done
 
 echo "export workloads_tag=$workloads_tag" >> tags.sh
