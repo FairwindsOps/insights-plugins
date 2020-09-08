@@ -20,7 +20,6 @@ trivy:
   - default
   - insights-agent
 
-  
 uploader:
   resources:
     requests:
