@@ -2,9 +2,7 @@
 set -xeo pipefail
 
 for plugin in ./plugins/*; do
-  echo "Plug $plugin"
   if [ -f $plugin ] || [ $plugin == "./plugins" ] ; then
-    echo "cont"
     continue
   fi
 

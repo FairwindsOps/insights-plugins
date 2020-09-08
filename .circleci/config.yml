@@ -66,6 +66,12 @@ commands:
     - run:
         name: Run Insights CI script
         command: |
+          for plugin in ./plugins/*; do
+            if [ -f $plugin ] || [ $plugin == "./plugins" ] ; then
+              continue
+            fi
+            CI_BRANCH=$(cat $plugin/version.txt) docker-pull -f $plugin/build.config
+          done
           curl https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
           chmod +x ci-script.sh
           printenv
