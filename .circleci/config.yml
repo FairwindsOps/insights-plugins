@@ -73,8 +73,8 @@ commands:
             source $plugin/build.config
             docker pull quay.io/$REPOSITORY_NAME:$(cat $plugin/version.txt) || true
           done
-          curl https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
-          chmod +x ci-script.sh
+          # curl https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
+          # chmod +x ci-script.sh
           printenv
           ./ci-script.sh
 
