@@ -20,7 +20,9 @@ trivy:
   - default
   - insights-agent
 
-  
+opa:
+  enabled: true
+
 uploader:
   resources:
     requests:
