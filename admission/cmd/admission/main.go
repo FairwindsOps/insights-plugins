@@ -109,8 +109,7 @@ func main() {
 		Port:    webhookPort,
 	})
 	if err != nil {
-		logrus.Errorf("Unable to set up overall controller manager: %v", err)
-		os.Exit(1)
+		exitWithError("Unable to set up overall controller manager", err)
 	}
 
 	_, err = os.Stat("/opt/cert/tls.crt")
@@ -122,14 +121,7 @@ func main() {
 	server.CertName = "tls.crt"
 	server.KeyName = "tls.key"
 
-	logrus.Info("Setting up webhook server")
-
-	logrus.Infof("Polaris webhook server listening on port %d", webhookPort)
-
-	logrus.Debug("Registering webhooks to the webhook server")
-
 	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &handler})
-	logrus.Info("webhook started")
 
 	logrus.Debug("Starting webhook manager")
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
