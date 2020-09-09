@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 	"github.com/stretchr/testify/assert"
 
@@ -13,6 +14,7 @@ import (
 
 // TestProcessOPA runs all checks against the provided Custom Check
 func TestProcessOPA(t *testing.T) {
+	kube.SetFakeClient()
 	config := models.Configuration{}
 	checks := []opa.OPACustomCheck{}
 	instances := []opa.CheckSetting{}
