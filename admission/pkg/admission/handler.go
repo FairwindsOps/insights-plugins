@@ -27,18 +27,18 @@ func (v *Validator) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
-func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, error) {
+func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
 	var err error
 	var decoded map[string]interface{}
 	err = json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 
 	ownerReferences, ok := decoded["metadata"].(map[string]interface{})["ownerReferences"].([]interface{})
 
 	if ok && len(ownerReferences) > 0 {
-		return true, nil, nil
+		return true, nil, nil, nil
 	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 
@@ -49,17 +49,17 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 // Handle for Validator to run validation checks.
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	logrus.Info("Starting request")
-	allowed, warnings, err := v.handleInternal(ctx, req)
+	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	response := admission.ValidationResponse(allowed, strings.Join(warnings, "\n"))
+	response := admission.ValidationResponse(allowed, strings.Join(errors, "\n"))
 	logrus.Infof("Warnings returned: %+v", warnings)
 	return response
 }
 
-func processInputYAML(ctx context.Context, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string) (bool, []string, error) {
+func processInputYAML(ctx context.Context, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string) (bool, []string, []string, error) {
 	reports := make([]models.ReportInfo, 0)
 	if configurationObject.Reports.Polaris {
 		logrus.Info("Running Polaris")
@@ -67,7 +67,7 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 		polarisConfig := *configurationObject.Polaris
 		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, kind, input)
 		if err != nil {
-			return false, nil, err
+			return false, nil, nil, err
 		}
 		reports = append(reports, polarisReport)
 	}
@@ -75,16 +75,16 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 		logrus.Info("Running OPA")
 		opaReport, err := opa.ProcessOPA(ctx, decodedObject, name, apiGroup, kind, namespace, configurationObject)
 		if err != nil {
-			return false, nil, err
+			return false, nil, nil, err
 		}
 		reports = append(reports, opaReport)
 	}
 
 	// TODO Pluto
 
-	results, warnings, err := SendResults(reports, token)
+	results, warnings, errors, err := SendResults(reports, token)
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
-	return results, warnings, nil
+	return results, warnings, errors, nil
 }

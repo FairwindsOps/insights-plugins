@@ -26,7 +26,7 @@ func init() {
 }
 
 // SendResults sends the results to Insights
-func SendResults(reports []models.ReportInfo, token string) (bool, []string, error) {
+func SendResults(reports []models.ReportInfo, token string) (bool, []string, []string, error) {
 	var b bytes.Buffer
 
 	results := false
@@ -36,13 +36,13 @@ func SendResults(reports []models.ReportInfo, token string) (bool, []string, err
 		fw, err := w.CreateFormFile(report.Report, report.Report+".json")
 		if err != nil {
 			logrus.Warnf("Unable to create form for %s", report.Report)
-			return false, nil, err
+			return false, nil, nil, err
 		}
 		_, err = fw.Write(report.Contents)
 		logrus.Infof("Adding report %s %s", report.Report, string(report.Contents))
 		if err != nil {
 			logrus.Warnf("Unable to write contents for %s", report.Report)
-			return results, nil, err
+			return results, nil, nil, err
 		}
 	}
 	w.Close()
@@ -51,7 +51,7 @@ func SendResults(reports []models.ReportInfo, token string) (bool, []string, err
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		logrus.Warn("Unable to create Request")
-		return results, nil, err
+		return results, nil, nil, err
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -69,33 +69,41 @@ func SendResults(reports []models.ReportInfo, token string) (bool, []string, err
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warn("Unable to Post results to Insights")
-		return results, nil, err
+		return results, nil, nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return results, nil, fmt.Errorf("Invalid status code: %d", resp.StatusCode)
+		return results, nil, nil, fmt.Errorf("invalid status code: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
-		return results, nil, err
+		return results, nil, nil, err
 	}
 	var resultMap map[string]interface{}
 	err = json.Unmarshal(body, &resultMap)
 	if err != nil {
-		return results, nil, err
+		return results, nil, nil, err
 	}
 	results = resultMap["Success"].(bool)
 	actionItems := resultMap["ActionItems"]
 	var warnings []string
+	var errors []string
 	if actionItems != nil {
-		warnings = funk.Map(actionItems.([]interface{}), func(ai interface{}) string {
+		actionItemToString := func(ai interface{}) string {
 			aiMap := ai.(map[string]interface{})
-			return fmt.Sprintf("%s : Failure: %t", aiMap["Title"].(string), aiMap["Failure"].(bool))
-		}).([]string)
+			return fmt.Sprintf("%s: Failure: %t", aiMap["Title"].(string), aiMap["Failure"].(bool))
+		}
+		warnings = funk.Map(funk.Filter(actionItems.([]interface{}), func(ai interface{}) bool {
+			return !ai.(map[string]interface{})["Failure"].(bool)
+		}), actionItemToString).([]string)
+
+		errors = funk.Map(funk.Filter(actionItems.([]interface{}), func(ai interface{}) bool {
+			return ai.(map[string]interface{})["Failure"].(bool)
+		}), actionItemToString).([]string)
 	}
 
 	logrus.Infof("Completed request %t", results)
-	return results, warnings, nil
+	return results, warnings, errors, nil
 }
