@@ -15,6 +15,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/admission/pkg/polaris"
 )
 
+// Validator is the entry point for the admission webhook.
 type Validator struct {
 	decoder *admission.Decoder
 	Config  models.Configuration
