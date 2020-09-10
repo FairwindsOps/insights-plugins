@@ -32,9 +32,9 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
 
 sleep 5
 kubectl get all --namespace insights-agent
-kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
-kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
-kubectl wait --for=condition=complete job/kube-bench --timeout=120s --namespace insights-agent
+kubectl wait --for=condition=complete job/workloads --timeout=240s --namespace insights-agent
+kubectl wait --for=condition=complete job/rbac-reporter --timeout=240s --namespace insights-agent
+kubectl wait --for=condition=complete job/kube-bench --timeout=240s --namespace insights-agent
 kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insights-agent
 # TODO: enable OPA
 # kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
