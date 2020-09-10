@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	fadmission "github.com/fairwindsops/insights-plugins/admission/pkg/admission"
