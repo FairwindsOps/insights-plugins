@@ -64,6 +64,10 @@ commands:
     - run:
         name: Check version.txt
         command: |
+          if [ "$CIRCLE_BRANCH" == "master" ]
+          then
+            exit 0
+          fi
           for plugin in "${CHANGED[@]}"; do
             if git diff --name-only --exit-code origin/master "./plugins/$plugin/version.txt" ; then
               echo "Please update ./plugins/$plugin/version.txt"
