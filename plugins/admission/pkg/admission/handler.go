@@ -12,7 +12,6 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
 	"github.com/fairwindsops/insights-plugins/admission/pkg/opa"
-	"github.com/fairwindsops/insights-plugins/admission/pkg/pluto"
 	"github.com/fairwindsops/insights-plugins/admission/pkg/polaris"
 )
 
@@ -81,14 +80,7 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 		reports = append(reports, opaReport)
 	}
 
-	if configurationObject.Reports.Pluto {
-		logrus.Info("Running Pluto")
-		plutoReport, err := pluto.ProcessPluto(input)
-		if err != nil {
-			return false, nil, nil, err
-		}
-		reports = append(reports, plutoReport)
-	}
+	// TODO add Pluto report
 	results, warnings, errors, err := SendResults(reports, token)
 	if err != nil {
 		return false, nil, nil, err
