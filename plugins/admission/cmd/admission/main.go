@@ -63,10 +63,10 @@ func refreshConfig() error {
 	}
 	if tempConfig.Polaris == nil {
 		polarisConfig, err := polarisconfiguration.ParseFile("")
-		tempConfig.Polaris = &polarisConfig
 		if err != nil {
 			return err
 		}
+		tempConfig.Polaris = &polarisConfig
 	}
 	logrus.Infof("Config: %+v", tempConfig)
 	handler.Config = tempConfig

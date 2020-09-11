@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -26,14 +27,14 @@ func init() {
 }
 
 // SendResults sends the results to Insights
-func SendResults(reports []models.ReportInfo, token string) (bool, []string, []string, error) {
+func SendResults(reports []models.ReportInfo, token string) (passed bool, warnings []string, errors []string, err error) {
 	var b bytes.Buffer
 
-	results := false
 	w := multipart.NewWriter(&b)
 
 	for _, report := range reports {
-		fw, err := w.CreateFormFile(report.Report, report.Report+".json")
+		var fw io.Writer
+		fw, err = w.CreateFormFile(report.Report, report.Report+".json")
 		if err != nil {
 			logrus.Warnf("Unable to create form for %s", report.Report)
 			return false, nil, nil, err
@@ -42,7 +43,7 @@ func SendResults(reports []models.ReportInfo, token string) (bool, []string, []s
 		logrus.Infof("Adding report %s %s", report.Report, string(report.Contents))
 		if err != nil {
 			logrus.Warnf("Unable to write contents for %s", report.Report)
-			return results, nil, nil, err
+			return
 		}
 	}
 	w.Close()
@@ -51,7 +52,7 @@ func SendResults(reports []models.ReportInfo, token string) (bool, []string, []s
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		logrus.Warn("Unable to create Request")
-		return results, nil, nil, err
+		return
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -61,35 +62,30 @@ func SendResults(reports []models.ReportInfo, token string) (bool, []string, []s
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)
 	}
 
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warn("Unable to Post results to Insights")
-		return results, nil, nil, err
+		return
 	}
 	if resp.StatusCode != http.StatusOK {
-		return results, nil, nil, fmt.Errorf("invalid status code: %d", resp.StatusCode)
+		err = fmt.Errorf("invalid status code: %d", resp.StatusCode)
+		return
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
-		return results, nil, nil, err
+		return
 	}
 	var resultMap map[string]interface{}
 	err = json.Unmarshal(body, &resultMap)
 	if err != nil {
-		return results, nil, nil, err
+		return
 	}
-	results = resultMap["Success"].(bool)
+	passed = resultMap["Success"].(bool)
 	actionItems := resultMap["ActionItems"]
-	var warnings []string
-	var errors []string
 	if actionItems != nil {
 		actionItemToString := func(ai interface{}) string {
 			aiMap := ai.(map[string]interface{})
@@ -104,6 +100,6 @@ func SendResults(reports []models.ReportInfo, token string) (bool, []string, []s
 		}), actionItemToString).([]string)
 	}
 
-	logrus.Infof("Completed request %t", results)
-	return results, warnings, errors, nil
+	logrus.Infof("Completed request %t", passed)
+	return
 }
