@@ -1,4 +1,9 @@
 # Changelog
+
+## 0.4.9
+* Added containers to workloads report
+* Add container name to Trivy results
+
 ## 0.4.8
 * Add log statement to Trivy
 
