@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -74,7 +75,16 @@ func refreshConfig() error {
 }
 
 func keepConfigurationRefreshed(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute * 30)
+	targetDuration := 1
+	durationString := os.Getenv("CONFIGURATION_INTERVAL")
+	if durationString != "" {
+		durationInt, err := strconv.Atoi(durationString)
+		if err != nil {
+			exitWithError("CONFIGURATION_INTERVAL is not an integer", err)
+		}
+		targetDuration = durationInt
+	}
+	ticker := time.NewTicker(time.Minute * time.Duration(targetDuration))
 	err := refreshConfig()
 	if err != nil {
 		exitWithError("Error refreshing configuration", err)
