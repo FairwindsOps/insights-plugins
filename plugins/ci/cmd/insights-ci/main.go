@@ -10,11 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+
+	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
 const workloadsReportVersion = "0.1.0"
@@ -29,7 +31,7 @@ func exitWithError(message string, err error) {
 
 func main() {
 	const configFile = "./fairwinds-insights.yaml"
-	configurationObject := ci.Configuration{}
+	configurationObject := models.Configuration{}
 	configHandler, err := os.Open(configFile)
 	if err == nil {
 		configContents, err := ioutil.ReadAll(configHandler)
@@ -97,7 +99,7 @@ func main() {
 		exitWithError("Error while aggregating workloads", err)
 	}
 
-	results, err := ci.SendResults([]ci.ReportInfo{trivyReport, polarisReport, workloadReport}, resources, configurationObject, token)
+	results, err := ci.SendResults([]models.ReportInfo{trivyReport, polarisReport, workloadReport}, resources, configurationObject, token)
 	if err != nil {
 		exitWithError("Error while sending results back to "+configurationObject.Options.Hostname, err)
 	}
@@ -120,8 +122,8 @@ func main() {
 	}
 }
 
-func getTrivyReport(images []models.Image, configurationObject ci.Configuration) (ci.ReportInfo, error) {
-	trivyReport := ci.ReportInfo{
+func getTrivyReport(images []trivymodels.Image, configurationObject models.Configuration) (models.ReportInfo, error) {
+	trivyReport := models.ReportInfo{
 		Report:   "trivy",
 		Filename: "trivy.json",
 	}
@@ -152,10 +154,10 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 		if !matchedImage && len(repoTags) > 0 {
 			imageRepo := repoTags[0]
 			imageRepo = strings.Split(imageRepo, ":")[0]
-			images = append(images, models.Image{
+			images = append(images, trivymodels.Image{
 				Name:    repoTags[0], // This name is used in the title
 				PullRef: info.Name(),
-				Owner: models.Resource{
+				Owner: trivymodels.Resource{
 					Kind: "Image",
 					Name: imageRepo, // This name is used for the filename
 				},
@@ -193,8 +195,8 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 	return trivyReport, nil
 }
 
-func getWorkloadReport(resources []ci.Resource, configurationObject ci.Configuration) (ci.ReportInfo, error) {
-	workloadsReport := ci.ReportInfo{
+func getWorkloadReport(resources []models.Resource, configurationObject models.Configuration) (models.ReportInfo, error) {
+	workloadsReport := models.ReportInfo{
 		Report:   "scan-workloads",
 		Filename: "scan-workloads.json",
 	}
@@ -211,8 +213,8 @@ func getWorkloadReport(resources []ci.Resource, configurationObject ci.Configura
 	return workloadsReport, nil
 }
 
-func getPolarisReport(configurationObject ci.Configuration, manifestFolder string) (ci.ReportInfo, error) {
-	report := ci.ReportInfo{
+func getPolarisReport(configurationObject models.Configuration, manifestFolder string) (models.ReportInfo, error) {
+	report := models.ReportInfo{
 		Report:   "polaris",
 		Filename: "polaris.json",
 	}

@@ -5,18 +5,20 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+
+	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
 // ScanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
-func ScanImagesWithTrivy(images []models.Image, configurationObject Configuration) ([]byte, string, error) {
+func ScanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) ([]byte, string, error) {
 	err := util.RunCommand(exec.Command("trivy", "--download-db-only"), "downloading trivy database")
 	if err != nil {
 		return nil, "", err
 	}
-	reportByRef := map[string][]models.VulnerabilityList{}
+	reportByRef := map[string][]trivymodels.VulnerabilityList{}
 	for _, currentImage := range images {
 		results, err := image.ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder)
 		if err != nil {
@@ -27,7 +29,7 @@ func ScanImagesWithTrivy(images []models.Image, configurationObject Configuratio
 
 	allReports := image.ConvertTrivyResultsToImageReport(images, reportByRef)
 	// Collate results
-	results := image.Minimize(allReports, models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}})
+	results := image.Minimize(allReports, trivymodels.MinimizedReport{Images: make([]trivymodels.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]trivymodels.VulnerabilityDetails{}})
 	trivyResults, err := json.Marshal(results)
 	if err != nil {
 		return nil, "", err

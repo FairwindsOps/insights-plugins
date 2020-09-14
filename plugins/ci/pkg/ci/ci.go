@@ -17,12 +17,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
+
+	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
 // GetResultsFromCommand executes a command and returns the results as a string.
@@ -35,9 +37,9 @@ func GetResultsFromCommand(command string, args ...string) (string, error) {
 }
 
 // GetImagesFromManifest scans a folder of yaml files and returns all of the images used.
-func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, error) {
-	images := make([]models.Image, 0)
-	resources := make([]Resource, 0)
+func GetImagesFromManifest(configFolder string) ([]trivymodels.Image, []models.Resource, error) {
+	images := make([]trivymodels.Image, 0)
+	resources := make([]models.Resource, 0)
 	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
@@ -81,12 +83,12 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 					}
 					newImages, containers := processYamlNode(node.(map[string]interface{}))
 					images = append(images, newImages...)
-					resources = append(resources, Resource{
+					resources = append(resources, models.Resource{
 						Kind:      node.(map[string]interface{})["kind"].(string),
 						Name:      metadata["name"].(string),
 						Namespace: namespace,
 						Filename:  fileName,
-						Containers: funk.Map(containers, func(c Container) string {
+						Containers: funk.Map(containers, func(c models.Container) string {
 							return c.Name
 						}).([]string),
 					})
@@ -99,12 +101,12 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 				}
 				newImages, containers := processYamlNode(yamlNode)
 				images = append(images, newImages...)
-				resources = append(resources, Resource{
+				resources = append(resources, models.Resource{
 					Kind:      kind,
 					Name:      metadata["name"].(string),
 					Namespace: namespace,
 					Filename:  fileName,
-					Containers: funk.Map(containers, func(c Container) string {
+					Containers: funk.Map(containers, func(c models.Container) string {
 						return c.Name
 					}).([]string),
 				})
@@ -118,23 +120,23 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 	return images, resources, err
 }
 
-func processYamlNode(yamlNode map[string]interface{}) ([]models.Image, []Container) {
-	owner := models.Resource{
+func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
+	owner := trivymodels.Resource{
 		Kind: yamlNode["kind"].(string),
 		Name: yamlNode["metadata"].(map[string]interface{})["name"].(string),
 	}
 	podSpec := GetPodSpec(yamlNode)
 	images := getImages(podSpec.(map[string]interface{}))
-	return funk.Map(images, func(c Container) models.Image {
-		return models.Image{
+	return funk.Map(images, func(c models.Container) trivymodels.Image {
+		return trivymodels.Image{
 			Name: c.Image,
-			Owner: models.Resource{
+			Owner: trivymodels.Resource{
 				Kind:      owner.Kind,
 				Container: c.Name,
 				Name:      owner.Name,
 			},
 		}
-	}).([]models.Image), images
+	}).([]trivymodels.Image), images
 }
 
 var podSpecFields = []string{"jobTemplate", "spec", "template"}
@@ -150,8 +152,8 @@ func GetPodSpec(yaml map[string]interface{}) interface{} {
 	return yaml
 }
 
-func getImages(podSpec map[string]interface{}) []Container {
-	images := make([]Container, 0)
+func getImages(podSpec map[string]interface{}) []models.Container {
+	images := make([]models.Container, 0)
 	for _, field := range containerSpecFields {
 		containerField, ok := podSpec[field]
 		if !ok {
@@ -160,7 +162,7 @@ func getImages(podSpec map[string]interface{}) []Container {
 		containers := containerField.([]interface{})
 		for _, container := range containers {
 			containerMap := container.(map[string]interface{})
-			newContainer := Container{
+			newContainer := models.Container{
 				Image: containerMap["image"].(string),
 				Name:  containerMap["name"].(string),
 			}
@@ -213,9 +215,9 @@ func GetRepoTags(path string) ([]string, error) {
 }
 
 // SendResults sends the results to Insights
-func SendResults(reports []ReportInfo, resources []Resource, configurationObject Configuration, token string) (ScanResults, error) {
+func SendResults(reports []models.ReportInfo, resources []models.Resource, configurationObject models.Configuration, token string) (models.ScanResults, error) {
 	var b bytes.Buffer
-	var results ScanResults
+	var results models.ScanResults
 
 	w := multipart.NewWriter(&b)
 
@@ -340,7 +342,7 @@ func SendResults(reports []ReportInfo, resources []Resource, configurationObject
 }
 
 // SaveJUnitFile will save the
-func SaveJUnitFile(results ScanResults, filename string) error {
+func SaveJUnitFile(results models.ScanResults, filename string) error {
 	cases := make([]formatter.JUnitTestCase, 0)
 
 	for _, actionItem := range results.NewActionItems {
@@ -387,17 +389,17 @@ func SaveJUnitFile(results ScanResults, filename string) error {
 }
 
 // CheckScore checks if the score meets all of the thresholds.
-func CheckScore(results ScanResults, configurationObject Configuration) error {
+func CheckScore(results models.ScanResults, configurationObject models.Configuration) error {
 	if !results.Pass {
 		logrus.Infof("Fairwinds Insights CI check has failed, please fix some Action Items: %v", results.NewActionItems)
-		return errors.New(ScoreOutOfBoundsMessage)
+		return errors.New(models.ScoreOutOfBoundsMessage)
 	}
 
 	return nil
 }
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
-func ProcessHelmTemplates(configurationObject Configuration, configFolder string) error {
+func ProcessHelmTemplates(configurationObject models.Configuration, configFolder string) error {
 	for _, helmObject := range configurationObject.Manifests.Helm {
 		err := util.RunCommand(exec.Command("helm", "dependency", "update", helmObject.Path), "Updating dependencies for "+helmObject.Name)
 		if err != nil {
@@ -430,7 +432,7 @@ func ProcessHelmTemplates(configurationObject Configuration, configFolder string
 }
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
-func CopyYaml(configurationObject Configuration, configFolder string) error {
+func CopyYaml(configurationObject models.Configuration, configFolder string) error {
 	for _, path := range configurationObject.Manifests.YamlPaths {
 		err := util.RunCommand(exec.Command("cp", "-r", path, configFolder), "Copying yaml file")
 		if err != nil {
