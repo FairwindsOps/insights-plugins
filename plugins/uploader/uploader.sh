@@ -62,6 +62,8 @@ while [ ! $# -eq 0 ]; do
     esac
     shift
     shift
+done
+
 if [[ -z $host || -z $organization || -z $cluster || -z $datatype || -z $file || -z $version ]]; then
   usage
   exit 1
