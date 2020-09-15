@@ -2,7 +2,7 @@
 # shellcheck disable=SC1003
 set -xeo pipefail
 
-version=0.0.3
+version=0.1.0
 image_version=0.4
 
 # Based on https://gist.github.com/pkuczynski/8665367
@@ -62,9 +62,12 @@ fairwinds_images_folder=${fairwinds_images_folder:='./_insightsTempImages'}
 
 mkdir -p $fairwinds_images_folder
 for img in ${fairwinds_images_docker[@]}; do
-    echo $img
+    echo "Saving image $img"
     if [[ "$img" != "[]" && "$img" != "" ]]
     then
+        if [[ "$(docker images -q "${img}" 2> /dev/null)" == "" ]]; then
+            docker pull $img
+        fi
         docker save $img -o $fairwinds_images_folder/$(basename $img | sed -e 's/[^a-zA-Z0-9]//g').tar
     fi
 done
@@ -86,4 +89,3 @@ docker rm insights-ci
 if [ "$failed" -eq "1" ]; then
     exit 1
 fi
-
