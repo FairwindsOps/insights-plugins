@@ -3,9 +3,6 @@ output:
   severity: 0.1
   remediation: "Create an HPA"
   category: "Reliability"
-additionalKubernetesData: # At the Check level because this changes how you write the rego.
-- apiGroups: ["autoscaling"]
-  kinds: ["HorizontalPodAutoscaler"]
 rego: |
         package fairwinds
         contains(hpas, elem) {
@@ -16,6 +13,6 @@ rego: |
           hpa.spec.scaleTargetRef.apiVersion == elem.apiVersion
         }
         hparequired[description] {
-          not contains(kubernetes("HorizontalPodAutoscaler"), input)
+          not contains(kubernetes("autoscaling", "HorizontalPodAutoscaler"), input)
           description := "No horizontal pod autoscaler found"
         }
