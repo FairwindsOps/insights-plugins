@@ -16,8 +16,11 @@ func SetFakeClient() *Client {
 	//kube := k8sfake.NewSimpleClientset(objects...)
 	dynamic := dynamicFake.NewSimpleDynamicClient(k8sruntime.NewScheme())
 	gv := schema.GroupVersion{Group: "apps", Version: "v1"}
+	gv2 := schema.GroupVersion{Group: "autoscaling", Version: "v1"}
 	gvk := gv.WithKind("Deployment")
-	restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{gv})
+	restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{gv, gv2})
+	restMapper.Add(gvk, meta.RESTScopeNamespace)
+	gvk = gv2.WithKind("HorizontalPodAutoscaler")
 	restMapper.Add(gvk, meta.RESTScopeNamespace)
 	client := Client{
 		restMapper,
