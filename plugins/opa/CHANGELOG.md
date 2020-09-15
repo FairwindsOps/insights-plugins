@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.10
+* Added tests for examples
+
 ## 0.2.8
 * Refactoring code
 
