@@ -2,6 +2,10 @@
 set -e
 set -x
 
+if [ -z "$DEBUG" ]
+then
+    set +x
+fi
 usage()
 {
 cat << EOF
@@ -71,7 +75,7 @@ do
   attempts=$(( $attempts + 1 ))
   # Every 10 attempts query Kubernetes.
   # This avoids overloading the API servers.
-  if ! $(( $attempts % 10 )); then
+  if (( $attempts % 10 == 0 )); then
     # Check if any container inside this pod failed.
     if kubectl get pod $POD_NAME -o go-template="{{range .status.containerStatuses}}{{.state.terminated.reason}}{{end}}" | grep Error; then
         url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/failure
@@ -90,7 +94,10 @@ do
                 -H "X-Fairwinds-Report-Version: ${version}" \
                 -H "X-Fairwinds-Agent-Chart-Version: $FAIRWINDS_AGENT_CHART_VERSION" \
                 --fail
-            set -x
+            if [ -n "$DEBUG" ]
+            then
+                set -x
+            fi
         fi
         exit 1
     fi
@@ -114,4 +121,6 @@ do
 done
 
 echo "Timed out after $attempts seconds while waiting for file $file"
+echo "If this keeps happening then you can consider increasing the timeout in your helm install with"
+echo "--set $datatype.timeout=$((timeout * 10))"
 exit 1
