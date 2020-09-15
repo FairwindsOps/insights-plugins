@@ -20,18 +20,6 @@ commands:
           echo 'export CI_TAG=$(echo "${CIRCLE_TAG:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')' >> ${BASH_ENV}
           echo 'export AWS_DEFAULT_REGION=us-east-1' >> ${BASH_ENV}
           echo 'export GOPROXY=https://proxy.golang.org' >> ${BASH_ENV}
-          changed=()
-          for dir in `find ./plugins -maxdepth 1 -type d`; do
-            if [ $dir == "./plugins" ]; then
-              continue
-            fi
-            if git diff --name-only --exit-code --no-renames origin/master "$dir/" > /dev/null 2>&1 && [ "$CIRCLE_BRANCH" != "master" ] ; then
-              continue
-            fi
-            echo "detected change in $dir"
-            changed+=(${dir#"./plugins/"})
-          done
-          echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
           ./.circleci/set_tags.sh
           cat tags.sh >> ${BASH_ENV}
 
@@ -66,13 +54,7 @@ commands:
     - run:
         name: Run Insights CI script
         command: |
-          for plugin in ./plugins/*; do
-            if [ -f $plugin ] || [ $plugin == "./plugins" ] ; then
-              continue
-            fi
-            source $plugin/build.config
-            docker pull quay.io/$REPOSITORY_NAME:$(cat $plugin/version.txt) || true
-          done
+          # TODO: start running the live script
           # curl https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
           # chmod +x ci-script.sh
           printenv
