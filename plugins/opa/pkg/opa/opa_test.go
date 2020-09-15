@@ -2,9 +2,14 @@ package opa
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
@@ -104,6 +109,36 @@ func TestReturnDescription(t *testing.T) {
 	assert.Equal(t, defaultRemediation, ais[0].Remediation)
 	assert.Equal(t, defaultCategory, ais[0].Category)
 	assert.Equal(t, "label {\"foo\"} is present", ais[0].Description)
+}
+
+func TestExampleFiles(t *testing.T) {
+	kube.SetFakeClient()
+	err := filepath.Walk("../../examples", func(path string, info os.FileInfo, err error) error {
+		if !strings.HasSuffix(info.Name(), ".yaml") {
+			return nil
+		}
+		var object map[string]interface{}
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+		bytes, _ := ioutil.ReadAll(file)
+		err = yaml.Unmarshal(bytes, &object)
+		if err != nil {
+			return err
+		}
+
+		rego := object["rego"].(string)
+
+		ctx := context.TODO()
+
+		params := map[string]interface{}{}
+		_, err = runRegoForItem(ctx, rego, params, fakeObj.Object)
+		return err
+	})
+	assert.NoError(t, err)
 }
 
 func TestReturnFull(t *testing.T) {
