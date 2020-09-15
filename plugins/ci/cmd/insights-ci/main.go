@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
@@ -30,6 +32,7 @@ func exitWithError(message string, err error) {
 }
 
 func main() {
+	ctx := context.Background()
 	const configFile = "./fairwinds-insights.yaml"
 	configurationObject := models.Configuration{}
 	configHandler, err := os.Open(configFile)
@@ -99,7 +102,12 @@ func main() {
 		exitWithError("Error while aggregating workloads", err)
 	}
 
-	results, err := ci.SendResults([]models.ReportInfo{trivyReport, polarisReport, workloadReport}, resources, configurationObject, token)
+	opaReport, err := opa.ProcessOPA(ctx, configurationObject, nil, nil)
+	if err != nil {
+		exitWithError("Error while running OPA", err)
+	}
+
+	results, err := ci.SendResults([]models.ReportInfo{trivyReport, polarisReport, workloadReport, opaReport}, resources, configurationObject, token)
 	if err != nil {
 		exitWithError("Error while sending results back to "+configurationObject.Options.Hostname, err)
 	}

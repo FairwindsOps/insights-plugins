@@ -107,6 +107,39 @@ type CheckSetting struct {
 	}
 }
 
+func (instance CustomCheckInstance) MatchesTarget(apiGroup, kind string) bool {
+	for _, target := range instance.Spec.Targets {
+		for _, group := range target.APIGroups {
+			for _, targetKind := range target.Kinds {
+				if apiGroup == group && targetKind == kind {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (supposedInstance CheckSetting) GetCustomCheckInstance() CustomCheckInstance {
+	return CustomCheckInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: supposedInstance.AdditionalData.Name,
+		},
+		Spec: CustomCheckInstanceSpec{
+			CustomCheckName: supposedInstance.CheckName,
+			Output:          supposedInstance.AdditionalData.Output,
+			Parameters:      supposedInstance.AdditionalData.Parameters,
+			Targets: funk.Map(supposedInstance.Targets, func(s string) KubeTarget {
+				splitValues := strings.Split(s, "/")
+				return KubeTarget{
+					APIGroups: []string{splitValues[0]},
+					Kinds:     []string{splitValues[1]},
+				}
+			}).([]KubeTarget),
+		},
+	}
+}
+
 func (supposedInstance CheckSetting) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
 	output := map[string]interface{}{}
 	if supposedInstance.AdditionalData.Output.Remediation != nil {
@@ -145,6 +178,23 @@ func (supposedInstance CheckSetting) GetUnstructuredObject(namespace string) *un
 				"namespace": namespace,
 			},
 			"spec": spec,
+		},
+	}
+}
+
+func (supposedCheck OPACustomCheck) GetCustomCheck() CustomCheck {
+	return CustomCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: supposedCheck.Name,
+		},
+		Spec: CustomCheckSpec{
+			Output: OutputFormat{
+				Title:       supposedCheck.Title,
+				Severity:    supposedCheck.Severity,
+				Remediation: supposedCheck.Remediation,
+				Category:    supposedCheck.Category,
+			},
+			Rego: supposedCheck.Rego,
 		},
 	}
 }

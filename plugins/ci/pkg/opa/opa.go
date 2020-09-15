@@ -3,11 +3,15 @@ package opa
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 	"github.com/thoas/go-funk"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"gopkg.in/yaml.v3"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 )
@@ -15,67 +19,72 @@ import (
 const opaVersion = "0.2.8"
 
 // ProcessOPA runs all checks against the provided Custom Check
-func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, configuration models.Configuration) (models.ReportInfo, error) {
+func ProcessOPA(ctx context.Context, configurationObject models.Configuration, instances []opa.CheckSetting, checks []opa.OPACustomCheck) (models.ReportInfo, error) {
 	report := models.ReportInfo{
-		Report:  "opa",
-		Version: opaVersion,
+		Report:   "opa",
+		Filename: "opa.json",
+		Version:  opaVersion,
 	}
 	actionItems := make([]opa.ActionItem, 0)
-	for _, instanceObject := range configuration.OPA.CustomCheckInstances {
-		instance := opa.CustomCheckInstance{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: instanceObject.AdditionalData.Name,
-			},
-			Spec: opa.CustomCheckInstanceSpec{
-				CustomCheckName: instanceObject.CheckName,
-				Output:          instanceObject.AdditionalData.Output,
-				Parameters:      instanceObject.AdditionalData.Parameters,
-				Targets: funk.Map(instanceObject.Targets, func(s string) opa.KubeTarget {
-					splitValues := strings.Split(s, "/")
-					return opa.KubeTarget{
-						APIGroups: []string{splitValues[0]},
-						Kinds:     []string{splitValues[1]},
-					}
-				}).([]opa.KubeTarget),
-			},
+	configFolder := configurationObject.Options.TempFolder + "/configuration/"
+	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
+		if !strings.HasSuffix(info.Name(), ".yaml") {
+			return nil
 		}
-		found := false
-		for _, target := range instance.Spec.Targets {
-			if apiGroup == target.APIGroups[0] && resourceKind == target.Kinds[0] {
-				found = true
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		decoder := yaml.NewDecoder(file)
+		for {
+			yamlNode := map[string]interface{}{}
+
+			err = decoder.Decode(&yamlNode)
+			if err != nil {
+				if err != io.EOF {
+					return err
+				}
+				break
+
+			}
+			resourceKind := yamlNode["kind"].(string)
+			if resourceKind == "list" {
+				nodes := yamlNode["items"].([]interface{})
+				for _, node := range nodes {
+					nodeMap := node.(map[string]interface{})
+					metadata := nodeMap["metadata"].(map[string]interface{})
+					namespace := ""
+					if namespaceObj, ok := metadata["namespace"]; ok {
+						namespace = namespaceObj.(string)
+					}
+					resourceName := metadata["name"].(string)
+					apiVersion := nodeMap["apiVersion"].(string)
+					apiGroup := strings.Split(apiVersion, "/")[0]
+					kind := nodeMap["kind"].(string)
+					newActionItems, err := processObject(ctx, nodeMap, resourceName, kind, apiGroup, namespace, instances, checks)
+					if err != nil {
+						return err
+					}
+					actionItems = append(actionItems, newActionItems...)
+				}
+			} else {
+				metadata := yamlNode["metadata"].(map[string]interface{})
+				namespace := ""
+				if namespaceObj, ok := metadata["namespace"]; ok {
+					namespace = namespaceObj.(string)
+				}
+				resourceName := metadata["name"].(string)
+				apiVersion := yamlNode["apiVersion"].(string)
+				apiGroup := strings.Split(apiVersion, "/")[0]
+				newActionItems, err := processObject(ctx, yamlNode, resourceName, resourceKind, apiGroup, namespace, instances, checks)
+				if err != nil {
+					return err
+				}
+				actionItems = append(actionItems, newActionItems...)
 			}
 		}
-		if !found {
-			continue
-		}
-		maybeCheckObject := funk.Find(configuration.OPA.CustomChecks, func(c opa.OPACustomCheck) bool {
-			return c.Name == instance.Spec.CustomCheckName
-		})
-		if maybeCheckObject == nil {
-			continue
-		}
-		checkObject := maybeCheckObject.(opa.OPACustomCheck)
-		check := opa.CustomCheck{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: checkObject.Name,
-			},
-			Spec: opa.CustomCheckSpec{
-				Output: opa.OutputFormat{
-					Title:       checkObject.Title,
-					Severity:    checkObject.Severity,
-					Remediation: checkObject.Remediation,
-					Category:    checkObject.Category,
-				},
-				Rego: checkObject.Rego,
-			},
-		}
-		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace)
-		if err != nil {
-			return report, err
-		}
-		actionItems = append(actionItems, newActionItems...)
-
-	}
+		return nil
+	})
 	results := map[string]interface{}{
 		"ActionItems": actionItems,
 	}
@@ -83,6 +92,36 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 	if err != nil {
 		return report, err
 	}
-	report.Contents = bytes
+	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/"+report.Filename, bytes, 0644)
+	if err != nil {
+		return report, err
+	}
 	return report, nil
+}
+
+func processObject(ctx context.Context, obj map[string]interface{}, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck) ([]opa.ActionItem, error) {
+	actionItems := make([]opa.ActionItem, 0)
+
+	for _, instanceObject := range instances {
+		instance := instanceObject.GetCustomCheckInstance()
+		found := instance.MatchesTarget(apiGroup, resourceKind)
+		if !found {
+			continue
+		}
+		maybeCheckObject := funk.Find(checks, func(c opa.OPACustomCheck) bool {
+			return c.Name == instance.Spec.CustomCheckName
+		})
+		if maybeCheckObject == nil {
+			continue
+		}
+		checkObject := maybeCheckObject.(opa.OPACustomCheck)
+		check := checkObject.GetCustomCheck()
+		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace)
+		if err != nil {
+			return actionItems, err
+		}
+		actionItems = append(actionItems, newActionItems...)
+
+	}
+	return actionItems, nil
 }
