@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+* Fixed a bug in math
+
 ## 0.2.2
 
 * Decrease verbosity of logging unless DEBUG environment variable is set.
