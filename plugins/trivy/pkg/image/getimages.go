@@ -110,8 +110,8 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 			if im.PullRef == "" || strings.HasPrefix(im.PullRef, "sha256:") {
 				im.PullRef = im.Name
 			}
-			im.Owner.Name += "/" + containerStatus.Name
-			key := im.Owner.Namespace + "/" + im.Owner.Kind + "/" + im.Owner.Name + "/" + im.Name + "/" + im.ID
+			im.Owner.Container = containerStatus.Name
+			key := im.Owner.Namespace + "/" + im.Owner.Kind + "/" + im.Owner.Name + "/" + im.Owner.Container + "/" + im.Name + "/" + im.ID
 			if _, ok := found[key]; ok {
 				continue
 			}

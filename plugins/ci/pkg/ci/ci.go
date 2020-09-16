@@ -129,8 +129,9 @@ func processYamlNode(yamlNode map[string]interface{}) ([]models.Image, []Contain
 		return models.Image{
 			Name: c.Image,
 			Owner: models.Resource{
-				Kind: owner.Kind,
-				Name: fmt.Sprintf("%s/%s", owner.Name, c.Name),
+				Kind:      owner.Kind,
+				Container: c.Name,
+				Name:      owner.Name,
 			},
 		}
 	}).([]models.Image), images
