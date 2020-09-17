@@ -3,11 +3,9 @@ module github.com/fairwindsops/insights-plugins/admission
 go 1.13
 
 require (
-	github.com/bombsimon/logrusr v0.0.0-20200131103305-03a291ce59b4
 	github.com/fairwindsops/insights-plugins/opa v0.0.0-20200901152700-f5c1d3d67036
 	github.com/fairwindsops/pluto/v3 v3.4.1
 	github.com/fairwindsops/polaris v0.0.0-20200826172321-7a0efb785352
-	github.com/go-logr/logr v0.1.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.6.1
 	github.com/thoas/go-funk v0.7.0

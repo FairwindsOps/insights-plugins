@@ -11,13 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bombsimon/logrusr"
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
-	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	controllerlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -106,11 +103,6 @@ func keepConfigurationRefreshed(ctx context.Context) {
 }
 
 func main() {
-	var log logr.Logger
-
-	logger := logrus.New()
-	log = logrusr.NewLogger(logger)
-	controllerlog.SetLogger(log)
 	organization = os.Getenv("FAIRWINDS_ORGANIZATION")
 	hostname = os.Getenv("FAIRWINDS_HOSTNAME")
 	cluster = os.Getenv("FAIRWINDS_CLUSTER")
