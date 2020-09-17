@@ -150,12 +150,14 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 			}
 		}
 		if !matchedImage && len(repoTags) > 0 {
+			imageRepo := repoTags[0]
+			imageRepo = strings.Split(imageRepo, ":")[0]
 			images = append(images, models.Image{
-				Name:    repoTags[0],
+				Name:    repoTags[0], // This name is used in the title
 				PullRef: info.Name(),
 				Owner: models.Resource{
 					Kind: "Image",
-					Name: repoTags[0],
+					Name: imageRepo, // This name is used for the filename
 				},
 			})
 		}
