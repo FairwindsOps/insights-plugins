@@ -153,6 +153,10 @@ func getTrivyReport(images []models.Image, configurationObject ci.Configuration)
 			images = append(images, models.Image{
 				Name:    repoTags[0],
 				PullRef: info.Name(),
+				Owner: models.Resource{
+					Kind: "Image",
+					Name: repoTags[0],
+				},
 			})
 		}
 		return nil

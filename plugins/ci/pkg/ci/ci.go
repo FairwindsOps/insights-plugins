@@ -79,13 +79,17 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 					if namespaceObj, ok := metadata["namespace"]; ok {
 						namespace = namespaceObj.(string)
 					}
+					newImages, containers := processYamlNode(node.(map[string]interface{}))
+					images = append(images, newImages...)
 					resources = append(resources, Resource{
 						Kind:      node.(map[string]interface{})["kind"].(string),
 						Name:      metadata["name"].(string),
 						Namespace: namespace,
 						Filename:  fileName,
+						Containers: funk.Map(containers, func(c Container) string {
+							return c.Name
+						}).([]string),
 					})
-					images = append(images, processYamlNode(node.(map[string]interface{}))...)
 				}
 			} else {
 				metadata := yamlNode["metadata"].(map[string]interface{})
@@ -93,13 +97,18 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 				if namespaceObj, ok := metadata["namespace"]; ok {
 					namespace = namespaceObj.(string)
 				}
+				newImages, containers := processYamlNode(yamlNode)
+				images = append(images, newImages...)
 				resources = append(resources, Resource{
 					Kind:      kind,
 					Name:      metadata["name"].(string),
 					Namespace: namespace,
 					Filename:  fileName,
+					Containers: funk.Map(containers, func(c Container) string {
+						return c.Name
+					}).([]string),
 				})
-				images = append(images, processYamlNode(yamlNode)...)
+
 			}
 
 		}
@@ -109,19 +118,23 @@ func GetImagesFromManifest(configFolder string) ([]models.Image, []Resource, err
 	return images, resources, err
 }
 
-func processYamlNode(yamlNode map[string]interface{}) []models.Image {
+func processYamlNode(yamlNode map[string]interface{}) ([]models.Image, []Container) {
 	owner := models.Resource{
 		Kind: yamlNode["kind"].(string),
 		Name: yamlNode["metadata"].(map[string]interface{})["name"].(string),
 	}
 	podSpec := GetPodSpec(yamlNode)
 	images := getImages(podSpec.(map[string]interface{}))
-	return funk.Map(images, func(s string) models.Image {
+	return funk.Map(images, func(c Container) models.Image {
 		return models.Image{
-			Name:  s,
-			Owner: owner,
+			Name: c.Image,
+			Owner: models.Resource{
+				Kind:      owner.Kind,
+				Container: c.Name,
+				Name:      owner.Name,
+			},
 		}
-	}).([]models.Image)
+	}).([]models.Image), images
 }
 
 var podSpecFields = []string{"jobTemplate", "spec", "template"}
@@ -137,8 +150,8 @@ func GetPodSpec(yaml map[string]interface{}) interface{} {
 	return yaml
 }
 
-func getImages(podSpec map[string]interface{}) []string {
-	images := make([]string, 0)
+func getImages(podSpec map[string]interface{}) []Container {
+	images := make([]Container, 0)
 	for _, field := range containerSpecFields {
 		containerField, ok := podSpec[field]
 		if !ok {
@@ -146,7 +159,12 @@ func getImages(podSpec map[string]interface{}) []string {
 		}
 		containers := containerField.([]interface{})
 		for _, container := range containers {
-			images = append(images, container.(map[string]interface{})["image"].(string))
+			containerMap := container.(map[string]interface{})
+			newContainer := Container{
+				Image: containerMap["image"].(string),
+				Name:  containerMap["name"].(string),
+			}
+			images = append(images, newContainer)
 		}
 	}
 	return images
