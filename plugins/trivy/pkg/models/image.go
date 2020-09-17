@@ -15,17 +15,19 @@ type Resource struct {
 	Kind      string
 	Namespace string
 	Name      string
+	Container string
 }
 
 // ImageReport represents the results for a single resource.
 type ImageReport struct {
-	Name      string
-	ID        string
-	PullRef   string
-	OwnerKind string
-	OwnerName string
-	Namespace string
-	Report    []VulnerabilityList
+	Name           string
+	ID             string
+	PullRef        string
+	OwnerKind      string
+	OwnerName      string
+	OwnerContainer *string
+	Namespace      string
+	Report         []VulnerabilityList
 }
 
 // VulnerabilityList is the results from Trivy
@@ -54,13 +56,14 @@ type MinimizedReport struct {
 
 // ImageDetailsWithRefs is the results of a scan for a resource with the vulnerabilities replaced with references.
 type ImageDetailsWithRefs struct {
-	ID        string
-	Name      string
-	OwnerName string
-	OwnerKind string
-	Namespace string
-	LastScan  *time.Time
-	Report    []VulnerabilityRefList
+	ID             string
+	Name           string
+	OwnerName      string
+	OwnerKind      string
+	OwnerContainer *string
+	Namespace      string
+	LastScan       *time.Time
+	Report         []VulnerabilityRefList
 }
 
 // VulnerabilityRefList is a list of vulnerability references.

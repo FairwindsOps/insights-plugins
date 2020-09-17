@@ -10,10 +10,11 @@ const ScoreOutOfBoundsMessage = "score out of bounds"
 
 // Resource represents a Kubernetes resource with information about what file it came from.
 type Resource struct {
-	Kind      string
-	Name      string
-	Filename  string
-	Namespace string
+	Kind       string
+	Name       string
+	Filename   string
+	Namespace  string
+	Containers []string
 }
 
 // ReportInfo is the information about a run of one of the reports.
@@ -66,6 +67,12 @@ type ScanResults struct {
 	NewActionItems   []actionItem
 	FixedActionItems []actionItem
 	Pass             bool
+}
+
+// Container is an individual container within a pod.
+type Container struct {
+	Image string
+	Name  string
 }
 
 type actionItem struct {
