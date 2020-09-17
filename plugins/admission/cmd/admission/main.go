@@ -124,7 +124,7 @@ func main() {
 	webhookPort := 8443
 	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
 		CertDir:                "/opt/cert",
-		HealthProbeBindAddress: ":8080",
+		HealthProbeBindAddress: ":8081",
 		Port:                   webhookPort,
 	})
 	if err != nil {
