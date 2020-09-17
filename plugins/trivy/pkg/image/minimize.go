@@ -24,13 +24,14 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 	}
 	for _, imageDetails := range images {
 		imageDetailsWithRefs := models.ImageDetailsWithRefs{
-			ID:        imageDetails.ID,
-			Name:      imageDetails.Name,
-			OwnerName: imageDetails.OwnerName,
-			OwnerKind: imageDetails.OwnerKind,
-			Namespace: imageDetails.Namespace,
-			Report:    []models.VulnerabilityRefList{},
-			LastScan:  &timestamp,
+			ID:             imageDetails.ID,
+			Name:           imageDetails.Name,
+			OwnerName:      imageDetails.OwnerName,
+			OwnerKind:      imageDetails.OwnerKind,
+			OwnerContainer: imageDetails.OwnerContainer,
+			Namespace:      imageDetails.Namespace,
+			Report:         []models.VulnerabilityRefList{},
+			LastScan:       &timestamp,
 		}
 		for _, vulnList := range imageDetails.Report {
 			vulnRefList := models.VulnerabilityRefList{

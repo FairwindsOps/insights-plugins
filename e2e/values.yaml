@@ -32,7 +32,7 @@ goldilocks:
 polaris:
   enabled: false
 
-releasewatcher:
+nova:
   enabled: false
 
 workloads:
