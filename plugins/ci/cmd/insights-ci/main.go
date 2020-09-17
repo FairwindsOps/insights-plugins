@@ -107,7 +107,12 @@ func main() {
 		exitWithError("Error while running OPA", err)
 	}
 
-	results, err := ci.SendResults([]models.ReportInfo{trivyReport, polarisReport, workloadReport, opaReport}, resources, configurationObject, token)
+	plutoReport, err := getPlutoReport(configurationObject, configFolder)
+	if err != nil {
+		exitWithError("Error while running Plutoo", err)
+	}
+
+	results, err := ci.SendResults([]models.ReportInfo{trivyReport, polarisReport, workloadReport, opaReport, plutoReport}, resources, configurationObject, token)
 	if err != nil {
 		exitWithError("Error while sending results back to "+configurationObject.Options.Hostname, err)
 	}
@@ -236,5 +241,20 @@ func getPolarisReport(configurationObject models.Configuration, manifestFolder s
 		return report, err
 	}
 	report.Version = strings.Split(polarisVersion, ":")[1]
+	return report, nil
+}
+
+func getPlutoReport(configurationObject models.Configuration, manifestFolder string) (models.ReportInfo, error) {
+	report := models.ReportInfo{
+		Report:   "pluto",
+		Filename: "pluto.json",
+	}
+	// Scan with Pluto
+	plutoResults, err := ci.GetResultsFromCommand("pluto", "detect-files", "-d", manifestFolder, "-o", "json")
+	if err != nil {
+		return report, err
+	}
+	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/"+report.Filename, []byte(plutoResults), 0644)
+	report.Version = os.Getenv("plutoVersion")
 	return report, nil
 }
