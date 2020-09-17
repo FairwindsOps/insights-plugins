@@ -14,6 +14,7 @@ import (
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
 	"github.com/sirupsen/logrus"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -121,6 +122,15 @@ func main() {
 	})
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
+	}
+
+	err = mgr.AddReadyzCheck("readyz", healthz.Ping)
+	if err != nil {
+		exitWithError("Unable to add readyz check", err)
+	}
+	err = mgr.AddHealthzCheck("healthz", healthz.Ping)
+	if err != nil {
+		exitWithError("Unable to add healthz check", err)
 	}
 
 	_, err = os.Stat("/opt/cert/tls.crt")
