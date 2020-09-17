@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+* Add OPA as another check
+* Add Pluto as another check
+
 ## 0.4.10
 * Strip tags from manifest free images
 
