@@ -115,8 +115,9 @@ func main() {
 	}
 	webhookPort := 8443
 	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
-		CertDir: "/opt/cert",
-		Port:    webhookPort,
+		CertDir:                "/opt/cert",
+		HealthProbeBindAddress: ":8080",
+		Port:                   webhookPort,
 	})
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
