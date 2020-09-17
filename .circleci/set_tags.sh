@@ -24,7 +24,7 @@ for plugin in ./plugins/*; do
   tag=$(cat "$plugin/version.txt")
 
   if [ "$CIRCLE_BRANCH" != "master" ]; then
-    for changed_id in "${CHANGED[@]}"; do
+    for changed_id in "${changed[@]}"; do
       if [ $id == $changed_id ]; then
         tag=$CI_SHA1
       fi
