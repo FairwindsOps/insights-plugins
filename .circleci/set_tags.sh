@@ -1,6 +1,19 @@
 #! /bin/bash
 set -xeo pipefail
 
+changed=()
+for dir in `find ./plugins -maxdepth 1 -type d`; do
+  if [ $dir == "./plugins" ]; then
+    continue
+  fi
+  if git diff --name-only --exit-code --no-renames origin/master "$dir/" > /dev/null 2>&1 && [ "$CIRCLE_BRANCH" != "master" ] ; then
+    continue
+  fi
+  echo "detected change in $dir"
+  changed+=(${dir#"./plugins/"})
+done
+echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
+
 for plugin in ./plugins/*; do
   if [ -f $plugin ] || [ $plugin == "./plugins" ] ; then
     continue
@@ -21,4 +34,5 @@ for plugin in ./plugins/*; do
 
   echo "export ${varname}_tag=$tag" >> tags.sh
 done
+cat tags.sh >> ${BASH_ENV}
 

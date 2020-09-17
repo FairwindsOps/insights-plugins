@@ -21,7 +21,6 @@ commands:
           echo 'export AWS_DEFAULT_REGION=us-east-1' >> ${BASH_ENV}
           echo 'export GOPROXY=https://proxy.golang.org' >> ${BASH_ENV}
           ./.circleci/set_tags.sh
-          cat tags.sh >> ${BASH_ENV}
 
   docker_build:
     description: Build docker Images
