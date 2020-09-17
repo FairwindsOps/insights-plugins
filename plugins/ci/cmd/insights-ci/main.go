@@ -102,7 +102,7 @@ func main() {
 		exitWithError("Error while aggregating workloads", err)
 	}
 
-	opaReport, err := opa.ProcessOPA(ctx, configurationObject, nil, nil)
+	opaReport, err := opa.ProcessOPA(ctx, configurationObject)
 	if err != nil {
 		exitWithError("Error while running OPA", err)
 	}

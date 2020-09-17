@@ -3,13 +3,16 @@ package opa
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
 
@@ -19,15 +22,20 @@ import (
 const opaVersion = "0.2.8"
 
 // ProcessOPA runs all checks against the provided Custom Check
-func ProcessOPA(ctx context.Context, configurationObject models.Configuration, instances []opa.CheckSetting, checks []opa.OPACustomCheck) (models.ReportInfo, error) {
+func ProcessOPA(ctx context.Context, configurationObject models.Configuration) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "opa",
 		Filename: "opa.json",
 		Version:  opaVersion,
 	}
+
+	instances, checks, err := refreshChecks(configurationObject)
+	if err != nil {
+		return report, err
+	}
 	actionItems := make([]opa.ActionItem, 0)
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
-	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
 		}
@@ -97,6 +105,41 @@ func ProcessOPA(ctx context.Context, configurationObject models.Configuration, i
 		return report, err
 	}
 	return report, nil
+}
+
+type opaChecks struct {
+	Checks    []opa.OPACustomCheck
+	Instances []opa.CheckSetting
+}
+
+func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting, []opa.OPACustomCheck, error) {
+	url := fmt.Sprintf("%s/v0/organizations/%s/ci/opa", configurationObject.Options.Hostname, configurationObject.Options.Organization)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logrus.Warn("Unable to create Request to retrieve checks")
+		return nil, nil, err
+	}
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	req.Header.Set("Authorization", "Bearer "+token)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		logrus.Warn("Unable to Get Checks from Insights")
+		return nil, nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, fmt.Errorf("Invalid status code: %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Warn("Unable to read results")
+		return nil, nil, err
+	}
+	var checkBody opaChecks
+	err = json.Unmarshal(body, &checkBody)
+	return checkBody.Instances, checkBody.Checks, nil
 }
 
 func processObject(ctx context.Context, obj map[string]interface{}, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck) ([]opa.ActionItem, error) {
