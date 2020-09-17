@@ -14,6 +14,7 @@ import (
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
 	"github.com/sirupsen/logrus"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -69,7 +70,6 @@ func refreshConfig() error {
 		}
 		tempConfig.Polaris = &polarisConfig
 	}
-	logrus.Infof("Config: %+v", tempConfig)
 	handler.Config = tempConfig
 	return nil
 }
@@ -115,11 +115,21 @@ func main() {
 	}
 	webhookPort := 8443
 	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
-		CertDir: "/opt/cert",
-		Port:    webhookPort,
+		CertDir:                "/opt/cert",
+		HealthProbeBindAddress: ":8081",
+		Port:                   webhookPort,
 	})
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
+	}
+
+	err = mgr.AddReadyzCheck("readyz", healthz.Ping)
+	if err != nil {
+		exitWithError("Unable to add readyz check", err)
+	}
+	err = mgr.AddHealthzCheck("healthz", healthz.Ping)
+	if err != nil {
+		exitWithError("Unable to add healthz check", err)
 	}
 
 	_, err = os.Stat("/opt/cert/tls.crt")
