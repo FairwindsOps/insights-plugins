@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.10
+* Strip tags from manifest free images
+
 ## 0.4.9
 * Added containers to workloads report
 * Add container name to Trivy results
