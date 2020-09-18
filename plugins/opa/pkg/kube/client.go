@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/sirupsen/logrus"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,7 +28,8 @@ func GetKubeClient() *Client {
 			var err error
 			singletonClient, err = getKubeClient()
 			if err != nil {
-				panic(err)
+				logrus.Errorf("Error retrieving kubernetes client: %v", err)
+				singletonClient = nil
 			}
 		}
 	})
