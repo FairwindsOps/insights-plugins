@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -33,6 +34,7 @@ func ProcessOPA(ctx context.Context, configurationObject models.Configuration) (
 	if err != nil {
 		return report, err
 	}
+	var files []map[string]interface{}
 	actionItems := make([]opa.ActionItem, 0)
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
 	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
@@ -46,53 +48,44 @@ func ProcessOPA(ctx context.Context, configurationObject models.Configuration) (
 		decoder := yaml.NewDecoder(file)
 		for {
 			yamlNode := map[string]interface{}{}
-
 			err = decoder.Decode(&yamlNode)
 			if err != nil {
 				if err != io.EOF {
 					return err
 				}
 				break
-
 			}
 			resourceKind := yamlNode["kind"].(string)
 			if resourceKind == "list" {
 				nodes := yamlNode["items"].([]interface{})
 				for _, node := range nodes {
 					nodeMap := node.(map[string]interface{})
-					metadata := nodeMap["metadata"].(map[string]interface{})
-					namespace := ""
-					if namespaceObj, ok := metadata["namespace"]; ok {
-						namespace = namespaceObj.(string)
-					}
-					resourceName := metadata["name"].(string)
-					apiVersion := nodeMap["apiVersion"].(string)
-					apiGroup := strings.Split(apiVersion, "/")[0]
-					kind := nodeMap["kind"].(string)
-					newActionItems, err := processObject(ctx, nodeMap, resourceName, kind, apiGroup, namespace, instances, checks)
-					if err != nil {
-						return err
-					}
-					actionItems = append(actionItems, newActionItems...)
+					files = append(files, nodeMap)
 				}
 			} else {
-				metadata := yamlNode["metadata"].(map[string]interface{})
-				namespace := ""
-				if namespaceObj, ok := metadata["namespace"]; ok {
-					namespace = namespaceObj.(string)
-				}
-				resourceName := metadata["name"].(string)
-				apiVersion := yamlNode["apiVersion"].(string)
-				apiGroup := strings.Split(apiVersion, "/")[0]
-				newActionItems, err := processObject(ctx, yamlNode, resourceName, resourceKind, apiGroup, namespace, instances, checks)
-				if err != nil {
-					return err
-				}
-				actionItems = append(actionItems, newActionItems...)
+				files = append(files, yamlNode)
 			}
 		}
 		return nil
 	})
+	kube.SetFileClient(files)
+	for _, nodeMap := range files {
+
+		metadata := nodeMap["metadata"].(map[string]interface{})
+		namespace := ""
+		if namespaceObj, ok := metadata["namespace"]; ok {
+			namespace = namespaceObj.(string)
+		}
+		resourceName := metadata["name"].(string)
+		apiVersion := nodeMap["apiVersion"].(string)
+		apiGroup := strings.Split(apiVersion, "/")[0]
+		resourceKind := nodeMap["kind"].(string)
+		newActionItems, err := processObject(ctx, nodeMap, resourceName, resourceKind, apiGroup, namespace, instances, checks)
+		if err != nil {
+			return report, err
+		}
+		actionItems = append(actionItems, newActionItems...)
+	}
 	results := map[string]interface{}{
 		"ActionItems": actionItems,
 	}
