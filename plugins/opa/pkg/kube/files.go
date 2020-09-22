@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -56,7 +57,18 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 			panic(err)
 		}
 		gvr := mapping.Resource
-		_, err = dynamic.Resource(gvr).Namespace("objects").Create(context.Background(), &unstructured.Unstructured{Object: obj}, metav1.CreateOptions{})
+		// Marshal then Unmarshal to deep copy directly into an unstructured object
+		objBytes, err := json.Marshal(obj)
+		if err != nil {
+			panic(err)
+		}
+
+		var unstructure unstructured.Unstructured
+		err = unstructure.UnmarshalJSON(objBytes)
+		if err != nil {
+			panic(err)
+		}
+		_, err = dynamic.Resource(gvr).Namespace("objects").Create(context.Background(), &unstructure, metav1.CreateOptions{})
 		if err != nil {
 			panic(err)
 		}
