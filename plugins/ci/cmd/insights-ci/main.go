@@ -250,7 +250,7 @@ func getPlutoReport(configurationObject models.Configuration, manifestFolder str
 		Filename: "pluto.json",
 	}
 	// Scan with Pluto
-	plutoResults, err := ci.GetResultsFromCommand("pluto", "detect-files", "-d", manifestFolder, "-o", "json")
+	plutoResults, err := ci.GetResultsFromCommand("pluto", "detect-files", "-d", manifestFolder, "-o", "json", "--ignore-deprecations", "--ignore-removals")
 	if err != nil {
 		return report, err
 	}
