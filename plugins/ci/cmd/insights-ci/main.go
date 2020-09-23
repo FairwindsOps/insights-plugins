@@ -109,7 +109,7 @@ func main() {
 
 	plutoReport, err := getPlutoReport(configurationObject, configFolder)
 	if err != nil {
-		exitWithError("Error while running Plutoo", err)
+		exitWithError("Error while running Pluto", err)
 	}
 
 	results, err := ci.SendResults([]models.ReportInfo{trivyReport, polarisReport, workloadReport, opaReport, plutoReport}, resources, configurationObject, token)
