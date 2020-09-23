@@ -28,7 +28,7 @@ RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVers
 RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/$polarisVersion/polaris_${polarisVersion}_Linux_amd64.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
 RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_linux_amd64.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 RUN DESIRED_VERSION=3.2.1 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-FROM alpine:3.11.6
+FROM alpine:3.12
 WORKDIR /insights
 COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/ci/insights-ci /usr/local/bin/insights-ci
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
@@ -36,7 +36,7 @@ COPY --from=build-env /usr/local/bin/polaris /usr/local/bin/polaris
 COPY --from=build-env /usr/local/bin/helm /usr/local/bin/helm
 COPY --from=build-env /usr/local/bin/pluto /usr/local/bin/pluto
 
-RUN apk add --no-cache skopeo git
+RUN apk add --no-cache skopeo git libc6-compat
 
 
 CMD ["insights-ci"]
