@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.11
+* Code refactor
+
 ## 0.2.10
 * Added tests for examples
 
