@@ -1,4 +1,4 @@
-package ci
+package models
 
 import (
 	"errors"
