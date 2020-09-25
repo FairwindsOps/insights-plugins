@@ -1,3 +1,6 @@
+# 1.3.3
+* Fix CVE in curl
+
 # 1.3.1
 * Fix bug in individual item file
 
