@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.12
+* Fix a bug when using files as source for Kube client
+
 ## 0.2.11
 * Code refactor
 

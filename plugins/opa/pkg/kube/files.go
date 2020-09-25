@@ -68,7 +68,11 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 		if err != nil {
 			panic(err)
 		}
-		_, err = dynamic.Resource(gvr).Namespace("objects").Create(context.Background(), &unstructure, metav1.CreateOptions{})
+		namespace := unstructure.GetNamespace()
+		if namespace == "" {
+			namespace = "objects"
+		}
+		_, err = dynamic.Resource(gvr).Namespace(namespace).Create(context.Background(), &unstructure, metav1.CreateOptions{})
 		if err != nil {
 			panic(err)
 		}
