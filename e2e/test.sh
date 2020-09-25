@@ -41,9 +41,14 @@ kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insig
 kubectl wait --for=condition=complete job/kubesec --timeout=480s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
+echo "Testing kube-bench"
 jsonschema -i output/kube-bench.json plugins/kube-bench/results.schema
+echo "Testing trivy"
 jsonschema -i output/trivy.json plugins/trivy/results.schema
+echo "Testing rbac-reporter"
 jsonschema -i output/rbac-reporter.json plugins/rbac-reporter/results.schema
+echo "Testing Workloads"
 jsonschema -i output/workloads.json plugins/workloads/results.schema
+echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema
 ls output
