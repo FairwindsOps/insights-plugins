@@ -32,6 +32,9 @@ goldilocks:
 polaris:
   enabled: false
 
+pluto:
+  enabled: false
+
 nova:
   enabled: false
 
