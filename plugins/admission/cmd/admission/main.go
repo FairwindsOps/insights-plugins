@@ -143,10 +143,9 @@ func main() {
 
 	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &handler})
 
-	logrus.Debug("Starting webhook manager")
+	logrus.Info("Starting webhook manager")
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		logrus.Errorf("Error starting manager: %v", err)
 		os.Exit(1)
 	}
-
 }
