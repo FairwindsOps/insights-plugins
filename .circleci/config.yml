@@ -61,11 +61,10 @@ commands:
               echo "  - quay.io/$REPOSITORY_NAME:latest" >> fairwinds-insights.yaml
             done
             cat fairwinds-insights.yaml
-            curl https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
+            curl -L https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
             chmod +x ci-script.sh
             ./ci-script.sh
           fi
-
 
   check_version_changed:
     description: Check that version.txt changed if folder changed
