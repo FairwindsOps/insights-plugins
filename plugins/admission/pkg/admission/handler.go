@@ -43,20 +43,28 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 
-	logrus.Infof("Processing with config %+v", v.Config)
+	logrus.Debugf("Processing with config %+v", v.Config)
 	return processInputYAML(ctx, v.Config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group)
 }
 
 // Handle for Validator to run validation checks.
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	logrus.Info("Starting request")
+	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s",
+		req.Operation,
+		req.RequestKind.Group,
+		req.RequestKind.Version,
+		req.RequestKind.Kind,
+		req.Name,
+		req.Namespace)
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
 		return admission.Errored(http.StatusBadRequest, err)
 	}
-	response := admission.ValidationResponse(allowed, strings.Join(errors, "\n"))
-	logrus.Infof("Warnings returned: %+v", warnings)
+	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
+	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
+	logrus.Infof("%d errors returned: %s", len(errors), strings.Join(errors, ", "))
+	logrus.Infof("Allowed: %t", allowed)
 	return response
 }
 

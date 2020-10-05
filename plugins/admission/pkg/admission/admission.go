@@ -40,7 +40,7 @@ func SendResults(reports []models.ReportInfo, token string) (passed bool, warnin
 			return false, nil, nil, err
 		}
 		_, err = fw.Write(report.Contents)
-		logrus.Infof("Adding report %s %s", report.Report, string(report.Contents))
+		logrus.Debugf("Adding report %s %s", report.Report, string(report.Contents))
 		if err != nil {
 			logrus.Warnf("Unable to write contents for %s", report.Report)
 			return
@@ -89,7 +89,7 @@ func SendResults(reports []models.ReportInfo, token string) (passed bool, warnin
 	if actionItems != nil {
 		actionItemToString := func(ai interface{}) string {
 			aiMap := ai.(map[string]interface{})
-			return fmt.Sprintf("%s: Failure: %t", aiMap["Title"].(string), aiMap["Failure"].(bool))
+			return fmt.Sprintf("%s", aiMap["Title"].(string))
 		}
 		warnings = funk.Map(funk.Filter(actionItems.([]interface{}), func(ai interface{}) bool {
 			return !ai.(map[string]interface{})["Failure"].(bool)
