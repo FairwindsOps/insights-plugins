@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.0
+* Start sending fairwinds-insights.yaml to backend
+
 ## 0.5.0
 * Add OPA as another check
 * Add Pluto as another check
