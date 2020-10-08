@@ -27,6 +27,20 @@ import (
 	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
+type formFile struct {
+	field    string
+	filename string
+	location string
+}
+
+type gitInfo struct {
+	origin      string
+	branch      string
+	masterHash  string
+	currentHash string
+	repoName    string
+}
+
 // GetResultsFromCommand executes a command and returns the results as a string.
 func GetResultsFromCommand(command string, args ...string) (string, error) {
 	bytes, err := exec.Command(command, args...).Output()
@@ -219,68 +233,45 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	var b bytes.Buffer
 	var results models.ScanResults
 
-	w := multipart.NewWriter(&b)
-
+	formFiles := []formFile{{
+		field:    "fairwinds-insights",
+		filename: "fairwinds-insights.yaml",
+		location: "fairwinds-insights.yaml",
+	}}
 	for _, report := range reports {
-		fw, err := w.CreateFormFile(report.Report, report.Filename)
+		formFiles = append(formFiles, formFile{
+			field:    report.Report,
+			filename: report.Filename,
+			location: configurationObject.Options.TempFolder + "/" + report.Filename,
+		})
+	}
+
+	w := multipart.NewWriter(&b)
+	for _, file := range formFiles {
+		fw, err := w.CreateFormFile(file.field, file.filename)
 		if err != nil {
-			logrus.Warnf("Unable to create form for %s", report.Report)
+			logrus.Warnf("Unable to create form for %s", file.field)
 			return results, err
 		}
-		r, err := os.Open(configurationObject.Options.TempFolder + "/" + report.Filename)
+		r, err := os.Open(file.location)
 		if err != nil {
-			logrus.Warnf("Unable to open file for %s", report.Report)
+			logrus.Warnf("Unable to open file for %s", file.field)
 			return results, err
 		}
 		defer r.Close()
 		_, err = io.Copy(fw, r)
 
 		if err != nil {
-			logrus.Warnf("Unable to write contents for %s", report.Report)
+			logrus.Warnf("Unable to write contents for %s", file.field)
 			return results, err
 		}
 	}
 	w.Close()
 
-	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", "master")
+	repoDetails, err := getGitInfo(configurationObject.Options.RepositoryName)
 	if err != nil {
-		logrus.Warn("Unable to get GIT merge-base")
+		logrus.Warn("Unable to get git details")
 		return results, err
-	}
-
-	currentHash, err := GetResultsFromCommand("git", "rev-parse", "HEAD")
-	if err != nil {
-		logrus.Warn("Unable to get GIT Hash")
-		return results, err
-	}
-
-	branchName, err := GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
-	if err != nil {
-		logrus.Warn("Unable to get GIT Branch Name")
-		return results, err
-	}
-
-	origin := configurationObject.Options.RepositoryName
-	if origin == "" {
-		origin, err = GetResultsFromCommand("git", "remote", "get-url", "origin")
-		if err != nil {
-			logrus.Warn("Unable to get GIT Origin")
-			return results, err
-		}
-		if strings.Contains(origin, "@") { // git@github.com URLs are allowed
-			originSplit := strings.Split(origin, "@")
-			// Take the substring after the last @ to avoid any tokens in an HTTPS URL
-			origin = originSplit[len(originSplit)-1]
-		} else if strings.Contains(origin, "//") {
-			originSplit := strings.Split(origin, "//")
-			origin = originSplit[len(originSplit)-1]
-		}
-		// Remove "******.com:" prefix and ".git" suffix to get clean $org/$repo structure
-		if strings.Contains(origin, ":") {
-			originSplit := strings.Split(origin, ":")
-			origin = originSplit[len(originSplit)-1]
-		}
-		origin = strings.TrimSuffix(origin, ".git")
 	}
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
@@ -291,15 +282,17 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Header.Set("X-Commit-Hash", currentHash)
-	req.Header.Set("X-Branch-Name", branchName)
-	req.Header.Set("X-Master-Hash", masterHash)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-Commit-Hash", repoDetails.currentHash)
+	req.Header.Set("X-Branch-Name", repoDetails.branch)
+	req.Header.Set("X-Master-Hash", repoDetails.masterHash)
 	req.Header.Set("X-Base-Branch", configurationObject.Options.BaseBranch)
-	req.Header.Set("X-Repository-Name", origin)
+	req.Header.Set("X-Origin", repoDetails.origin)
+	req.Header.Set("X-Repository-Name", repoDetails.repoName)
 	req.Header.Set("X-New-AI-Threshold", strconv.Itoa(configurationObject.Options.NewActionItemThreshold))
 	req.Header.Set("X-Severity-Threshold", configurationObject.Options.SeverityThreshold)
-	req.Header.Set("Authorization", "Bearer "+token)
-
+	req.Header.Set("X-Script-Version", os.Getenv("SCRIPT_VERSION"))
+	req.Header.Set("X-Image-Version", os.Getenv("IMAGE_VERSION"))
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)
 	}
@@ -335,6 +328,58 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	}
 
 	return results, nil
+}
+
+func getGitInfo(repoName string) (gitInfo, error) {
+	info := gitInfo{}
+
+	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", "master")
+	if err != nil {
+		logrus.Warn("Unable to get GIT merge-base")
+		return info, err
+	}
+
+	currentHash, err := GetResultsFromCommand("git", "rev-parse", "HEAD")
+	if err != nil {
+		logrus.Warn("Unable to get GIT Hash")
+		return info, err
+	}
+
+	branch, err := GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		logrus.Warn("Unable to get GIT Branch Name")
+		return info, err
+	}
+
+	origin, err := GetResultsFromCommand("git", "remote", "get-url", "origin")
+	if err != nil {
+		logrus.Warn("Unable to get GIT Origin")
+		return info, err
+	}
+
+	if repoName == "" {
+		repoName = origin
+		if strings.Contains(repoName, "@") { // git@github.com URLs are allowed
+			repoNameSplit := strings.Split(repoName, "@")
+			// Take the substring after the last @ to avoid any tokens in an HTTPS URL
+			repoName = repoNameSplit[len(repoNameSplit)-1]
+		} else if strings.Contains(repoName, "//") {
+			repoNameSplit := strings.Split(repoName, "//")
+			repoName = repoNameSplit[len(repoNameSplit)-1]
+		}
+		// Remove "******.com:" prefix and ".git" suffix to get clean $org/$repo structure
+		if strings.Contains(repoName, ":") {
+			repoNameSplit := strings.Split(repoName, ":")
+			repoName = repoNameSplit[len(repoNameSplit)-1]
+		}
+		repoName = strings.TrimSuffix(repoName, ".git")
+	}
+	info.masterHash = masterHash
+	info.currentHash = currentHash
+	info.branch = branch
+	info.origin = origin
+	info.repoName = repoName
+	return info, nil
 }
 
 // SaveJUnitFile will save the
