@@ -348,7 +348,7 @@ func getGitInfo(repoName string) (gitInfo, error) {
 	}
 
 	var commitMessage string
-	commitMessage, err = GetResultsFromCommand("git", "log", "-1", "--format=%B")
+	commitMessage, err = GetResultsFromCommand("git", "log", "--pretty=format:'%s'", "-1")
 	if err != nil {
 		logrus.Warn("Unable to get GIT Commit message")
 		return info, err
