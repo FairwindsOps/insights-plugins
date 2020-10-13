@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.1
+## 0.7.0
 * Add commit messages to scan
 
 ## 0.6.0
