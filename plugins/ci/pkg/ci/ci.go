@@ -34,11 +34,12 @@ type formFile struct {
 }
 
 type gitInfo struct {
-	origin      string
-	branch      string
-	masterHash  string
-	currentHash string
-	repoName    string
+	origin        string
+	branch        string
+	masterHash    string
+	currentHash   string
+	commitMessage string
+	repoName      string
 }
 
 // GetResultsFromCommand executes a command and returns the results as a string.
@@ -284,6 +285,7 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("X-Commit-Hash", repoDetails.currentHash)
+	req.Header.Set("X-Commit-Message", repoDetails.commitMessage)
 	req.Header.Set("X-Branch-Name", repoDetails.branch)
 	req.Header.Set("X-Master-Hash", repoDetails.masterHash)
 	req.Header.Set("X-Base-Branch", configurationObject.Options.BaseBranch)
@@ -345,6 +347,13 @@ func getGitInfo(repoName string) (gitInfo, error) {
 		return info, err
 	}
 
+	var commitMessage string
+	commitMessage, err = GetResultsFromCommand("git", "log", "-1", "--format=%B")
+	if err != nil {
+		logrus.Warn("Unable to get GIT Commit message")
+		return info, err
+	}
+
 	branch, err := GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		logrus.Warn("Unable to get GIT Branch Name")
@@ -376,6 +385,7 @@ func getGitInfo(repoName string) (gitInfo, error) {
 	}
 	info.masterHash = masterHash
 	info.currentHash = currentHash
+	info.commitMessage = commitMessage
 	info.branch = branch
 	info.origin = origin
 	info.repoName = repoName
