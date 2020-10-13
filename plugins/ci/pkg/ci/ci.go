@@ -353,6 +353,9 @@ func getGitInfo(repoName string) (gitInfo, error) {
 		logrus.Warn("Unable to get GIT Commit message")
 		return info, err
 	}
+	if len(commitMessage) > 100 {
+		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
+	}
 
 	branch, err := GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
