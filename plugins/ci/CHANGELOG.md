@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.1
+* Add commit messages to scan
+
 ## 0.6.0
 * Start sending fairwinds-insights.yaml to backend
 
