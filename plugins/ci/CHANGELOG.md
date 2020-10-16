@@ -1,4 +1,6 @@
 # Changelog
+## 0.7.1
+* update Trivy
 
 ## 0.7.0
 * Add commit messages to scan
