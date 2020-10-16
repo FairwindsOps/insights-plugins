@@ -1,4 +1,7 @@
 # Change Log
+## 0.12.0
+* Update to latest version of Trivy
+* Change version number to match upstream version of Trivy
 
 ## 0.7.0
 * Added container information as a separate field.
