@@ -1,5 +1,5 @@
 targets:
-- apiGroups: ["app"]
+- apiGroups: ["apps"]
   kinds: ["Deployment"]
 parameters:
   annotations: ["meta.helm.sh/release-name"]

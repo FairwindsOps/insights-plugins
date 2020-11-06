@@ -6,11 +6,11 @@ output:
 rego: |
         package fairwinds
         chartfresh[results] {
-          comparisonDate := time.add_date(time.now_ns(), 0, 0, -input.parameters.days)
+          comparisonDate := time.add_date(time.now_ns(), 0, 0, 0 - input.parameters.days)
           startswith(input.metadata.name, "sh.helm.release.v1")
           input.metadata.labels.owner == "helm"
           input.metadata.labels.status == "deployed"
-          input.metadata.creationTimestamp < comparisonDate
+          time.parse_rfc3339_ns(input.metadata.creationTimestamp) < comparisonDate
           description := sprintf("Creation time %v is too old", [input.metadata.creationTimestamp])
           results := description
         }

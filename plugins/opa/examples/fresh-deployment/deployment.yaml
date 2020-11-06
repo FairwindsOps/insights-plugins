@@ -1,5 +1,5 @@
 targets:
-- apiGroups: ["app"]
+- apiGroups: ["apps"]
   kinds: ["Deployment"]
 parameters:
   days: 60
