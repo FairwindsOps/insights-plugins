@@ -1,0 +1,6 @@
+targets:
+- apiGroups: [""]
+  kinds: ["Secret"]
+parameters:
+  days: 60
+

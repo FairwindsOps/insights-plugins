@@ -1,0 +1,16 @@
+output:
+  title: "This Helm chart isn't fresh"
+  severity: 0.1
+  remediation: "Consider updating or deleting this chart"
+  category: "Reliability"
+rego: |
+        package fairwinds
+        chartfresh[results] {
+          comparisonDate := time.add_date(time.now_ns(), 0, 0, -input.parameters.days)
+          startswith(input.metadata.name, "sh.helm.release.v1")
+          input.metadata.labels.owner == "helm"
+          input.metadata.labels.status == "deployed"
+          input.metadata.creationTimestamp < comparisonDate
+          description := sprintf("Creation time %v is too old", [input.metadata.creationTimestamp])
+          results := description
+        }
