@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -114,7 +113,7 @@ func TestReturnDescription(t *testing.T) {
 func TestExampleFiles(t *testing.T) {
 	kube.SetFakeClient()
 	err := filepath.Walk("../../examples", func(path string, info os.FileInfo, err error) error {
-		if !strings.HasSuffix(info.Name(), ".yaml") {
+		if info.Name() != "policy.yaml" {
 			return nil
 		}
 		var object map[string]interface{}
