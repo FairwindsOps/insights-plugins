@@ -5,7 +5,12 @@ output:
   category: "Reliability"
 rego: |
         package fairwinds
+        blockedNamespace(elem) {
+          ns := elem.parameters.blocklist[_]
+          elem.metadata.namespace == ns
+        }
         chartfresh[results] {
+          not blockedNamespace(input)
           comparisonDate := time.add_date(time.now_ns(), 0, 0, 0 - input.parameters.days)
           startswith(input.metadata.name, "sh.helm.release.v1")
           input.metadata.labels.owner == "helm"

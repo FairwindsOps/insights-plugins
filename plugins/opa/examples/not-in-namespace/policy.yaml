@@ -5,7 +5,12 @@ output:
   category: "Reliability"
 rego: |
         package fairwinds
+        blockedNamespace(elem) {
+          ns := elem.parameters.blocklist[_]
+          elem.metadata.namespace == ns
+        }
         notinnamespace[results] {
+          not blockedNamespace(input)
           namespace := input.parameters.namespaces[_]
           input.metadata.namespace == namespace
           description := sprintf("Namespace %v is forbidden", [namespace])

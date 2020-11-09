@@ -5,6 +5,10 @@ output:
   category: "Reliability"
 rego: |
         package fairwinds
+        blockedNamespace(elem) {
+          ns := elem.parameters.blocklist[_]
+          elem.metadata.namespace == ns
+        }
         latestReplicaDateStale(replicaSets, elem) {
           rs := replicaSets[_]
           owner := rs.metadata.ownerReferences[_]
@@ -14,6 +18,7 @@ rego: |
           time.parse_rfc3339_ns(rs.metadata.creationTimestamp) < comparisonDate
         }
         hparequired[description] {
+          not blockedNamespace(input)
           latestReplicaDateStale(kubernetes("apps", "ReplicaSet"), input)
           description := "No fresh replica sets found"
         }
