@@ -19,7 +19,7 @@ class FileHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         content = "x".encode(encoding="utf-8")
         try:
-            if len(self.path.split(".")) == 1:
+            if len(self.path.split(".")) == 1 and self.headers['content-length']:
                 length = self.headers['content-length']
                 data = self.rfile.read(int(length))
 

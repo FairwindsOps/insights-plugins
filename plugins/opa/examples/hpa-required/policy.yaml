@@ -12,7 +12,12 @@ rego: |
           hpa.metadata.namespace == elem.metadata.namespace
           hpa.spec.scaleTargetRef.apiVersion == elem.apiVersion
         }
+        blockedNamespace(elem) {
+          ns := elem.parameters.blocklist[_]
+          elem.metadata.namespace == ns
+        }
         hparequired[description] {
+          not blockedNamespace(input)
           not contains(kubernetes("autoscaling", "HorizontalPodAutoscaler"), input)
           description := "No horizontal pod autoscaler found"
         }

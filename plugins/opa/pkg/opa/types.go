@@ -100,6 +100,7 @@ type OPACustomCheck struct {
 type CheckSetting struct {
 	CheckName      string
 	Targets        []string
+	ClusterNames   []string
 	AdditionalData struct {
 		Name       string
 		Output     OutputFormat

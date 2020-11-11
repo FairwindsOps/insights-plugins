@@ -9,6 +9,26 @@ kubesec:
       memory: 64Mi
       cpu: 1m
 
+kubebench:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+
+opa:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+
+rbacreporter:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
 trivy:
   enabled: true
   resources:
