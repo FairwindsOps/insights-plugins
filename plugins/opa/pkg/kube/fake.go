@@ -22,6 +22,8 @@ func SetFakeClient() *Client {
 	restMapper.Add(gvk, meta.RESTScopeNamespace)
 	gvk = gv2.WithKind("HorizontalPodAutoscaler")
 	restMapper.Add(gvk, meta.RESTScopeNamespace)
+	gvk = gv.WithKind("ReplicaSet")
+	restMapper.Add(gvk, meta.RESTScopeNamespace)
 	client := Client{
 		restMapper,
 		dynamic,
