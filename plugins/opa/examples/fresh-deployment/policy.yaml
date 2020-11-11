@@ -17,7 +17,7 @@ rego: |
           comparisonDate := time.add_date(time.now_ns(), 0, 0, 0 - input.parameters.days)
           time.parse_rfc3339_ns(rs.metadata.creationTimestamp) < comparisonDate
         }
-        hparequired[description] {
+        freshDeployment[description] {
           not blockedNamespace(input)
           latestReplicaDateStale(kubernetes("apps", "ReplicaSet"), input)
           description := "No fresh replica sets found"
