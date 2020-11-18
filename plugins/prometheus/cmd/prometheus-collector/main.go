@@ -37,13 +37,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	hostName := os.Getenv("FAIRWINDS_INSIGHTS_HOST")
-	org := os.Getenv("FAIRWINDS_ORG")
-	cluster := os.Getenv("FAIRWINDS_CLUSTER")
-	token := os.Getenv("FAIRWINDS_TOKEN")
-	if hostName == "" || org == "" || cluster == "" || token == "" {
-		panic("Proper environment variables not set.")
-	}
 
 	dynamic, restMapper, err := getKubeClient()
 	if err != nil {
