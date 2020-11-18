@@ -31,7 +31,7 @@ func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) 
 }
 
 func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_requests_memory_bytes{image!="", id=~"/kubepods.*", container!="POD", container!=""}`
+	query := `kube_pod_container_resource_requests_memory_bytes{container!="POD", container!=""}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -40,7 +40,7 @@ func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1
 }
 
 func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_requests_cpu_cores{image!="", id=~"/kubepods.*", container!="POD", container!=""}`
+	query := `kube_pod_container_resource_requests_cpu_cores{container!="POD", container!=""}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -49,7 +49,7 @@ func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Ra
 }
 
 func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_limits_memory_bytes{image!="", id=~"/kubepods.*", container!="POD", container!=""}`
+	query := `kube_pod_container_resource_limits_memory_bytes{container!="POD", container!=""}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -58,7 +58,7 @@ func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 }
 
 func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_limits_cpu_cores{image!="", id=~"/kubepods.*", container!="POD", container!=""}`
+	query := `kube_pod_container_resource_limits_cpu_cores{container!="POD", container!=""}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -67,7 +67,7 @@ func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Rang
 }
 
 func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `rate(container_cpu_usage_seconds_total{image!="", id=~"/kubepods.*", container!="POD", container!=""}[5m])`
+	query := `rate(container_cpu_usage_seconds_total{image!="", id=~"/kubepods.*", container!="POD", container!=""}[2m])`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)

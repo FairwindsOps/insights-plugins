@@ -33,9 +33,9 @@ type Statistics struct {
 	Owner
 	StartTime  time.Time
 	Metric     string
-	Value      float64
-	Request    float64
-	LimitValue float64
+	Value      int64
+	Request    int64
+	LimitValue int64
 }
 
 // CombinedRequest is the cpu/memory and requests for a given pod/container

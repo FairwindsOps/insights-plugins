@@ -31,9 +31,9 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 				StartTime:  timestamp,
 				Owner:      value.Owner,
 				Metric:     "Memory",
-				Value:      float64(mem.Value),
-				Request:    float64(value.memoryRequest),
-				LimitValue: float64(value.memoryLimit),
+				Value:      int64(mem.Value),
+				Request:    int64(value.memoryRequest),
+				LimitValue: int64(value.memoryLimit),
 			})
 
 		}
@@ -43,9 +43,9 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 				StartTime:  timestamp,
 				Owner:      value.Owner,
 				Metric:     "CPU",
-				Value:      float64(cpu.Value),
-				Request:    float64(value.cpuRequest),
-				LimitValue: float64(value.cpuLimit),
+				Value:      int64(cpu.Value * 1000),
+				Request:    int64(value.cpuRequest * 1000),
+				LimitValue: int64(value.cpuLimit * 1000),
 			})
 		}
 
