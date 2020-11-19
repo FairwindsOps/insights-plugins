@@ -48,7 +48,7 @@ var timestep time.Duration = time.Minute * 5
 
 func getRange() prometheusV1.Range {
 	return prometheusV1.Range{
-		Start: time.Now().Truncate(timestep).Add(timestep * 4),
+		Start: time.Now().Truncate(timestep).Add(timestep * -4),
 		End:   time.Now().Truncate(timestep),
 		Step:  30 * time.Second,
 	}
