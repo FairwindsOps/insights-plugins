@@ -27,6 +27,9 @@ func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) 
 	for _, warning := range warnings {
 		logrus.Warn(warning)
 	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
 	return values.(model.Matrix), err
 }
 
@@ -35,6 +38,9 @@ func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
 	}
 	return values.(model.Matrix), err
 }
@@ -45,6 +51,9 @@ func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Ra
 	for _, warning := range warnings {
 		logrus.Warn(warning)
 	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
 	return values.(model.Matrix), err
 }
 
@@ -53,6 +62,9 @@ func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
 	}
 	return values.(model.Matrix), err
 }
@@ -63,6 +75,9 @@ func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Rang
 	for _, warning := range warnings {
 		logrus.Warn(warning)
 	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
 	return values.(model.Matrix), err
 }
 
@@ -71,6 +86,9 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
 	}
 	return values.(model.Matrix), err
 }
