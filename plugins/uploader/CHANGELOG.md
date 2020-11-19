@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+* Fixed a bug in the failure uploads
+
 ## 0.2.3
 
 * Fixed a bug in math
