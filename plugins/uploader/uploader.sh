@@ -84,8 +84,8 @@ do
         # Get logs for container that's not insights-uploader and upload
         # data-binary to preserve newline characters.
         if [ "$SEND_FAILURES" = "true" ]; then
-            kubectl logs $POD_NAME -c $(kubectl get pod $POD_NAME -o jsonpath="{.spec.containers[?(@.name != 'insights-uploader')].name}") | \
             set +x
+            kubectl logs $POD_NAME -c $(kubectl get pod $POD_NAME -o jsonpath="{.spec.containers[?(@.name != 'insights-uploader')].name}") | \
             curl -X POST $url \
                 -L \
                 --data-binary @- \
