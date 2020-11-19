@@ -14,7 +14,7 @@ RUN go mod download
 COPY pkg pkg
 COPY cmd cmd
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o prometheus-collector pkg/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o prometheus-collector ./cmd/prometheus-collector
 
 
 FROM alpine:3.12.0
