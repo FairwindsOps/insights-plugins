@@ -119,7 +119,8 @@
                         "enum": [
                             "LOW",
                             "MEDIUM",
-                            "HIGH"
+                            "HIGH",
+                            "UNKNOWN"
                         ]
                     },
                     "VulnerabilityID": {
