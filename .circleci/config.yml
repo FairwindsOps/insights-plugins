@@ -80,7 +80,7 @@ commands:
             if git diff --name-only --exit-code origin/master "./plugins/$plugin/version.txt" ; then
               echo "Please update ./plugins/$plugin/version.txt"
               exit 1
-            elif grep -v -q "$(cat ./plugins/$plugin/version.txt)" "./plugins/$plugin/CHANGELOG.md"; then
+            elif grep -v -q "## $(cat ./plugins/$plugin/version.txt)" "./plugins/$plugin/CHANGELOG.md"; then
               echo "Please update ./plugins/$plugin/CHANGELOG.md"
               exit 1
             else
