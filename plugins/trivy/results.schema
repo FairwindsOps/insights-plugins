@@ -48,7 +48,7 @@
                     },
                     "Report": {
                         "$id": "#/properties/Images/items/properties/Report",
-                        "type": "array",
+                        "type": ["array", "null"],
                         "items": {
                             "$id": "#/properties/Images/items/properties/Report/items",
                             "type": "object",
@@ -63,7 +63,7 @@
                                 },
                                 "Vulnerabilities": {
                                     "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities",
-                                    "type": "array",
+                                    "type": ["array", "null"],
                                     "items": {
                                         "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items",
                                         "type": "object",
@@ -127,7 +127,7 @@
                         "type": "string"
                     },
                     "References": {
-                        "type": "array",
+                        "type": ["array", "null"],
                         "items": {
                             "type": "string"
                         }
