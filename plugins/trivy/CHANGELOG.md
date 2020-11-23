@@ -1,4 +1,8 @@
 # Change Log
+
+## 0.12.1
+* Updated json schema
+
 ## 0.12.0
 * Update to latest version of Trivy
 * Change version number to match upstream version of Trivy
