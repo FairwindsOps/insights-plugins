@@ -78,9 +78,9 @@ func TestGetController(t *testing.T) {
 		{
 			TopController: unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"kind": "Deployment",
+					"kind": "ReplicaSet",
 					"metadata": map[string]interface{}{
-						"name":      "asdf2",
+						"name":      "asdf2-12a3468",
 						"namespace": "default",
 					},
 					"spec": map[string]interface{}{},
@@ -100,6 +100,6 @@ func TestGetController(t *testing.T) {
 	podName = "asdf2-12a3468-asd1e"
 
 	name, kind = getController(workloads, podName, namespace)
-	assert.Equal(t, "asdf2", name)
-	assert.Equal(t, "Deployment", kind)
+	assert.Equal(t, "asdf2-12a3468", name)
+	assert.Equal(t, "ReplicaSet", kind)
 }
