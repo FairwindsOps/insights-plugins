@@ -3,7 +3,7 @@ set -xeo pipefail
 
 changed=()
 for dir in `find ./plugins -maxdepth 1 -type d`; do
-  if [ $dir == "./plugins" || $dir == "./plugins/_template" ]; then
+  if [ $dir == "./plugins" ] || [ $dir == "./plugins/_template" ]; then
     continue
   fi
   if git diff --name-only --exit-code --no-renames origin/master "$dir/" > /dev/null 2>&1 && [ "$CIRCLE_BRANCH" != "master" ] ; then
