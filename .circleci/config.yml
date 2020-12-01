@@ -106,7 +106,7 @@ jobs:
     executor: docker-build
     steps:
       - docker_build
-      - insights_test
+      # - insights_test - TODO: re-enable this
       - docker_push_plugins
       - slack/notify-on-failure:
           only_for_branches: main
