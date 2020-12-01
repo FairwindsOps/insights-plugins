@@ -39,7 +39,7 @@ Each new pull request should:
 - Reference any related issues
 - Pass existing tests and linting
 - Contain a clear indication of if they're ready for review or a work in progress
-- Be up to date and/or rebased on the master branch
+- Be up to date and/or rebased on the main branch
 
 ## Creating a new release
 

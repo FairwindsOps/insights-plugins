@@ -6,7 +6,7 @@ for dir in `find ./plugins -maxdepth 1 -type d`; do
   if [ $dir == "./plugins" ] || [ $dir == "./plugins/_template" ]; then
     continue
   fi
-  if git diff --name-only --exit-code --no-renames origin/master "$dir/" > /dev/null 2>&1 && [ "$CIRCLE_BRANCH" != "master" ] ; then
+  if git diff --name-only --exit-code --no-renames origin/main "$dir/" > /dev/null 2>&1 && [ "$CIRCLE_BRANCH" != "main" ] ; then
     continue
   fi
   echo "detected change in $dir"
@@ -23,7 +23,7 @@ for plugin in ./plugins/*; do
   varname=$(echo $id | sed -e 's/-//g')
   tag=$(cat "$plugin/version.txt")
 
-  if [ "$CIRCLE_BRANCH" != "master" ]; then
+  if [ "$CIRCLE_BRANCH" != "main" ]; then
     for changed_id in "${changed[@]}"; do
       if [ $id == $changed_id ]; then
         tag=$CI_SHA1

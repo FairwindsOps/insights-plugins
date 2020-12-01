@@ -72,12 +72,12 @@ commands:
     - run:
         name: Check version.txt
         command: |
-          if [ "$CIRCLE_BRANCH" == "master" ]
+          if [ "$CIRCLE_BRANCH" == "main" ]
           then
             exit 0
           fi
           for plugin in "${CHANGED[@]}"; do
-            if git diff --name-only --exit-code origin/master "./plugins/$plugin/version.txt" ; then
+            if git diff --name-only --exit-code origin/main "./plugins/$plugin/version.txt" ; then
               echo "Please update ./plugins/$plugin/version.txt"
               exit 1
             elif ! grep -q "## $(cat ./plugins/$plugin/version.txt)" "./plugins/$plugin/CHANGELOG.md"; then
@@ -100,7 +100,7 @@ jobs:
       - docker_build
       - insights_test
       - slack/notify-on-failure:
-          only_for_branches: master
+          only_for_branches: main
 
   build_and_push_plugins:
     executor: docker-build
@@ -109,7 +109,7 @@ jobs:
       - insights_test
       - docker_push_plugins
       - slack/notify-on-failure:
-          only_for_branches: master
+          only_for_branches: main
 
   test:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
@@ -123,7 +123,7 @@ jobs:
       - run: cd plugins/opa ; go test ./... ; cd ../..
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - slack/notify-on-failure:
-          only_for_branches: master
+          only_for_branches: main
 
   check_version_changed:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
