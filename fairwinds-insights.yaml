@@ -1,3 +1,4 @@
 options:
   organization: fairwinds-production
+  baseBranch: main
 # images will be added dynamically
