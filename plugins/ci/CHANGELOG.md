@@ -1,4 +1,9 @@
 # Changelog
+
+## 0.7.2
+
+* Respect mainline branch specified in config.
+
 ## 0.7.1
 * update Trivy
 
