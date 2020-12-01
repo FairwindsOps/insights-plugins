@@ -269,7 +269,7 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(configurationObject.Options.RepositoryName)
+	repoDetails, err := getGitInfo(configurationObject.Options.RepositoryName, configurationObject.Options.BaseBranch)
 	if err != nil {
 		logrus.Warn("Unable to get git details")
 		return results, err
@@ -332,10 +332,10 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	return results, nil
 }
 
-func getGitInfo(repoName string) (gitInfo, error) {
+func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	info := gitInfo{}
 
-	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", "master")
+	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", baseBranch)
 	if err != nil {
 		logrus.Warn("Unable to get GIT merge-base")
 		return info, err
