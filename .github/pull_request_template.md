@@ -7,4 +7,4 @@
 * [ ] I have updated the CHANGELOG of any plugins updated
 * [ ] I have updated the version file of any plugins updated
 * [ ] I have added tests wherever appropriate
-* [ ] I have included the plugin name in the title of this PR or `[MULTIPLE]` if more than one is impacted
+* [ ] I have labeled this PR with a label per plugin updated
