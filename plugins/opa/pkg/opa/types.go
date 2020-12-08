@@ -144,7 +144,7 @@ func (supposedInstance CheckSetting) GetCustomCheckInstance() CustomCheckInstanc
 func (supposedInstance CheckSetting) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
 	output := map[string]interface{}{}
 	if supposedInstance.AdditionalData.Output.Remediation != nil {
-		output["remedidation"] = supposedInstance.AdditionalData.Output.Remediation
+		output["remediation"] = supposedInstance.AdditionalData.Output.Remediation
 	}
 	if supposedInstance.AdditionalData.Output.Title != nil {
 		output["title"] = supposedInstance.AdditionalData.Output.Title

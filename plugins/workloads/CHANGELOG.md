@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.3
+
+* Fixed a bug in the results schema
+
 ## 2.0.1
 
 * Fixed a bug in the PodCount for Jobs with a nil start time or completed time.
