@@ -24,7 +24,7 @@
               "type": "string"
             },
             "Labels": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "beta.kubernetes.io/arch": {
                   "type": "string"
@@ -55,7 +55,7 @@
               ]
             },
             "Annotations": {
-              "type": "object",
+              "type": ["object", "null"],
               "additionalPProperties": {
                "type": "string"
                 
