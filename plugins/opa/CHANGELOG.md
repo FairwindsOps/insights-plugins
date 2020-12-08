@@ -3,6 +3,7 @@
 ## 0.2.14
 
 * Added additional example policies for vulnerabilities.
+* Fixed typo on remediation
 
 ## 0.2.13
 * Added additional example policies
