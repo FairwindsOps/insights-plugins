@@ -1,0 +1,4 @@
+options:
+  organization: ci-co
+  hostname: https://main.insights.fairwinds.com
+

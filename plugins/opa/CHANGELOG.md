@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.14
+
+* Added additional example policies for vulnerabilities.
+
 ## 0.2.13
 * Added additional example policies
 
