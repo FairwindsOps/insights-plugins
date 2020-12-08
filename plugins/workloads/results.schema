@@ -24,7 +24,7 @@
               "type": "string"
             },
             "Labels": {
-              "type": "object",
+              "type": ["object", "null"],
               "properties": {
                 "beta.kubernetes.io/arch": {
                   "type": "string"
