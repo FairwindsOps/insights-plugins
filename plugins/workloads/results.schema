@@ -55,7 +55,7 @@
               ]
             },
             "Annotations": {
-              "type": "object",
+              "type": ["object", "null"],
               "additionalPProperties": {
                "type": "string"
                 
