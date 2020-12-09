@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.15
+
+* Fixed typo on remediation
+
 ## 0.2.14
 
 * Added additional example policies for vulnerabilities.
