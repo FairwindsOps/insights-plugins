@@ -204,7 +204,7 @@ func (supposedCheck OPACustomCheck) GetUnstructuredObject(namespace string) *uns
 
 	output := map[string]interface{}{}
 	if supposedCheck.Remediation != nil {
-		output["remedidation"] = supposedCheck.Remediation
+		output["remediation"] = supposedCheck.Remediation
 	}
 	if supposedCheck.Title != nil {
 		output["title"] = supposedCheck.Title
