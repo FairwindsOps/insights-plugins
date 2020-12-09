@@ -29,7 +29,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/prometheus/pkg/data"
 )
 
-const outputFile = "/output/metrics.json"
+const outputFile = "/output/resource-metrics.json"
 
 func main() {
 	address := os.Getenv("PROMETHEUS_ADDRESS")
