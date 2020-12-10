@@ -93,10 +93,16 @@ type K8sResource struct {
 }
 
 func (ai ActionItem) GetReadableTitle() string {
-	if ai.Resource.Namespace == "" {
-		return fmt.Sprintf("%s/%s - %s\n", ai.Resource.Kind, ai.Resource.Name, ai.Title)
+	t := ""
+	if ai.Resource.Filename != "" {
+		t += ai.Resource.Filename + ": "
 	}
-	return fmt.Sprintf("%s/%s/%s - %s\n", ai.Resource.Namespace, ai.Resource.Kind, ai.Resource.Name, ai.Title)
+	if ai.Resource.Namespace == "" {
+		t += fmt.Sprintf("%s/%s", ai.Resource.Kind, ai.Resource.Name)
+	} else {
+		t += fmt.Sprintf("%s/%s/%s", ai.Resource.Namespace, ai.Resource.Kind, ai.Resource.Name)
+	}
+	return t + " - " + ai.Title
 }
 
 func maybeAddSlash(input string) string {
