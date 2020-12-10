@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.0
+* Improved logging and output
+
 ## 0.7.2
 
 * Respect mainline branch specified in config.
