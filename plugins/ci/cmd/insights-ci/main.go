@@ -23,6 +23,8 @@ import (
 
 const workloadsReportVersion = "0.1.0"
 
+const maxLinesForPrint = 8
+
 func exitWithError(message string, err error) {
 	if err != nil {
 		logrus.Fatalf("%s: %s", message, err.Error())
@@ -116,7 +118,10 @@ func main() {
 	if err != nil {
 		exitWithError("Error while sending results back to "+configurationObject.Options.Hostname, err)
 	}
-	logrus.Infof("New Action Item Count: %d Fixed Action Item Count: %d", len(results.NewActionItems), len(results.FixedActionItems))
+	fmt.Printf("%d new Action Items:\n", len(results.NewActionItems))
+	printActionItems(results.NewActionItems)
+	fmt.Printf("%d fixed Action Items:\n", len(results.FixedActionItems))
+	printActionItems(results.FixedActionItems)
 
 	if configurationObject.Options.JUnitOutput != "" {
 		err = ci.SaveJUnitFile(results, configurationObject.Options.JUnitOutput)
@@ -124,13 +129,39 @@ func main() {
 			exitWithError("Could not save jUnit results", nil)
 		}
 	}
-	err = ci.CheckScore(results, configurationObject)
-	if err != nil {
+
+	if !results.Pass {
 		fmt.Printf(
 			"\n\nFairwinds Insights checks failed:\n%v\n\nVisit %s/orgs/%s/repositories for more information\n\n",
 			err, configurationObject.Options.Hostname, configurationObject.Options.Organization)
 		if configurationObject.Options.SetExitCode {
 			os.Exit(1)
+		}
+	} else {
+		fmt.Println("\n\nFairwinds Insights checks passed.")
+	}
+}
+
+func printActionItems(ais []models.ActionItem) {
+	for _, ai := range ais {
+		fmt.Println(ai.GetReadableTitle())
+		printMultilineString("Description", ai.Description)
+		printMultilineString("Remediation", ai.Remediation)
+		fmt.Println()
+	}
+}
+
+func printMultilineString(title, str string) {
+	fmt.Println("  " + title + ":")
+	if str == "" {
+		str = "Unspecified"
+	}
+	lines := strings.Split(str, "\n")
+	for idx, line := range lines {
+		fmt.Println("    " + line)
+		if idx == maxLinesForPrint {
+			fmt.Println("    [truncated]")
+			break
 		}
 	}
 }
