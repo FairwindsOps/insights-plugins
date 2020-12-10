@@ -47,7 +47,7 @@ func main() {
 		panic(err)
 	}
 	stats := data.CalculateStatistics(res)
-	data, err := json.Marshal(stats)
+	data, err := json.Marshal(map[string]interface{}{"Values": stats})
 	if err != nil {
 		panic(err)
 	}
