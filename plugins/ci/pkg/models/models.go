@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -64,8 +65,8 @@ type imageConfig struct {
 
 // ScanResults is the value returned by the Insights API upon submitting a scan.
 type ScanResults struct {
-	NewActionItems   []actionItem
-	FixedActionItems []actionItem
+	NewActionItems   []ActionItem
+	FixedActionItems []ActionItem
 	Pass             bool
 }
 
@@ -75,14 +76,33 @@ type Container struct {
 	Name  string
 }
 
-type actionItem struct {
-	Remediation  string
-	Severity     float64
-	Title        string
-	ResourceName string
-	ResourceKind string
-	Description  string
-	Notes        string
+type ActionItem struct {
+	Remediation string
+	Severity    float64
+	Title       string
+	Description string
+	Notes       string
+	Resource    K8sResource
+}
+
+type K8sResource struct {
+	Namespace string
+	Name      string
+	Kind      string
+	Filename  string
+}
+
+func (ai ActionItem) GetReadableTitle() string {
+	t := ""
+	if ai.Resource.Filename != "" {
+		t += ai.Resource.Filename + ": "
+	}
+	if ai.Resource.Namespace == "" {
+		t += fmt.Sprintf("%s/%s", ai.Resource.Kind, ai.Resource.Name)
+	} else {
+		t += fmt.Sprintf("%s/%s/%s", ai.Resource.Namespace, ai.Resource.Kind, ai.Resource.Name)
+	}
+	return t + " - " + ai.Title
 }
 
 func maybeAddSlash(input string) string {
