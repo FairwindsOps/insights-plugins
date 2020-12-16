@@ -44,7 +44,11 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 
 	logrus.Debugf("Processing with config %+v", v.Config)
-	return processInputYAML(ctx, v.Config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group)
+	metadata, err := getRequestReport(req)
+	if err != nil {
+		return false, nil, nil, err
+	}
+	return processInputYAML(ctx, v.Config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
 }
 
 // Handle for Validator to run validation checks.
@@ -68,8 +72,22 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 	return response
 }
 
-func processInputYAML(ctx context.Context, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string) (bool, []string, []string, error) {
-	reports := make([]models.ReportInfo, 0)
+func getRequestReport(req admission.Request) (models.ReportInfo, error) {
+	req.AdmissionRequest.Object.Reset()
+	req.AdmissionRequest.OldObject.Reset()
+	report := models.ReportInfo{
+		Report:  "metadata",
+		Version: "0.1.0",
+	}
+	var err error
+	report.Contents, err = json.Marshal(&req.AdmissionRequest)
+	return report, err
+}
+
+func processInputYAML(ctx context.Context, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
+	reports := []models.ReportInfo{
+		metaReport,
+	}
 	if configurationObject.Reports.Polaris {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
