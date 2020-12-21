@@ -212,10 +212,14 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 	if err != nil {
 		return trivyReport, err
 	}
-
+	refLookup := map[string]string{}
 	// Download missing images
 	for idx, currentImage := range images {
 		if currentImage.PullRef != "" {
+			continue
+		}
+		if ref, ok := refLookup[currentImage.Name]; ok {
+			images[idx].PullRef = ref
 			continue
 		}
 
@@ -224,6 +228,7 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 			return trivyReport, err
 		}
 		images[idx].PullRef = strconv.Itoa(idx)
+		refLookup[currentImage.Name] = images[idx].PullRef
 	}
 	// Scan Images with Trivy
 	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(images, configurationObject)
