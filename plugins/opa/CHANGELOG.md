@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.16
+
+* Check for already exists error
+
 ## 0.2.15
 
 * Fixed typo on remediation

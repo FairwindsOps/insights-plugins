@@ -3,7 +3,6 @@ cd /workspace
 
 helm repo add fairwinds-incubator https://charts.fairwinds.com/incubator
 helm repo add fairwinds-stable https://charts.fairwinds.com/stable
-helm repo add stable https://kubernetes-charts.storage.googleapis.com
 python3 -u e2e/testServer.py &> /workspace/py.log &
 pyServer=$!
 

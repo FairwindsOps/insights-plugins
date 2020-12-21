@@ -1,6 +1,11 @@
 # Changelog
 
+## 0.8.1
+
+* Dedupe Trivy scans
+
 ## 0.8.0
+
 * Improved logging and output
 
 ## 0.7.2

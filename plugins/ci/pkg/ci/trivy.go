@@ -20,6 +20,10 @@ func ScanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 	}
 	reportByRef := map[string][]trivymodels.VulnerabilityList{}
 	for _, currentImage := range images {
+		_, ok := reportByRef[currentImage.PullRef]
+		if ok {
+			continue
+		}
 		results, err := image.ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder)
 		if err != nil {
 			return nil, "", err

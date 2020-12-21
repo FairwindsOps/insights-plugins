@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -74,7 +75,10 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 		}
 		_, err = dynamic.Resource(gvr).Namespace(namespace).Create(context.Background(), &unstructure, metav1.CreateOptions{})
 		if err != nil {
-			panic(err)
+			statusError, ok := err.(*kubeerrors.StatusError)
+			if !ok || statusError.ErrStatus.Reason != metav1.StatusReasonAlreadyExists {
+				panic(err)
+			}
 		}
 	}
 	client := Client{
