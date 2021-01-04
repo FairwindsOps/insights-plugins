@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.7.2
+* Fix helm file name by replacing the release-name prefix.
+
 ## 0.7.1
 * update Trivy
 
