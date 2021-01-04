@@ -51,8 +51,8 @@ func GetResultsFromCommand(command string, args ...string) (string, error) {
 	return strings.TrimSpace(string(bytes)), err
 }
 
-// GetImagesFromManifest scans a folder of yaml files and returns all of the images used.
-func GetImagesFromManifest(configFolder string) ([]trivymodels.Image, []models.Resource, error) {
+// GetAllResources scans a folder of yaml files and returns all of the images and resources used.
+func GetAllResources(configFolder string) ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
 	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
@@ -459,11 +459,15 @@ func ProcessHelmTemplates(configurationObject models.Configuration, configFolder
 		if err != nil {
 			return err
 		}
+		filefolder := configFolder
+		if strings.HasPrefix(filefolder, helmObject.Name) {
+			filefolder = strings.Replace(configFolder, helmObject.Name, helmObject.Path, 1)
+		}
 		params := []string{
 			"template", helmObject.Name,
 			helmObject.Path,
 			"--output-dir",
-			configFolder + helmObject.Name,
+			filefolder + helmObject.Name,
 		}
 		valuesFile := helmObject.ValuesFile
 		if valuesFile == "" {
