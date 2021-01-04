@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+* Fix helm file name by replacing the release-name prefix.
+
 ## 0.8.1
 
 * Dedupe Trivy scans
