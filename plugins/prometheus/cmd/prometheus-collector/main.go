@@ -29,7 +29,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/prometheus/pkg/data"
 )
 
-const outputFile = "/output/metrics.json"
+const outputFile = "/output/resource-metrics.json"
 
 func main() {
 	address := os.Getenv("PROMETHEUS_ADDRESS")
@@ -47,7 +47,7 @@ func main() {
 		panic(err)
 	}
 	stats := data.CalculateStatistics(res)
-	data, err := json.Marshal(stats)
+	data, err := json.Marshal(map[string]interface{}{"Values": stats})
 	if err != nil {
 		panic(err)
 	}

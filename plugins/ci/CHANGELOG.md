@@ -1,7 +1,16 @@
 # Changelog
 
+## 0.8.1
+
+* Dedupe Trivy scans
+
+## 0.8.0
+
+* Improved logging and output
+
 ## 0.7.2
-* Fix helm file name by replacing the release-name prefix.
+
+* Respect mainline branch specified in config.
 
 ## 0.7.1
 * update Trivy

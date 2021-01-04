@@ -144,7 +144,7 @@ func (supposedInstance CheckSetting) GetCustomCheckInstance() CustomCheckInstanc
 func (supposedInstance CheckSetting) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
 	output := map[string]interface{}{}
 	if supposedInstance.AdditionalData.Output.Remediation != nil {
-		output["remedidation"] = supposedInstance.AdditionalData.Output.Remediation
+		output["remediation"] = supposedInstance.AdditionalData.Output.Remediation
 	}
 	if supposedInstance.AdditionalData.Output.Title != nil {
 		output["title"] = supposedInstance.AdditionalData.Output.Title
@@ -204,7 +204,7 @@ func (supposedCheck OPACustomCheck) GetUnstructuredObject(namespace string) *uns
 
 	output := map[string]interface{}{}
 	if supposedCheck.Remediation != nil {
-		output["remedidation"] = supposedCheck.Remediation
+		output["remediation"] = supposedCheck.Remediation
 	}
 	if supposedCheck.Title != nil {
 		output["title"] = supposedCheck.Title
