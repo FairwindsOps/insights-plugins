@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -269,7 +268,7 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(configurationObject.Options.RepositoryName)
+	repoDetails, err := getGitInfo(configurationObject.Options.RepositoryName, configurationObject.Options.BaseBranch)
 	if err != nil {
 		logrus.Warn("Unable to get git details")
 		return results, err
@@ -320,22 +319,13 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 		return results, err
 	}
 
-	for idx, actionItem := range results.NewActionItems {
-		for _, resource := range resources {
-			if resource.Kind == actionItem.ResourceKind && resource.Name == actionItem.ResourceName {
-				results.NewActionItems[idx].Notes = fmt.Sprintf("Resource was found in file: %s", resource.Filename)
-				break
-			}
-		}
-	}
-
 	return results, nil
 }
 
-func getGitInfo(repoName string) (gitInfo, error) {
+func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	info := gitInfo{}
 
-	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", "master")
+	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", baseBranch)
 	if err != nil {
 		logrus.Warn("Unable to get GIT merge-base")
 		return info, err
@@ -401,7 +391,7 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 
 	for _, actionItem := range results.NewActionItems {
 		cases = append(cases, formatter.JUnitTestCase{
-			Name: actionItem.ResourceName + ": " + actionItem.Title,
+			Name: actionItem.GetReadableTitle(),
 			Failure: &formatter.JUnitFailure{
 				Message:  actionItem.Remediation,
 				Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
@@ -411,7 +401,7 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 
 	for _, actionItem := range results.FixedActionItems {
 		cases = append(cases, formatter.JUnitTestCase{
-			Name: actionItem.ResourceName + ": " + actionItem.Title,
+			Name: actionItem.GetReadableTitle(),
 		})
 	}
 
@@ -437,16 +427,6 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 	err = ioutil.WriteFile(filename, xmlBytes, 0644)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// CheckScore checks if the score meets all of the thresholds.
-func CheckScore(results models.ScanResults, configurationObject models.Configuration) error {
-	if !results.Pass {
-		logrus.Infof("Fairwinds Insights CI check has failed, please fix some Action Items: %v", results.NewActionItems)
-		return errors.New(models.ScoreOutOfBoundsMessage)
 	}
 
 	return nil
