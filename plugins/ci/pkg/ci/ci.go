@@ -51,14 +51,20 @@ func GetResultsFromCommand(command string, args ...string) (string, error) {
 }
 
 // GetAllResources scans a folder of yaml files and returns all of the images and resources used.
-func GetAllResources(configFolder string) ([]trivymodels.Image, []models.Resource, error) {
+func GetAllResources(configFolder string, configurationObject models.Configuration) ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
 	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
 		}
-		relativePath, err := filepath.Rel(configFolder, path)
+		filefolder := configFolder
+		for _, helmObject := range configurationObject.Manifests.Helm {
+			if strings.HasPrefix(filefolder, helmObject.Name) {
+				filefolder = strings.Replace(configFolder, helmObject.Name, helmObject.Path, 1)
+			}
+		}
+		relativePath, err := filepath.Rel(filefolder, path)
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -439,15 +445,12 @@ func ProcessHelmTemplates(configurationObject models.Configuration, configFolder
 		if err != nil {
 			return err
 		}
-		filefolder := configFolder
-		if strings.HasPrefix(filefolder, helmObject.Name) {
-			filefolder = strings.Replace(configFolder, helmObject.Name, helmObject.Path, 1)
-		}
+
 		params := []string{
 			"template", helmObject.Name,
 			helmObject.Path,
 			"--output-dir",
-			filefolder + helmObject.Name,
+			configFolder + helmObject.Name,
 		}
 		valuesFile := helmObject.ValuesFile
 		if valuesFile == "" {
