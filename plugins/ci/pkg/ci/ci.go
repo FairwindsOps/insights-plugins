@@ -59,9 +59,11 @@ func GetAllResources(configFolder string, configurationObject models.Configurati
 			return nil
 		}
 		filefolder := configFolder
+		var helmName string
 		for _, helmObject := range configurationObject.Manifests.Helm {
-			if strings.HasPrefix(filefolder, helmObject.Name) {
+			if strings.HasPrefix(filefolder, helmObject.Name+"/") {
 				filefolder = strings.Replace(configFolder, helmObject.Name, helmObject.Path, 1)
+				helmName = helmObject.Name
 			}
 		}
 		relativePath, err := filepath.Rel(filefolder, path)
@@ -108,6 +110,7 @@ func GetAllResources(configFolder string, configurationObject models.Configurati
 						Name:      metadata["name"].(string),
 						Namespace: namespace,
 						Filename:  fileName,
+						HelmName:  helmName,
 						Containers: funk.Map(containers, func(c models.Container) string {
 							return c.Name
 						}).([]string),
@@ -126,6 +129,7 @@ func GetAllResources(configFolder string, configurationObject models.Configurati
 					Name:      metadata["name"].(string),
 					Namespace: namespace,
 					Filename:  fileName,
+					HelmName:  helmName,
 					Containers: funk.Map(containers, func(c models.Container) string {
 						return c.Name
 					}).([]string),

@@ -15,6 +15,7 @@ type Resource struct {
 	Name       string
 	Filename   string
 	Namespace  string
+	HelmName   string
 	Containers []string
 }
 
