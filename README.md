@@ -1,4 +1,15 @@
 # Insights Plugins
+<div align="center" class="no-border">
+  <img src="logo.png" alt="Insights Logo">
+  <br>
+  <h3>Report Plugins for Fairwinds Insights</h3>
+  <a href="https://opensource.org/licenses/Apache-2.0">
+    <img src="https://img.shields.io/badge/license-Apache2-brightgreen.svg">
+  </a>
+  <a href="https://circleci.com/gh/FairwindsOps/insights-plugins">
+    <img src="https://circleci.com/gh/FairwindsOps/insights-plugins.svg?style=svg">
+  </a>
+</div>
 
 [![FairwindsOps](https://circleci.com/gh/FairwindsOps/insights-plugins.svg?style=svg)](https://circleci.com/gh/FairwindsOps/insights-plugins)
 [![Apache 2.0 license](https://img.shields.io/badge/license-Apache2-brightgreen.svg)](https://opensource.org/licenses/Apache-2.0)
