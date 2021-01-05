@@ -1,5 +1,5 @@
 <div align="center" class="no-border">
-  <img src="logo.png" alt="Insights Logo" width="300">
+  <img src="logo.png" alt="Insights Logo" width="650">
   <br>
   <h3>Report Plugins for Fairwinds Insights</h3>
   <a href="https://opensource.org/licenses/Apache-2.0">
