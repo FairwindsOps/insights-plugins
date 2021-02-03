@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.17
+* Reformat policies into .rego files
+
 ## 0.2.16
 
 * Check for already exists error
