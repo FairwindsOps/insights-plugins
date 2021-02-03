@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
@@ -116,6 +115,7 @@ func TestExampleFiles(t *testing.T) {
 		if info.Name() != "policy.rego" {
 			return nil
 		}
+		t.Log("testing", path)
 		file, err := os.Open(path)
 		if err != nil {
 			panic(err)
