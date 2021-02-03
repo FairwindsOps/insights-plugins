@@ -113,26 +113,21 @@ func TestReturnDescription(t *testing.T) {
 func TestExampleFiles(t *testing.T) {
 	kube.SetFakeClient()
 	err := filepath.Walk("../../examples", func(path string, info os.FileInfo, err error) error {
-		if info.Name() != "policy.yaml" {
+		if info.Name() != "policy.rego" {
 			return nil
 		}
-		var object map[string]interface{}
 		file, err := os.Open(path)
 		if err != nil {
-			return err
+			panic(err)
 		}
-
 		defer file.Close()
-		bytes, _ := ioutil.ReadAll(file)
-		err = yaml.Unmarshal(bytes, &object)
+		bytes, err := ioutil.ReadAll(file)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
-		rego := object["rego"].(string)
-
+		rego := string(bytes)
 		ctx := context.TODO()
-
 		params := map[string]interface{}{}
 		_, err = runRegoForItem(ctx, rego, params, fakeObj.Object)
 		return err
