@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.18
+* add some more examples
+
 ## 0.2.17
 * Reformat policies into .rego files
 
