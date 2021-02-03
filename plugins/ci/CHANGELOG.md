@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2
+
+* Fix bug in Trivy to allow namespace to be sent up.
+
 ## 0.9.1
 * Bump Alpine to 3.14
 
