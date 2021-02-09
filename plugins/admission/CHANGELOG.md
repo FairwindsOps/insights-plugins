@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+* Added `HelmName` to the model
+
 ## 0.2.0
 
 * Added metadata report
