@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.4
+* Fixed a bug in the results schema
+
 ## 2.0.3
 
 * Fixed a bug in the results schema
