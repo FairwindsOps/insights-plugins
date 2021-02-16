@@ -1,0 +1,10 @@
+name: "Don’t scan containers in the kube-system namespace"
+description: "Mark any action items in the kube-system namespace as working as intended"
+context: ""
+reportType: ""
+cluster: ""
+repository: ""
+action: |
+  if (ActionItem.ResourceNamespace === "kube-system") {
+      ActionItem.Resolution = WORKING_AS_INTENDED_RESOLUTION;
+  }

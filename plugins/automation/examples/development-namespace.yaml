@@ -1,0 +1,10 @@
+name: "Do not scan development namespace for Admission Controller"
+description: "Mark any action items in the development namespace for the Admission Controller context as working as intended"
+context: "AdmissionController"
+reportType: ""
+cluster: ""
+repository: ""
+action: |
+    if (ActionItem.ResourceNamespace === "development") {
+        ActionItem.Resolution = WORKING_AS_INTENDED_RESOLUTION;
+    }

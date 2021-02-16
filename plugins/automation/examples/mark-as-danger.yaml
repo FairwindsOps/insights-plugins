@@ -1,0 +1,10 @@
+name: "Mark Trivy vulnerabilities as danger"
+description: "Trivy vulnerabilities in namespaces that start with acme-app- should be marked as danger"
+context: ""
+reportType: "trivy"
+cluster: ""
+repository: ""
+action: |
+  if (ActionItem.ResourceNamespace.startsWith("acme-app-")) {
+     ActionItem.Severity = 0.667;
+  }
