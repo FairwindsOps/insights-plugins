@@ -1,0 +1,10 @@
+name: "Send alerts for trivy in production cluster"
+description: "Alert me via Slack if there are any danger Trivy items in the production cluster"
+context: ""
+reportType: "trivy"
+cluster: "production"
+repository: ""
+action: |
+    if (ActionItem.Severity >= 0.667 && ActionItem.IsNew) {
+        sendSlackNotification("trivy-alerts");
+    }
