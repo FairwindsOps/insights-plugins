@@ -1,0 +1,10 @@
+name: "Check for containers running as root"
+description: "In admission control, reject any containers running as root that are not in kube-system"
+context: "AdmissionController"
+reportType: "polaris"
+cluster: ""
+repository: ""
+action: |
+  if (ActionItem.Namespace !== "kube-system" && ActionItem.Title === "Should not be allowed to run as root") {
+     ActionItem.Severity = 0.667;
+  }
