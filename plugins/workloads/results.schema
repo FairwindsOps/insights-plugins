@@ -56,9 +56,8 @@
             },
             "Annotations": {
               "type": ["object", "null"],
-              "additionalPProperties": {
+              "additionalProperties": {
                "type": "string"
-                
               }
             },
             "CreationTimestamp": {
