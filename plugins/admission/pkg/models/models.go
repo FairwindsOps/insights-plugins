@@ -13,6 +13,7 @@ type Resource struct {
 	Kind      string
 	Name      string
 	Filename  string
+	HelmName  string
 	Namespace string
 }
 
