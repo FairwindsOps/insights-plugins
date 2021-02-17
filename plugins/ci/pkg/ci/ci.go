@@ -50,15 +50,23 @@ func GetResultsFromCommand(command string, args ...string) (string, error) {
 	return strings.TrimSpace(string(bytes)), err
 }
 
-// GetImagesFromManifest scans a folder of yaml files and returns all of the images used.
-func GetImagesFromManifest(configFolder string) ([]trivymodels.Image, []models.Resource, error) {
+// GetAllResources scans a folder of yaml files and returns all of the images and resources used.
+func GetAllResources(configFolder string, configurationObject models.Configuration) ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
 	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
 		}
-		relativePath, err := filepath.Rel(configFolder, path)
+		filefolder := configFolder
+		var helmName string
+		for _, helmObject := range configurationObject.Manifests.Helm {
+			if strings.HasPrefix(filefolder, helmObject.Name+"/") {
+				filefolder = strings.Replace(configFolder, helmObject.Name, helmObject.Path, 1)
+				helmName = helmObject.Name
+			}
+		}
+		relativePath, err := filepath.Rel(filefolder, path)
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -102,6 +110,7 @@ func GetImagesFromManifest(configFolder string) ([]trivymodels.Image, []models.R
 						Name:      metadata["name"].(string),
 						Namespace: namespace,
 						Filename:  fileName,
+						HelmName:  helmName,
 						Containers: funk.Map(containers, func(c models.Container) string {
 							return c.Name
 						}).([]string),
@@ -120,6 +129,7 @@ func GetImagesFromManifest(configFolder string) ([]trivymodels.Image, []models.R
 					Name:      metadata["name"].(string),
 					Namespace: namespace,
 					Filename:  fileName,
+					HelmName:  helmName,
 					Containers: funk.Map(containers, func(c models.Container) string {
 						return c.Name
 					}).([]string),
@@ -439,6 +449,7 @@ func ProcessHelmTemplates(configurationObject models.Configuration, configFolder
 		if err != nil {
 			return err
 		}
+
 		params := []string{
 			"template", helmObject.Name,
 			helmObject.Path,

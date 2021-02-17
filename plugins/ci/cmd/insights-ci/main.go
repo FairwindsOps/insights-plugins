@@ -83,7 +83,7 @@ func main() {
 	}
 
 	// Scan YAML, find all images/kind/etc
-	images, resources, err := ci.GetImagesFromManifest(configFolder)
+	images, resources, err := ci.GetAllResources(configFolder, configurationObject)
 	if err != nil {
 		exitWithError("Error while extracting images from YAML manifests", err)
 	}
