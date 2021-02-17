@@ -1,0 +1,8 @@
+name: "Add Notes for vulnerabilities for images with known CVEs"
+description: "For Trivy vulnerabilities, add a note that it is against acme-co company policy to run images with known CVEs"
+context: ""
+reportType: "trivy"
+cluster: ""
+repository: ""
+action: |
+    ActionItem.Notes = 'It is against our policy to run images with known CVEs';
