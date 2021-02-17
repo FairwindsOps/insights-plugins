@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.3
+* Fix workload names
+
 ## 0.8.2
 
 * Fix helm file name by replacing the release-name prefix.
