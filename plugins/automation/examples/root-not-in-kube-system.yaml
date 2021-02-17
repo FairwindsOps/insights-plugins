@@ -6,5 +6,5 @@ cluster: ""
 repository: ""
 action: |
   if (ActionItem.ResourceNamespace !== "kube-system" && ActionItem.Title === "Should not be allowed to run as root") {
-     ActionItem.Severity = DangerSeverity;
+     ActionItem.Severity = Danger_Severity;
   }
