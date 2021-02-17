@@ -5,6 +5,6 @@ reportType: "polaris"
 cluster: ""
 repository: ""
 action: |
-  if (ActionItem.Namespace !== "kube-system" && ActionItem.Title === "Should not be allowed to run as root") {
-     ActionItem.Severity = 0.667;
+  if (ActionItem.ResourceNamespace !== "kube-system" && ActionItem.Title === "Should not be allowed to run as root") {
+     ActionItem.Severity = DangerSeverity;
   }

@@ -1,5 +1,5 @@
 name: "For in-cluster Polaris checks, set a severity of 0.1"
-description: "If the context is agent, set a severity of 0.1 for polaris checks otherwise keep the default severity "
+description: "If the context is agent, set a severity of 0.1 for polaris checks otherwise keep the default severity"
 context: "Agent"
 reportType: "polaris"
 cluster: ""

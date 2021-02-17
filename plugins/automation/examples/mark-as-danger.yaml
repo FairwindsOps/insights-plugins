@@ -5,6 +5,6 @@ reportType: "trivy"
 cluster: ""
 repository: ""
 action: |
-  if (ActionItem.ResourceNamespace.startsWith("acme-app-")) {
-     ActionItem.Severity = 0.667;
+  if (ActionItem.ResourceNamespace.indexOf("acme-app-") === 0) {
+     ActionItem.Severity = DangerSeverity;
   }
