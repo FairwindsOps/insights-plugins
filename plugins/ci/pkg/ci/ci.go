@@ -51,22 +51,29 @@ func GetResultsFromCommand(command string, args ...string) (string, error) {
 }
 
 // GetAllResources scans a folder of yaml files and returns all of the images and resources used.
-func GetAllResources(configFolder string, configurationObject models.Configuration) ([]trivymodels.Image, []models.Resource, error) {
+func GetAllResources(configDir string, configurationObject models.Configuration) ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
-	err := filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
-		if !strings.HasSuffix(info.Name(), ".yaml") {
+	err := filepath.Walk(configDir, func(path string, info os.FileInfo, err error) error {
+		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
 			return nil
 		}
-		filefolder := configFolder
+
+		displayFilename, err := filepath.Rel(configDir, path)
+		if err != nil {
+			return err
+		}
 		var helmName string
 		for _, helmObject := range configurationObject.Manifests.Helm {
-			if strings.HasPrefix(filefolder, helmObject.Name+"/") {
-				filefolder = strings.Replace(configFolder, helmObject.Name, helmObject.Path, 1)
+			if strings.HasPrefix(displayFilename, helmObject.Name+"/") {
+				parts := strings.Split(displayFilename, "/")
+				parts = parts[2:]
+				displayFilename = strings.Join(parts, "/")
+				displayFilename = filepath.Join(helmObject.Path, displayFilename)
 				helmName = helmObject.Name
 			}
 		}
-		relativePath, err := filepath.Rel(filefolder, path)
+
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -91,10 +98,6 @@ func GetAllResources(configFolder string, configurationObject models.Configurati
 				return err
 			}
 			kind := yamlNode["kind"].(string)
-			fileName := relativePath
-			if yamlNodeOriginal.HeadComment != "" {
-				fileName = fileName + " > " + yamlNodeOriginal.HeadComment
-			}
 			if kind == "list" {
 				nodes := yamlNode["items"].([]interface{})
 				for _, node := range nodes {
@@ -109,7 +112,7 @@ func GetAllResources(configFolder string, configurationObject models.Configurati
 						Kind:      node.(map[string]interface{})["kind"].(string),
 						Name:      metadata["name"].(string),
 						Namespace: namespace,
-						Filename:  fileName,
+						Filename:  displayFilename,
 						HelmName:  helmName,
 						Containers: funk.Map(containers, func(c models.Container) string {
 							return c.Name
@@ -128,7 +131,7 @@ func GetAllResources(configFolder string, configurationObject models.Configurati
 					Kind:      kind,
 					Name:      metadata["name"].(string),
 					Namespace: namespace,
-					Filename:  fileName,
+					Filename:  displayFilename,
 					HelmName:  helmName,
 					Containers: funk.Map(containers, func(c models.Container) string {
 						return c.Name
@@ -465,7 +468,7 @@ func ProcessHelmTemplates(configurationObject models.Configuration, configFolder
 			}
 			err = ioutil.WriteFile(valuesFile, yaml, 0644)
 		}
-		params = append(params, "-f", helmObject.ValuesFile)
+		params = append(params, "-f", valuesFile)
 
 		err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helmObject.Name)
 		if err != nil {
