@@ -1,0 +1,8 @@
+name: "Reduce all severities in the staging cluster by 50%"
+description: "Reduce all severities in the staging cluster by 50%. Keep default severities for the rest"
+context: ""
+reportType: ""
+cluster: "staging"
+repository: ""
+action: |
+  ActionItem.Severity = ActionItem.Severity / 2;

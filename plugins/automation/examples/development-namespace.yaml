@@ -1,0 +1,10 @@
+name: "Do not scan development namespace for Admission Controller"
+description: "Do not fail Admission Controller for the Development namespace by updating resolution"
+context: "AdmissionController"
+reportType: ""
+cluster: ""
+repository: ""
+action: |
+    if (ActionItem.ResourceNamespace === "development") {
+        ActionItem.Resolution = WILL_NOT_FIX_RESOLUTION;
+    }
