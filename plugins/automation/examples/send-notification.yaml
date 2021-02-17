@@ -5,6 +5,6 @@ reportType: "trivy"
 cluster: "production"
 repository: ""
 action: |
-    if (ActionItem.Severity >= DangerSeverity && ActionItem.IsNew) {
+    if (ActionItem.Severity >= Danger_Severity && ActionItem.IsNew) {
         sendSlackNotification("trivy-alerts");
     }
