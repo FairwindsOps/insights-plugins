@@ -6,5 +6,5 @@ cluster: ""
 repository: ""
 action: |
   if (ActionItem.ResourceNamespace.indexOf("acme-app-") === 0) {
-     ActionItem.Severity = Danger_Severity;
+     ActionItem.Severity = DANGER_SEVERITY;
   }
