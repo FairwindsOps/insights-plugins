@@ -1,4 +1,6 @@
 # Changelog
+## 0.2.19
+* Update alpine image
 
 ## 0.2.18
 * add some more examples
