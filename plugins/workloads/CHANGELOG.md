@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.5
+* Update alpine image
+
 ## 2.0.4
 * Fixed a bug in the results schema
 
