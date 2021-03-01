@@ -1,4 +1,6 @@
 # Changelog
+## 0.8.4
+* Update alpine image
 
 ## 0.8.3
 * Fix workload names

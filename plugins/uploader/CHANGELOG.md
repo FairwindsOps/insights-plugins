@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.5
+* Update alpine image
+
 ## 0.2.4
 
 * Fixed a bug in the failure uploads

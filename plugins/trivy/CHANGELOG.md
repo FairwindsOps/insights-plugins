@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.12.2
+* Update alpine image
+
 ## 0.12.1
 * Updated json schema
 
