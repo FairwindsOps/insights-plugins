@@ -1,4 +1,4 @@
-FROM alpine:3.12.0
+FROM alpine:3.13
 WORKDIR /usr/local/bin
 RUN echo "TODO remove this"
 RUN apk --no-cache add ca-certificates curl

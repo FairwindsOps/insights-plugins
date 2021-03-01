@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.3.1
+* Update alpine image
+
 ## 0.3.0
 
 * Change the model of the output into an object

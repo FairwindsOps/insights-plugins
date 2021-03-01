@@ -1,4 +1,6 @@
 # Changelog
+## 0.8.4
+* Update alpine image
 
 ## 0.8.4
 * Fix TempFolder destination
