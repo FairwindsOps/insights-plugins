@@ -16,7 +16,7 @@ COPY pkg pkg
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o kube-bench-daemon pkg/main.go
 
 
-FROM aquasec/kube-bench@sha256:bdb9dbd323bfef9f53f7acc7c9446f4bd896ff927acad3021c54b341a17be297
+FROM aquasec/kube-bench:0.3.1
 RUN apk --no-cache add ca-certificates
 
 COPY --from=builder /workspace/kube-bench-daemon /usr/local/bin/
