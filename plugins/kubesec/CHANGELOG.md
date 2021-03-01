@@ -1,3 +1,6 @@
+# 1.3.4
+* Update alpine image
+
 # 1.3.3
 * Fix CVE in curl
 
