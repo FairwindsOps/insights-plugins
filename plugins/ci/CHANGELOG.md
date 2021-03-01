@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.8.4
+* Fix TempFolder destination
 ## 0.8.3
 * Fix workload names
 
