@@ -116,7 +116,7 @@ func maybeAddSlash(input string) string {
 // SetDefaults sets configurationd defaults
 func (c *Configuration) SetDefaults() {
 	if c.Options.TempFolder == "" {
-		c.Options.TempFolder = "/tmp/"
+		c.Options.TempFolder = "/tmp/_insightsTemp/"
 	}
 	if c.Images.FolderName == "" {
 		c.Images.FolderName = "./_insightsTempImages/"
