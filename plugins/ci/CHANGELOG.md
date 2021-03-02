@@ -1,4 +1,9 @@
 # Changelog
+
+## 0.8.5
+
+* Fix `Options.TempFolder`  default destination
+
 ## 0.8.4
 * Update alpine image
 
