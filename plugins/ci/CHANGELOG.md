@@ -1,9 +1,11 @@
 # Changelog
-## 0.8.4
-* Update alpine image
+
+## 0.8.5
+
+* Fix `Options.TempFolder`  default destination
 
 ## 0.8.4
-* Fix TempFolder destination
+* Update alpine image
 
 ## 0.8.3
 * Fix workload names
