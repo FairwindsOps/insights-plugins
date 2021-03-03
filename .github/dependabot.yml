@@ -1,27 +1,27 @@
 version: 2
 updates:
 - package-ecosystem: gomod
-  directory: "/kube-bench"
+  directory: "/plugins/kube-bench"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: gomod
-  directory: "/kube-bench-aggregator"
+  directory: "/plugins/kube-bench-aggregator"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: gomod
-  directory: "/rbac-reporter"
+  directory: "/plugins/rbac-reporter"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: gomod
-  directory: "/trivy"
+  directory: "/plugins/trivy"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: gomod
-  directory: "/workload"
+  directory: "/plugins/workload"
   schedule:
     interval: weekly
     time: "11:00"
@@ -31,32 +31,32 @@ updates:
     interval: weekly
     time: "11:00"
 - package-ecosystem: docker
-  directory: "/kube-bench-aggregator"
+  directory: "/plugins/kube-bench-aggregator"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: docker
-  directory: "/kubesec"
+  directory: "/plugins/kubesec"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: docker
-  directory: "/rbac-reporter"
+  directory: "/plugins/rbac-reporter"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: docker
-  directory: "/trivy"
+  directory: "/plugins/trivy"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: docker
-  directory: "/uploader"
+  directory: "/plugins/uploader"
   schedule:
     interval: weekly
     time: "11:00"
 - package-ecosystem: docker
-  directory: "/workload"
+  directory: "/plugins/workload"
   schedule:
     interval: weekly
     time: "11:00"
