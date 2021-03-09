@@ -88,33 +88,48 @@ func main() {
 		exitWithError("Error while extracting images from YAML manifests", err)
 	}
 
+	var reports []models.ReportInfo
+
 	// Scan manifests with Polaris
-	polarisReport, err := getPolarisReport(configurationObject, configFolder)
-	if err != nil {
-		exitWithError("Error while running Polaris", err)
+	if *configurationObject.Reports.Polaris.Enabled {
+		polarisReport, err := getPolarisReport(configurationObject, configFolder)
+		if err != nil {
+			exitWithError("Error while running Polaris", err)
+		}
+		reports = append(reports, polarisReport)
 	}
 
-	trivyReport, err := getTrivyReport(images, configurationObject)
-	if err != nil {
-		exitWithError("Error while running Trivy", err)
+	if *configurationObject.Reports.Trivy.Enabled {
+		trivyReport, err := getTrivyReport(images, configurationObject)
+		if err != nil {
+			exitWithError("Error while running Trivy", err)
+		}
+		reports = append(reports, trivyReport)
 	}
 
 	workloadReport, err := getWorkloadReport(resources, configurationObject)
 	if err != nil {
 		exitWithError("Error while aggregating workloads", err)
 	}
+	reports = append(reports, workloadReport)
 
-	opaReport, err := opa.ProcessOPA(ctx, configurationObject)
-	if err != nil {
-		exitWithError("Error while running OPA", err)
+	if *configurationObject.Reports.OPA.Enabled {
+		opaReport, err := opa.ProcessOPA(ctx, configurationObject)
+		if err != nil {
+			exitWithError("Error while running OPA", err)
+		}
+		reports = append(reports, opaReport)
 	}
 
-	plutoReport, err := getPlutoReport(configurationObject, configFolder)
-	if err != nil {
-		exitWithError("Error while running Pluto", err)
+	if *configurationObject.Reports.Pluto.Enabled {
+		plutoReport, err := getPlutoReport(configurationObject, configFolder)
+		if err != nil {
+			exitWithError("Error while running Pluto", err)
+		}
+		reports = append(reports, plutoReport)
 	}
 
-	results, err := ci.SendResults([]models.ReportInfo{trivyReport, polarisReport, workloadReport, opaReport, plutoReport}, resources, configurationObject, token)
+	results, err := ci.SendResults(reports, resources, configurationObject, token)
 	if err != nil {
 		exitWithError("Error while sending results back to "+configurationObject.Options.Hostname, err)
 	}

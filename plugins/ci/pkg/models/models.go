@@ -31,6 +31,7 @@ type Configuration struct {
 	Images    imageConfig    `yaml:"images"`
 	Manifests ManifestConfig `yaml:"manifests"`
 	Options   optionConfig   `yaml:"options"`
+	Reports   reportsConfig  `yaml:"reports"`
 }
 
 // ManifestConfig is a struct representing the config options for Manifests
@@ -45,6 +46,17 @@ type HelmConfig struct {
 	Path       string                 `yaml:"path"`
 	ValuesFile string                 `yaml:"valuesFile"`
 	Values     map[string]interface{} `yaml:"values"`
+}
+
+type reportsConfig struct {
+	Polaris reportConfig `yaml:"polaris"`
+	Pluto   reportConfig `yaml:"pluto"`
+	Trivy   reportConfig `yaml:"trivy"`
+	OPA     reportConfig `yaml:"opa"`
+}
+
+type reportConfig struct {
+	Enabled *bool `yaml:"enabled"`
 }
 
 type optionConfig struct {
@@ -129,6 +141,19 @@ func (c *Configuration) SetDefaults() {
 	}
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"
+	}
+	truth := true
+	if c.Reports.Pluto.Enabled == nil {
+		c.Reports.Pluto.Enabled = &truth
+	}
+	if c.Reports.Polaris.Enabled == nil {
+		c.Reports.Polaris.Enabled = &truth
+	}
+	if c.Reports.Trivy.Enabled == nil {
+		c.Reports.Trivy.Enabled = &truth
+	}
+	if c.Reports.OPA.Enabled == nil {
+		c.Reports.OPA.Enabled = &truth
 	}
 	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
