@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+
+* Added configuration options to disable individual reports
+
 ## 0.8.5
 
 * Fix `Options.TempFolder`  default destination
