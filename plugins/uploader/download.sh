@@ -66,6 +66,7 @@ set +x
 results=$(curl -X POST $url \
   -L \
   -H "Authorization: Bearer ${FAIRWINDS_TOKEN//[$'\t\r\n']}" \
+  -H "Accept: application/x-yaml" \
   -O $file \
   --fail 2>&1)
 if [ $? -ne 0 ]
