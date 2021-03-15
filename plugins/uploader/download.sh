@@ -12,7 +12,7 @@ cat << EOF
 usage: FAIRWINDS_TOKEN=secret $0 \
     --organzation acme-co \
     --cluster staging \
-    --file foo.json \
+    --file foo.yaml \
     --datatype polaris \
    [--host https://insights.fairwinds.com]
 
@@ -56,7 +56,7 @@ while [ ! $# -eq 0 ]; do
     shift
 done
 
-if [[ -z $host || -z $organization || -z $cluster || -z $datatype || -z $file ]]; then
+if [[ -z $FAIRWINDS_TOKEN || -z $host || -z $organization || -z $cluster || -z $datatype || -z $file ]]; then
   usage
   exit 1
 fi
