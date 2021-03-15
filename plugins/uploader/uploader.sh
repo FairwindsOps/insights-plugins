@@ -16,7 +16,7 @@ usage: FAIRWINDS_TOKEN=secret $0 \
     --datatype polaris \
     --version 0.0.0 \
    [--timeout 120] \
-   [--host http://data.fairwinds.com]
+   [--host https://insights.fairwinds.com]
 
 This script uploads JSON to Fairwinds Insights.
 EOF
@@ -27,7 +27,7 @@ cluster=''
 file=''
 datatype=''
 timeout='60'
-host='http://data.fairwinds.com'
+host='https://insights.fairwinds.com'
 
 while [ ! $# -eq 0 ]; do
     flag=${1##-}

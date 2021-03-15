@@ -1,6 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+* Add script to download a config file
+
 ## 0.2.5
+
 * Update alpine image
 
 ## 0.2.4
