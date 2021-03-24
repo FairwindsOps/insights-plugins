@@ -1,4 +1,7 @@
 # Changelog
+## 0.2.20
+* Add `external-probes` policy
+
 ## 0.2.19
 * Update alpine image
 
