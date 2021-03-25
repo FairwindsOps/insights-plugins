@@ -4,5 +4,5 @@ go 1.13
 
 require (
 	github.com/aquasecurity/kube-bench v0.5.0
-	github.com/sirupsen/logrus v1.8.0
+	github.com/sirupsen/logrus v1.8.1
 )
