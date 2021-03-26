@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+* Fix a bug in the download script to not fail on 404
+
 ## 0.3.0
 
 * Add script to download a config file

@@ -63,13 +63,14 @@ fi
 
 url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/config
 set +x
+status=0
 results=$(curl -X POST $url \
   -L \
   -H "Authorization: Bearer ${FAIRWINDS_TOKEN//[$'\t\r\n']}" \
   -H "Accept: application/x-yaml" \
   -O $file \
-  --fail 2>&1)
-if [ $? -ne 0 ]
+  --fail 2>&1) || status=$?
+if [ $status -ne 0 ]
 then
     echo $results
     # If the response isn't a 404 this job will fail
