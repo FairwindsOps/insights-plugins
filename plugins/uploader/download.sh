@@ -73,6 +73,7 @@ results=$(curl -X POST $url \
 if [ $status -ne 0 ]
 then
     echo $results
+    rm $file
     # If the response isn't a 404 this job will fail
     # 404s are ignored because it should mean that the config doesn't exist
     echo $results | grep 'The requested URL returned error: 404'
