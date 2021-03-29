@@ -64,7 +64,7 @@ fi
 
 url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/config
 status=0
-results=$(curl -X POST $url \
+results=$(curl -X GET $url \
   -L \
   -H "Authorization: Bearer ${FAIRWINDS_TOKEN//[$'\t\r\n']}" \
   -H "Accept: application/x-yaml" \
