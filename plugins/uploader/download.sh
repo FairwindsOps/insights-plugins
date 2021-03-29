@@ -56,13 +56,13 @@ while [ ! $# -eq 0 ]; do
     shift
 done
 
+set +x
 if [[ -z $FAIRWINDS_TOKEN || -z $host || -z $organization || -z $cluster || -z $datatype || -z $file ]]; then
   usage
   exit 1
 fi
 
 url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/config
-set +x
 status=0
 results=$(curl -X POST $url \
   -L \
