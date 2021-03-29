@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2
+
+* Fix typo in curl for download script
+
 ## 0.3.1
 
 * Fix a bug in the download script to not fail on 404

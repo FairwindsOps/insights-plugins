@@ -56,24 +56,24 @@ while [ ! $# -eq 0 ]; do
     shift
 done
 
+set +x
 if [[ -z $FAIRWINDS_TOKEN || -z $host || -z $organization || -z $cluster || -z $datatype || -z $file ]]; then
   usage
   exit 1
 fi
 
 url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/config
-set +x
 status=0
-results=$(curl -X POST $url \
+results=$(curl -X GET $url \
   -L \
   -H "Authorization: Bearer ${FAIRWINDS_TOKEN//[$'\t\r\n']}" \
   -H "Accept: application/x-yaml" \
-  -O $file \
+  -o $file \
   --fail 2>&1) || status=$?
 if [ $status -ne 0 ]
 then
     echo $results
     # If the response isn't a 404 this job will fail
     # 404s are ignored because it should mean that the config doesn't exist
-    echo $results | grep --quiet 'The requested URL returned error: 404'
+    echo $results | grep 'The requested URL returned error: 404'
 fi
