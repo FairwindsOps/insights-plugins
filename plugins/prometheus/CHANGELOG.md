@@ -1,6 +1,11 @@
 # Change Log
 
+## 0.3.2
+
+* Only retrieve 1.5x data instead of 2x data.
+
 ## 0.3.1
+
 * Update alpine image
 
 ## 0.3.0
