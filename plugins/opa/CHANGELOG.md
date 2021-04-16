@@ -1,14 +1,23 @@
 # Changelog
+
+## 0.2.21
+
+* Ignore custom checks created by another Insights Agent.
+
 ## 0.2.20
+
 * Add `external-probes` policy
 
 ## 0.2.19
+
 * Update alpine image
 
 ## 0.2.18
+
 * add some more examples
 
 ## 0.2.17
+
 * Reformat policies into .rego files
 
 ## 0.2.16
@@ -25,9 +34,11 @@
 * Fixed typo on remediation
 
 ## 0.2.13
+
 * Added additional example policies
 
 ## 0.2.12
+
 * Fix a bug when using files as source for Kube client
 
 ## 0.2.11

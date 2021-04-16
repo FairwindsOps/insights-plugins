@@ -177,6 +177,9 @@ func (supposedInstance CheckSetting) GetUnstructuredObject(namespace string) *un
 			"metadata": map[string]interface{}{
 				"name":      supposedInstance.AdditionalData.Name,
 				"namespace": namespace,
+				"labels": map[string]string{
+					"insights.fairwinds.com/managed": "true",
+				},
 			},
 			"spec": spec,
 		},
@@ -224,6 +227,9 @@ func (supposedCheck OPACustomCheck) GetUnstructuredObject(namespace string) *uns
 			"metadata": map[string]interface{}{
 				"name":      supposedCheck.Name,
 				"namespace": namespace,
+				"labels": map[string]string{
+					"insights.fairwinds.com/managed": "true",
+				},
 			},
 			"spec": map[string]interface{}{
 				"rego":   supposedCheck.Rego,
