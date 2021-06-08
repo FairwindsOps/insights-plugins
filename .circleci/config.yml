@@ -139,17 +139,12 @@ workflows:
   release:
     jobs:
       - test
-      - check_version_changed:
-          filters:
-            branches:
-              ignore:
-              - /dependabot\/.*/
+      - check_version_changed
       - build_plugins:
           filters:
             branches:
               only:
               - /pull\/[0-9]+/
-              - /dependabot\/.*/
       - build_and_push_plugins:
           context: org-global
           requires:
@@ -158,7 +153,6 @@ workflows:
             branches:
               ignore:
               - /pull\/[0-9]+/
-              - /dependabot\/.*/
       - rok8s-scripts/kubernetes_e2e_tests:
           name: End-To-End Test on Kubernetes
           requires:
