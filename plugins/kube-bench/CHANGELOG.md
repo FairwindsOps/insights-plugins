@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.1.3
+* Reverted update to kube-bench version
+
 ## 0.1.2
 * Reverted update to kube-bench version
 
