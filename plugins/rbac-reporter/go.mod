@@ -4,8 +4,8 @@ go 1.13
 
 require (
 	github.com/sirupsen/logrus v1.8.1
-	k8s.io/api v0.20.7
+	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
-	k8s.io/client-go v0.20.6
-	sigs.k8s.io/controller-runtime v0.8.3
+	k8s.io/client-go v0.21.1
+	sigs.k8s.io/controller-runtime v0.9.0
 )
