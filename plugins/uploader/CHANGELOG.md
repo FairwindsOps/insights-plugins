@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.3
+* Bump Alpine to 3.14
+
 ## 0.3.2
 
 * Fix typo in curl for download script

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2
+* Bump Alpine to 3.14
+
 ## 1.1.1
 * Update alpine image
 

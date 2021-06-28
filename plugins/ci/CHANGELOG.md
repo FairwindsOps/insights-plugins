@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.1
+* Bump Alpine to 3.14
+
 ## 0.9.0
 
 * Added configuration options to disable individual reports
