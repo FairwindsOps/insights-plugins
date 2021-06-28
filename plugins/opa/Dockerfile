@@ -17,7 +17,7 @@ COPY main.go main.go
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o fw-opa main.go
 
 
-FROM alpine:3.13
+FROM alpine:3.14
 WORKDIR /usr/local/bin
 RUN apk --no-cache add ca-certificates
 
