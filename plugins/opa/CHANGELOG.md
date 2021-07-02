@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.2.21
+* Add `cert-manager` policy example
 ## 0.2.20
 * Add `external-probes` policy
 
