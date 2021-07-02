@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.22
+
+* Add `cert-manager` policy example
+
 ## 0.2.21
 
 * Ignore custom checks created by another Insights Agent.
