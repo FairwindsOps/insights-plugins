@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.16.3 as builder
+FROM golang:1.16.5 as builder
 
 WORKDIR /workspace
 
@@ -16,7 +16,7 @@ COPY pkg pkg
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o kube-bench-daemon pkg/main.go
 
 
-FROM aquasec/kube-bench:0.3.1
+FROM aquasec/kube-bench:0.6.2
 RUN apk --no-cache add ca-certificates
 
 COPY --from=builder /workspace/kube-bench-daemon /usr/local/bin/

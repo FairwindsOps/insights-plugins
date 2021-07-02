@@ -27,6 +27,13 @@ type kubeBenchModel struct {
 	Controls []check.Controls
 }
 
+// kubeBenchResponse is the JSON response from the kube-bench command output.
+// This is a separate type to decouple the kube-bench CLI API from Insights
+// ones, such as the kube-bench aggregator plugin.
+type kubeBenchResponse struct {
+	Controls []check.Controls
+}
+
 var model = kubeBenchModel{}
 
 func getReportsHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +50,7 @@ func updateModel() {
 	decoder := json.NewDecoder(strings.NewReader(string(response)))
 	allControls := make([]check.Controls, 0)
 	for {
-		var controls []check.Controls
+		var controls kubeBenchResponse
 		err = decoder.Decode(&controls)
 		if err == io.EOF {
 			break
@@ -51,7 +58,7 @@ func updateModel() {
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		allControls = append(allControls, controls...)
+		allControls = append(allControls, controls.Controls...)
 	}
 	model.Controls = allControls
 	logrus.Info("Data updated.")

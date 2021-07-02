@@ -31,7 +31,12 @@ var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", V
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func Run(ctx context.Context) ([]ActionItem, error) {
-	refreshErr := refreshLocalChecks(ctx)
+	thisNamespace := "insights-agent"
+	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err == nil { //Ignore errors because that means this isn't running in a container
+		thisNamespace = string(namespaceBytes)
+	}
+	refreshErr := refreshLocalChecks(ctx, thisNamespace)
 	if refreshErr != nil {
 		logrus.Warnf("An error occured refreshing the local cache of checks: %v", refreshErr)
 		// Continue despite the error
@@ -44,44 +49,46 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	}
 	logrus.Infof("Found %d checks", len(checkInstances.Items))
 
-	ais, err := processAllChecks(ctx, checkInstances.Items)
+	ais, err := processAllChecks(ctx, client, checkInstances.Items, thisNamespace)
 	if err != nil {
 		return nil, err
 	}
 	return ais, refreshErr
 }
 
-func processAllChecks(ctx context.Context, checkInstances []unstructured.Unstructured) ([]ActionItem, error) {
+func processAllChecks(ctx context.Context, client *kube.Client, checkInstances []unstructured.Unstructured, thisNamespace string) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
-	client := kube.GetKubeClient()
 	var lastError error = nil
 
 	for _, checkInstance := range checkInstances {
+		if checkInstance.GetLabels()["insights.fairwinds.com/managed"] != "" && checkInstance.GetNamespace() != thisNamespace {
+			continue
+		}
 		var checkInstanceObject CustomCheckInstance
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
 		if err != nil {
-			lastError = fmt.Errorf("Failed to parse a check instance: %v", err)
+			lastError = fmt.Errorf("failed to parse a check instance: %v", err)
 			logrus.Warn(lastError.Error())
 			continue
 		}
 		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
 		check, err := client.DynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
 		if err != nil {
-			lastError = fmt.Errorf("Failed to find check %s/%s referenced by instance %s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name, err)
+			lastError = fmt.Errorf("failed to find check %s/%s referenced by instance %s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name, err)
 			logrus.Warn(lastError.Error())
 			continue
 		}
 		var checkObject CustomCheck
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
 		if err != nil {
-			lastError = fmt.Errorf("Failed to parse check %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, err)
+			lastError = fmt.Errorf("failed to parse check %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, err)
 			logrus.Warn(lastError.Error())
 			continue
 		}
 
 		newItems, err := processCheck(ctx, checkObject, checkInstanceObject)
 		if err != nil {
-			lastError = fmt.Errorf("Error while processing check instance %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Name, err)
+			lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Name, err)
 			logrus.Warn(lastError.Error())
 			continue
 		}
@@ -174,14 +181,9 @@ func getInsightsChecks() (clusterCheckModel, error) {
 	return jsonResponse, nil
 }
 
-func refreshLocalChecks(ctx context.Context) error {
+func refreshLocalChecks(ctx context.Context, thisNamespace string) error {
 	client := kube.GetKubeClient()
 	logrus.Infof("Reconciling checks with Insights backend")
-	thisNamespace := "insights-agent"
-	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err == nil { //Ignore errors because that means this isn't running in a container
-		thisNamespace = string(namespaceBytes)
-	}
 
 	checkClient := client.DynamicInterface.Resource(checkGvr)
 	instanceClient := client.DynamicInterface.Resource(instanceGvr)
