@@ -1,4 +1,6 @@
 # Changelog
+## 0.1.3
+* Bump kube-bench to 0.6.3
 
 ## 0.1.2
 * Bump Alpine to 3.14
