@@ -1,12 +1,11 @@
 # Changelog
 
-## 0.2.22
-<<<<<<< rb/alpine
+## 0.2.23
 * Bump Alpine to 3.14
-=======
+
+## 0.2.22
 
 * Add `cert-manager` policy example
->>>>>>> main
 
 ## 0.2.21
 
