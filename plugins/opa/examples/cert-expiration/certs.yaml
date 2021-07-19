@@ -1,0 +1,10 @@
+clusters: null
+output: null
+parameters:
+  days: 60
+runEnvironments: null
+targets:
+  - apiGroups:
+      - ""
+    kinds:
+      - Secret
