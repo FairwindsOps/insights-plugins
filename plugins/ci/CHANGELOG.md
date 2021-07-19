@@ -1,7 +1,9 @@
 # Changelog
 
-## 0.9.2
+## 0.9.3
+* update go dependencies
 
+## 0.9.2
 * Fix bug in Trivy to allow namespace to be sent up.
 
 ## 0.9.1
