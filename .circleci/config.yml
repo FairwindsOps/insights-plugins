@@ -124,7 +124,7 @@ jobs:
       - set_environment_variables
       - run: go get -u golang.org/x/lint/golint
       - run: |
-          for plugin in "${PLUGINS[@]}"; do
+          for plugin in "${GO_PKGS[@]}"; do
             cd plugins/$plugin
             go list ./... | xargs golint -set_exit_status
             cd ../..

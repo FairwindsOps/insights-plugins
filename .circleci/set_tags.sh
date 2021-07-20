@@ -2,9 +2,18 @@
 set -xeo pipefail
 
 changed=()
+plugins=()
+go_pkgs=()
 for dir in `find ./plugins -maxdepth 1 -type d`; do
   name=${dir#"./plugins/"}
+  if [[ $name == "./plugins" || $name == "_template" ]]; then
+    continue
+  fi
   plugins+=($name)
+
+  if [ ! -f "$dir/go.mod" ]; then
+    go_pkgs+=($name)
+  fi
   if [ ! -f "$dir/Dockerfile" ]; then
     continue
   fi
@@ -16,6 +25,7 @@ for dir in `find ./plugins -maxdepth 1 -type d`; do
 done
 echo "export PLUGINS=(${plugins[*]})" >> ${BASH_ENV}
 echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
+echo "export GO_PKGS=(${go_pkgs[*]})" >> ${BASH_ENV}
 
 for plugin in ./plugins/*; do
   if [ -f $plugin ] || [ $plugin == "./plugins" ] ; then
