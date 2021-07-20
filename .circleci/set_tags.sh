@@ -3,6 +3,8 @@ set -xeo pipefail
 
 changed=()
 for dir in `find ./plugins -maxdepth 1 -type d`; do
+  name=${dir#"./plugins/"}
+  plugins+=($name)
   if [ ! -f "$dir/Dockerfile" ]; then
     continue
   fi
@@ -10,8 +12,9 @@ for dir in `find ./plugins -maxdepth 1 -type d`; do
     continue
   fi
   echo "detected change in $dir"
-  changed+=(${dir#"./plugins/"})
+  changed+=($name)
 done
+echo "export PLUGINS=(${plugins[*]})" >> ${BASH_ENV}
 echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
 
 for plugin in ./plugins/*; do

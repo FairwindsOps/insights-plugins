@@ -123,7 +123,12 @@ jobs:
       - checkout
       - set_environment_variables
       - run: go get -u golang.org/x/lint/golint
-      - run: go list ./... | xargs golint -set_exit_status
+      - run: |
+          for plugin in "${PLUGINS[@]}"; do
+            cd plugins/$plugin
+            go list ./... | xargs golint -set_exit_status
+            cd ../..
+          done
       - run: cd plugins/opa ; go test ./... ; cd ../..
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - slack/notify:
