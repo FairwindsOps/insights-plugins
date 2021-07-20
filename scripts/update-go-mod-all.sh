@@ -6,11 +6,12 @@ for d in ./plugins/*/ ; do
     echo -e "\n\n\n\n$d"
     cd $d
     if test -f "go.mod"; then
-      if cat go.mod | grep $1; then
         echo "updating..."
-        go get -u $1
+        rm -f go.mod
+        rm -f go.sum
+        go mod init
+        go get -d ./...
         go mod tidy
-      fi
     fi
     cd ../..
 done
