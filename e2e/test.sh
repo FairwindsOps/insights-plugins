@@ -29,7 +29,13 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --set opa.image.tag="$opa_tag" \
   --set uploader.image.tag="$uploader_tag"
 
-kubectl -n insights-agent delete job workloads
+function rerunWorkloads {
+  kubectl -n insights-agent delete job workloads
+  kubectl -n insights-agent create job workloads --from=cronjob/workloads
+  sleep 5
+  kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
+}
+
 sleep 5
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
@@ -38,8 +44,6 @@ kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insig
 # TODO: enable OPA
 # kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
 kubectl wait --for=condition=complete job/kubesec --timeout=480s --namespace insights-agent
-kubectl -n insights-agent create job workloads --from=cronjob/workloads
-sleep 5
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
@@ -50,7 +54,14 @@ jsonschema -i output/trivy.json plugins/trivy/results.schema
 echo "Testing rbac-reporter"
 jsonschema -i output/rbac-reporter.json plugins/rbac-reporter/results.schema
 echo "Testing Workloads"
-jsonschema -i output/workloads.json plugins/workloads/results.schema
+workloadsfailed=0
+jsonschema -i output/workloads.json plugins/workloads/results.schema || workloadsfailed=1
+if [[ "$workloadsfailed" == "1" ]]
+then
+  cat output/workloads.json
+  rerunWorkloads  
+  jsonschema -i output/workloads.json plugins/workloads/results.schema || workloadsfailed=1
+fi
 echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema
 ls output
