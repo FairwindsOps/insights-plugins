@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.7
+## 2.1.0
 * update go dependencies
 
 ## 2.0.6

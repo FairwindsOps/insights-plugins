@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.3
+## 1.2.0
 * update go dependencies
 
 ## 1.1.2
