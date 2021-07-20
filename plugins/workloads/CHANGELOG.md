@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.0
+* update go dependencies
+
 ## 2.0.6
 * Bump Alpine to 3.14
 
