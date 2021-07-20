@@ -165,3 +165,4 @@ workflows:
             - build_and_push_plugins
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
+          store-artifacts: /workspace/output
