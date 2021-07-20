@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@4.4
-  rok8s-scripts: fairwinds/rok8s-scripts@11.1.1
+  rok8s-scripts: fairwinds/rok8s-scripts@11.9.1
 
 commands:
   set_environment_variables:
