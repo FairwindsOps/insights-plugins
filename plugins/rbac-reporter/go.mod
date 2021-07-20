@@ -1,12 +1,11 @@
 module github.com/fairwindsops/insights-plugins/rbac-reporter
 
-go 1.13
+go 1.16
 
 require (
 	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	k8s.io/api v0.21.3
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
-	sigs.k8s.io/controller-runtime v0.8.3
+	sigs.k8s.io/controller-runtime v0.9.2
 )
