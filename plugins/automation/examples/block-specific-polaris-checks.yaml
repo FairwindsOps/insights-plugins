@@ -1,0 +1,17 @@
+name: "Block Specific Polaris Checks"
+description: "Set specific Polaris checks to Danger if they are not present. This will enable blocking mode with Admission Controller"
+context: "Admission"
+reportType: "polaris"
+cluster: ""
+repository: ""
+action: |
+  if (ActionItem.EventType === 'memoryRequestsMissing' ||
+   ActionItem.EventType === 'cpuRequestsMissing' || 
+   ActionItem.EventType === 'livenessProbeMissing' || 
+   ActionItem.EventType === 'readinessProbeMissing' || 
+   ActionItem.EventType === 'privilegeEscalationAllowed')
+{
+	ActionItem.Severity = 0.7; //Block
+}else{
+  ActionItem.Severity = 0.1; //Warn
+}
