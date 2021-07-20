@@ -3,7 +3,6 @@ package kube
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,16 +18,11 @@ import (
 func SetFileClient(objects []map[string]interface{}) *Client {
 	groupVersionsFound := map[string]bool{}
 	var groupVersions []schema.GroupVersion
-	scheme := k8sruntime.NewScheme()
-	fmt.Println("register")
 	for _, obj := range objects {
 		apiVersion := obj["apiVersion"].(string)
-		fmt.Println("register api version", apiVersion)
 		if groupVersionsFound[apiVersion] {
 			continue
 		}
-		kind := obj["kind"].(string)
-		fmt.Println("register kind", apiVersion, kind)
 		versionSplit := strings.Split(apiVersion, "/")
 		var version string
 		var group string
@@ -40,13 +34,9 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 		}
 		groupVersionsFound[apiVersion] = true
 		groupVersions = append(groupVersions, schema.GroupVersion{Group: group, Version: version})
-		scheme.AddKnownTypeWithName(schema.GroupVersionKind{
-			Group:   group,
-			Version: version,
-			Kind:    kind + "List",
-		}, &unstructured.UnstructuredList{})
+
 	}
-	dynamic := dynamicFake.NewSimpleDynamicClient(scheme)
+	dynamic := dynamicFake.NewSimpleDynamicClient(k8sruntime.NewScheme())
 	restMapper := meta.NewDefaultRESTMapper(groupVersions)
 	for _, obj := range objects {
 		apiVersion := obj["apiVersion"].(string)
