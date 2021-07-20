@@ -29,15 +29,18 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --set opa.image.tag="$opa_tag" \
   --set uploader.image.tag="$uploader_tag"
 
+kubectl -n insights-agent delete job workloads
 sleep 5
 kubectl get all --namespace insights-agent
-kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insights-agent
 # TODO: enable OPA
 # kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
 kubectl wait --for=condition=complete job/kubesec --timeout=480s --namespace insights-agent
+kubectl -n insights-agent create job workloads --from=cronjob/workloads
+sleep 5
+kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
 echo "Testing kube-bench"
