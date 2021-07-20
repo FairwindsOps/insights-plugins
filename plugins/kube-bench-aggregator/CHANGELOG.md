@@ -1,7 +1,8 @@
 # Changelog
 
 ## 0.1.4
-* 
+* update go dependencies
+
 ## 0.1.3
 * Bump kube-bench to 0.6.3
 
