@@ -12,9 +12,23 @@ import (
 )
 
 func SetFakeClient() *Client {
-	//objects := []k8sruntime.Object{}
-	//kube := k8sfake.NewSimpleClientset(objects...)
-	dynamic := dynamicFake.NewSimpleDynamicClient(k8sruntime.NewScheme())
+	scheme := k8sruntime.NewScheme()
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{
+		Group:   "apps",
+		Version: "v1",
+		Kind:    "ReplicaSetList",
+	}, &unstructured.UnstructuredList{})
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{
+		Group:   "autoscaling",
+		Version: "v1",
+		Kind:    "HorizontalPodAutoscalerList",
+	}, &unstructured.UnstructuredList{})
+	scheme.AddKnownTypeWithName(schema.GroupVersionKind{
+		Group:   "apps",
+		Version: "v1",
+		Kind:    "DeploymentList",
+	}, &unstructured.UnstructuredList{})
+	dynamic := dynamicFake.NewSimpleDynamicClient(scheme)
 	gv := schema.GroupVersion{Group: "apps", Version: "v1"}
 	gv2 := schema.GroupVersion{Group: "autoscaling", Version: "v1"}
 	gvk := gv.WithKind("Deployment")

@@ -89,6 +89,7 @@ type Container struct {
 	Name  string
 }
 
+// ActionItem represents an ActionItem from Insights
 type ActionItem struct {
 	Remediation string
 	Severity    float64
@@ -98,6 +99,7 @@ type ActionItem struct {
 	Resource    K8sResource
 }
 
+// K8sResource represents a resource in the cluster
 type K8sResource struct {
 	Namespace string
 	Name      string
@@ -105,6 +107,7 @@ type K8sResource struct {
 	Filename  string
 }
 
+// GetReadableTitle returns a human-readable title for the action item
 func (ai ActionItem) GetReadableTitle() string {
 	t := ""
 	if ai.Resource.Filename != "" {

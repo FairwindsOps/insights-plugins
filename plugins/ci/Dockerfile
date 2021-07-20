@@ -1,4 +1,4 @@
-FROM golang:1.14.3 AS build-env
+FROM golang:1.16 as build-env
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/
 
 

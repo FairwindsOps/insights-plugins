@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+* 
+
 ## 0.2.1
 * Update kube-bench to 0.6.3
 

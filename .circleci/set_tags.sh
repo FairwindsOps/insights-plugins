@@ -2,17 +2,27 @@
 set -xeo pipefail
 
 changed=()
+plugins=()
+go_pkgs=()
 for dir in `find ./plugins -maxdepth 1 -type d`; do
+  name=${dir#"./plugins/"}
   if [ ! -f "$dir/Dockerfile" ]; then
     continue
+  fi
+  plugins+=($name)
+
+  if [ -f "$dir/go.mod" ]; then
+    go_pkgs+=($name)
   fi
   if git diff --name-only --exit-code --no-renames origin/main "$dir/" > /dev/null 2>&1 && [ "$CIRCLE_BRANCH" != "main" ] ; then
     continue
   fi
   echo "detected change in $dir"
-  changed+=(${dir#"./plugins/"})
+  changed+=($name)
 done
+echo "export PLUGINS=(${plugins[*]})" >> ${BASH_ENV}
 echo "export CHANGED=(${changed[*]})" >> ${BASH_ENV}
+echo "export GO_PKGS=(${go_pkgs[*]})" >> ${BASH_ENV}
 
 for plugin in ./plugins/*; do
   if [ -f $plugin ] || [ $plugin == "./plugins" ] ; then
