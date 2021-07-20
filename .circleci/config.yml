@@ -125,6 +125,7 @@ jobs:
       - run: go get -u golang.org/x/lint/golint
       - run: |
           for plugin in "${GO_PKGS[@]}"; do
+            echo "linting $plugin"
             cd plugins/$plugin
             go list ./... | xargs golint -set_exit_status
             cd ../..
