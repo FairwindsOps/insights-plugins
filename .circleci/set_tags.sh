@@ -6,16 +6,13 @@ plugins=()
 go_pkgs=()
 for dir in `find ./plugins -maxdepth 1 -type d`; do
   name=${dir#"./plugins/"}
-  if [[ $name == "./plugins" || $name == "_template" ]]; then
+  if [ ! -f "$dir/Dockerfile" ]; then
     continue
   fi
   plugins+=($name)
 
-  if [ ! -f "$dir/go.mod" ]; then
+  if [ -f "$dir/go.mod" ]; then
     go_pkgs+=($name)
-  fi
-  if [ ! -f "$dir/Dockerfile" ]; then
-    continue
   fi
   if git diff --name-only --exit-code --no-renames origin/main "$dir/" > /dev/null 2>&1 && [ "$CIRCLE_BRANCH" != "main" ] ; then
     continue
