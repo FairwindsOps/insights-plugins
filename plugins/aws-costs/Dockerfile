@@ -1,7 +1,6 @@
 FROM amazon/aws-cli:2.2.29
 
-RUN apk update && apk upgrade
-RUN apk add jq
+RUN yum install jq
 
 COPY aws-costs.sh aws-costs.sh
 
