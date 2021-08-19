@@ -38,20 +38,20 @@ if [ "$cluster" = "" ]; then
   exit 1
 fi
 
-month_str=$(date +%m)
-month=$(expr $month_str + 0)
+initial_date_time=date -d '1 hour ago' +"%Y-%m-%d %H:00:00.000"
+final_date_time=date  +"%Y-%m-%d %H:00:00.000"
+
 echo "$cluster"
 queryResults=$(aws athena start-query-execution \
 --query-string \
-    "SELECT line_item_product_code, sum(line_item_blended_cost) AS cost \
-    FROM "athena_cur_database"."fairwinds_insights_cur_report" \
+    "SELECT  \
+    line_item_product_code, sum(line_item_blended_cost) AS cost \
+    FROM "athena_cur_database"."fairwinds_insights_cur_report"  \
     WHERE \
     resource_tags_user_kubernetes_cluster='$cluster' \
-    AND year='$(date +'%Y')' \
-    AND year='$(date +'%Y')' \
-    AND month='$month' \
-    GROUP BY  1 \
-    ORDER BY  1" \
+    AND line_item_usage_end_date > timestamp '$initial_date_time' \
+    AND line_item_usage_end_date <= timestamp  '$final_date_time' \
+    GROUP BY  1"
 --work-group "cur_athena_workgroup" \
 --query-execution-context Database=athena_cur_database,Catalog=AwsDataCatalog)
 
