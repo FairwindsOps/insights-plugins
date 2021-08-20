@@ -9,14 +9,16 @@ fi
 usage()
 {
 cat << EOF
-usage: awscosts --cluster <cluster name>
+usage: awscosts \
+  --cluster <cluster name> \
+  [--timeout <time in seconds>]
 
 This script runs aws costs for Fairwinds Insights.
 EOF
 }
 
 cluster=''
-
+timeout='60'
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
     flag=${flag##-}
@@ -25,6 +27,9 @@ while [ ! $# -eq 0 ]; do
         c | cluster)
             cluster=${2}
             ;;
+        t | timeout)
+            timeout=${2}
+            ;;            
         *)
             usage
             exit
@@ -38,10 +43,12 @@ if [ "$cluster" = "" ]; then
   exit 1
 fi
 
-initial_date_time=date -d '1 hour ago' +"%Y-%m-%d %H:00:00.000"
-final_date_time=date  +"%Y-%m-%d %H:00:00.000"
+initial_date_time=$(date -d '1 day ago' +"%Y-%m-%d %H:00:00.000")
+final_date_time=$(date  +"%Y-%m-%d %H:00:00.000")
 
 echo "$cluster"
+echo "$initial_date_time"
+echo "$final_date_time"
 queryResults=$(aws athena start-query-execution \
 --query-string \
     "SELECT  \
@@ -51,16 +58,19 @@ queryResults=$(aws athena start-query-execution \
     resource_tags_user_kubernetes_cluster='$cluster' \
     AND line_item_usage_end_date > timestamp '$initial_date_time' \
     AND line_item_usage_end_date <= timestamp  '$final_date_time' \
-    GROUP BY  1"
+    GROUP BY  1" \
 --work-group "cur_athena_workgroup" \
 --query-execution-context Database=athena_cur_database,Catalog=AwsDataCatalog)
 
 executionId=$(echo $queryResults | jq .QueryExecutionId | sed 's/"//g')
 
-for i in 1 2 3 4 5 6 7 8 9 10; do
+attempts=0
+while [ $attempts -lt $timeout ]
+do
   echo "Athena query is running......"
+  attempts=$(( $attempts + 1 ))
   sleep 1s;
-  
+
   status=$(aws athena get-query-execution --query-execution-id $executionId --query 'QueryExecution.Status.State' --output text);
   echo "Athena query status=$status";
   
