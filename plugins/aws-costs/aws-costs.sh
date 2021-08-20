@@ -81,7 +81,7 @@ queryResults=$(aws athena start-query-execution \
       AND line_item_usage_end_date <= timestamp '$final_date_time' \
     GROUP BY  1,2" \
 --work-group "cur_athena_workgroup" \
---query-execution-context Database=athena_cur_database,Catalog=AwsDataCatalog)
+--query-execution-context Database=$database,Catalog=AwsDataCatalog)
 
 executionId=$(echo $queryResults | jq .QueryExecutionId | sed 's/"//g')
 
