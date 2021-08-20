@@ -45,6 +45,7 @@ type gitInfo struct {
 func GetResultsFromCommand(command string, args ...string) (string, error) {
 	bytes, err := exec.Command(command, args...).Output()
 	if err != nil {
+		logrus.Errorf("Unable to execute command: %v %v", command, strings.Join(args, " "))
 		return "", err
 	}
 	return strings.TrimSpace(string(bytes)), err
@@ -267,28 +268,24 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	for _, file := range formFiles {
 		fw, err := w.CreateFormFile(file.field, file.filename)
 		if err != nil {
-			logrus.Warnf("Unable to create form for %s", file.field)
-			return results, err
+			logrus.Fatalf("Unable to create form for %s: %v", file.field, err)
 		}
 		r, err := os.Open(file.location)
 		if err != nil {
-			logrus.Warnf("Unable to open file for %s", file.field)
-			return results, err
+			logrus.Fatalf("Unable to open file for %s: %v", file.field, err)
 		}
 		defer r.Close()
 		_, err = io.Copy(fw, r)
 
 		if err != nil {
-			logrus.Warnf("Unable to write contents for %s", file.field)
-			return results, err
+			logrus.Fatalf("Unable to write contents for %s: %v", file.field, err)
 		}
 	}
 	w.Close()
 
 	repoDetails, err := getGitInfo(configurationObject.Options.RepositoryName, configurationObject.Options.BaseBranch)
 	if err != nil {
-		logrus.Warn("Unable to get git details")
-		return results, err
+		logrus.Fatalf("Unable to get git details: %v", err)
 	}
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
@@ -342,22 +339,26 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	info := gitInfo{}
 
+	_, err := GetResultsFromCommand("git", "rev-parse", "--is-inside-work-tree")
+	if err != nil {
+		return info, fmt.Errorf("%v: %v", "Please be sure to run the insights-ci script inside of a valid git repository, with the branch you are scanning checked out", err)
+	}
+
 	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", baseBranch)
 	if err != nil {
-		logrus.Warn("Unable to get GIT merge-base")
+		logrus.Error("Unable to get GIT merge-base")
 		return info, err
 	}
 
 	currentHash, err := GetResultsFromCommand("git", "rev-parse", "HEAD")
 	if err != nil {
-		logrus.Warn("Unable to get GIT Hash")
+		logrus.Error("Unable to get GIT Hash")
 		return info, err
 	}
 
-	var commitMessage string
-	commitMessage, err = GetResultsFromCommand("git", "log", "--pretty=format:%s", "-1")
+	commitMessage, err := GetResultsFromCommand("git", "log", "--pretty=format:%s", "-1")
 	if err != nil {
-		logrus.Warn("Unable to get GIT Commit message")
+		logrus.Error("Unable to get GIT Commit message")
 		return info, err
 	}
 	if len(commitMessage) > 100 {
@@ -366,13 +367,13 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 
 	branch, err := GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
-		logrus.Warn("Unable to get GIT Branch Name")
+		logrus.Error("Unable to get GIT Branch Name")
 		return info, err
 	}
 
 	origin, err := GetResultsFromCommand("git", "remote", "get-url", "origin")
 	if err != nil {
-		logrus.Warn("Unable to get GIT Origin")
+		logrus.Error("Unable to get GIT Origin")
 		return info, err
 	}
 
@@ -393,6 +394,7 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 		}
 		repoName = strings.TrimSuffix(repoName, ".git")
 	}
+
 	info.masterHash = masterHash
 	info.currentHash = currentHash
 	info.commitMessage = commitMessage
