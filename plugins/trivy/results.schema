@@ -120,8 +120,8 @@
                             "LOW",
                             "MEDIUM",
                             "HIGH",
-                            "UNKNOWN",
-                            "CRITICAL"
+                            "CRITICAL",
+                            "UNKNOWN"
                         ]
                     },
                     "VulnerabilityID": {
