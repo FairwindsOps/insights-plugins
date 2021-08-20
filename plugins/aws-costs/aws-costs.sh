@@ -14,6 +14,7 @@ usage: awscosts \
   --table <table name> \
   --tagkey <tag key> \
   --tagvalue <tag value> \
+  --catalog <catalog> \
   [--timeout <time in seconds>]
 
 This script runs aws costs for Fairwinds Insights.
@@ -45,6 +46,9 @@ while [ ! $# -eq 0 ]; do
         table)
             table=${2}
             ;;
+        catalog)
+            catalog=${2}
+            ;;
         *)
             usage
             exit
@@ -53,21 +57,13 @@ while [ ! $# -eq 0 ]; do
     shift
     shift
 done
-if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" ]]; then
+if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" ]]; then
   usage
   exit 1
 fi
 
 initial_date_time=$(date -u -d '1 day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
-
-echo "$cluster"
-echo "$initial_date_time"
-echo "$final_date_time"
-echo "$tagkey"
-echo "$tagvalue"
-echo "$database"
-echo "$table"
 
 queryResults=$(aws athena start-query-execution \
 --query-string \
@@ -81,7 +77,7 @@ queryResults=$(aws athena start-query-execution \
       AND line_item_usage_end_date <= timestamp '$final_date_time' \
     GROUP BY  1,2" \
 --work-group "cur_athena_workgroup" \
---query-execution-context Database=$database,Catalog=AwsDataCatalog)
+--query-execution-context Database=$database,Catalog=$catalog)
 
 executionId=$(echo $queryResults | jq .QueryExecutionId | sed 's/"//g')
 
