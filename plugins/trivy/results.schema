@@ -120,6 +120,7 @@
                             "LOW",
                             "MEDIUM",
                             "HIGH",
+                            "CRITICAL",
                             "UNKNOWN"
                         ]
                     },
