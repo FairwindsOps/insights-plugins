@@ -1,6 +1,6 @@
 #! /bin/bash
-#set -e
-#set -x
+set -e
+set -x
 
 if [ "$DEBUG" != "" ]
 then
@@ -10,26 +10,41 @@ usage()
 {
 cat << EOF
 usage: awscosts \
-  --cluster <cluster name> \
+  --database <database name> \
+  --table <table name> \
+  --tagkey <tag key> \
+  --tagvalue <tag value> \
   [--timeout <time in seconds>]
 
 This script runs aws costs for Fairwinds Insights.
 EOF
 }
 
-cluster=''
+tagkey=''
+tagvalue=''
+database=''
+table=''
 timeout='60'
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
     flag=${flag##-}
     value=${2}
     case "$flag" in
-        c | cluster)
-            cluster=${2}
-            ;;
-        t | timeout)
+        timeout)
             timeout=${2}
             ;;            
+        tagkey)
+            tagkey=${2}
+            ;;
+        tagvalue)
+            tagvalue=${2}
+            ;;
+        database)
+            database=${2}
+            ;;
+        table)
+            table=${2}
+            ;;
         *)
             usage
             exit
@@ -38,27 +53,33 @@ while [ ! $# -eq 0 ]; do
     shift
     shift
 done
-if [ "$cluster" = "" ]; then
+if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" ]]; then
   usage
   exit 1
 fi
 
-initial_date_time=$(date -d '1 day ago' +"%Y-%m-%d %H:00:00.000")
-final_date_time=$(date  +"%Y-%m-%d %H:00:00.000")
+initial_date_time=$(date -u -d '1 day ago' +"%Y-%m-%d %H:00:00.000")
+final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 
 echo "$cluster"
 echo "$initial_date_time"
 echo "$final_date_time"
+echo "$tagkey"
+echo "$tagvalue"
+echo "$database"
+echo "$table"
+
 queryResults=$(aws athena start-query-execution \
 --query-string \
-    "SELECT  \
-    line_item_product_code, sum(line_item_blended_cost) AS cost \
-    FROM "athena_cur_database"."fairwinds_insights_cur_report"  \
+    "SELECT \
+      line_item_product_code, identity_time_interval, round(sum("line_item_unblended_cost"),2) AS cost \
+    FROM 
+      "$database"."$table"  
     WHERE \
-    resource_tags_user_kubernetes_cluster='$cluster' \
-    AND line_item_usage_end_date > timestamp '$initial_date_time' \
-    AND line_item_usage_end_date <= timestamp  '$final_date_time' \
-    GROUP BY  1" \
+      resource_tags_user_$tagkey='$tagvalue'
+      AND line_item_usage_end_date > timestamp '$initial_date_time' \
+      AND line_item_usage_end_date <= timestamp '$final_date_time' \
+    GROUP BY  1,2" \
 --work-group "cur_athena_workgroup" \
 --query-execution-context Database=athena_cur_database,Catalog=AwsDataCatalog)
 
