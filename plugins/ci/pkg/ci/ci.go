@@ -341,8 +341,7 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 
 	_, err := GetResultsFromCommand("git", "rev-parse", "--is-inside-work-tree")
 	if err != nil {
-		logrus.Error("Unable to execute git command. Are you in a git repository?")
-		return info, err
+		return info, fmt.Errorf("%v: %v", "Please be sure to run the insights-ci script inside of a valid git repository, with the branch you are scanning checked out", err)
 	}
 
 	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", baseBranch)
