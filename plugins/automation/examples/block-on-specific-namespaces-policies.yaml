@@ -1,0 +1,19 @@
+//First, reset all policies to "warn only" (non-blocking)
+ActionItem.Severity = 0.1;
+
+//Specify which policies (EventType) to enforce
+var policiesToEnforce = ["privilegeEscalationAllowed","memoryRequestsMissing"];
+
+//Specify which namespaces to enforce policies on
+var namespacesToEnforce = ["testing","default"];
+
+//Now, create specific blocking conditions
+if (namespacesToEnforce.indexOf(ActionItem.ResourceNamespace) !== -1 && policiesToEnforce.indexOf(ActionItem.EventType) !== -1) {
+	ActionItem.Severity = 0.7; //Anything 0.67 or higher will block
+  
+  sendSlackNotification(
+    "fwinsights-slack-test", 
+    "⛔️ The Insights Admission Controller has blocked: `"+ ActionItem.ResourceKind + "` / `" + ActionItem.ResourceName + "` in namespace `" + ActionItem.ResourceNamespace + "`\n\n *"+
+    ActionItem.Category + " issue:* " + ActionItem.Title + " (reported by `"+ ActionItem.ReportType + "`)"
+  );
+}
