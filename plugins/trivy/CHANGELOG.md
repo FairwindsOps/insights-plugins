@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.1
+* Update Go and modules
+
 ## 0.14.0
 * Added Severity.CRITICAL to json schema
 ## 0.13.0
