@@ -1,0 +1,8 @@
+name: "Set Admission Controller to Passive Mode"
+description: "Make sure the Admission Controller does not block any deployment."
+context: "AdmissionController"
+reportType: ""
+cluster: ""
+repository: ""
+action: |
+    ActionItem.Severity = 0.1;
