@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.2
+* Update Go and modules
+
 ## 0.10.1
 * Improve error handling in CI's git fetch info process
 ## 0.10.0
