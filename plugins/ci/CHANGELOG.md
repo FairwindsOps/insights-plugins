@@ -1,4 +1,6 @@
 # Changelog
+## 0.10.3
+* Handle error in walkpath
 
 ## 0.10.2
 * Update Go and modules
