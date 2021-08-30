@@ -189,6 +189,10 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 	// Untar images, read manifest.json/RepoTags, match tags to YAML
 	err := filepath.Walk(configurationObject.Images.FolderName, func(path string, info os.FileInfo, err error) error {
 		logrus.Info(path)
+		if err != nil {
+			logrus.Errorf("Error while walking path %s: %v", path, err)
+			return nil
+		}
 		if info.IsDir() {
 			return nil
 		}
