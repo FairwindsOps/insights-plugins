@@ -255,7 +255,7 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 		}
 		repoAndTag := repoTags[0]
 		repo := strings.Split(repoAndTag, ":")[0]
-		logrus.Infof("Found image %s in file %s", repoAndTag, filename)
+		logrus.Infof("Found image %s from repo %s in file %s", repoAndTag, repo, filename)
 		allImages = append(allImages, trivymodels.Image{
 			Name:    repoAndTag, // This name is used in the title
 			PullRef: filename,
