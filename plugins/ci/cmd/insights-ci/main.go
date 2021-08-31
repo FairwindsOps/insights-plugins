@@ -248,7 +248,7 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 
 	// Untar images, read manifest.json/RepoTags, match tags to YAML
 	logrus.Infof("Extracting details for all images")
-	err := walkImages(configurationObject, func(filename string, repoTags []string) {
+	err = walkImages(configurationObject, func(filename string, repoTags []string) {
 		if len(repoTags) == 0 {
 			return
 		}
