@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.3.6
+* Bump kubesec to 2.11.2
 ## 1.3.5
 * Bump Alpine to 3.14
 
