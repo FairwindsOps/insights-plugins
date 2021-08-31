@@ -201,7 +201,11 @@ func getTrivyReport(manifestImages []trivymodels.Image, configurationObject mode
 		if info.IsDir() {
 			return nil
 		}
-		repoTags, err := ci.GetRepoTags(path)
+		repoTags, configFileName, err := ci.GetRepoTags(path)
+		if err != nil {
+			return err
+		}
+		sha, err := ci.GetImageSha(path, configFileName)
 		if err != nil {
 			return err
 		}
@@ -223,6 +227,7 @@ func getTrivyReport(manifestImages []trivymodels.Image, configurationObject mode
 			imageRepo := repoTags[0]
 			imageRepo = strings.Split(imageRepo, ":")[0]
 			allImages = append(allImages, trivymodels.Image{
+				ID:      sha,
 				Name:    repoTags[0], // This name is used in the title
 				PullRef: info.Name(),
 				Owner: trivymodels.Resource{

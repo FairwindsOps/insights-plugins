@@ -205,10 +205,10 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 }
 
 // GetRepoTags returns the repotags from a tarball of a an image.
-func GetRepoTags(path string) ([]string, error) {
+func GetRepoTags(path string) ([]string, string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer f.Close()
 
@@ -220,30 +220,70 @@ func GetRepoTags(path string) ([]string, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, err
+			return nil, "", err
 		}
 		if header.Name != "manifest.json" {
 			continue
 		}
 		bytes, err := ioutil.ReadAll(tarReader)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		jsonBody := make([]interface{}, 0)
 		err = json.Unmarshal(bytes, &jsonBody)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		allRepoTags := make([]string, 0)
+		var configFileName string
 		for _, imageDef := range jsonBody {
+			configFileName = imageDef.(map[string]interface{})["Config"].(string)
 			repoTags := imageDef.(map[string]interface{})["RepoTags"].([]interface{})
 			for _, tag := range repoTags {
 				allRepoTags = append(allRepoTags, tag.(string))
 			}
 		}
-		return allRepoTags, nil
+		return allRepoTags, configFileName, nil
 	}
-	return nil, nil
+	return nil, "", nil
+}
+
+// GetRepoTags returns the repotags from a tarball of a an image.
+func GetImageSha(path string, configFileName string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	tarReader := tar.NewReader(f)
+	for {
+		header, err := tarReader.Next()
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return "", err
+		}
+		if header.Name != configFileName {
+			continue
+		}
+		bytes, err := ioutil.ReadAll(tarReader)
+		if err != nil {
+			return "", err
+		}
+		var jsonBody interface{}
+		err = json.Unmarshal(bytes, &jsonBody)
+		if err != nil {
+			return "", err
+		}
+		var sha string
+		configMap := jsonBody.(map[string]interface{})["config"].(map[string]interface{})
+		sha = configMap["Image"].(string)
+		return sha, nil
+	}
+	return "", nil
 }
 
 // SendResults sends the results to Insights
