@@ -247,6 +247,7 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 	}
 
 	// Untar images, read manifest.json/RepoTags, match tags to YAML
+	allImages := []trivymodels.Image{}
 	logrus.Infof("Extracting details for all images")
 	err = walkImages(configurationObject, func(filename string, repoTags []string) {
 		if len(repoTags) == 0 {
@@ -255,7 +256,7 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 		repoAndTag := repoTags[0]
 		repo := strings.Split(repoAndTag, ":")[0]
 		logrus.Infof("Found image %s in file %s", repoAndTag, filename)
-		images = append(images, trivymodels.Image{
+		allImages = append(allImages, trivymodels.Image{
 			Name:    repoAndTag, // This name is used in the title
 			PullRef: filename,
 			Owner: trivymodels.Resource{
@@ -268,7 +269,7 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 		return trivyReport, err
 	}
 	// Scan Images with Trivy
-	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(images, configurationObject)
+	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(allImages, configurationObject)
 	if err != nil {
 		return trivyReport, err
 	}
