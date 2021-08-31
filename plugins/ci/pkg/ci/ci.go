@@ -53,7 +53,15 @@ func GetResultsFromCommand(command string, args ...string) (string, error) {
 
 // GetAllResources scans a folder of yaml files and returns all of the images and resources used.
 func GetAllResources(configDir string, configurationObject models.Configuration) ([]trivymodels.Image, []models.Resource, error) {
-	images := make([]trivymodels.Image, 0)
+	images := funk.Map(configurationObject.Images.Docker, func(imageName string) trivymodels.Image {
+		return trivymodels.Image{
+			Name: imageName,
+			Owner: trivymodels.Resource{
+				Kind: "Image",
+				Name: imageName,
+			},
+		}
+	}).([]trivymodels.Image)
 	resources := make([]models.Resource, 0)
 	err := filepath.Walk(configDir, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
