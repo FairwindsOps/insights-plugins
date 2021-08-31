@@ -1,4 +1,7 @@
 # Changelog
+## 0.10.4
+* Fix image details for images downloaded via Skopeo
+
 ## 0.10.3
 * Handle error in walkpath
 
