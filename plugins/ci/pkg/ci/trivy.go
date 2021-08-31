@@ -30,7 +30,6 @@ func ScanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		if err != nil {
 			return nil, "", err
 		}
-		logrus.Infof("results: %#v", results)
 		reportByRef[currentImage.PullRef] = results
 	}
 
