@@ -1,4 +1,7 @@
 # Changelog
+## 0.11.0
+* Add option to skip images contained in manifests when running trivy
+
 ## 0.10.3
 * Handle error in walkpath
 
