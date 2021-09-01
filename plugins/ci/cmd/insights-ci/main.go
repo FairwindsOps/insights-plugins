@@ -59,9 +59,9 @@ func main() {
 	}
 
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
-	err = os.MkdirAll(configFolder, 0644)
+	err = os.MkdirAll(configFolder, 0755)
 	if err != nil {
-		exitWithError("Could not make directory "+configFolder, nil)
+		exitWithError("Could not make directory "+configFolder, err)
 	}
 
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))

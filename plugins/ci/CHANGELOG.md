@@ -1,4 +1,7 @@
 # Changelog
+## 0.10.4
+* Add some debug logs
+
 ## 0.10.3
 * Handle error in walkpath
 
