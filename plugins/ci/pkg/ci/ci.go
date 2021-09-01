@@ -204,11 +204,11 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 	return images
 }
 
-// GetRepoTags returns the repotags from a tarball of a an image.
-func GetRepoTags(path string) ([]string, string, error) {
+// GetShaAndRepoTags returns the SHA and repotags from a tarball of a an image.
+func GetShaAndRepoTags(path string) (string, []string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, "", err
+		return "", nil, err
 	}
 	defer f.Close()
 
@@ -220,19 +220,19 @@ func GetRepoTags(path string) ([]string, string, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, "", err
+			return "", nil, err
 		}
 		if header.Name != "manifest.json" {
 			continue
 		}
 		bytes, err := ioutil.ReadAll(tarReader)
 		if err != nil {
-			return nil, "", err
+			return "", nil, err
 		}
 		jsonBody := make([]interface{}, 0)
 		err = json.Unmarshal(bytes, &jsonBody)
 		if err != nil {
-			return nil, "", err
+			return "", nil, err
 		}
 		allRepoTags := make([]string, 0)
 		var configFileName string
@@ -243,12 +243,16 @@ func GetRepoTags(path string) ([]string, string, error) {
 				allRepoTags = append(allRepoTags, tag.(string))
 			}
 		}
-		return allRepoTags, configFileName, nil
+		sha, err := GetImageSha(path, configFileName)
+		if err != nil {
+			return "", nil, err
+		}
+		return sha, allRepoTags, nil
 	}
-	return nil, "", nil
+	return "", nil, err
 }
 
-// GetRepoTags returns the repotags from a tarball of a an image.
+// GetImageSha returns the sha from a tarball of a an image.
 func GetImageSha(path string, configFileName string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
