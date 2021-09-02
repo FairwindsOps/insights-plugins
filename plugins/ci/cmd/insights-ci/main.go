@@ -284,7 +284,7 @@ func getTrivyReport(manifestImages []trivymodels.Image, configurationObject mode
 				name = nameParts[0]
 			}
 			if len(name) > 0 {
-				image.ID = name + "@" + sha // sha265@deadbeef
+				image.ID = name + "@" + sha
 			} else {
 				image.ID = sha
 			}
