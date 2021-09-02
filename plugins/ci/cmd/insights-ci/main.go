@@ -83,7 +83,7 @@ func main() {
 	}
 
 	// Scan YAML, find all images/kind/etc
-	images, resources, err := ci.GetAllResources(configFolder, configurationObject)
+	manifestImages, resources, err := ci.GetAllResources(configFolder, configurationObject)
 	if err != nil {
 		exitWithError("Error while extracting images from YAML manifests", err)
 	}
@@ -100,7 +100,11 @@ func main() {
 	}
 
 	if *configurationObject.Reports.Trivy.Enabled {
-		trivyReport, err := getTrivyReport(images, configurationObject)
+		manifestImagesToScan := manifestImages
+		if *configurationObject.Reports.Trivy.SkipManifests {
+			manifestImagesToScan = []trivymodels.Image{}
+		}
+		trivyReport, err := getTrivyReport(manifestImagesToScan, configurationObject)
 		if err != nil {
 			exitWithError("Error while running Trivy", err)
 		}
@@ -181,11 +185,12 @@ func printMultilineString(title, str string) {
 	}
 }
 
-func getTrivyReport(images []trivymodels.Image, configurationObject models.Configuration) (models.ReportInfo, error) {
+func getTrivyReport(manifestImages []trivymodels.Image, configurationObject models.Configuration) (models.ReportInfo, error) {
 	trivyReport := models.ReportInfo{
 		Report:   "trivy",
 		Filename: "trivy.json",
 	}
+	allImages := append([]trivymodels.Image{}, manifestImages...)
 	// Untar images, read manifest.json/RepoTags, match tags to YAML
 	err := filepath.Walk(configurationObject.Images.FolderName, func(path string, info os.FileInfo, err error) error {
 		logrus.Info(path)
@@ -201,14 +206,14 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 			return err
 		}
 		matchedImage := false
-		for idx, currentImage := range images {
+		for idx, currentImage := range manifestImages {
 			if currentImage.PullRef != "" {
 				continue
 			}
 			for _, tag := range repoTags {
 				logrus.Info(tag, currentImage.Name)
 				if tag == currentImage.Name {
-					images[idx].PullRef = info.Name()
+					allImages[idx].PullRef = info.Name()
 					matchedImage = true
 					break
 				}
@@ -217,7 +222,7 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 		if !matchedImage && len(repoTags) > 0 {
 			imageRepo := repoTags[0]
 			imageRepo = strings.Split(imageRepo, ":")[0]
-			images = append(images, trivymodels.Image{
+			allImages = append(allImages, trivymodels.Image{
 				Name:    repoTags[0], // This name is used in the title
 				PullRef: info.Name(),
 				Owner: trivymodels.Resource{
@@ -233,12 +238,12 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 	}
 	refLookup := map[string]string{}
 	// Download missing images
-	for idx, currentImage := range images {
+	for idx, currentImage := range allImages {
 		if currentImage.PullRef != "" {
 			continue
 		}
 		if ref, ok := refLookup[currentImage.Name]; ok {
-			images[idx].PullRef = ref
+			allImages[idx].PullRef = ref
 			continue
 		}
 
@@ -246,11 +251,11 @@ func getTrivyReport(images []trivymodels.Image, configurationObject models.Confi
 		if err != nil {
 			return trivyReport, err
 		}
-		images[idx].PullRef = strconv.Itoa(idx)
-		refLookup[currentImage.Name] = images[idx].PullRef
+		allImages[idx].PullRef = strconv.Itoa(idx)
+		refLookup[currentImage.Name] = allImages[idx].PullRef
 	}
 	// Scan Images with Trivy
-	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(images, configurationObject)
+	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(allImages, configurationObject)
 	if err != nil {
 		return trivyReport, err
 	}

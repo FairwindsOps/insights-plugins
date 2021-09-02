@@ -1,4 +1,7 @@
 # Changelog
+## 0.10.5
+* Add option to skip images contained in manifests when running trivy
+
 ## 0.10.4
 * Add some debug logs
 

@@ -51,12 +51,17 @@ type HelmConfig struct {
 type reportsConfig struct {
 	Polaris reportConfig `yaml:"polaris"`
 	Pluto   reportConfig `yaml:"pluto"`
-	Trivy   reportConfig `yaml:"trivy"`
+	Trivy   trivyConfig  `yaml:"trivy"`
 	OPA     reportConfig `yaml:"opa"`
 }
 
 type reportConfig struct {
 	Enabled *bool `yaml:"enabled"`
+}
+
+type trivyConfig struct {
+	Enabled       *bool `yaml:"enabled"`
+	SkipManifests *bool `yaml:"skipManifests"`
 }
 
 type optionConfig struct {
@@ -146,17 +151,21 @@ func (c *Configuration) SetDefaults() {
 		c.Options.SeverityThreshold = "danger"
 	}
 	truth := true
+	falsehood := false
 	if c.Reports.Pluto.Enabled == nil {
 		c.Reports.Pluto.Enabled = &truth
 	}
 	if c.Reports.Polaris.Enabled == nil {
 		c.Reports.Polaris.Enabled = &truth
 	}
+	if c.Reports.OPA.Enabled == nil {
+		c.Reports.OPA.Enabled = &truth
+	}
 	if c.Reports.Trivy.Enabled == nil {
 		c.Reports.Trivy.Enabled = &truth
 	}
-	if c.Reports.OPA.Enabled == nil {
-		c.Reports.OPA.Enabled = &truth
+	if c.Reports.Trivy.SkipManifests == nil {
+		c.Reports.Trivy.SkipManifests = &falsehood
 	}
 	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
