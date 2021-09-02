@@ -291,19 +291,27 @@ func getTrivyReport(manifestImages []trivymodels.Image, configurationObject mode
 			}
 		}
 
-		allImages = append(allImages, *image)
-
 		if len(repoTags) == 0 {
-			image.ID = sha
+			name := image.Name
+			nameParts := strings.Split(name, ":")
+			if len(nameParts) > 1 {
+				name = nameParts[0]
+			}
+			if len(name) > 0 {
+				image.ID = name + "@" + sha // sha265@deadbeef
+			} else {
+				image.ID = sha
+			}
 			logrus.Warningf("Could not find repo or tags for %s", filename)
-			return
+		} else {
+			repoAndTag := repoTags[0]
+			repo := strings.Split(repoAndTag, ":")[0]
+			image.ID = fmt.Sprintf("%s@%s", repo, sha)
+			image.Name = repoAndTag
+			image.Owner.Name = repo // This name is used for the filename in the Insights UI
 		}
 
-		repoAndTag := repoTags[0]
-		repo := strings.Split(repoAndTag, ":")[0]
-		image.ID = fmt.Sprintf("%s@%s", repo, sha)
-		image.Name = repoAndTag
-		image.Owner.Name = repo // This name is used for the filename in the Insights UI
+		allImages = append(allImages, *image)
 	})
 	if err != nil {
 		return trivyReport, err
