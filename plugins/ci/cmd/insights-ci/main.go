@@ -227,20 +227,6 @@ func getTrivyReport(manifestImages []trivymodels.Image, configurationObject mode
 				}
 			}
 		}
-		if !matchedImage && len(repoTags) > 0 {
-			imageRepo := repoTags[0]
-			imageRepo = strings.Split(imageRepo, ":")[0]
-			allImages = append(allImages, trivymodels.Image{
-				ID:      sha,
-				Name:    repoTags[0], // This name is used in the title
-				PullRef: info.Name(),
-				Owner: trivymodels.Resource{
-					Kind: "Image",
-					Name: imageRepo, // This name is used for the filename
-				},
-			})
-		}
-		return nil
 	})
 	if err != nil {
 		return trivyReport, err
