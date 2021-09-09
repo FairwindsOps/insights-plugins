@@ -1,4 +1,8 @@
 # Changelog
+## 0.10.7
+* Improve error messages 
+* Add missing error checks
+
 ## 0.10.6
 * Add SHA for docker images
 

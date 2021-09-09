@@ -68,6 +68,11 @@ func ProcessOPA(ctx context.Context, configurationObject models.Configuration) (
 		}
 		return nil
 	})
+	if err != nil {
+		logrus.Warn("Unable to walk through configFolder tree")
+		return report, err
+	}
+
 	kube.SetFileClient(files)
 	for _, nodeMap := range files {
 
@@ -122,7 +127,13 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 		return nil, nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("Invalid status code: %d", resp.StatusCode)
+		body, err := ioutil.ReadAll(resp.Body)
+		logrus.Warn("Unable to Get Checks from Insights")
+		if err != nil {
+			logrus.Warn("Unable to read response body")
+			return nil, nil, err
+		}
+		return nil, nil, fmt.Errorf("Insights returned unexpected HTTP status code: %d - %v", resp.StatusCode, string(body))
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -132,6 +143,10 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	}
 	var checkBody opaChecks
 	err = json.Unmarshal(body, &checkBody)
+	if err != nil {
+		logrus.Warn("Unable to unmarshal results")
+		return nil, nil, err
+	}
 	return checkBody.Instances, checkBody.Checks, nil
 }
 
