@@ -11,6 +11,6 @@ require (
 	github.com/fairwindsops/insights-plugins/trivy v0.0.0-20200528180806-f7f94de92325
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/thoas/go-funk v0.9.0
+	github.com/thoas/go-funk v0.9.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
