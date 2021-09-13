@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.2
+* update Go modules
+
 ## 0.14.1
 * Update Go and modules
 

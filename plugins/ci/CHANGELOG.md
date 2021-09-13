@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.10.8
+* update Go modules
 ## 0.10.7
 * Improve error messages 
 * Add missing error checks
