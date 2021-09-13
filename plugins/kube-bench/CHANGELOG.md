@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+* Update kube-bench to 0.6.4
+
 ## 0.3.1
 * Update Go and modules
 
