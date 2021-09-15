@@ -1,4 +1,20 @@
 # Changelog
+
+## 0.10.8
+* update Go modules
+## 0.10.7
+* Improve error messages 
+* Add missing error checks
+
+## 0.10.6
+* Add SHA for docker images
+
+## 0.10.5
+* Add option to skip images contained in manifests when running trivy
+
+## 0.10.4
+* Add some debug logs
+
 ## 0.10.3
 * Handle error in walkpath
 
@@ -7,6 +23,7 @@
 
 ## 0.10.1
 * Improve error handling in CI's git fetch info process
+
 ## 0.10.0
 * update go dependencies
 

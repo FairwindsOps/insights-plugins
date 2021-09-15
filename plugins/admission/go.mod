@@ -10,7 +10,7 @@ require (
 	github.com/fairwindsops/polaris v0.0.0-20200826172321-7a0efb785352
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
-	github.com/thoas/go-funk v0.9.0
+	github.com/thoas/go-funk v0.9.1
 	k8s.io/apimachinery v0.22.1
-	sigs.k8s.io/controller-runtime v0.9.6
+	sigs.k8s.io/controller-runtime v0.10.0
 )

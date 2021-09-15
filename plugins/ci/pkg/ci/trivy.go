@@ -7,6 +7,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
 	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	"github.com/sirupsen/logrus"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
@@ -24,6 +25,7 @@ func ScanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		if ok {
 			continue
 		}
+		logrus.Infof("Scanning %s from file %s", currentImage.Name, currentImage.PullRef)
 		results, err := image.ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder)
 		if err != nil {
 			return nil, "", err

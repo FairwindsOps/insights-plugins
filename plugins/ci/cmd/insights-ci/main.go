@@ -59,9 +59,9 @@ func main() {
 	}
 
 	configFolder := configurationObject.Options.TempFolder + "/configuration/"
-	err = os.MkdirAll(configFolder, 0644)
+	err = os.MkdirAll(configFolder, 0755)
 	if err != nil {
-		exitWithError("Could not make directory "+configFolder, nil)
+		exitWithError("Could not make directory "+configFolder, err)
 	}
 
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
@@ -83,7 +83,7 @@ func main() {
 	}
 
 	// Scan YAML, find all images/kind/etc
-	images, resources, err := ci.GetAllResources(configFolder, configurationObject)
+	manifestImages, resources, err := ci.GetAllResources(configFolder, configurationObject)
 	if err != nil {
 		exitWithError("Error while extracting images from YAML manifests", err)
 	}
@@ -100,7 +100,11 @@ func main() {
 	}
 
 	if *configurationObject.Reports.Trivy.Enabled {
-		trivyReport, err := getTrivyReport(images, configurationObject)
+		manifestImagesToScan := manifestImages
+		if *configurationObject.Reports.Trivy.SkipManifests {
+			manifestImagesToScan = []trivymodels.Image{}
+		}
+		trivyReport, err := getTrivyReport(manifestImagesToScan, configurationObject)
 		if err != nil {
 			exitWithError("Error while running Trivy", err)
 		}
@@ -181,76 +185,125 @@ func printMultilineString(title, str string) {
 	}
 }
 
-func getTrivyReport(images []trivymodels.Image, configurationObject models.Configuration) (models.ReportInfo, error) {
-	trivyReport := models.ReportInfo{
-		Report:   "trivy",
-		Filename: "trivy.json",
-	}
-	// Untar images, read manifest.json/RepoTags, match tags to YAML
-	err := filepath.Walk(configurationObject.Images.FolderName, func(path string, info os.FileInfo, err error) error {
+type imageCallback func(filename string, sha string, tags []string)
+
+func walkImages(config models.Configuration, cb imageCallback) error {
+	err := filepath.Walk(config.Images.FolderName, func(path string, info os.FileInfo, err error) error {
 		logrus.Info(path)
 		if err != nil {
 			logrus.Errorf("Error while walking path %s: %v", path, err)
-			return nil
+			return err
 		}
 		if info.IsDir() {
 			return nil
 		}
-		repoTags, err := ci.GetRepoTags(path)
+		sha, repoTags, err := ci.GetShaAndRepoTags(path)
 		if err != nil {
 			return err
 		}
-		matchedImage := false
-		for idx, currentImage := range images {
-			if currentImage.PullRef != "" {
+		cb(info.Name(), sha, repoTags)
+		return nil
+	})
+	return err
+}
+
+func getTrivyReport(manifestImages []trivymodels.Image, configurationObject models.Configuration) (models.ReportInfo, error) {
+	trivyReport := models.ReportInfo{
+		Report:   "trivy",
+		Filename: "trivy.json",
+	}
+
+	// Look through image tarballs and mark which ones are already there, by setting image.PullRef
+	logrus.Infof("Looking through images in %s", configurationObject.Images.FolderName)
+	err := walkImages(configurationObject, func(filename string, sha string, repoTags []string) {
+		for idx := range manifestImages {
+			if manifestImages[idx].PullRef != "" {
 				continue
 			}
 			for _, tag := range repoTags {
-				logrus.Info(tag, currentImage.Name)
-				if tag == currentImage.Name {
-					images[idx].PullRef = info.Name()
-					matchedImage = true
+				if tag == manifestImages[idx].Name {
+					manifestImages[idx].PullRef = filename
 					break
 				}
 			}
 		}
-		if !matchedImage && len(repoTags) > 0 {
-			imageRepo := repoTags[0]
-			imageRepo = strings.Split(imageRepo, ":")[0]
-			images = append(images, trivymodels.Image{
-				Name:    repoTags[0], // This name is used in the title
-				PullRef: info.Name(),
-				Owner: trivymodels.Resource{
-					Kind: "Image",
-					Name: imageRepo, // This name is used for the filename
-				},
-			})
-		}
-		return nil
 	})
 	if err != nil {
 		return trivyReport, err
 	}
+
 	refLookup := map[string]string{}
 	// Download missing images
-	for idx, currentImage := range images {
-		if currentImage.PullRef != "" {
+	for idx := range manifestImages {
+		if manifestImages[idx].PullRef != "" {
 			continue
 		}
-		if ref, ok := refLookup[currentImage.Name]; ok {
-			images[idx].PullRef = ref
+		if ref, ok := refLookup[manifestImages[idx].Name]; ok {
+			manifestImages[idx].PullRef = ref
 			continue
 		}
-
-		err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+currentImage.Name, "docker-archive:"+configurationObject.Images.FolderName+strconv.Itoa(idx)), "pulling "+currentImage.Name)
+		logrus.Infof("Downloading missing image %s", manifestImages[idx].Name)
+		dockerURL := "docker://" + manifestImages[idx].Name
+		archiveName := "docker-archive:" + configurationObject.Images.FolderName + strconv.Itoa(idx)
+		err := util.RunCommand(exec.Command("skopeo", "copy", dockerURL, archiveName), "pulling "+manifestImages[idx].Name)
 		if err != nil {
 			return trivyReport, err
 		}
-		images[idx].PullRef = strconv.Itoa(idx)
-		refLookup[currentImage.Name] = images[idx].PullRef
+		manifestImages[idx].PullRef = strconv.Itoa(idx)
+		refLookup[manifestImages[idx].Name] = manifestImages[idx].PullRef
+	}
+
+	// Untar images, read manifest.json/RepoTags, match tags to YAML
+	logrus.Infof("Extracting details for all images")
+	allImages := []trivymodels.Image{}
+	err = walkImages(configurationObject, func(filename string, sha string, repoTags []string) {
+		logrus.Infof("Getting details for image file %s with SHA %s", filename, sha)
+
+		// If the image was found in a manifest, copy its details over,
+		// namely the Owner info (i.e. the deployment or other controller it is associated with)
+		var image *trivymodels.Image
+		for _, im := range manifestImages {
+			if im.PullRef == filename {
+				image = &im
+				break
+			}
+		}
+		if image == nil {
+			image = &trivymodels.Image{
+				PullRef: filename,
+				Owner: trivymodels.Resource{
+					Kind: "Image",
+				},
+			}
+		}
+
+		if len(repoTags) == 0 {
+			name := image.Name
+			nameParts := strings.Split(name, ":")
+			if len(nameParts) > 1 {
+				name = nameParts[0]
+			}
+			if len(name) > 0 {
+				image.ID = name + "@" + sha
+			} else {
+				image.ID = sha
+			}
+			logrus.Warningf("Could not find repo or tags for %s", filename)
+		} else {
+			repoAndTag := repoTags[0]
+			repo := strings.Split(repoAndTag, ":")[0]
+			image.ID = fmt.Sprintf("%s@%s", repo, sha)
+			image.Name = repoAndTag
+			image.Owner.Name = repo // This name is used for the filename in the Insights UI
+		}
+
+		allImages = append(allImages, *image)
+	})
+	if err != nil {
+		return trivyReport, err
 	}
 	// Scan Images with Trivy
-	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(images, configurationObject)
+	trivyResults, trivyVersion, err := ci.ScanImagesWithTrivy(allImages, configurationObject)
 	if err != nil {
 		return trivyReport, err
 	}
