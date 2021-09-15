@@ -71,7 +71,7 @@
                                             "InstalledVersion",
                                             "PkgName",
                                             "VulnerabilityID",
-                                            "FixedVersion",
+                                            "FixedVersion"
                                         ],
                                         "properties": {
                                             "InstalledVersion": {
