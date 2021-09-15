@@ -86,4 +86,5 @@ type VulnerabilityInstance struct {
 	InstalledVersion string
 	PkgName          string
 	VulnerabilityID  string
+	FixedVersion     string
 }
