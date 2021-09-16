@@ -1,4 +1,6 @@
 # Changelog
+## 0.3.3
+* Add some logging
 
 ## 0.3.2
 * update Go modules

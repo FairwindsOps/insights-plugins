@@ -33,12 +33,14 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	var decoded map[string]interface{}
 	err = json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
+		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
 	}
 
 	ownerReferences, ok := decoded["metadata"].(map[string]interface{})["ownerReferences"].([]interface{})
 
 	if ok && len(ownerReferences) > 0 {
+		logrus.Infof("Object has an owner - skipping")
 		return true, nil, nil, nil
 	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
@@ -46,6 +48,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	logrus.Debugf("Processing with config %+v", v.Config)
 	metadata, err := getRequestReport(req)
 	if err != nil {
+		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
 	return processInputYAML(ctx, v.Config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
