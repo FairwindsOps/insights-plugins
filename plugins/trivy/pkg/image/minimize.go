@@ -50,6 +50,7 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 					InstalledVersion: vuln.InstalledVersion,
 					PkgName:          vuln.PkgName,
 					VulnerabilityID:  vuln.VulnerabilityID,
+					FixedVersion:     vuln.FixedVersion,
 				})
 			}
 			imageDetailsWithRefs.Report = append(imageDetailsWithRefs.Report, vulnRefList)

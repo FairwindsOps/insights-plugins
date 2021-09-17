@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.10.9
+* update trivy version
 ## 0.10.8
 * update Go modules
 ## 0.10.7
