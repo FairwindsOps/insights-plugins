@@ -15,7 +15,7 @@ import (
 
 // ScanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
 func ScanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) ([]byte, string, error) {
-	err := util.RunCommand(exec.Command("trivy", "--download-db-only"), "downloading trivy database")
+	err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
 	if err != nil {
 		return nil, "", err
 	}

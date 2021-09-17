@@ -70,7 +70,8 @@
                                         "required": [
                                             "InstalledVersion",
                                             "PkgName",
-                                            "VulnerabilityID"
+                                            "VulnerabilityID",
+                                            "FixedVersion"
                                         ],
                                         "properties": {
                                             "InstalledVersion": {
@@ -83,6 +84,10 @@
                                             },
                                             "VulnerabilityID": {
                                                 "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/VulnerabilityID",
+                                                "type": "string"
+                                            },
+                                            "FixedVersion": {
+                                                "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/FixedVersion",
                                                 "type": "string"
                                             }
                                         }
