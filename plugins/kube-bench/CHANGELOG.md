@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.3
+* rebuilt to fix CVEs in alpine 3.14
+
 ## 0.3.2
 * Update kube-bench to 0.6.4
 

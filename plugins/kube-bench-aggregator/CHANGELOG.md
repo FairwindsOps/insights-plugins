@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.3
+* rebuilt to fix CVEs in alpine 3.14
+
 ## 0.2.2
 * update Go modules
 
