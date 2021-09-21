@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.19.9
+* rebuilt to fix CVEs in alpine 3.14
+
 ## 0.19.8
 * Bump Alpine to 3.14
 
