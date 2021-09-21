@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.4
+* rebuilt to fix CVEs in alpine 3.14
+
 ## 0.14.3
 * update trivy command
 ## 0.14.2

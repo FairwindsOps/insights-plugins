@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.7
+* rebuilt to fix CVEs in alpine 3.14
+
 ## 1.3.6
 * Bump kubesec to 2.11.2
 ## 1.3.5
