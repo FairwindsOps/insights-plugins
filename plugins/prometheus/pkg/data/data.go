@@ -91,26 +91,38 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Found %d metrics for memory", len(memory))
+
 	cpu, err := getCPU(ctx, api, r)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Found %d metrics for cpu", len(cpu))
+
 	memoryRequest, err := getMemoryRequests(ctx, api, r)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Found %d metrics for memoryRequests", len(memoryRequest))
+
 	cpuRequest, err := getCPURequests(ctx, api, r)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Found %d metrics for cpuRequests", len(cpuRequest))
+
 	memoryLimits, err := getMemoryLimits(ctx, api, r)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Found %d metrics for memoryLimits", len(memoryLimits))
+
 	cpuLimits, err := getCPULimits(ctx, api, r)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Found %d metrics for cpuLimits", len(cpuLimits))
+
 	combinedRequests := make(map[string]CombinedRequest)
 	for _, cpuVal := range cpu {
 		key := getKey(cpuVal)

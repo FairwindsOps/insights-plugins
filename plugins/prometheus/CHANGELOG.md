@@ -1,4 +1,6 @@
 # Changelog
+## 0.4.5
+* Add some logs
 
 ## 0.4.4
 * rebuild to fix CVEs in alpine:3.14
