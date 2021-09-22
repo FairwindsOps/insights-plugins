@@ -33,6 +33,7 @@ const outputFile = "/output/resource-metrics.json"
 
 func main() {
 	address := os.Getenv("PROMETHEUS_ADDRESS")
+	logrus.Infof("Getting metrics from Prometheus at %s", address)
 	client, err := data.GetClient(address)
 	if err != nil {
 		panic(err)
@@ -46,16 +47,18 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	logrus.Infof("Got %d metrics", len(res))
 	stats := data.CalculateStatistics(res)
 	data, err := json.Marshal(map[string]interface{}{"Values": stats})
 	if err != nil {
 		panic(err)
 	}
+	logrus.Infof("Aggregated to %d statistics", len(stats))
 	err = ioutil.WriteFile(outputFile, data, 0644)
 	if err != nil {
 		panic(err)
 	}
-
+	logrus.Infof("Done!")
 }
 
 func getKubeClient() (dynamic.Interface, meta.RESTMapper, error) {
