@@ -126,7 +126,7 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 			} else {
 				metadata, ok := yamlNode["metadata"].(map[string]interface{})
 				if !ok {
-					metadata = map[string]interface{}
+					metadata = map[string]interface{}{}
 				}
 				namespace := ""
 				if namespaceObj, ok := metadata["namespace"]; ok {
