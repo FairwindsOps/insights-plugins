@@ -98,7 +98,10 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 			if err != nil {
 				return err
 			}
-			kind := yamlNode["kind"].(string)
+			kind, ok := yamlNode["kind"].(string)
+			if !ok {
+			  continue
+			}
 			if kind == "list" {
 				nodes := yamlNode["items"].([]interface{})
 				for _, node := range nodes {
@@ -121,7 +124,10 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 					})
 				}
 			} else {
-				metadata := yamlNode["metadata"].(map[string]interface{})
+				metadata, ok := yamlNode["metadata"].(map[string]interface{})
+				if !ok {
+					metadata = map[string]interface{}
+				}
 				namespace := ""
 				if namespaceObj, ok := metadata["namespace"]; ok {
 					namespace = namespaceObj.(string)
