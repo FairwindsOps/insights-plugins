@@ -1,4 +1,7 @@
 # Changelog
+## 0.4.6
+* Stop skipping data for non-/kubepod prefixes
+
 ## 0.4.5
 * Add some logs
 
