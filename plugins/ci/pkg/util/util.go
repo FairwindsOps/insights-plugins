@@ -18,3 +18,15 @@ func RunCommand(cmd *exec.Cmd, message string) error {
 	}
 	return err
 }
+
+func ExtractMetadata(obj map[string]interface{}) (string, string, string, string) {
+	kind, _ := obj["kind"].(string)
+	apiVersion, _ := obj["apiVersion"].(string)
+	metadata, ok := obj["metadata"].(map[string]interface{})
+	if !ok {
+		return apiVersion, kind, "", ""
+	}
+	name, _ := metadata["name"].(string)
+	namespace, _ := metadata["namespace"].(string)
+	return apiVersion, kind, name, namespace
+}
