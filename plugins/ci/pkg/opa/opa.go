@@ -18,6 +18,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
 const opaVersion = "0.2.8"
@@ -75,16 +76,8 @@ func ProcessOPA(ctx context.Context, configurationObject models.Configuration) (
 
 	kube.SetFileClient(files)
 	for _, nodeMap := range files {
-
-		metadata := nodeMap["metadata"].(map[string]interface{})
-		namespace := ""
-		if namespaceObj, ok := metadata["namespace"]; ok {
-			namespace = namespaceObj.(string)
-		}
-		resourceName := metadata["name"].(string)
-		apiVersion := nodeMap["apiVersion"].(string)
+		apiVersion, resourceKind, resourceName, namespace := util.ExtractMetadata(nodeMap)
 		apiGroup := strings.Split(apiVersion, "/")[0]
-		resourceKind := nodeMap["kind"].(string)
 		newActionItems, err := processObject(ctx, nodeMap, resourceName, resourceKind, apiGroup, namespace, instances, checks)
 		if err != nil {
 			return report, err

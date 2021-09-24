@@ -98,20 +98,31 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 			if err != nil {
 				return err
 			}
-			kind := yamlNode["kind"].(string)
+			kind, ok := yamlNode["kind"].(string)
+			if !ok {
+				continue
+			}
 			if kind == "list" {
 				nodes := yamlNode["items"].([]interface{})
 				for _, node := range nodes {
-					metadata := node.(map[string]interface{})["metadata"].(map[string]interface{})
-					namespace := ""
-					if namespaceObj, ok := metadata["namespace"]; ok {
-						namespace = namespaceObj.(string)
+					obj, ok := node.(map[string]interface{})
+					if !ok {
+						logrus.Warningf("Found a malformed YAML list item at %s", path+info.Name())
+					}
+					_, kind, name, namespace := util.ExtractMetadata(obj)
+					if kind == "" {
+						logrus.Warningf("Found a YAML list item without kind at %s", path+info.Name())
+						continue
+					}
+					if name == "" {
+						logrus.Warningf("Found a YAML list item without metadata.name at %s", path+info.Name())
+						continue
 					}
 					newImages, containers := processYamlNode(node.(map[string]interface{}))
 					images = append(images, newImages...)
 					resources = append(resources, models.Resource{
-						Kind:      node.(map[string]interface{})["kind"].(string),
-						Name:      metadata["name"].(string),
+						Kind:      kind,
+						Name:      name,
 						Namespace: namespace,
 						Filename:  displayFilename,
 						HelmName:  helmName,
@@ -121,16 +132,20 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 					})
 				}
 			} else {
-				metadata := yamlNode["metadata"].(map[string]interface{})
-				namespace := ""
-				if namespaceObj, ok := metadata["namespace"]; ok {
-					namespace = namespaceObj.(string)
+				_, kind, name, namespace := util.ExtractMetadata(yamlNode)
+				if kind == "" {
+					logrus.Warningf("Found a YAML file without kind at %s", path+info.Name())
+					continue
+				}
+				if name == "" {
+					logrus.Warningf("Found a YAML file without metadata.name at %s", path+info.Name())
+					continue
 				}
 				newImages, containers := processYamlNode(yamlNode)
 				images = append(images, newImages...)
 				resources = append(resources, models.Resource{
 					Kind:      kind,
-					Name:      metadata["name"].(string),
+					Name:      name,
 					Namespace: namespace,
 					Filename:  displayFilename,
 					HelmName:  helmName,
@@ -149,13 +164,14 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 }
 
 func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
-	metadata := yamlNode["metadata"].(map[string]interface{})
-	owner := trivymodels.Resource{
-		Kind: yamlNode["kind"].(string),
-		Name: metadata["name"].(string),
+	_, kind, name, namespace := util.ExtractMetadata(yamlNode)
+	if kind == "" || name == "" {
+		return nil, nil
 	}
-	if namespace, ok := metadata["namespace"]; ok {
-		owner.Namespace = namespace.(string)
+	owner := trivymodels.Resource{
+		Kind:      kind,
+		Name:      name,
+		Namespace: namespace,
 	}
 	podSpec := GetPodSpec(yamlNode)
 	images := getImages(podSpec.(map[string]interface{}))
@@ -194,9 +210,11 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 		containers := containerField.([]interface{})
 		for _, container := range containers {
 			containerMap := container.(map[string]interface{})
+			image, _ := containerMap["image"].(string)
+			name, _ := containerMap["name"].(string)
 			newContainer := models.Container{
-				Image: containerMap["image"].(string),
-				Name:  containerMap["name"].(string),
+				Image: image,
+				Name:  name,
 			}
 			images = append(images, newContainer)
 		}
