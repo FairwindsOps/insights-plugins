@@ -155,10 +155,21 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 }
 
 func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
-	metadata := yamlNode["metadata"].(map[string]interface{})
+	metadata, ok := yamlNode["metadata"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	name, ok := metadata["name"].(string)
+	if !ok {
+		return nil
+	}
+	kind, ok := yamlNode["kind"].(string)
+	if !ok {
+		return nil
+	}
 	owner := trivymodels.Resource{
-		Kind: yamlNode["kind"].(string),
-		Name: metadata["name"].(string),
+		Kind: kind,
+		Name: name,
 	}
 	if namespace, ok := metadata["namespace"]; ok {
 		owner.Namespace = namespace.(string)
