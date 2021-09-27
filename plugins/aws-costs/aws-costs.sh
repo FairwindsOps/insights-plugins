@@ -15,6 +15,7 @@ usage: awscosts \
   --tagkey <tag key> \
   --tagvalue <tag value> \
   --catalog <catalog> \
+  --workGroup <workGroup> \
   [--timeout <time in seconds>]
 
 This script runs aws costs for Fairwinds Insights.
@@ -26,6 +27,7 @@ tagvalue=''
 database=''
 table=''
 timeout='60'
+workGroup=''
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
     flag=${flag##-}
@@ -49,6 +51,9 @@ while [ ! $# -eq 0 ]; do
         catalog)
             catalog=${2}
             ;;
+        workGroup)
+            workGroup=${2}
+            ;;
         *)
             usage
             exit
@@ -57,7 +62,7 @@ while [ ! $# -eq 0 ]; do
     shift
     shift
 done
-if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" ]]; then
+if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workGroup" = "" ]]; then
   usage
   exit 1
 fi
@@ -68,15 +73,17 @@ final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 queryResults=$(aws athena start-query-execution \
 --query-string \
     "SELECT \
-      line_item_product_code, identity_time_interval, round(sum("line_item_unblended_cost"),2) AS cost \
-    FROM 
-      "$database"."$table"  
+      line_item_product_code, identity_time_interval, round(sum("line_item_unblended_cost"),2) AS cost, \
+      line_item_usage_type, product_memory, product_instance_type, product_vcpu, product_clock_speed \
+    FROM \
+      "$database"."$table" \
     WHERE \
-      resource_tags_user_$tagkey='$tagvalue'
+      resource_tags_user_$tagkey='$tagvalue' \
       AND line_item_usage_end_date > timestamp '$initial_date_time' \
       AND line_item_usage_end_date <= timestamp '$final_date_time' \
-    GROUP BY  1,2" \
---work-group "cur_athena_workgroup" \
+    GROUP BY  1,2,4,5,6,7,8
+    Order by 1, 2" \
+--work-group "$workGroup" \
 --query-execution-context Database=$database,Catalog=$catalog)
 
 executionId=$(echo $queryResults | jq .QueryExecutionId | sed 's/"//g')
