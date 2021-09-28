@@ -1,4 +1,6 @@
 # Changelog
+## 0.10.12
+* Handle type conversion errors for resource metadata
 
 ## 0.10.11
 * rebuild to fix CVEs in alpine:3.14
