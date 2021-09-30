@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.1.4
+* added count field to report
 ## 0.1.3
 * added new fields to report
 ## 0.1.2
