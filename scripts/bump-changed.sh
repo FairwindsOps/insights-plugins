@@ -1,7 +1,7 @@
 #! /bin/bash
 set -eo pipefail
 
-# USAGE: ./scripts/bump-changed.sh "Message to add to the changelog"
+# USAGE: ./scripts/bump-changed.sh "Message to add to the changelog" --force
 message=$1
 force=$2
 
