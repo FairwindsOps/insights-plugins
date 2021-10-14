@@ -34,7 +34,7 @@ func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) 
 }
 
 func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_requests_memory_bytes{container!="POD", container!=""}`
+	query := `kube_pod_container_resource_requests{container!="POD", container!="", unit="byte", resource="memory"}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -46,7 +46,7 @@ func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1
 }
 
 func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_requests_cpu_cores{container!="POD", container!=""}`
+	query := `kube_pod_container_resource_requests{container!="POD", container!="", unit="core", resource="cpu"}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -58,7 +58,7 @@ func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Ra
 }
 
 func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_limits_memory_bytes{container!="POD", container!=""}`
+	query := `kube_pod_container_resource_limits{container!="POD", container!="", unit="byte", resource="memory"}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -70,7 +70,7 @@ func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 }
 
 func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `kube_pod_container_resource_limits_cpu_cores{container!="POD", container!=""}`
+	query := `kube_pod_container_resource_limits{container!="POD", container!="", unit="core", resource="cpu"}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
