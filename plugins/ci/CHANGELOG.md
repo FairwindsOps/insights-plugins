@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.10.13
+* Bump dependencies and rebuild
 ## 0.10.12
 * Handle type conversion errors for resource metadata
 
