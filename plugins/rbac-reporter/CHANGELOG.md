@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.5
+* Bump dependencies and rebuild
+
 ## 1.2.4
 * rebuild to fix CVEs in alpine:3.14
 

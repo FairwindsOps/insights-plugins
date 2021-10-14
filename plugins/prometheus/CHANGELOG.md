@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.4.7
+* Bump dependencies and rebuild
 ## 0.4.6
 * Added Request and Limit values
 * Modify resource id format to cater for new prometheus and kubernetes versions(v1.21.1)
