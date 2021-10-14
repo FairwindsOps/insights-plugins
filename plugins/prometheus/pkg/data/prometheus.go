@@ -22,7 +22,7 @@ import (
 )
 
 func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `container_memory_usage_bytes{image!="", gccontainer!="POD", container!=""}`
+	query := `container_memory_usage_bytes{image!="", container!="POD", container!=""}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -82,7 +82,7 @@ func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Rang
 }
 
 func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `rate(container_cpu_usage_seconds_total{image!="", gccontainer!="POD", container!=""}[2m])`
+	query := `rate(container_cpu_usage_seconds_total{image!="", container!="POD", container!=""}[2m])`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
