@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const outputfolder = "./output"
+const outputfolder = "/output"
 const timestampFormat = "20060102150405"
 
 func inputDataHandler(w http.ResponseWriter, r *http.Request) {
