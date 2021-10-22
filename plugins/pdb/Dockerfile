@@ -12,7 +12,6 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /go/bin/main /go/bin/main
-EXPOSE 8080
 USER 1000
 WORKDIR "/go/bin"
 ENTRYPOINT ["/go/bin/main"]
