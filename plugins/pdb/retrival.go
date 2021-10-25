@@ -15,7 +15,7 @@ func getWorkloads(clientset *kubernetes.Clientset) []Workload {
 
 	deployments, err := clientset.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{}) // get all deployments
 	if err != nil {
-		log.Fatalln(err) // we don't want a partial report, so fail completely
+		log.Fatalln("error getting deployments:", err) // we don't want a partial report, so fail completely
 	} // we have a list of deployments
 	for _, wl := range deployments.Items { // we'll go through each deployment and make it a generic "Workload{}" item
 		workloads = append(workloads, Workload{ // include deployments in the list of workloads we care about
@@ -31,7 +31,7 @@ func getWorkloads(clientset *kubernetes.Clientset) []Workload {
 	// same as deployments, but for replicasets
 	replicasets, err := clientset.AppsV1().ReplicaSets("").List(context.TODO(), metav1.ListOptions{}) // get all replicasets
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("error getting replicasets:", err)
 	}
 	for _, wl := range replicasets.Items {
 		workloads = append(workloads, Workload{ // include replicasets in the list of workloads we care about
@@ -48,7 +48,7 @@ func getWorkloads(clientset *kubernetes.Clientset) []Workload {
 	// same as deployments, but for statefulsets
 	statefulsets, err := clientset.AppsV1().StatefulSets("").List(context.TODO(), metav1.ListOptions{}) // get all statefulsets
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("error getting statefulsets:", err)
 	}
 	for _, wl := range statefulsets.Items {
 		workloads = append(workloads, Workload{ // include statefulsets in the list of workloads we care about
@@ -67,7 +67,7 @@ func getWorkloads(clientset *kubernetes.Clientset) []Workload {
 func getAutoscalers(clientset *kubernetes.Clientset) *autoscalingv1.HorizontalPodAutoscalerList {
 	hpas, err := clientset.AutoscalingV1().HorizontalPodAutoscalers("").List(context.TODO(), metav1.ListOptions{}) // get all hpa
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("error getting autoscalers:", err)
 	}
 	for i := range hpas.Items {
 		hpas.Items[i].APIVersion = "autoscaling/v1"
@@ -80,7 +80,7 @@ func getAutoscalers(clientset *kubernetes.Clientset) *autoscalingv1.HorizontalPo
 func getPdbs(clientset *kubernetes.Clientset) *policyv1.PodDisruptionBudgetList {
 	pdbs, err := clientset.PolicyV1().PodDisruptionBudgets("").List(context.TODO(), metav1.ListOptions{}) // get all pdb
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("error getting policies:", err)
 	}
 	for i := range pdbs.Items {
 		pdbs.Items[i].APIVersion = "policy/v1"
