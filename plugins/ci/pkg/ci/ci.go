@@ -567,19 +567,11 @@ func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFold
 	if err != nil {
 		return err
 	}
-	valuesFile := helm.ValuesFile
-	if valuesFile == "" {
-		valuesFile = tempFolder + "helmValues.yaml"
-		yaml, err := yaml.Marshal(helm.Values)
-		if err != nil {
-			return err
-		}
-		err = ioutil.WriteFile(valuesFile, yaml, 0644)
-		if err != nil {
-			return err
-		}
+	helmValuesFilePath, err := resolveHelmValuesPath(helm, tempFolder)
+	if err != nil {
+		return err
 	}
-	params := []string{"template", helm.Name, chartDownloadPath, "--output-dir", configFolder + helm.Name, "-f", valuesFile}
+	params := []string{"template", helm.Name, chartDownloadPath, "--output-dir", configFolder + helm.Name, "-f", helmValuesFilePath}
 	err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
 		return err
@@ -592,24 +584,33 @@ func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolde
 	if err != nil {
 		return err
 	}
-	valuesFile := helm.ValuesFile
-	if valuesFile == "" {
-		valuesFile = tempFolder + "helmValues.yaml"
-		yaml, err := yaml.Marshal(helm.Values)
-		if err != nil {
-			return err
-		}
-		err = ioutil.WriteFile(valuesFile, yaml, 0644)
-		if err != nil {
-			return err
-		}
+	helmValuesFilePath, err := resolveHelmValuesPath(helm, tempFolder)
+	if err != nil {
+		return err
 	}
-	params := []string{"template", helm.Name, helm.Path, "--output-dir", configFolder + helm.Name, "-f", valuesFile}
+
+	params := []string{"template", helm.Name, helm.Path, "--output-dir", configFolder + helm.Name, "-f", helmValuesFilePath}
 	err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func resolveHelmValuesPath(helm models.HelmConfig, tempFolder string) (string, error) {
+	valuesFilePath := helm.ValuesFile
+	if valuesFilePath == "" {
+		valuesFilePath = tempFolder + "helmValues.yaml"
+		yaml, err := yaml.Marshal(helm.Values)
+		if err != nil {
+			return "", err
+		}
+		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
+		if err != nil {
+			return "", err
+		}
+	}
+	return valuesFilePath, nil
 }
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
