@@ -72,7 +72,7 @@ func main() {
 	}
 
 	if len(configurationObject.Manifests.Helm) > 0 {
-		err := ci.ProcessHelmTemplates(configurationObject, configFolder)
+		err := ci.ProcessHelmTemplates(configurationObject.Manifests.Helm, configurationObject.Options.TempFolder, configFolder)
 		if err != nil {
 			exitWithError("Error while processing helm templates", err)
 		}

@@ -44,6 +44,8 @@ type ManifestConfig struct {
 type HelmConfig struct {
 	Name       string                 `yaml:"name"`
 	Path       string                 `yaml:"path"`
+	Repo       string                 `yaml:"repo"`
+	Chart      string                 `yaml:"chart"`
 	ValuesFile string                 `yaml:"valuesFile"`
 	Values     map[string]interface{} `yaml:"values"`
 }
