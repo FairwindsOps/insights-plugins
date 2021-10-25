@@ -50,6 +50,14 @@ type HelmConfig struct {
 	Values     map[string]interface{} `yaml:"values"`
 }
 
+func (hc *HelmConfig) IsRemote() bool {
+	return hc.Repo != ""
+}
+
+func (hc *HelmConfig) IsLocal() bool {
+	return hc.Path != ""
+}
+
 type reportsConfig struct {
 	Polaris reportConfig `yaml:"polaris"`
 	Pluto   reportConfig `yaml:"pluto"`

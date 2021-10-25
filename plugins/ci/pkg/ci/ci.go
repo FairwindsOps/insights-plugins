@@ -66,17 +66,17 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 			return err
 		}
 		var helmName string
-		for _, helmObject := range configurationObject.Manifests.Helm {
-			if strings.HasPrefix(displayFilename, helmObject.Name+"/") {
+		for _, helm := range configurationObject.Manifests.Helm {
+			if strings.HasPrefix(displayFilename, helm.Name+"/") {
 				parts := strings.Split(displayFilename, "/")
 				parts = parts[2:]
 				displayFilename = strings.Join(parts, "/")
-				if helmObject.Path != "" {
-					displayFilename = filepath.Join(helmObject.Path, displayFilename)
-				} else if helmObject.Repo != "" {
-					displayFilename = filepath.Join(helmObject.Chart, displayFilename)
+				if helm.IsLocal() {
+					displayFilename = filepath.Join(helm.Path, displayFilename)
+				} else if helm.IsRemote() {
+					displayFilename = filepath.Join(helm.Chart, displayFilename)
 				}
-				helmName = helmObject.Name
+				helmName = helm.Name
 			}
 		}
 
@@ -521,21 +521,20 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
 func ProcessHelmTemplates(helmConfigs []models.HelmConfig, tempFolder string, configFolder string) error {
 	for _, helm := range helmConfigs {
-		if helm.Path != "" && helm.Repo != "" {
-			return fmt.Errorf("Error in helm definition %v - It is not possible to use 'path' and 'repo' simultaneously", helm.Name)
+		if helm.IsLocal() && helm.IsRemote() {
+			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
 		}
-		if helm.Path != "" {
+		if helm.IsLocal() {
 			err := handleLocalHelmChart(helm, tempFolder, configFolder)
 			if err != nil {
 				return err
 			}
-		} else {
+		} else if helm.IsRemote() {
 			err := handleRemoteHelmChart(helm, tempFolder, configFolder)
 			if err != nil {
 				return err
 			}
 		}
-
 	}
 	return nil
 }
