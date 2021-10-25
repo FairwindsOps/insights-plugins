@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 
 	"k8s.io/client-go/kubernetes"
@@ -12,7 +13,10 @@ import (
 
 func createClient() *kubernetes.Clientset {
 	// setup client, first by...
-	kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config") // getting ~/.kube/config
+	kubeconfig := os.Getenv("KUBECONFIG")
+	if len(kubeconfig) < 1 {
+		kubeconfig = filepath.Join(homedir.HomeDir(), ".kube", "config") // getting ~/.kube/config
+	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig) // use kubeconfig if possible
 	if err != nil {                                               // otherwise,
