@@ -1,10 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"os"
-)
-
 func main() {
 	clientset := createClient() // setup client to talk to kubernetes api
 
@@ -14,13 +9,7 @@ func main() {
 
 	problemWorkloads := discoverProblematicWorkloads(workloads, pdbs, hpas) // find ones that violate pdb spec
 
-	problemWorkloads = recommendSolution(problemWorkloads)
+	problemWorkloads = recommendSolution(problemWorkloads) // inject remediation recommendations into each object
 
-	if len(problemWorkloads) == 0 { // do nothing if we have no problems
-		fmt.Println("No problems found.")
-		os.Exit(0)
-	}
-
-	// flatOut(problemWorkloads)
-	tableOut(problemWorkloads)
+	jsonOut(problemWorkloads) // print any findings (empty list if none found)
 }
