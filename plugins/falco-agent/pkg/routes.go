@@ -64,6 +64,7 @@ func outputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Conte
 		podName := val.OutputFields["k8s.pod.name"].(string)
 		workload, ok := workloadMap[fmt.Sprintf("%s/%s", namespace, podName)]
 		val.ControllerNamespace = namespace
+		val.PodName = podName
 		if !ok {
 			val.ControllerName, val.ControllerKind = data.GetController(workloads, podName, namespace)
 		} else {
