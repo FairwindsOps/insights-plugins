@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.11.0
+* Add helm remote chart functionality
 ## 0.10.13
 * Bump dependencies and rebuild
 ## 0.10.12
