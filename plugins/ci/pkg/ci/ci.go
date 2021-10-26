@@ -305,10 +305,8 @@ func GetImageSha(path string, configFileName string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		var sha string
 		sha, ok := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"].(string)
 		if !ok {
-			logrus.Warnf("could not find image sha for path: %v, configFileName: %v and body %+v", path, configFileName, jsonBody)
 			return "", nil
 		}
 		return sha, nil
