@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/fairwindsops/insights-plugins/falco/pkg/data"
+	"github.com/fairwindsops/insights-plugins/falco-agent/pkg/data"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,8 +41,15 @@ func outputDataHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	data, err := json.Marshal(payload)
+	output := data.OutputFormat{
+		Output: payload,
+	}
+	data, err := json.Marshal(output)
+	if err != nil {
+		logrus.Errorf("Error on json.Marshal(payload): %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	_, err = w.Write([]byte(data))
 	if err != nil {
 		logrus.Errorf("Error while sending data: %v", err)

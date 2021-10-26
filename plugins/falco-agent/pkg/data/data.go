@@ -2,12 +2,16 @@ package data
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
+	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/falcosecurity/falcosidekick/types"
+	"github.com/sirupsen/logrus"
 )
 
 func isLessThan24hrs(t time.Time) bool {
@@ -58,6 +62,36 @@ func Aggregate24hrsData(dir string) (aggregatedData []types.FalcoPayload, err er
 					return
 				}
 			}
+		}
+	}
+	return
+}
+
+func getController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
+	name = podName
+	kind = "Pod"
+	for _, workload := range workloads {
+		if workload.TopController.GetNamespace() != namespace {
+			continue
+		}
+		for _, pod := range workload.Pods {
+			if pod.GetName() == podName {
+				// Exact match for a pod, go ahead and return
+				name = workload.TopController.GetName()
+				kind = workload.TopController.GetKind()
+				return
+			}
+		}
+		// 5 digit alphanumeric (pod) or strictly numeric segments (cronjob -> job, statefulset). or 9 digit alphanumberic (deployment -> rs)
+		matched, err := regexp.Match(fmt.Sprintf("^%s-([a-z0-9]{5}|[a-z0-9]{9}|[0-9]*)(-[a-z0-9]{5})?$", workload.TopController.GetName()), []byte(podName))
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+		if matched {
+			// Weak match for a pod. Don't return yet in case there's a better match.
+			name = workload.TopController.GetName()
+			kind = workload.TopController.GetKind()
 		}
 	}
 	return
