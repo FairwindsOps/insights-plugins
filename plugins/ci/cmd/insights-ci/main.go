@@ -36,22 +36,24 @@ func exitWithError(message string, err error) {
 func main() {
 	ctx := context.Background()
 	const configFile = "./fairwinds-insights.yaml"
-	configurationObject := models.Configuration{}
 	configHandler, err := os.Open(configFile)
-	if err == nil {
-		configContents, err := ioutil.ReadAll(configHandler)
-		if err != nil {
-			exitWithError("Could not read fairwinds-insights.yaml", err)
+	if err != nil {
+		if os.IsNotExist(err) {
+			exitWithError("Please add fairwinds-insights.yaml to the base of your repository.", nil)
+		} else {
+			exitWithError("Could not open fairwinds-insights.yaml", err)
 		}
-		err = yaml.Unmarshal(configContents, &configurationObject)
-		if err != nil {
-			exitWithError("Could not parse fairwinds-insights.yaml", err)
-		}
-	} else if !os.IsNotExist(err) {
-		exitWithError("Could not open fairwinds-insights.yaml", err)
-	} else {
-		exitWithError("Please add fairwinds-insights.yaml to the base of your repository.", nil)
 	}
+	configContents, err := ioutil.ReadAll(configHandler)
+	if err != nil {
+		exitWithError("Could not read fairwinds-insights.yaml", err)
+	}
+	configurationObject := models.Configuration{}
+	err = yaml.Unmarshal(configContents, &configurationObject)
+	if err != nil {
+		exitWithError("Could not parse fairwinds-insights.yaml", err)
+	}
+
 	configurationObject.SetDefaults()
 	err = configurationObject.CheckForErrors()
 	if err != nil {
@@ -70,7 +72,7 @@ func main() {
 	}
 
 	if len(configurationObject.Manifests.Helm) > 0 {
-		err := ci.ProcessHelmTemplates(configurationObject, configFolder)
+		err := ci.ProcessHelmTemplates(configurationObject.Manifests.Helm, configurationObject.Options.TempFolder, configFolder)
 		if err != nil {
 			exitWithError("Error while processing helm templates", err)
 		}
