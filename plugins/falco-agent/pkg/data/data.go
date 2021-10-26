@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
-	"github.com/falcosecurity/falcosidekick/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +26,7 @@ func deleteOlderFile(filePath string) (err error) {
 	return
 }
 
-func readDataFromFile(fileName string) (payload types.FalcoPayload, err error) {
+func readDataFromFile(fileName string) (payload FalcoOutput, err error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return
@@ -40,7 +39,7 @@ func readDataFromFile(fileName string) (payload types.FalcoPayload, err error) {
 }
 
 // Aggregate24hrsData return aggregated report for the past 24 hours
-func Aggregate24hrsData(dir string) (aggregatedData []types.FalcoPayload, err error) {
+func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
 	tmpfiles, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return
@@ -50,7 +49,7 @@ func Aggregate24hrsData(dir string) (aggregatedData []types.FalcoPayload, err er
 		if file.Mode().IsRegular() {
 			filename := filepath.Join(dir, file.Name())
 			if isLessThan24hrs(file.ModTime()) {
-				var output types.FalcoPayload
+				var output FalcoOutput
 				output, err = readDataFromFile(filename)
 				if err != nil {
 					return
@@ -67,7 +66,8 @@ func Aggregate24hrsData(dir string) (aggregatedData []types.FalcoPayload, err er
 	return
 }
 
-func getController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
+// GetController returns the controller name and kind
+func GetController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
 	name = podName
 	kind = "Pod"
 	for _, workload := range workloads {
