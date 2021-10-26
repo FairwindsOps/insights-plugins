@@ -563,20 +563,9 @@ func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFold
 		return err
 	}
 
-	err = util.RunCommand(exec.Command("helm", "dependency", "update", chartDownloadPath), "Updating dependencies for "+chartFullName)
-	if err != nil {
-		return err
-	}
-	helmValuesFilePath, err := resolveHelmValuesPath(helm, tempFolder)
-	if err != nil {
-		return err
-	}
-	params := []string{"template", helm.Name, chartDownloadPath, "--output-dir", configFolder + helm.Name, "-f", helmValuesFilePath}
-	err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helm.Name)
-	if err != nil {
-		return err
-	}
-	return nil
+	// set helm.Path to the chart downloaded path to be able to reuse handleLocalHelmChart
+	helm.Path = chartDownloadPath
+	return handleLocalHelmChart(helm, tempFolder, configFolder)
 }
 
 func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
@@ -597,18 +586,20 @@ func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolde
 	return nil
 }
 
+// resolveHelmValuesPath file takes precedence over values
 func resolveHelmValuesPath(helm models.HelmConfig, tempFolder string) (string, error) {
-	valuesFilePath := helm.ValuesFile
-	if valuesFilePath == "" {
-		valuesFilePath = tempFolder + "helmValues.yaml"
-		yaml, err := yaml.Marshal(helm.Values)
-		if err != nil {
-			return "", err
-		}
-		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
-		if err != nil {
-			return "", err
-		}
+	if helm.ValuesFile != "" {
+		return helm.ValuesFile, nil
+	}
+
+	valuesFilePath := tempFolder + "helmValues.yaml"
+	yaml, err := yaml.Marshal(helm.Values)
+	if err != nil {
+		return "", err
+	}
+	err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
+	if err != nil {
+		return "", err
 	}
 	return valuesFilePath, nil
 }
@@ -616,7 +607,7 @@ func resolveHelmValuesPath(helm models.HelmConfig, tempFolder string) (string, e
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func CopyYaml(configurationObject models.Configuration, configFolder string) error {
 	for _, path := range configurationObject.Manifests.YamlPaths {
-		err := util.RunCommand(exec.Command("cp", "-r", path, configFolder), "Copying yaml file")
+		err := util.RunCommand(exec.Command("cp", "-r", path, configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}
