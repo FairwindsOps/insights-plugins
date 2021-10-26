@@ -7,16 +7,19 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/fairwindsops/insights-plugins/falco-agent/pkg/data"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 )
 
-const outputfolder = "/output"
+const outputfolder = "./output"
 
 func inputDataHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -62,12 +65,30 @@ func outputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Conte
 	for _, val := range payload {
 		namespace := val.OutputFields["k8s.ns.name"].(string)
 		podName := val.OutputFields["k8s.pod.name"].(string)
+		repository := val.OutputFields["container.image.repository"].(string)
 		workload, ok := workloadMap[fmt.Sprintf("%s/%s", namespace, podName)]
 		val.ControllerNamespace = namespace
 		val.PodName = podName
 		if !ok {
-			val.ControllerName, val.ControllerKind = data.GetController(workloads, podName, namespace)
+			val.ControllerName, val.ControllerKind, val.Container = data.GetController(workloads, podName, namespace, repository)
 		} else {
+			for _, pod := range workload.Pods {
+				// Convert the unstructured object to cluster.
+				var pd corev1.Pod
+				err = runtime.DefaultUnstructuredConverter.
+					FromUnstructured(pod.UnstructuredContent(), &pd)
+				if err != nil {
+					logrus.Errorf("Error Converting Pod: %v", err)
+					continue
+				}
+				if pd.GetName() == podName {
+					for _, ctn := range pd.Spec.Containers {
+						if strings.HasPrefix(ctn.Image, repository) {
+							val.Container = ctn.Name
+						}
+					}
+				}
+			}
 			val.ControllerName = workload.TopController.GetName()
 			val.ControllerKind = workload.TopController.GetKind()
 		}

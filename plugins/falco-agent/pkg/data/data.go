@@ -7,10 +7,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func isLessThan24hrs(t time.Time) bool {
@@ -67,7 +71,7 @@ func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
 }
 
 // GetController returns the controller name and kind
-func GetController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
+func GetController(workloads []controller.Workload, podName, namespace, repository string) (name, kind, container string) {
 	name = podName
 	kind = "Pod"
 	for _, workload := range workloads {
@@ -79,6 +83,19 @@ func GetController(workloads []controller.Workload, podName, namespace string) (
 				// Exact match for a pod, go ahead and return
 				name = workload.TopController.GetName()
 				kind = workload.TopController.GetKind()
+
+				var pd corev1.Pod
+				err := runtime.DefaultUnstructuredConverter.
+					FromUnstructured(pod.UnstructuredContent(), &pd)
+				if err != nil {
+					logrus.Errorf("Error Converting Pod GetController: %v", err)
+					return
+				}
+				for _, ctn := range pd.Spec.Containers {
+					if strings.HasPrefix(ctn.Image, repository) {
+						container = ctn.Name
+					}
+				}
 				return
 			}
 		}

@@ -13,6 +13,7 @@ type OutputFormat struct {
 // FalcoPayload is a struct to map falco event json
 type FalcoOutput struct {
 	PodName             string
+	Container           string
 	ControllerNamespace string
 	ControllerName      string
 	ControllerKind      string
