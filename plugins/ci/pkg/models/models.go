@@ -44,8 +44,18 @@ type ManifestConfig struct {
 type HelmConfig struct {
 	Name       string                 `yaml:"name"`
 	Path       string                 `yaml:"path"`
+	Repo       string                 `yaml:"repo"`
+	Chart      string                 `yaml:"chart"`
 	ValuesFile string                 `yaml:"valuesFile"`
 	Values     map[string]interface{} `yaml:"values"`
+}
+
+func (hc *HelmConfig) IsRemote() bool {
+	return hc.Repo != ""
+}
+
+func (hc *HelmConfig) IsLocal() bool {
+	return hc.Path != ""
 }
 
 type reportsConfig struct {

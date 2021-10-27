@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -65,13 +66,17 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 			return err
 		}
 		var helmName string
-		for _, helmObject := range configurationObject.Manifests.Helm {
-			if strings.HasPrefix(displayFilename, helmObject.Name+"/") {
+		for _, helm := range configurationObject.Manifests.Helm {
+			if strings.HasPrefix(displayFilename, helm.Name+"/") {
 				parts := strings.Split(displayFilename, "/")
 				parts = parts[2:]
 				displayFilename = strings.Join(parts, "/")
-				displayFilename = filepath.Join(helmObject.Path, displayFilename)
-				helmName = helmObject.Name
+				if helm.IsLocal() {
+					displayFilename = filepath.Join(helm.Path, displayFilename)
+				} else if helm.IsRemote() {
+					displayFilename = filepath.Join(helm.Chart, displayFilename)
+				}
+				helmName = helm.Name
 			}
 		}
 
@@ -300,9 +305,10 @@ func GetImageSha(path string, configFileName string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		var sha string
-		configMap := jsonBody.(map[string]interface{})["config"].(map[string]interface{})
-		sha = configMap["Image"].(string)
+		sha, ok := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"].(string)
+		if !ok {
+			return "", nil
+		}
 		return sha, nil
 	}
 	return "", nil
@@ -514,43 +520,95 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 }
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
-func ProcessHelmTemplates(configurationObject models.Configuration, configFolder string) error {
-	for _, helmObject := range configurationObject.Manifests.Helm {
-		err := util.RunCommand(exec.Command("helm", "dependency", "update", helmObject.Path), "Updating dependencies for "+helmObject.Name)
-		if err != nil {
-			return err
+func ProcessHelmTemplates(helmConfigs []models.HelmConfig, tempFolder string, configFolder string) error {
+	for _, helm := range helmConfigs {
+		if helm.IsLocal() && helm.IsRemote() {
+			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
 		}
-
-		params := []string{
-			"template", helmObject.Name,
-			helmObject.Path,
-			"--output-dir",
-			configFolder + helmObject.Name,
-		}
-		valuesFile := helmObject.ValuesFile
-		if valuesFile == "" {
-			valuesFile = configurationObject.Options.TempFolder + "helmValues.yaml"
-			yaml, err := yaml.Marshal(helmObject.Values)
+		if helm.IsLocal() {
+			err := handleLocalHelmChart(helm, tempFolder, configFolder)
 			if err != nil {
 				return err
 			}
-			err = ioutil.WriteFile(valuesFile, yaml, 0644)
-		}
-		params = append(params, "-f", valuesFile)
-
-		err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helmObject.Name)
-		if err != nil {
-			return err
+		} else if helm.IsRemote() {
+			err := handleRemoteHelmChart(helm, tempFolder, configFolder)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
+}
 
+func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
+	if helm.Repo == "" || helm.Chart == "" || helm.Name == "" {
+		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
+	}
+
+	repoName := helm.Chart + "-repo"
+
+	err := util.RunCommand(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
+	if err != nil {
+		return err
+	}
+
+	repoDownloadPath := fmt.Sprintf("%s/downloaded-charts/%s/", tempFolder, repoName)
+	chartDownloadPath := repoDownloadPath + helm.Chart
+	err = os.RemoveAll(chartDownloadPath)
+	if err != nil {
+		return err
+	}
+	chartFullName := fmt.Sprintf("%s/%s", repoName, helm.Chart)
+	err = util.RunCommand(exec.Command("helm", "fetch", chartFullName, "--untar", "--destination", repoDownloadPath), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", helm.Chart, repoName))
+	if err != nil {
+		return err
+	}
+
+	// set helm.Path to the chart downloaded path to be able to reuse handleLocalHelmChart
+	helm.Path = chartDownloadPath
+	return handleLocalHelmChart(helm, tempFolder, configFolder)
+}
+
+func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
+	err := util.RunCommand(exec.Command("helm", "dependency", "update", helm.Path), "Updating dependencies for "+helm.Name)
+	if err != nil {
+		return err
+	}
+	helmValuesFilePath, err := resolveHelmValuesPath(helm, tempFolder)
+	if err != nil {
+		return err
+	}
+
+	params := []string{"template", helm.Name, helm.Path, "--output-dir", configFolder + helm.Name, "-f", helmValuesFilePath}
+	err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helm.Name)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// resolveHelmValuesPath file takes precedence over values
+func resolveHelmValuesPath(helm models.HelmConfig, tempFolder string) (string, error) {
+	if helm.ValuesFile != "" {
+		return helm.ValuesFile, nil
+	}
+
+	valuesFilePath := tempFolder + "helmValues.yaml"
+	yaml, err := yaml.Marshal(helm.Values)
+	if err != nil {
+		return "", err
+	}
+	err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
+	if err != nil {
+		return "", err
+	}
+	return valuesFilePath, nil
 }
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func CopyYaml(configurationObject models.Configuration, configFolder string) error {
 	for _, path := range configurationObject.Manifests.YamlPaths {
-		err := util.RunCommand(exec.Command("cp", "-r", path, configFolder), "Copying yaml file")
+		err := util.RunCommand(exec.Command("cp", "-r", path, configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}
