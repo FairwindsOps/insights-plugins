@@ -5,29 +5,23 @@ import (
 	"encoding/json"
 
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
-	"github.com/fairwindsops/polaris/pkg/kube"
+	fwkube "github.com/fairwindsops/polaris/pkg/kube"
 	"github.com/fairwindsops/polaris/pkg/validator"
-	fwebhook "github.com/fairwindsops/polaris/pkg/webhook"
 
 	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
 )
 
 // GetPolarisReport returns the polaris report for the provided manifest.
-func GetPolarisReport(ctx context.Context, config polarisconfiguration.Configuration, kind string, manifest []byte) (models.ReportInfo, error) {
+func GetPolarisReport(ctx context.Context, config polarisconfiguration.Configuration, manifest []byte) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report: "polaris",
 	}
 	// Scan with Polaris
-	pod, originalObject, err := fwebhook.GetObjectFromRawRequest(manifest)
+	controller, err := fwkube.NewGenericResourceFromBytes(manifest)
 	if err != nil {
 		return report, err
 	}
-	controller, err := kube.NewGenericWorkloadFromPod(pod, originalObject)
-	if err != nil {
-		return report, err
-	}
-	controller.Kind = kind
-	controllerResult, err := validator.ValidateController(ctx, &config, controller)
+	controllerResult, err := validator.ApplyAllSchemaChecks(&config, nil, controller)
 	if err != nil {
 		return report, err
 	}
@@ -35,7 +29,7 @@ func GetPolarisReport(ctx context.Context, config polarisconfiguration.Configura
 	report.Version = validator.PolarisOutputVersion
 	auditData := validator.AuditData{
 		PolarisOutputVersion: validator.PolarisOutputVersion,
-		Results:              []validator.ControllerResult{controllerResult},
+		Results:              []validator.Result{controllerResult},
 	}
 	bytes, err := json.Marshal(auditData)
 	if err != nil {
