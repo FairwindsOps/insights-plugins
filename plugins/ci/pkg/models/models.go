@@ -46,16 +46,22 @@ type HelmConfig struct {
 	Path       string                 `yaml:"path"`
 	Repo       string                 `yaml:"repo"`
 	Chart      string                 `yaml:"chart"`
+	FluxFile   string                 `yaml:"fluxFile"`
+	Version    string                 `yaml:"version"`
 	ValuesFile string                 `yaml:"valuesFile"`
 	Values     map[string]interface{} `yaml:"values"`
 }
 
 func (hc *HelmConfig) IsRemote() bool {
-	return hc.Repo != ""
+	return hc.Repo != "" && !hc.IsFluxFile()
 }
 
 func (hc *HelmConfig) IsLocal() bool {
 	return hc.Path != ""
+}
+
+func (hc *HelmConfig) IsFluxFile() bool {
+	return hc.FluxFile != ""
 }
 
 type reportsConfig struct {
@@ -143,7 +149,7 @@ func maybeAddSlash(input string) string {
 	return input + "/"
 }
 
-// SetDefaults sets configurationd defaults
+// SetDefaults sets configuration defaults
 func (c *Configuration) SetDefaults() {
 	if c.Options.TempFolder == "" {
 		c.Options.TempFolder = "/tmp/_insightsTemp/"
