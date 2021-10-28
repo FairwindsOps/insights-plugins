@@ -82,6 +82,8 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 			}
 		}
 
+		logrus.Infof("%s - %s", helmName, displayFilename)
+
 		file, err := os.Open(path)
 		if err != nil {
 			return err
