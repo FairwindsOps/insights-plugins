@@ -587,7 +587,7 @@ func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder
 		return fmt.Errorf("Could not find required spec.chart.spec.chart in fluxFile %v", helm.FluxFile)
 	}
 
-	repoName := chartName + "-repo"
+	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, helm.Chart)
 
 	err = util.RunCommand(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
 	if err != nil {
@@ -627,7 +627,7 @@ func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFold
 		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
 	}
 
-	repoName := helm.Chart + "-repo"
+	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, helm.Chart)
 
 	err := util.RunCommand(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
 	if err != nil {
