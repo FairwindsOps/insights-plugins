@@ -65,7 +65,7 @@ const testPolarisObject = `
 
 func TestProcessPolaris(t *testing.T) {
 	polarisConfig := polarisconfiguration.Configuration{}
-	report, err := GetPolarisReport(context.TODO(), polarisConfig, "deployment", []byte(testPolarisObject))
+	report, err := GetPolarisReport(context.TODO(), polarisConfig, []byte(testPolarisObject))
 	assert.NoError(t, err)
 	assert.Equal(t, "polaris", report.Report)
 	var results validator.AuditData
