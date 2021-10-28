@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.6
+* Update `label-required` policy example
+
 ## 0.3.5
 * Bump dependencies and rebuild
 

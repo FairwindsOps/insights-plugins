@@ -17,7 +17,6 @@ labelrequired[actionItem] {
     "title": "Label is missing",
     "description": description,
     "severity": severity,
-    "severity": 0.1,
     "remediation": "Add the label",
     "category": "Reliability"
   }
