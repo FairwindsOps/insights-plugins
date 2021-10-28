@@ -95,7 +95,7 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
 		polarisConfig := *configurationObject.Polaris
-		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, kind, input)
+		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, input)
 		if err != nil {
 			return false, nil, nil, err
 		}

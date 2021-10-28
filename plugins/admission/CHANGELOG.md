@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.4.0
+* Update Polaris to the latest version
 ## 0.3.6
 * Bump dependencies and rebuild
 
