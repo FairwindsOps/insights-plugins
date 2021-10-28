@@ -76,13 +76,11 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 				} else if helm.IsRemote() {
 					displayFilename = filepath.Join(helm.Chart, displayFilename)
 				} else if helm.IsFluxFile() {
-					displayFilename = filepath.Join(helm.FluxFile, displayFilename)
+					displayFilename = filepath.Join(helm.Name, displayFilename)
 				}
 				helmName = helm.Name
 			}
 		}
-
-		logrus.Infof("%s - %s", helmName, displayFilename)
 
 		file, err := os.Open(path)
 		if err != nil {
