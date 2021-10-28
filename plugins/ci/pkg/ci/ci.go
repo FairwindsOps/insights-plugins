@@ -561,8 +561,8 @@ func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder
 		return fmt.Errorf("Unable to read file %v: %v", helm.FluxFile, err)
 	}
 
-	// Ideally it should use https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io%2fv1
-	// But.. the attempt was not possible due to unable to parse v1.Duration successfully
+	// Ideally we should use https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io%2fv1
+	// However, the attempt was not possible due to being unable to parse `v1.Duration` successfully
 	type HelmReleaseModel struct {
 		Spec struct {
 			Chart struct {
@@ -615,7 +615,6 @@ func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder
 		logrus.Warnf("fluxFile: %v - spec.valuesFrom not supported, it won't be applied...", helm.FluxFile)
 	}
 
-	// set helm.Path to the chart downloaded path to be able to reuse doHandleLocalHelmChart
 	helmValuesFilePath, err := resolveHelmValuesPath(helm.ValuesFile, helm.Values, helmRelease.Spec.Values, tempFolder)
 	if err != nil {
 		return err
@@ -701,7 +700,6 @@ func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, flu
 	}
 
 	if hasValues {
-		// map -> yaml -> file
 		yaml, err := yaml.Marshal(values)
 		if err != nil {
 			return "", err
@@ -715,7 +713,6 @@ func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, flu
 	}
 
 	if hasFluxValues {
-		// map -> yaml -> file
 		yaml, err := yaml.Marshal(fluxValues)
 		if err != nil {
 			return "", err
