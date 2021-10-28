@@ -72,4 +72,5 @@ func TestProcessPolaris(t *testing.T) {
 	err = json.Unmarshal(report.Contents, &results)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(results.Results))
+	assert.Equal(t, "Deployment", results.Results[0].Kind)
 }
