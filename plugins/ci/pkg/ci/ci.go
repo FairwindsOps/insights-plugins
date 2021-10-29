@@ -524,6 +524,9 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
 func ProcessHelmTemplates(helmConfigs []models.HelmConfig, tempFolder string, configFolder string) error {
 	for _, helm := range helmConfigs {
+		if helm.IsLocal() && helm.IsRemote() {
+			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
+		}
 		if helm.IsLocal() {
 			err := handleLocalHelmChart(helm, tempFolder, configFolder)
 			if err != nil {
