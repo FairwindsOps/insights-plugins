@@ -53,7 +53,7 @@ type HelmConfig struct {
 }
 
 func (hc *HelmConfig) IsRemote() bool {
-	return hc.Repo != "" && !hc.IsFluxFile()
+	return hc.Repo != ""
 }
 
 func (hc *HelmConfig) IsLocal() bool {

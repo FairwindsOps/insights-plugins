@@ -74,9 +74,11 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 				if helm.IsLocal() {
 					displayFilename = filepath.Join(helm.Path, displayFilename)
 				} else if helm.IsRemote() {
-					displayFilename = filepath.Join(helm.Chart, displayFilename)
-				} else if helm.IsFluxFile() {
-					displayFilename = filepath.Join(helm.Name, displayFilename)
+					if helm.IsFluxFile() {
+						displayFilename = filepath.Join(helm.Name, displayFilename)
+					} else {
+						displayFilename = filepath.Join(helm.Chart, displayFilename)
+					}
 				}
 				helmName = helm.Name
 			}
@@ -533,14 +535,16 @@ func ProcessHelmTemplates(helmConfigs []models.HelmConfig, tempFolder string, co
 				return err
 			}
 		} else if helm.IsRemote() {
-			err := handleRemoteHelmChart(helm, tempFolder, configFolder)
-			if err != nil {
-				return err
-			}
-		} else if helm.IsFluxFile() {
-			err := handleFluxHelmChart(helm, tempFolder, configFolder)
-			if err != nil {
-				return err
+			if helm.IsFluxFile() {
+				err := handleFluxHelmChart(helm, tempFolder, configFolder)
+				if err != nil {
+					return err
+				}
+			} else {
+				err := handleRemoteHelmChart(helm, tempFolder, configFolder)
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			return fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name)
