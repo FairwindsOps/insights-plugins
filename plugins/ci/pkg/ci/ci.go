@@ -594,9 +594,22 @@ func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder
 		return fmt.Errorf("Could not find required spec.chart.spec.chart in fluxFile %v", helm.FluxFile)
 	}
 
-	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, helm.Chart)
+	if len(helmRelease.Spec.ValuesFrom) > 0 {
+		logrus.Warnf("fluxFile: %v - spec.valuesFrom not supported, it won't be applied...", helm.FluxFile)
+	}
+	return doHandleRemoteHelmChart(helm.Name, helm.Repo, chartName, helmRelease.Spec.Chart.Spec.Version, helm.ValuesFile, helm.Values, helmRelease.Spec.Values, tempFolder, configFolder)
+}
 
-	err = util.RunCommand(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
+func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
+	if helm.Name == "" || helm.Chart == "" || helm.Repo == "" {
+		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
+	}
+	return doHandleRemoteHelmChart(helm.Name, helm.Repo, helm.Chart, helm.Version, helm.ValuesFile, helm.Values, nil, tempFolder, configFolder)
+}
+
+func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesFile string, values, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
+	repoName := fmt.Sprintf("%s-%s-repo", helmName, chartName)
+	err := util.RunCommand(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
 	if err != nil {
 		return err
 	}
@@ -607,9 +620,8 @@ func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder
 	chartFullName := fmt.Sprintf("%s/%s", repoName, chartName)
 	params := []string{"fetch", chartFullName, "--untar", "--destination", repoDownloadPath}
 
-	version := helmRelease.Spec.Chart.Spec.Version
-	if version != "" {
-		params = append(params, "--version", version)
+	if chartVersion != "" {
+		params = append(params, "--version", chartVersion)
 	} else {
 		logrus.Infof("version for chart %v not found, using latest...", chartFullName)
 	}
@@ -618,50 +630,11 @@ func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder
 		return err
 	}
 
-	if len(helmRelease.Spec.ValuesFrom) > 0 {
-		logrus.Warnf("fluxFile: %v - spec.valuesFrom not supported, it won't be applied...", helm.FluxFile)
-	}
-
-	helmValuesFilePath, err := resolveHelmValuesPath(helm.ValuesFile, helm.Values, helmRelease.Spec.Values, tempFolder)
+	helmValuesFilePath, err := resolveHelmValuesPath(valuesFile, values, fluxValues, tempFolder)
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm.Name, chartDownloadPath, helmValuesFilePath, tempFolder, configFolder)
-}
-
-func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
-	if helm.Name == "" || helm.Chart == "" || helm.Repo == "" {
-		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
-	}
-
-	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, helm.Chart)
-
-	err := util.RunCommand(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
-	if err != nil {
-		return err
-	}
-
-	repoDownloadPath := fmt.Sprintf("%s/downloaded-charts/%s/", tempFolder, repoName)
-	chartDownloadPath := repoDownloadPath + helm.Chart
-
-	chartFullName := fmt.Sprintf("%s/%s", repoName, helm.Chart)
-	params := []string{"fetch", chartFullName, "--untar", "--destination", repoDownloadPath}
-	version := helm.Version
-	if version != "" {
-		params = append(params, "--version", version)
-	} else {
-		logrus.Infof("version for chart %v not found, using latest...", chartFullName)
-	}
-	err = util.RunCommand(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", helm.Chart, repoName))
-	if err != nil {
-		return err
-	}
-
-	helmValuesFilePath, err := resolveHelmValuesPath(helm.ValuesFile, helm.Values, nil, tempFolder)
-	if err != nil {
-		return err
-	}
-	return doHandleLocalHelmChart(helm.Name, chartDownloadPath, helmValuesFilePath, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helmName, chartDownloadPath, helmValuesFilePath, tempFolder, configFolder)
 }
 
 func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
