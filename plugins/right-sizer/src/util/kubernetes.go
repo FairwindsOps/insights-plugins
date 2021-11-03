@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	listersV1 "k8s.io/client-go/listers/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc" // needed for local development with .kube/config
@@ -13,7 +14,7 @@ import (
 )
 
 // Clientset abstracts the cluster config loading both locally and on Kubernetes
-func Clientset() kubernetes.Interface {
+func Clientset() (kubernetes.Interface, dynamic.Interface) {
 	// Try to load in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -31,7 +32,12 @@ func Clientset() kubernetes.Interface {
 		glog.Fatalf("Failed to create kubernetes client: %v", err)
 	}
 
-	return client
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		glog.Fatalf("Error creating dynamic kubernetes client: %v", err)
+	}
+
+	return client, dynamicClient
 }
 
 type PodLister interface {

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
+	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -41,7 +41,7 @@ type eventUpdateGroup struct {
 
 // NewController returns an instance of the Controller
 func NewController(stop chan struct{}) *Controller {
-	k8sClient := util.Clientset()
+	k8sClient, k8sDynamicClient := util.Clientset()
 	k8sFactory := informers.NewSharedInformerFactory(k8sClient, time.Minute*informerSyncMinute)
 
 	eventBroadcaster := record.NewBroadcaster()
