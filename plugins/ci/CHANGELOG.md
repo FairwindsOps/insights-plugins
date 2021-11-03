@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.11.1
+* Bump go modules
+
 ## 0.11.0
 * Add helm remote chart functionality
 ## 0.10.13
