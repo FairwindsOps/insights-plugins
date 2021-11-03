@@ -7,6 +7,8 @@ import (
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -25,6 +27,7 @@ const (
 // when a container reports it was previously killed
 type Controller struct {
 	Stop           chan struct{}
+	dynamicClient  dynamic.Interface
 	k8sFactory     informers.SharedInformerFactory
 	podLister      util.PodLister
 	recorder       record.EventRecorder
@@ -32,6 +35,7 @@ type Controller struct {
 	stopCh         chan struct{}
 	eventAddedCh   chan *core.Event
 	eventUpdatedCh chan *eventUpdateGroup
+	RESTMapper     meta.RESTMapper
 }
 
 type eventUpdateGroup struct {
@@ -41,7 +45,7 @@ type eventUpdateGroup struct {
 
 // NewController returns an instance of the Controller
 func NewController(stop chan struct{}) *Controller {
-	k8sClient, k8sDynamicClient := util.Clientset()
+	k8sClient, dynamicClient, RESTMapper := util.Clientset()
 	k8sFactory := informers.NewSharedInformerFactory(k8sClient, time.Minute*informerSyncMinute)
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -52,6 +56,8 @@ func NewController(stop chan struct{}) *Controller {
 		stopCh:         make(chan struct{}),
 		Stop:           stop,
 		k8sFactory:     k8sFactory,
+		dynamicClient:  dynamicClient,
+		RESTMapper:     RESTMapper,
 		podLister:      k8sFactory.Core().V1().Pods().Lister(),
 		eventAddedCh:   make(chan *core.Event),
 		eventUpdatedCh: make(chan *eventUpdateGroup),
