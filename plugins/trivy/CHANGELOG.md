@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.7
+* Bump go modules
+
 ## 0.14.6
 * Bump dependencies and rebuild
 

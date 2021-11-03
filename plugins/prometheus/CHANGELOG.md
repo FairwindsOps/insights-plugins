@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.4.9
+* Bump go modules
 ## 0.4.8
 * Stop skipping data for non-/kubepod prefixes
 

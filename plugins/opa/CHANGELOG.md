@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.7
+* Bump go modules
+
 ## 0.3.6
 * Update `label-required` policy example
 

@@ -225,8 +225,8 @@ github.com/evanphx/json-patch v4.11.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQL
 github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d/go.mod h1:ZZMPRZwes7CROmyNKgQzC3XPs6L/G2EJLHddWejkmf4=
 github.com/fairwindsops/pluto/v3 v3.5.4 h1:5ZXMk2YohI9li+0mUAhW8UKjHx8OhHefEWz+oY2+WLA=
 github.com/fairwindsops/pluto/v3 v3.5.4/go.mod h1:hkwElNkIH7WJv/UoU+Mv1wPwGgpBuviCXqh7RjjlOfQ=
-github.com/fairwindsops/polaris v0.0.0-20211026182130-e31f3f1b4156 h1:bcygVx+x+Hm3Hnzpf4PexJW/MJCMsFCm6eQch4yjjuU=
-github.com/fairwindsops/polaris v0.0.0-20211026182130-e31f3f1b4156/go.mod h1:7G06HSMIQVAWNISygm7XBuYgOtmJaHGrfJRe0hTbb/c=
+github.com/fairwindsops/polaris v0.0.0-20211103123229-268f0e681111 h1:iY9Q2MSRMEcSJv/XXETJFMmW/zLh0OEZ3DGvhPTf8FQ=
+github.com/fairwindsops/polaris v0.0.0-20211103123229-268f0e681111/go.mod h1:7G06HSMIQVAWNISygm7XBuYgOtmJaHGrfJRe0hTbb/c=
 github.com/fatih/camelcase v1.0.0/go.mod h1:yN2Sb0lFhZJUdVvtELVWefmrXpuZESvPmqwoZc+/fpc=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
@@ -1326,8 +1326,9 @@ k8s.io/apiextensions-apiserver v0.22.2 h1:zK7qI8Ery7j2CaN23UCFaC1hj7dMiI87n01+nK
 k8s.io/apiextensions-apiserver v0.22.2/go.mod h1:2E0Ve/isxNl7tWLSUDgi6+cmwHi5fQRdwGVCxbC+KFA=
 k8s.io/apimachinery v0.17.2/go.mod h1:b9qmWdKlLuU9EBh+06BtLcSf/Mu89rWL33naRxs1uZg=
 k8s.io/apimachinery v0.17.4/go.mod h1:gxLnyZcGNdZTCLnq3fgzyg2A5BVCHTNDFrw8AmuJ+0g=
-k8s.io/apimachinery v0.22.2 h1:ejz6y/zNma8clPVfNDLnPbleBo6MpoFy/HBiBqCouVk=
 k8s.io/apimachinery v0.22.2/go.mod h1:O3oNtNadZdeOMxHFVxOreoznohCpy0z6mocxbZr7oJ0=
+k8s.io/apimachinery v0.22.3 h1:mrvBG5CZnEfwgpVqWcrRKvdsYECTrhAR6cApAgdsflk=
+k8s.io/apimachinery v0.22.3/go.mod h1:O3oNtNadZdeOMxHFVxOreoznohCpy0z6mocxbZr7oJ0=
 k8s.io/apiserver v0.17.2/go.mod h1:lBmw/TtQdtxvrTk0e2cgtOxHizXI+d0mmGQURIHQZlo=
 k8s.io/apiserver v0.22.2/go.mod h1:vrpMmbyjWrgdyOvZTSpsusQq5iigKNWv9o9KlDAbBHI=
 k8s.io/cli-runtime v0.17.2/go.mod h1:aa8t9ziyQdbkuizkNLAw3qe3srSyWh9zlSB7zTqRNPI=
