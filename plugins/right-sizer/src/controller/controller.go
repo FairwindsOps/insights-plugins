@@ -167,14 +167,23 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			ProcessedContainerUpdates.WithLabelValues("oomkilled_termination_too_old").Inc()
 			continue
 		}
-
+		var containerInfo core.Container
+		for _, container := range pod.Spec.Containers {
+			if container.Name == s.Name {
+				containerInfo = container
+			}
+		}
+		containerMemoryLimit := containerInfo.Resources.Limits.Memory()
+		doubledContainerMemoryLimit := containerInfo.Resources.Limits.Memory()
+		doubledContainerMemoryLimit.Add(*containerMemoryLimit)
+		c.recorder.Eventf(pod, core.EventTypeWarning, "PreviousContainerWasOOMKilled", "The previous instance of the container '%s' (%s) was OOMKilled", s.Name, s.ContainerID)
+		ProcessedContainerUpdates.WithLabelValues("oomkilled_event_sent").Inc()
 		podControllerObject, err := c.getPodController(pod)
 		if err != nil {
 			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
-		c.recorder.Eventf(pod, core.EventTypeWarning, "PreviousContainerWasOOMKilled", "The previous instance of the container '%s' (%s) was OOMKilled", s.Name, s.ContainerID)
-		ProcessedContainerUpdates.WithLabelValues("oomkilled_event_sent").Inc()
 		glog.Infof("Pod %s/%s is owned by %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
+		glog.Infof("Container %s has memory  limit %v, if we doubled that it would be %v", containerInfo.Name, containerMemoryLimit, doubledContainerMemoryLimit)
 	}
 }
 
