@@ -1,13 +1,17 @@
 package controller
 
 import (
+	"context"
+	"encoding/json"
 	"reflect"
 	"time"
 
+	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -164,7 +168,35 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			continue
 		}
 
+		podControllerObject, err := c.getPodController(pod)
+		if err != nil {
+			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
+		}
 		c.recorder.Eventf(pod, core.EventTypeWarning, "PreviousContainerWasOOMKilled", "The previous instance of the container '%s' (%s) was OOMKilled", s.Name, s.ContainerID)
 		ProcessedContainerUpdates.WithLabelValues("oomkilled_event_sent").Inc()
+		glog.Infof("Pod %s/%s is owned by %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
 	}
+}
+
+// GetPodController accepts a typed pod object, and returns the pod-controller
+// which owns the pod.
+func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured, error) {
+	podJSON, err := json.Marshal(pod)
+	if err != nil {
+		return nil, err
+	}
+	objectAsMap := make(map[string]interface{})
+	err = json.Unmarshal(podJSON, &objectAsMap)
+	if err != nil {
+		return nil, err
+	}
+	unstructuredPod := unstructured.Unstructured{
+		Object: objectAsMap,
+	}
+	topController, err := fwControllerUtils.GetTopController(context.TODO(), c.dynamicClient, c.RESTMapper, unstructuredPod, nil)
+	if err != nil {
+		return nil, err
+	}
+	glog.Infof("found controller kind %q named %q", topController.GetKind(), topController.GetName())
+	return &topController, nil
 }

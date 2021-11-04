@@ -1,6 +1,7 @@
 module github.com/fairwindsops/insights-plugins/right-sizer
 
 require (
+	github.com/fairwindsops/controller-utils v0.1.0 // indirect
 	github.com/go-openapi/spec v0.19.3 // indirect
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -16,6 +17,7 @@ require (
 	github.com/prometheus/common v0.27.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56 // indirect
+	golang.org/x/tools v0.1.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	k8s.io/api v0.22.2
