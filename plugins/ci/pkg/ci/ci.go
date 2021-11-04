@@ -75,7 +75,7 @@ func GetAllResources(configDir string, configurationObject models.Configuration)
 					displayFilename = filepath.Join(helm.Path, displayFilename)
 				} else if helm.IsRemote() {
 					if helm.IsFluxFile() {
-						displayFilename = filepath.Join(helm.Name, displayFilename)
+						displayFilename = filepath.Join(helm.FluxFile, displayFilename)
 					} else {
 						displayFilename = filepath.Join(helm.Chart, displayFilename)
 					}
