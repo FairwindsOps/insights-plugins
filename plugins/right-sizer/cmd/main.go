@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/golang/glog"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/controller"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
+	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var opts struct {
@@ -28,7 +28,11 @@ func main() {
 	}
 
 	stopChan := make(chan struct{})
-	util.InstallSignalHandler(stopChan)
+	/*ifetch: This was in the original oom-kill-event-generator code, but ends
+	* up causing the same channel be closed twice.
+	This created a panic when a signal (SIGTerm) was received.
+	This is now commented out, in favor of the channel being closed below via the struct member.*/
+	// util.InstallSignalHandler(stopChan)
 
 	eventGenerator := controller.NewController(stopChan)
 	util.InstallSignalHandler(eventGenerator.Stop)
