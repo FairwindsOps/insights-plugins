@@ -142,10 +142,7 @@
                                                                 }
                                                             ]
                                                         }
-                                                    },
-                                                    "required": [
-                                                        "advise"
-                                                    ]
+                                                    }
                                                 }
                                             },
                                             "required": [
