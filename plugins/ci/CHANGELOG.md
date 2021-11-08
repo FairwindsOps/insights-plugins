@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.12.0
+* Add helm `fluxFile` and `version` support
 ## 0.11.0
 * Add helm remote chart functionality
 ## 0.10.13
