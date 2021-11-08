@@ -38,7 +38,8 @@ func main() {
 	util.InstallSignalHandler(eventGenerator.Stop)
 
 	http.Handle("/metrics", promhttp.Handler())
-	addr := fmt.Sprintf("0.0.0.0:10254")
+	// addr := fmt.Sprintf("0.0.0.0:10254")
+	addr := fmt.Sprintf("localhost:10254")
 	go func() { glog.Fatal(http.ListenAndServe(addr, nil)) }()
 
 	err := eventGenerator.Run()
