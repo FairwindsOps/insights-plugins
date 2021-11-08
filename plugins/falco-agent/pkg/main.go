@@ -22,10 +22,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	r.HandleFunc("/data", inputDataHandler).Methods(http.MethodPost)
-	r.HandleFunc("/output", func(w http.ResponseWriter, r *http.Request) {
-		outputDataHandler(w, r, context.Background(), dynamic, restMapper)
-	}).Methods(http.MethodGet)
+	r.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
+		inputDataHandler(w, r, context.Background(), dynamic, restMapper)
+	}).Methods(http.MethodPost)
+	r.HandleFunc("/output", outputDataHandler).Methods(http.MethodGet)
 	srv := &http.Server{
 		Handler: r,
 		Addr:    fmt.Sprintf(":%s", port),

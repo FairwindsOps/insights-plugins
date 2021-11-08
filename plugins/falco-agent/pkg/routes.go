@@ -21,7 +21,7 @@ import (
 
 const outputfolder = "/output"
 
-func inputDataHandler(w http.ResponseWriter, r *http.Request) {
+func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) {
 	w.Header().Set("Content-Type", "application/json")
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -29,9 +29,57 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	var output data.FalcoOutput
+
+	err = json.Unmarshal(payload, &output)
+	if err != nil {
+		logrus.Errorf("Error unmarshalling body: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	namespace := output.OutputFields["k8s.ns.name"].(string)
+	podName := output.OutputFields["k8s.pod.name"].(string)
+	repository := output.OutputFields["container.image.repository"].(string)
+	pod, err := data.GetPodByPodName(ctx, dynamicClient, restMapper, namespace, podName)
+	if err != nil {
+		logrus.Errorf("Error retrieving pod using podname: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	controller, err := controller.GetTopController(ctx, dynamicClient, restMapper, *pod, nil)
+	if err != nil {
+		logrus.Errorf("Error retrieving Top Controller using podname: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	output.ControllerName = controller.GetName()
+	output.ControllerKind = controller.GetKind()
+
+	var pd corev1.Pod
+	err = runtime.DefaultUnstructuredConverter.
+		FromUnstructured(pod.UnstructuredContent(), &pd)
+	if err != nil {
+		logrus.Errorf("Error Converting Pod: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, ctn := range pd.Spec.Containers {
+		if strings.HasPrefix(ctn.Image, repository) {
+			output.Container = ctn.Name
+		}
+	}
+
+	pyload, err := json.Marshal(output)
+	if err != nil {
+		logrus.Errorf("Error Converting Pod: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	outputFile := fmt.Sprintf("%s/%s.json", outputfolder, strconv.FormatInt(time.Now().Unix(), 10))
-	err = ioutil.WriteFile(outputFile, []byte(payload), 0644)
+	err = ioutil.WriteFile(outputFile, []byte(pyload), 0644)
 	if err != nil {
 		logrus.Errorf("Error writting to file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -40,7 +88,7 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status": "ok"}`))
 }
 
-func outputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) {
+func outputDataHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	payload, err := data.Aggregate24hrsData(outputfolder)
 	if err != nil {
@@ -48,54 +96,9 @@ func outputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Conte
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	requestArray := make([]data.FalcoOutput, 0, len(payload))
 
-	workloads, err := controller.GetAllTopControllers(ctx, dynamicClient, restMapper, "")
-	if err != nil {
-		logrus.Errorf("Error while getting all TopControllers: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	workloadMap := make(map[string]controller.Workload)
-	for _, workload := range workloads {
-		for _, pod := range workload.Pods {
-			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = workload
-		}
-	}
-	for _, val := range payload {
-		namespace := val.OutputFields["k8s.ns.name"].(string)
-		podName := val.OutputFields["k8s.pod.name"].(string)
-		repository := val.OutputFields["container.image.repository"].(string)
-		workload, ok := workloadMap[fmt.Sprintf("%s/%s", namespace, podName)]
-		val.ControllerNamespace = namespace
-		val.PodName = podName
-		if !ok {
-			val.ControllerName, val.ControllerKind, val.Container = data.GetController(workloads, podName, namespace, repository)
-		} else {
-			for _, pod := range workload.Pods {
-				// Convert the unstructured object to cluster.
-				var pd corev1.Pod
-				err = runtime.DefaultUnstructuredConverter.
-					FromUnstructured(pod.UnstructuredContent(), &pd)
-				if err != nil {
-					logrus.Errorf("Error Converting Pod: %v", err)
-					continue
-				}
-				if pd.GetName() == podName {
-					for _, ctn := range pd.Spec.Containers {
-						if strings.HasPrefix(ctn.Image, repository) {
-							val.Container = ctn.Name
-						}
-					}
-				}
-			}
-			val.ControllerName = workload.TopController.GetName()
-			val.ControllerKind = workload.TopController.GetKind()
-		}
-		requestArray = append(requestArray, val)
-	}
 	output := data.OutputFormat{
-		Output: requestArray,
+		Output: payload,
 	}
 	data, err := json.Marshal(output)
 	if err != nil {
