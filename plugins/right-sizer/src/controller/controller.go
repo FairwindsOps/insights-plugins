@@ -7,6 +7,7 @@ import (
 	"time"
 
 	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
+	"github.com/fairwindsops/insights-plugins/right-sizer/src/report"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
@@ -30,16 +31,17 @@ const (
 // Controller is a controller that listens on Pod changes and create Kubernetes Events
 // when a container reports it was previously killed
 type Controller struct {
-	Stop           chan struct{}
-	dynamicClient  dynamic.Interface
-	k8sFactory     informers.SharedInformerFactory
-	podLister      util.PodLister
-	recorder       record.EventRecorder
-	startTime      time.Time
-	stopCh         chan struct{}
-	eventAddedCh   chan *core.Event
-	eventUpdatedCh chan *eventUpdateGroup
-	RESTMapper     meta.RESTMapper
+	Stop             chan struct{}
+	dynamicClient    dynamic.Interface
+	k8sFactory       informers.SharedInformerFactory
+	podLister        util.PodLister
+	recorder         record.EventRecorder
+	startTime        time.Time
+	stopCh           chan struct{}
+	eventAddedCh     chan *core.Event
+	eventUpdatedCh   chan *eventUpdateGroup
+	RESTMapper       meta.RESTMapper
+	reportProperties *report.RightSizerReportProperties
 }
 
 type eventUpdateGroup struct {
@@ -57,16 +59,17 @@ func NewController(stop chan struct{}) *Controller {
 	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
 
 	controller := &Controller{
-		stopCh:         make(chan struct{}),
-		Stop:           stop,
-		k8sFactory:     k8sFactory,
-		dynamicClient:  dynamicClient,
-		RESTMapper:     RESTMapper,
-		podLister:      k8sFactory.Core().V1().Pods().Lister(),
-		eventAddedCh:   make(chan *core.Event),
-		eventUpdatedCh: make(chan *eventUpdateGroup),
-		recorder:       eventBroadcaster.NewRecorder(scheme.Scheme, core.EventSource{Component: "oom-event-generator"}),
-		startTime:      time.Now(),
+		stopCh:           make(chan struct{}),
+		Stop:             stop,
+		k8sFactory:       k8sFactory,
+		dynamicClient:    dynamicClient,
+		RESTMapper:       RESTMapper,
+		podLister:        k8sFactory.Core().V1().Pods().Lister(),
+		eventAddedCh:     make(chan *core.Event),
+		eventUpdatedCh:   make(chan *eventUpdateGroup),
+		recorder:         eventBroadcaster.NewRecorder(scheme.Scheme, core.EventSource{Component: "oom-event-generator"}),
+		startTime:        time.Now(),
+		reportProperties: report.NewRightSizerReportProperties(),
 	}
 
 	eventsInformer := informers.SharedInformerFactory(k8sFactory).Core().V1().Events().Informer()
@@ -184,6 +187,18 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		}
 		glog.Infof("Pod %s/%s is owned by %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
 		glog.Infof("Container %s has memory  limit %v, if we doubled that it would be %v", containerInfo.Name, containerMemoryLimit, doubledContainerMemoryLimit)
+		var reportItem report.RightSizerReportItem
+		reportItem.Kind = podControllerObject.GetKind()
+		reportItem.ResourceNamespace = podControllerObject.GetNamespace()
+		reportItem.ResourceName = podControllerObject.GetName()
+		reportItem.ResourceContainer = containerInfo.Name
+		reportItem.StartingMemory = containerMemoryLimit
+		reportItem.EndingMemory = containerMemoryLimit // same as limit for now
+		glog.Infof("Constructed report item: %+v\n", reportItem)
+		if !c.reportProperties.AlreadyHave(reportItem) {
+			glog.Infof("Item %s is new", reportItem)
+			c.reportProperties.AddItem(reportItem)
+		}
 	}
 }
 
