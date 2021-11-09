@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.9
+* update schema
+
 ## 1.3.8
 * rebuild to fix CVEs in alpine:3.14
 
