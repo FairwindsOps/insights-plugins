@@ -1,6 +1,7 @@
 package report
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +10,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	core "k8s.io/api/core/v1"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Should we import from github.com/fairwindsops/insights/pkg/reports instead
@@ -129,4 +134,54 @@ func (b RightSizerReportBuilder) RunServer() {
 	b.HTTPServer.Addr = "localhost:8080" // should become a parameter to this function
 	go func() { glog.Fatal(b.HTTPServer.ListenAndServe()) }()
 
+}
+
+func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface, namespaceName, configMapName string) error {
+	updateTime := time.Now().String()
+	var configMap *core.ConfigMap
+	reportBytes, err := b.GetReportJSON()
+	if err != nil {
+		return err
+	}
+	reportJSON := string(reportBytes)
+	configMaps := kubeClient.CoreV1().ConfigMaps(namespaceName)
+	configMap, err = configMaps.Get(context.TODO(), configMapName, meta.GetOptions{})
+	if err == nil {
+		// Update the report and time-stamp annotation.
+		configMap.Data["report"] = reportJSON
+		if configMap.ObjectMeta.Annotations == nil {
+			configMap.ObjectMeta.Annotations = make(map[string]string)
+		}
+		configMap.ObjectMeta.Annotations["last-updated"] = updateTime
+		_, err = configMaps.Update(context.TODO(), configMap, meta.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("unable to update ConfigMap %s/%s to save report: %w", namespaceName, configMapName, err)
+		}
+	}
+
+	if kube_errors.IsNotFound(err) {
+		// No ConfigMap in-cluster, create one.
+		configMap = &core.ConfigMap{
+			ObjectMeta: meta.ObjectMeta{
+				Namespace: namespaceName,
+				Name:      configMapName,
+				Annotations: map[string]string{
+					"last-updated": updateTime,
+				},
+			},
+			Data: map[string]string{
+				"report": reportJSON,
+			},
+		}
+		_, err = configMaps.Create(context.TODO(), configMap, meta.CreateOptions{})
+		if err != nil {
+			return fmt.Errorf("unable to create ConfigMap %s/%s to save report: %w", namespaceName, configMapName, err)
+		}
+	}
+
+	if err != nil && !kube_errors.IsNotFound(err) {
+		// An unexpected error
+		return fmt.Errorf("unable to get ConfigMap %s/%s to save report: %w", namespaceName, configMapName, err)
+	}
+	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -32,6 +33,7 @@ const (
 // when a container reports it was previously killed
 type Controller struct {
 	Stop           chan struct{}
+	client         kubernetes.Interface
 	dynamicClient  dynamic.Interface
 	k8sFactory     informers.SharedInformerFactory
 	podLister      util.PodLister
@@ -62,6 +64,7 @@ func NewController(stop chan struct{}) *Controller {
 		stopCh:         make(chan struct{}),
 		Stop:           stop,
 		k8sFactory:     k8sFactory,
+		client:         k8sClient,
 		dynamicClient:  dynamicClient,
 		RESTMapper:     RESTMapper,
 		podLister:      k8sFactory.Core().V1().Pods().Lister(),
@@ -199,7 +202,11 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		if !c.reportBuilder.AlreadyHave(reportItem) {
 			glog.Infof("Item %s is new", reportItem)
 			c.reportBuilder.AddItem(reportItem)
-			c.reportBuilder.WriteOutputFile()
+			// TODO: The namespace and ConfigMap name should be configurable.
+			err := c.reportBuilder.WriteConfigMap(c.client, "right-sizer", "right-sizer-state")
+			if err != nil {
+				glog.Error(err)
+			}
 		}
 	}
 }
