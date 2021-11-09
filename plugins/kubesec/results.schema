@@ -64,10 +64,7 @@
                                                                     }
                                                                 ]
                                                             }
-                                                        },
-                                                        "required": [
-                                                            "advise"
-                                                        ]
+                                                        }
                                                     }
                                                 },
                                                 "required": [
@@ -145,10 +142,7 @@
                                                                 }
                                                             ]
                                                         }
-                                                    },
-                                                    "required": [
-                                                        "advise"
-                                                    ]
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -226,10 +220,7 @@
                                                                     }
                                                                 ]
                                                             }
-                                                        },
-                                                        "required": [
-                                                            "advise"
-                                                        ]
+                                                        }
                                                     }
                                                 },
                                                 "required": [
