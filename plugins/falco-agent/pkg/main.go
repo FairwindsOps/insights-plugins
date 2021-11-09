@@ -30,6 +30,9 @@ func main() {
 		Handler: r,
 		Addr:    fmt.Sprintf(":%s", port),
 	}
+	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	})
 	logrus.Infof("server is running at http://0.0.0.0:%s", port)
 	logrus.Fatal(srv.ListenAndServe())
 }
