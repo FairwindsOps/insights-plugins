@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -30,14 +31,15 @@ type RightSizerReportProperties struct {
 
 // RightSizerReport is a report from right-sizer-report
 type RightSizerReport struct {
-	Version string
-	Report  RightSizerReportProperties
+	// Version string // I believe this is not needed, supplied by the Insights uploader
+	Report RightSizerReportProperties
 }
 
 type RightSizerReportBuilder struct {
-	Report     *RightSizerReport
-	itemsLock  *sync.RWMutex
-	HTTPServer *http.Server
+	Report         *RightSizerReport
+	itemsLock      *sync.RWMutex
+	HTTPServer     *http.Server
+	outputFileName string
 }
 
 func (i RightSizerReportItem) String() string {
@@ -54,6 +56,7 @@ func NewRightSizerReportBuilder() *RightSizerReportBuilder {
 			ReadTimeout:  2500 * time.Millisecond, // time to read request headers and   optionally body
 			WriteTimeout: 10 * time.Second,
 		},
+		outputFileName: "output.json",
 	}
 	return b
 }
@@ -84,17 +87,39 @@ func (b *RightSizerReportBuilder) AddItem(newItem RightSizerReportItem) {
 	b.Report.Report.Items = append(b.Report.Report.Items, newItem)
 }
 
-func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := json.Marshal(b.Report)
+func (b *RightSizerReportBuilder) GetReportJSON() ([]byte, error) {
+	b.itemsLock.RLock()
+	defer b.itemsLock.RUnlock()
+	data, err := json.MarshalIndent(b.Report, "", "  ")
 	if err != nil {
 		glog.Errorf("cannot marshal report: %v", err)
+		return nil, err
+	}
+	return data, nil
+}
+
+func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := b.GetReportJSON()
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	_, err = w.Write([]byte(data))
+	_, err = w.Write(data)
 	if err != nil {
 		glog.Errorf("error sending report data: %v", err)
 	}
+}
+
+func (b *RightSizerReportBuilder) WriteOutputFile() error {
+	data, err := b.GetReportJSON()
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(b.outputFileName, data, 0600)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b RightSizerReportBuilder) RunServer() {

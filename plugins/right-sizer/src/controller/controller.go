@@ -199,6 +199,7 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		if !c.reportBuilder.AlreadyHave(reportItem) {
 			glog.Infof("Item %s is new", reportItem)
 			c.reportBuilder.AddItem(reportItem)
+			c.reportBuilder.WriteOutputFile()
 		}
 	}
 }
