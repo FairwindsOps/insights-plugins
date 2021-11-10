@@ -1,4 +1,4 @@
-# Build the manager binary
+# Build the rightsizer controller.
 FROM golang:1.17 as builder
 
 WORKDIR /workspace
