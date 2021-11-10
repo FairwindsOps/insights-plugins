@@ -297,7 +297,7 @@
               "type": "object"
             },
             "Labels": {
-              "type": "object"
+              "type": ["object", "null"]
             },
             "UID": {
               "type": "string"

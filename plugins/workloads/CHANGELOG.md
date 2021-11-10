@@ -1,4 +1,6 @@
 # Changelog
+## 2.1.6
+* Update schema
 
 ## 2.1.6
 * Bump go modules
