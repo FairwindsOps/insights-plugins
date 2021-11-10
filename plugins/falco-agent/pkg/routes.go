@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-const outputfolder = "./output"
+const outputfolder = "/output"
 
 func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) {
 	w.Header().Set("Content-Type", "application/json")
