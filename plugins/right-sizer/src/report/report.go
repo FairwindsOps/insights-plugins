@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -17,9 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Should we import from github.com/fairwindsops/insights/pkg/reports instead
-// of defining the same types here?
-// RightSizerReportItem shows the right-sizer-item property
+// RightSizerReportItem contains properties of a right-sizer item.
 type RightSizerReportItem struct {
 	Kind              string             `json:"kind"`
 	ResourceName      string             `json:"resourceName"`
@@ -29,24 +26,26 @@ type RightSizerReportItem struct {
 	EndingMemory      *resource.Quantity `json:"endingMemory"`
 }
 
-// RightSizerReportProperties shows the right-sizer-item property
+// RightSizerReportProperties holds multiple right-sizer-item properties.
 type RightSizerReportProperties struct {
 	Items []RightSizerReportItem `json:"items"`
 }
 
-// RightSizerReport is a report from right-sizer-report
+// RightSizerReport is a right-sizer report.
 type RightSizerReport struct {
 	// Version string // I believe this is not needed, supplied by the Insights uploader
 	Report RightSizerReportProperties
 }
 
+// RightSizerReportBuilder holds internal resources reuqired to create a
+// RightSizerReport, and provides methods to manipulate the report.
 type RightSizerReportBuilder struct {
-	Report         *RightSizerReport
-	itemsLock      *sync.RWMutex
-	HTTPServer     *http.Server
-	outputFileName string
+	Report     *RightSizerReport
+	itemsLock  *sync.RWMutex
+	HTTPServer *http.Server // Allows retrieving the report
 }
 
+// String represents unique fields of a report item.
 func (i RightSizerReportItem) String() string {
 	return fmt.Sprintf("%s %s/%s:%s", i.Kind, i.ResourceNamespace, i.ResourceName, i.ResourceContainer)
 }
@@ -61,15 +60,8 @@ func NewRightSizerReportBuilder() *RightSizerReportBuilder {
 			ReadTimeout:  2500 * time.Millisecond, // time to read request headers and   optionally body
 			WriteTimeout: 10 * time.Second,
 		},
-		outputFileName: "output.json",
 	}
 	return b
-}
-
-func (b *RightSizerReportBuilder) GetReport() *RightSizerReport {
-	b.itemsLock.RLock()
-	defer b.itemsLock.RUnlock()
-	return b.Report
 }
 
 // alreadyHave accepts a RightSizerReportItem and returns true if that item
@@ -86,12 +78,14 @@ func (b *RightSizerReportBuilder) AlreadyHave(newItem RightSizerReportItem) bool
 	return false
 }
 
+// AddItem accepts a RightSizerReportItem and adds it to the report.
 func (b *RightSizerReportBuilder) AddItem(newItem RightSizerReportItem) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
 	b.Report.Report.Items = append(b.Report.Report.Items, newItem)
 }
 
+// GetReportJSON( returns a RightSizerReport in JSON form.
 func (b *RightSizerReportBuilder) GetReportJSON() ([]byte, error) {
 	b.itemsLock.RLock()
 	defer b.itemsLock.RUnlock()
@@ -103,6 +97,7 @@ func (b *RightSizerReportBuilder) GetReportJSON() ([]byte, error) {
 	return data, nil
 }
 
+// ReportHandler handles HTTP requests by serving the report as JSON.
 func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := b.GetReportJSON()
 	if err != nil {
@@ -115,27 +110,18 @@ func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (b *RightSizerReportBuilder) WriteOutputFile() error {
-	data, err := b.GetReportJSON()
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(b.outputFileName, data, 0600)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
+// RunServer starts the report builder HTTP server and registers the report
+// handler.
 func (b RightSizerReportBuilder) RunServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/report", b.ReportHandler)
 	b.HTTPServer.Handler = mux
 	b.HTTPServer.Addr = "localhost:8080" // should become a parameter to this function
 	go func() { glog.Fatal(b.HTTPServer.ListenAndServe()) }()
-
 }
 
+// WriteConfigMap writes the report to a Kubernetes ConfigMap resource. IF the
+// ConfigMap does not exist, it will be created.
 func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface, namespaceName, configMapName string) error {
 	updateTime := time.Now().String()
 	var configMap *core.ConfigMap
@@ -146,8 +132,12 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 	reportJSON := string(reportBytes)
 	configMaps := kubeClient.CoreV1().ConfigMaps(namespaceName)
 	configMap, err = configMaps.Get(context.TODO(), configMapName, meta.GetOptions{})
+	if err != nil && !kube_errors.IsNotFound(err) {
+		// This is an unexpected error.
+		return fmt.Errorf("unable to get ConfigMap %s/%s to write report: %w", namespaceName, configMapName, err)
+	}
 	if err == nil {
-		// Update the report and time-stamp annotation.
+		// Update existing ConfigMap with the report and time-stamp annotation.
 		configMap.Data["report"] = reportJSON
 		if configMap.ObjectMeta.Annotations == nil {
 			configMap.ObjectMeta.Annotations = make(map[string]string)
@@ -155,12 +145,11 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 		configMap.ObjectMeta.Annotations["last-updated"] = updateTime
 		_, err = configMaps.Update(context.TODO(), configMap, meta.UpdateOptions{})
 		if err != nil {
-			return fmt.Errorf("unable to update ConfigMap %s/%s to save report: %w", namespaceName, configMapName, err)
+			return fmt.Errorf("unable to update ConfigMap %s/%s to write report: %w", namespaceName, configMapName, err)
 		}
 	}
-
 	if kube_errors.IsNotFound(err) {
-		// No ConfigMap in-cluster, create one.
+		// No ConfigMap found, create one.
 		configMap = &core.ConfigMap{
 			ObjectMeta: meta.ObjectMeta{
 				Namespace: namespaceName,
@@ -175,13 +164,8 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 		}
 		_, err = configMaps.Create(context.TODO(), configMap, meta.CreateOptions{})
 		if err != nil {
-			return fmt.Errorf("unable to create ConfigMap %s/%s to save report: %w", namespaceName, configMapName, err)
+			return fmt.Errorf("unable to create ConfigMap %s/%s to write report: %w", namespaceName, configMapName, err)
 		}
-	}
-
-	if err != nil && !kube_errors.IsNotFound(err) {
-		// An unexpected error
-		return fmt.Errorf("unable to get ConfigMap %s/%s to save report: %w", namespaceName, configMapName, err)
 	}
 	return nil
 }

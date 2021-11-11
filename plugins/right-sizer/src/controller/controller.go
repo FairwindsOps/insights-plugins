@@ -34,7 +34,7 @@ const (
 type Controller struct {
 	Stop           chan struct{}
 	client         kubernetes.Interface
-	dynamicClient  dynamic.Interface
+	dynamicClient  dynamic.Interface // used to find owning pod-controller
 	k8sFactory     informers.SharedInformerFactory
 	podLister      util.PodLister
 	recorder       record.EventRecorder
@@ -42,7 +42,7 @@ type Controller struct {
 	stopCh         chan struct{}
 	eventAddedCh   chan *core.Event
 	eventUpdatedCh chan *eventUpdateGroup
-	RESTMapper     meta.RESTMapper
+	RESTMapper     meta.RESTMapper // used to find owning pod-controller
 	reportBuilder  *report.RightSizerReportBuilder
 }
 
@@ -53,18 +53,18 @@ type eventUpdateGroup struct {
 
 // NewController returns an instance of the Controller
 func NewController(stop chan struct{}) *Controller {
-	k8sClient, dynamicClient, RESTMapper := util.Clientset()
-	k8sFactory := informers.NewSharedInformerFactory(k8sClient, time.Minute*informerSyncMinute)
+	client, dynamicClient, RESTMapper := util.Clientset()
+	k8sFactory := informers.NewSharedInformerFactory(client, time.Minute*informerSyncMinute)
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: k8sClient.CoreV1().Events("")})
+	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: client.CoreV1().Events("")})
 
 	controller := &Controller{
 		stopCh:         make(chan struct{}),
 		Stop:           stop,
 		k8sFactory:     k8sFactory,
-		client:         k8sClient,
+		client:         client,
 		dynamicClient:  dynamicClient,
 		RESTMapper:     RESTMapper,
 		podLister:      k8sFactory.Core().V1().Pods().Lister(),
@@ -93,7 +93,7 @@ func NewController(stop chan struct{}) *Controller {
 
 // Run is the main loop that processes Kubernetes Pod changes
 func (c *Controller) Run() error {
-	c.reportBuilder.RunServer()
+	c.reportBuilder.RunServer() // Run an HTTP server to serve the current report.
 	c.k8sFactory.Start(c.stopCh)
 	c.k8sFactory.WaitForCacheSync(c.Stop)
 
@@ -174,23 +174,30 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			ProcessedContainerUpdates.WithLabelValues("oomkilled_termination_too_old").Inc()
 			continue
 		}
+		// Get information about the container that was OOM-killed.
 		var containerInfo core.Container
 		for _, container := range pod.Spec.Containers {
-			if container.Name == s.Name {
+			if container.Name == s.Name { // matched from the event
 				containerInfo = container
+				break
 			}
 		}
 		containerMemoryLimit := containerInfo.Resources.Limits.Memory()
+		// This `doubled limit` code is incomplete, and only serves to test
+		// calculating a higher limit for the future.
 		doubledContainerMemoryLimit := containerInfo.Resources.Limits.Memory()
 		doubledContainerMemoryLimit.Add(*containerMemoryLimit)
 		c.recorder.Eventf(pod, core.EventTypeWarning, "PreviousContainerWasOOMKilled", "The previous instance of the container '%s' (%s) was OOMKilled", s.Name, s.ContainerID)
 		ProcessedContainerUpdates.WithLabelValues("oomkilled_event_sent").Inc()
+
+		// Find the owning pod-controller for this pod.
 		podControllerObject, err := c.getPodController(pod)
 		if err != nil {
 			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
-		glog.Infof("Pod %s/%s is owned by %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
-		glog.Infof("Container %s has memory  limit %v, if we doubled that it would be %v", containerInfo.Name, containerMemoryLimit, doubledContainerMemoryLimit)
+		glog.V(2).Infof("Pod %s/%s is owned by %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
+		glog.V(3).Infof("Container %s has memory  limit %v, if we doubled that it would be %v", containerInfo.Name, containerMemoryLimit, doubledContainerMemoryLimit)
+		// Construct a report item.
 		var reportItem report.RightSizerReportItem
 		reportItem.Kind = podControllerObject.GetKind()
 		reportItem.ResourceNamespace = podControllerObject.GetNamespace()
@@ -198,11 +205,12 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceContainer = containerInfo.Name
 		reportItem.StartingMemory = containerMemoryLimit
 		reportItem.EndingMemory = containerMemoryLimit // same as limit for now
-		glog.Infof("Constructed report item: %+v\n", reportItem)
+		glog.V(2).Infof("Constructed report item: %+v\n", reportItem)
 		if !c.reportBuilder.AlreadyHave(reportItem) {
-			glog.Infof("Item %s is new", reportItem)
+			glog.V(2).Infof("the item %s is new to this report", reportItem)
 			c.reportBuilder.AddItem(reportItem)
-			// TODO: The namespace and ConfigMap name should be configurable.
+			// Update the state to a ConfigMap.
+			// TODO: The namespace and ConfigMap name should come from CLI options.
 			err := c.reportBuilder.WriteConfigMap(c.client, "right-sizer", "right-sizer-state")
 			if err != nil {
 				glog.Error(err)
@@ -213,7 +221,10 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 
 // GetPodController accepts a typed pod object, and returns the pod-controller
 // which owns the pod.
+// E.G. an owning pod-controller might be a Kubernetes Deployment, DaemonSet,
+// or CronJob.
 func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured, error) {
+	// Convert a pod type to an unstructured one.
 	podJSON, err := json.Marshal(pod)
 	if err != nil {
 		return nil, err
@@ -226,10 +237,11 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 	unstructuredPod := unstructured.Unstructured{
 		Object: objectAsMap,
 	}
+
 	topController, err := fwControllerUtils.GetTopController(context.TODO(), c.dynamicClient, c.RESTMapper, unstructuredPod, nil)
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("found controller kind %q named %q", topController.GetKind(), topController.GetName())
+	glog.V(2).Infof("found controller kind %q named %q", topController.GetKind(), topController.GetName())
 	return &topController, nil
 }
