@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -166,6 +167,42 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 		if err != nil {
 			return fmt.Errorf("unable to create ConfigMap %s/%s to write report: %w", namespaceName, configMapName, err)
 		}
+	}
+	return nil
+}
+
+// WriteConfigMap reads the report from a Kubernetes ConfigMap resource. IF
+// the ConfigMap does not exist, the report remains unchanged.
+// This is useful to populate the report with previous data on Kubernetes controller startup.
+func (b *RightSizerReportBuilder) ReadConfigMap(kubeClient kubernetes.Interface, namespaceName, configMapName string) error {
+	var configMap *core.ConfigMap
+	var reportJSON string
+	configMaps := kubeClient.CoreV1().ConfigMaps(namespaceName)
+	configMap, err := configMaps.Get(context.TODO(), configMapName, meta.GetOptions{})
+	if kube_errors.IsNotFound(err) {
+		// No ConfigMap found; no data to populate the report.
+		glog.V(1).Infof("ConfigMap %s/%s does not exist, the report will not be populated with existing state", namespaceName, configMapName)
+		return nil
+	}
+	if err != nil && !kube_errors.IsNotFound(err) {
+		// This is an unexpected error.
+		return fmt.Errorf("unable to get ConfigMap %s/%s to read report state: %w", namespaceName, configMapName, err)
+	}
+	if err == nil {
+		// Read the report from the ConfigMap
+		var ok bool
+		reportJSON, ok = configMap.Data["report"]
+		if !ok {
+			return fmt.Errorf("unable to read report from ConfigMap %s/%s as it does not contain a report key", namespaceName, configMapName)
+		}
+		glog.V(2).Infof("got report JSON from ConfigMap %s/%s: %q", namespaceName, configMapName, reportJSON)
+		dec := json.NewDecoder(strings.NewReader(reportJSON))
+		dec.DisallowUnknownFields() // Return an error if unmarshalling unexpected fields.
+		err = dec.Decode(&b.Report)
+		if err != nil {
+			return fmt.Errorf("unable to unmarshal while reading report from ConfigMap %s/%s: %v", namespaceName, configMapName, err)
+		}
+		glog.V(2).Infof("Read report from ConfigMap %s/%s: %#v", namespaceName, configMapName, b.Report)
 	}
 	return nil
 }

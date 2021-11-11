@@ -93,6 +93,10 @@ func NewController(stop chan struct{}) *Controller {
 
 // Run is the main loop that processes Kubernetes Pod changes
 func (c *Controller) Run() error {
+	err := c.reportBuilder.ReadConfigMap(c.client, "right-sizer", "right-sizer-state")
+	if err != nil {
+		glog.Errorf("while attempting to read state from ConfigMap: %v", err)
+	}
 	c.reportBuilder.RunServer() // Run an HTTP server to serve the current report.
 	c.k8sFactory.Start(c.stopCh)
 	c.k8sFactory.WaitForCacheSync(c.Stop)
@@ -195,8 +199,8 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		if err != nil {
 			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
-		glog.V(2).Infof("Pod %s/%s is owned by %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
-		glog.V(3).Infof("Container %s has memory  limit %v, if we doubled that it would be %v", containerInfo.Name, containerMemoryLimit, doubledContainerMemoryLimit)
+		glog.V(1).Infof("Pod %s/%s is owned by pod-controller %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
+		glog.V(1).Infof("Container %s has memory  limit %v, if we doubled that it would be %v", containerInfo.Name, containerMemoryLimit, doubledContainerMemoryLimit)
 		// Construct a report item.
 		var reportItem report.RightSizerReportItem
 		reportItem.Kind = podControllerObject.GetKind()
@@ -205,9 +209,9 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceContainer = containerInfo.Name
 		reportItem.StartingMemory = containerMemoryLimit
 		reportItem.EndingMemory = containerMemoryLimit // same as limit for now
-		glog.V(2).Infof("Constructed report item: %+v\n", reportItem)
+		glog.V(1).Infof("Constructed report item: %+v\n", reportItem)
 		if !c.reportBuilder.AlreadyHave(reportItem) {
-			glog.V(2).Infof("the item %s is new to this report", reportItem)
+			glog.V(1).Infof("item %s is new to this report", reportItem)
 			c.reportBuilder.AddItem(reportItem)
 			// Update the state to a ConfigMap.
 			// TODO: The namespace and ConfigMap name should come from CLI options.
