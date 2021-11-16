@@ -93,7 +93,7 @@ func NewController(stop chan struct{}) *Controller {
 
 // Run is the main loop that processes Kubernetes Pod changes
 func (c *Controller) Run() error {
-	err := c.reportBuilder.ReadConfigMap(c.client, "right-sizer", "right-sizer-state")
+	err := c.reportBuilder.ReadConfigMap(c.client, "insights-agent", "right-sizer-controller-state")
 	if err != nil {
 		glog.Errorf("while attempting to read state from ConfigMap: %v", err)
 	}
@@ -215,7 +215,7 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			c.reportBuilder.AddItem(reportItem)
 			// Update the state to a ConfigMap.
 			// TODO: The namespace and ConfigMap name should come from CLI options.
-			err := c.reportBuilder.WriteConfigMap(c.client, "right-sizer", "right-sizer-state")
+			err := c.reportBuilder.WriteConfigMap(c.client, "insights-agent", "right-sizer-controller-state")
 			if err != nil {
 				glog.Error(err)
 			}

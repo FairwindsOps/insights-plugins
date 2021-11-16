@@ -32,16 +32,10 @@ type RightSizerReportProperties struct {
 	Items []RightSizerReportItem `json:"items"`
 }
 
-// RightSizerReport is a right-sizer report.
-type RightSizerReport struct {
-	// Version string // I believe this is not needed, supplied by the Insights uploader
-	Report RightSizerReportProperties
-}
-
-// RightSizerReportBuilder holds internal resources reuqired to create a
+// RightSizerReportBuilder holds internal resources required to create a
 // RightSizerReport, and provides methods to manipulate the report.
 type RightSizerReportBuilder struct {
-	Report     *RightSizerReport
+	Report     *RightSizerReportProperties
 	itemsLock  *sync.RWMutex
 	HTTPServer *http.Server // Allows retrieving the report
 }
@@ -55,7 +49,7 @@ func (i RightSizerReportItem) String() string {
 // RightSizerReportBuilder type.
 func NewRightSizerReportBuilder() *RightSizerReportBuilder {
 	b := &RightSizerReportBuilder{
-		Report:    &RightSizerReport{},
+		Report:    &RightSizerReportProperties{},
 		itemsLock: &sync.RWMutex{},
 		HTTPServer: &http.Server{
 			ReadTimeout:  2500 * time.Millisecond, // time to read request headers and   optionally body
@@ -71,7 +65,7 @@ func NewRightSizerReportBuilder() *RightSizerReportBuilder {
 func (b *RightSizerReportBuilder) AlreadyHave(newItem RightSizerReportItem) bool {
 	b.itemsLock.RLock()
 	defer b.itemsLock.RUnlock()
-	for _, item := range b.Report.Report.Items {
+	for _, item := range b.Report.Items {
 		if item.Kind == newItem.Kind && item.ResourceNamespace == newItem.ResourceNamespace && item.ResourceName == newItem.ResourceName && item.ResourceContainer == newItem.ResourceContainer {
 			return true
 		}
@@ -83,7 +77,7 @@ func (b *RightSizerReportBuilder) AlreadyHave(newItem RightSizerReportItem) bool
 func (b *RightSizerReportBuilder) AddItem(newItem RightSizerReportItem) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
-	b.Report.Report.Items = append(b.Report.Report.Items, newItem)
+	b.Report.Items = append(b.Report.Items, newItem)
 }
 
 // GetReportJSON( returns a RightSizerReport in JSON form.
