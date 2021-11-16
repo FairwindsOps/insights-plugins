@@ -2,6 +2,7 @@
 
 ## 0.12.1
 * rebuild to fix CVEs in alpine:3.14
+
 ## 0.12.0
 * Add helm `fluxFile` and `version` support
 ## 0.11.0
