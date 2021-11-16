@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.7
+* rebuild to fix CVEs in alpine:3.14
+
 ## 0.3.6
 * Update `label-required` policy example
 
