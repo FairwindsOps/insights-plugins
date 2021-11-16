@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.12.0
+## 0.12.1
 * Added environment variable for git informations.
 ## 0.12.0
 * Add helm `fluxFile` and `version` support
