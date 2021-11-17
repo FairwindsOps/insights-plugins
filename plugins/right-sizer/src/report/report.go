@@ -25,6 +25,9 @@ type RightSizerReportItem struct {
 	ResourceContainer string             `json:"resourceContainer"`
 	StartingMemory    *resource.Quantity `json:"startingMemory"`
 	EndingMemory      *resource.Quantity `json:"endingMemory"`
+	NumOOMs           int64              `json:"numOOMs"`
+	FirstOOM          time.Time          `json:"firstOOM"`
+	LastOOM           time.Time          `json:"LastOOM"`
 }
 
 // RightSizerReportProperties holds multiple right-sizer-item properties.
@@ -59,25 +62,28 @@ func NewRightSizerReportBuilder() *RightSizerReportBuilder {
 	return b
 }
 
-// alreadyHave accepts a RightSizerReportItem and returns true if that item
-// already exists in the RightSizerReportProperties.
-// ONly kind, namespace, name, and container name are matched.
-func (b *RightSizerReportBuilder) AlreadyHave(newItem RightSizerReportItem) bool {
-	b.itemsLock.RLock()
-	defer b.itemsLock.RUnlock()
-	for _, item := range b.Report.Items {
-		if item.Kind == newItem.Kind && item.ResourceNamespace == newItem.ResourceNamespace && item.ResourceName == newItem.ResourceName && item.ResourceContainer == newItem.ResourceContainer {
-			return true
-		}
-	}
-	return false
-}
-
-// AddItem accepts a RightSizerReportItem and adds it to the report.
-func (b *RightSizerReportBuilder) AddItem(newItem RightSizerReportItem) {
+// AddOrUpdateItem accepts a new RightSizerReportItem and adds or updates it
+// in the report. The NumOOMKills and LastOOM fields are automatically updated
+// if the item already exists in the report.
+func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
+	for i, item := range b.Report.Items {
+		if item.Kind == newItem.Kind && item.ResourceNamespace == newItem.ResourceNamespace && item.ResourceName == newItem.ResourceName && item.ResourceContainer == newItem.ResourceContainer {
+			// UPdate the existing item.
+			b.Report.Items[i].NumOOMs++
+			b.Report.Items[i].LastOOM = time.Now()
+			glog.V(1).Infof("updating OOMKill information for existing report item %s", item)
+			return
+		}
+	}
+	// This item is new to this report.
+	newItem.NumOOMs = 1
+	newItem.FirstOOM = time.Now()
+	newItem.LastOOM = newItem.FirstOOM
 	b.Report.Items = append(b.Report.Items, newItem)
+	glog.V(1).Infof("adding new report item %s", newItem)
+	return
 }
 
 // GetReportJSON( returns a RightSizerReport in JSON form.
@@ -165,7 +171,7 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 	return nil
 }
 
-// WriteConfigMap reads the report from a Kubernetes ConfigMap resource. IF
+// ReadConfigMap reads the report from a Kubernetes ConfigMap resource. IF
 // the ConfigMap does not exist, the report remains unchanged.
 // This is useful to populate the report with previous data on Kubernetes controller startup.
 func (b *RightSizerReportBuilder) ReadConfigMap(kubeClient kubernetes.Interface, namespaceName, configMapName string) error {

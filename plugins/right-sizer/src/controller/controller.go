@@ -210,15 +210,12 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.StartingMemory = containerMemoryLimit
 		reportItem.EndingMemory = containerMemoryLimit // same as limit for now
 		glog.V(1).Infof("Constructed report item: %+v\n", reportItem)
-		if !c.reportBuilder.AlreadyHave(reportItem) {
-			glog.V(1).Infof("item %s is new to this report", reportItem)
-			c.reportBuilder.AddItem(reportItem)
-			// Update the state to a ConfigMap.
-			// TODO: The namespace and ConfigMap name should come from CLI options.
-			err := c.reportBuilder.WriteConfigMap(c.client, "insights-agent", "right-sizer-controller-state")
-			if err != nil {
-				glog.Error(err)
-			}
+		c.reportBuilder.AddOrUpdateItem(reportItem)
+		// Update the state to a ConfigMap.
+		// TODO: The namespace and ConfigMap name should come from CLI options.
+		err = c.reportBuilder.WriteConfigMap(c.client, "insights-agent", "right-sizer-controller-state")
+		if err != nil {
+			glog.Error(err)
 		}
 	}
 }
