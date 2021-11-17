@@ -1,6 +1,12 @@
 # Changelog
+
 ## 2.2.0
 * Start using controller-utils to get all top workloads.
+
+
+## 2.1.7
+* rebuild to fix CVEs in alpine:3.14
+
 ## 2.1.6
 * Update schema
 
