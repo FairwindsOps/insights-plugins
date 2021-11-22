@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.4.9
+* rebuild to fix CVEs in alpine:3.14
+
 ## 0.4.8
 * Stop skipping data for non-/kubepod prefixes
 
