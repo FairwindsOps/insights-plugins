@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.0
+* Added environment variable for git informations.
+
 ## 0.12.1
 * rebuild to fix CVEs in alpine:3.14
 
