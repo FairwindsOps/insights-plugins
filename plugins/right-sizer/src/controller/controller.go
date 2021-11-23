@@ -72,7 +72,7 @@ func NewController(stop chan struct{}) *Controller {
 		eventUpdatedCh: make(chan *eventUpdateGroup),
 		recorder:       eventBroadcaster.NewRecorder(scheme.Scheme, core.EventSource{Component: "oom-event-generator"}),
 		startTime:      time.Now(),
-		reportBuilder:  report.NewRightSizerReportBuilder(),
+		reportBuilder:  report.NewRightSizerReportBuilder(client),
 	}
 
 	eventsInformer := informers.SharedInformerFactory(k8sFactory).Core().V1().Events().Informer()
@@ -93,11 +93,12 @@ func NewController(stop chan struct{}) *Controller {
 
 // Run is the main loop that processes Kubernetes Pod changes
 func (c *Controller) Run() error {
-	err := c.reportBuilder.ReadConfigMap(c.client, "insights-agent", "right-sizer-controller-state")
+	err := c.reportBuilder.ReadConfigMap()
 	if err != nil {
 		glog.Errorf("while attempting to read state from ConfigMap: %v", err)
 	}
-	c.reportBuilder.RunServer() // Run an HTTP server to serve the current report.
+	go c.reportBuilder.LoopRemoveOldItems() // age out items
+	c.reportBuilder.RunServer()             // Run an HTTP server to serve the current report.
 	c.k8sFactory.Start(c.stopCh)
 	c.k8sFactory.WaitForCacheSync(c.Stop)
 
@@ -111,6 +112,7 @@ func (c *Controller) Run() error {
 			glog.Info("Stopping")
 			return nil
 		}
+
 	}
 }
 
@@ -206,14 +208,14 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.Kind = podControllerObject.GetKind()
 		reportItem.ResourceNamespace = podControllerObject.GetNamespace()
 		reportItem.ResourceName = podControllerObject.GetName()
+		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
 		reportItem.ResourceContainer = containerInfo.Name
 		reportItem.StartingMemory = containerMemoryLimit
 		reportItem.EndingMemory = containerMemoryLimit // same as limit for now
 		glog.V(1).Infof("Constructed report item: %+v\n", reportItem)
 		c.reportBuilder.AddOrUpdateItem(reportItem)
 		// Update the state to a ConfigMap.
-		// TODO: The namespace and ConfigMap name should come from CLI options.
-		err = c.reportBuilder.WriteConfigMap(c.client, "insights-agent", "right-sizer-controller-state")
+		err = c.reportBuilder.WriteConfigMap()
 		if err != nil {
 			glog.Error(err)
 		}

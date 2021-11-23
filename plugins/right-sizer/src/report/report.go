@@ -28,6 +28,7 @@ type RightSizerReportItem struct {
 	NumOOMs           int64              `json:"numOOMs"`
 	FirstOOM          time.Time          `json:"firstOOM"`
 	LastOOM           time.Time          `json:"LastOOM"`
+	ResourceVersion   string             `json:"ResourceVersion"`
 }
 
 // RightSizerReportProperties holds multiple right-sizer-item properties.
@@ -38,9 +39,12 @@ type RightSizerReportProperties struct {
 // RightSizerReportBuilder holds internal resources required to create a
 // RightSizerReport, and provides methods to manipulate the report.
 type RightSizerReportBuilder struct {
-	Report     *RightSizerReportProperties
-	itemsLock  *sync.RWMutex
-	HTTPServer *http.Server // Allows retrieving the report
+	Report                                *RightSizerReportProperties
+	itemsLock                             *sync.RWMutex
+	tooOldAge                             time.Duration // When an item should be removed based on its age
+	configMapNamespaceName, configMapName string        // ConfigMap name to persist report state
+	HTTPServer                            *http.Server  // Allows retrieving the current report
+	kubeClient                            kubernetes.Interface
 }
 
 // String represents unique fields of a report item.
@@ -50,10 +54,17 @@ func (i RightSizerReportItem) String() string {
 
 // NewRightSizerReportBuilder returns a pointer to a new initialized
 // RightSizerReportBuilder type.
-func NewRightSizerReportBuilder() *RightSizerReportBuilder {
+// TODO: populate defaults (state ConfigMap, too-old-age) from CLI flags.
+func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerReportBuilder {
 	b := &RightSizerReportBuilder{
-		Report:    &RightSizerReportProperties{},
-		itemsLock: &sync.RWMutex{},
+		Report:     &RightSizerReportProperties{},
+		itemsLock:  &sync.RWMutex{},
+		kubeClient: kubeClient,
+		// tooOldAge:  8.64e+13, // 24 HRs
+		// tooOldAge: 6e+10, // 1 minute
+		tooOldAge:              3e+11, // 5 minutes
+		configMapNamespaceName: "insights-agent",
+		configMapName:          "right-sizer-controller-state",
 		HTTPServer: &http.Server{
 			ReadTimeout:  2500 * time.Millisecond, // time to read request headers and   optionally body
 			WriteTimeout: 10 * time.Second,
@@ -84,6 +95,43 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 	b.Report.Items = append(b.Report.Items, newItem)
 	glog.V(1).Infof("adding new report item %s", newItem)
 	return
+}
+
+// RemoveOldItems removes report items that have a last OOMKill older than
+// RightSizerReportBuilder.tooOldAge, and returns true if any items were
+// removed.
+func (b *RightSizerReportBuilder) RemoveOldItems() (anyItemsRemoved bool) {
+	glog.V(3).Infoln("starting removing old items based on last OOM kill. . .")
+	var finalItems []RightSizerReportItem
+	b.itemsLock.Lock()
+	defer b.itemsLock.Unlock()
+	for _, item := range b.Report.Items {
+		if time.Since(item.LastOOM) >= b.tooOldAge {
+			glog.V(1).Infof("aging out item %s as its last OOM kill %s is older than %s", item, item.LastOOM, b.tooOldAge)
+			// This item is not kept, via finalItems
+		} else {
+			finalItems = append(finalItems, item)
+			glog.V(4).Infof("keeping item %s as its last OOM kill %s is not older than %s", item, item.LastOOM, b.tooOldAge)
+		}
+	}
+	if len(finalItems) != len(b.Report.Items) {
+		b.Report.Items = finalItems
+		anyItemsRemoved = true
+	}
+	glog.V(3).Infof("finished removing old items based on last OOM kill - removed=%v", anyItemsRemoved)
+	return anyItemsRemoved
+}
+
+// LoopRemoveOldITems calls RightSizerReportBuilder.RemoveOldItems() every
+// minute, and calls RightSizerReportBuilder.WriteConfigMap() if any items were removed.
+// This is meant to be run in its own ruiteen.
+func (b *RightSizerReportBuilder) LoopRemoveOldItems() {
+	for range time.Tick(time.Minute * 1) {
+		if b.RemoveOldItems() {
+			b.WriteConfigMap()
+
+		}
+	}
 }
 
 // GetReportJSON( returns a RightSizerReport in JSON form.
@@ -123,7 +171,7 @@ func (b RightSizerReportBuilder) RunServer() {
 
 // WriteConfigMap writes the report to a Kubernetes ConfigMap resource. IF the
 // ConfigMap does not exist, it will be created.
-func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface, namespaceName, configMapName string) error {
+func (b *RightSizerReportBuilder) WriteConfigMap() error {
 	updateTime := time.Now().String()
 	var configMap *core.ConfigMap
 	reportBytes, err := b.GetReportJSON()
@@ -131,11 +179,11 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 		return err
 	}
 	reportJSON := string(reportBytes)
-	configMaps := kubeClient.CoreV1().ConfigMaps(namespaceName)
-	configMap, err = configMaps.Get(context.TODO(), configMapName, meta.GetOptions{})
+	configMaps := b.kubeClient.CoreV1().ConfigMaps(b.configMapNamespaceName)
+	configMap, err = configMaps.Get(context.TODO(), b.configMapName, meta.GetOptions{})
 	if err != nil && !kube_errors.IsNotFound(err) {
 		// This is an unexpected error.
-		return fmt.Errorf("unable to get ConfigMap %s/%s to write report: %w", namespaceName, configMapName, err)
+		return fmt.Errorf("unable to get ConfigMap %s/%s to write report: %w", b.configMapNamespaceName, b.configMapName, err)
 	}
 	if err == nil {
 		// Update existing ConfigMap with the report and time-stamp annotation.
@@ -146,15 +194,15 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 		configMap.ObjectMeta.Annotations["last-updated"] = updateTime
 		_, err = configMaps.Update(context.TODO(), configMap, meta.UpdateOptions{})
 		if err != nil {
-			return fmt.Errorf("unable to update ConfigMap %s/%s to write report: %w", namespaceName, configMapName, err)
+			return fmt.Errorf("unable to update ConfigMap %s/%s to write report: %w", b.configMapNamespaceName, b.configMapName, err)
 		}
 	}
 	if kube_errors.IsNotFound(err) {
 		// No ConfigMap found, create one.
 		configMap = &core.ConfigMap{
 			ObjectMeta: meta.ObjectMeta{
-				Namespace: namespaceName,
-				Name:      configMapName,
+				Namespace: b.configMapNamespaceName,
+				Name:      b.configMapName,
 				Annotations: map[string]string{
 					"last-updated": updateTime,
 				},
@@ -165,7 +213,7 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 		}
 		_, err = configMaps.Create(context.TODO(), configMap, meta.CreateOptions{})
 		if err != nil {
-			return fmt.Errorf("unable to create ConfigMap %s/%s to write report: %w", namespaceName, configMapName, err)
+			return fmt.Errorf("unable to create ConfigMap %s/%s to write report: %w", b.configMapNamespaceName, b.configMapName, err)
 		}
 	}
 	return nil
@@ -174,35 +222,36 @@ func (b *RightSizerReportBuilder) WriteConfigMap(kubeClient kubernetes.Interface
 // ReadConfigMap reads the report from a Kubernetes ConfigMap resource. IF
 // the ConfigMap does not exist, the report remains unchanged.
 // This is useful to populate the report with previous data on Kubernetes controller startup.
-func (b *RightSizerReportBuilder) ReadConfigMap(kubeClient kubernetes.Interface, namespaceName, configMapName string) error {
+func (b *RightSizerReportBuilder) ReadConfigMap() error {
 	var configMap *core.ConfigMap
 	var reportJSON string
-	configMaps := kubeClient.CoreV1().ConfigMaps(namespaceName)
-	configMap, err := configMaps.Get(context.TODO(), configMapName, meta.GetOptions{})
+	configMaps := b.kubeClient.CoreV1().ConfigMaps(b.configMapNamespaceName)
+	configMap, err := configMaps.Get(context.TODO(), b.configMapName, meta.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		// No ConfigMap found; no data to populate the report.
-		glog.V(1).Infof("ConfigMap %s/%s does not exist, the report will not be populated with existing state", namespaceName, configMapName)
+		glog.V(1).Infof("ConfigMap %s/%s does not exist, the report will not be populated with existing state and an empty ConfigMap will be created", b.configMapNamespaceName, b.configMapName)
+		b.WriteConfigMap()
 		return nil
 	}
 	if err != nil && !kube_errors.IsNotFound(err) {
 		// This is an unexpected error.
-		return fmt.Errorf("unable to get ConfigMap %s/%s to read report state: %w", namespaceName, configMapName, err)
+		return fmt.Errorf("unable to get ConfigMap %s/%s to read report state: %w", b.configMapNamespaceName, b.configMapName, err)
 	}
 	if err == nil {
 		// Read the report from the ConfigMap
 		var ok bool
 		reportJSON, ok = configMap.Data["report"]
 		if !ok {
-			return fmt.Errorf("unable to read report from ConfigMap %s/%s as it does not contain a report key", namespaceName, configMapName)
+			return fmt.Errorf("unable to read report from ConfigMap %s/%s as it does not contain a report key", b.configMapNamespaceName, b.configMapName)
 		}
-		glog.V(2).Infof("got report JSON from ConfigMap %s/%s: %q", namespaceName, configMapName, reportJSON)
+		glog.V(2).Infof("got report JSON from ConfigMap %s/%s: %q", b.configMapNamespaceName, b.configMapName, reportJSON)
 		dec := json.NewDecoder(strings.NewReader(reportJSON))
 		dec.DisallowUnknownFields() // Return an error if unmarshalling unexpected fields.
 		err = dec.Decode(&b.Report)
 		if err != nil {
-			return fmt.Errorf("unable to unmarshal while reading report from ConfigMap %s/%s: %v", namespaceName, configMapName, err)
+			return fmt.Errorf("unable to unmarshal while reading report from ConfigMap %s/%s: %v", b.configMapNamespaceName, b.configMapName, err)
 		}
-		glog.V(2).Infof("Read report from ConfigMap %s/%s: %#v", namespaceName, configMapName, b.Report)
+		glog.V(2).Infof("Read report from ConfigMap %s/%s: %#v", b.configMapNamespaceName, b.configMapName, b.Report)
 	}
 	return nil
 }
