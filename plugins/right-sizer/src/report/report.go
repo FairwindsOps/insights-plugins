@@ -60,9 +60,9 @@ func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerRepo
 		Report:     &RightSizerReportProperties{},
 		itemsLock:  &sync.RWMutex{},
 		kubeClient: kubeClient,
-		// tooOldAge:  8.64e+13, // 24 HRs
+		tooOldAge:  8.64e+13, // 24 HRs
 		// tooOldAge: 6e+10, // 1 minute
-		tooOldAge:              3e+11, // 5 minutes
+		// tooOldAge:              3e+11, // 5 minutes
 		configMapNamespaceName: "insights-agent",
 		configMapName:          "right-sizer-controller-state",
 		HTTPServer: &http.Server{
@@ -74,8 +74,8 @@ func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerRepo
 }
 
 // AddOrUpdateItem accepts a new RightSizerReportItem and adds or updates it
-// in the report. The NumOOMKills and LastOOM fields are automatically updated
-// if the item already exists in the report.
+// in the report.
+// If the item already exists, fields are updated.
 func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
@@ -83,6 +83,7 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 		if item.Kind == newItem.Kind && item.ResourceNamespace == newItem.ResourceNamespace && item.ResourceName == newItem.ResourceName && item.ResourceContainer == newItem.ResourceContainer {
 			// UPdate the existing item.
 			b.Report.Items[i].NumOOMs++
+			b.Report.Items[i].ResourceVersion = newItem.ResourceVersion // SHouldn't change, but just in case
 			b.Report.Items[i].LastOOM = time.Now()
 			glog.V(1).Infof("updating OOMKill information for existing report item %s", item)
 			return
@@ -95,6 +96,51 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 	b.Report.Items = append(b.Report.Items, newItem)
 	glog.V(1).Infof("adding new report item %s", newItem)
 	return
+}
+
+// MatchItems returns *[]RightSizerReportItem matching the supplied kind,
+// namespace, and resource name. IF no items match, nil is returned.
+func (b *RightSizerReportBuilder) MatchItems(resourceKind, resourceNamespace, resourceName string) *[]RightSizerReportItem {
+	glog.V(2).Infof("starting match items based on kind %s, namespace %s, and name %s", resourceKind, resourceNamespace, resourceName)
+	b.itemsLock.RLock()
+	defer b.itemsLock.RUnlock()
+	var matchedItems []RightSizerReportItem
+	for _, item := range b.Report.Items {
+		if item.Kind == resourceKind && item.ResourceNamespace == resourceNamespace && item.ResourceName == resourceName {
+			matchedItems = append(matchedItems, item)
+			glog.V(4).Infof("matched item %v to kind %s, namespace %s, and name %s", item, resourceKind, resourceNamespace, resourceName)
+		}
+	}
+	numMatched := len(matchedItems)
+	if numMatched > 0 {
+		glog.V(2).Infof("finished match items based on kind %s, namespace %s, and name %s - matched %d", resourceKind, resourceNamespace, resourceName, numMatched)
+		return &matchedItems
+	}
+	glog.V(2).Infof("finished match items based on kind %s, namespace %s, and name %s - matched %d", resourceKind, resourceNamespace, resourceName, numMatched)
+	return nil
+}
+
+func (b *RightSizerReportBuilder) MatchItemsWithOlderResourceVersion(currentResourceVersion, resourceKind, resourceNamespace, resourceName string) *[]RightSizerReportItem {
+	glog.V(2).Infof("starting match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s", currentResourceVersion, resourceKind, resourceNamespace, resourceName)
+	allMatches := b.MatchItems(resourceKind, resourceNamespace, resourceName)
+	if allMatches == nil {
+		glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - no matches regardless of ResourceVersion", currentResourceVersion, resourceKind, resourceNamespace, resourceName)
+		return nil
+	}
+	var olderItems []RightSizerReportItem
+	for _, item := range *allMatches {
+		if item.ResourceVersion < currentResourceVersion {
+			// THis item is older than the current version.
+			olderItems = append(olderItems, item)
+		}
+	}
+	numOlderItems := len(olderItems)
+	if numOlderItems > 0 {
+		glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - %d matches", currentResourceVersion, resourceKind, resourceNamespace, resourceName, numOlderItems)
+		return &olderItems
+	}
+	glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - no older ResourceVersions from %d possible matches", currentResourceVersion, resourceKind, resourceNamespace, resourceName, len(*allMatches))
+	return nil
 }
 
 // RemoveOldItems removes report items that have a last OOMKill older than
@@ -122,9 +168,42 @@ func (b *RightSizerReportBuilder) RemoveOldItems() (anyItemsRemoved bool) {
 	return anyItemsRemoved
 }
 
+// RemoveItems accepts a slice of RightSizerReportItems, and removes them from
+// the report, returning true if any items were removed.
+// Only the fields included in RightSizerReportITem.String() are compared,
+// when matching an item for removal.
+func (b *RightSizerReportBuilder) RemoveItems(removeItems []RightSizerReportItem) (anyItemsRemoved bool) {
+	numToRemove := len(removeItems)
+	if numToRemove == 0 {
+		return false
+	}
+	glog.V(3).Infof("starting removing %d items . . .", numToRemove)
+	numStartingItems := len(b.Report.Items)
+	finalItems := make([]RightSizerReportItem, numStartingItems)
+	copy(finalItems, b.Report.Items)
+	b.itemsLock.Lock()
+	defer b.itemsLock.Unlock()
+	for itemNum := 0; itemNum < len(finalItems); itemNum++ {
+		for _, itemToRemove := range removeItems {
+			if finalItems[itemNum].String() == itemToRemove.String() {
+				glog.V(4).Infof("removing item %s", finalItems[itemNum])
+				finalItems = append(finalItems[:itemNum], finalItems[itemNum+1:]...)
+				anyItemsRemoved = true
+				itemNum-- // go back one index since an item was just removed
+			}
+		}
+	}
+	numFinalItems := len(finalItems)
+	if anyItemsRemoved {
+		b.Report.Items = finalItems
+	}
+	glog.V(3).Infof("finished removing %d items - actually removed %d", numToRemove, numStartingItems-numFinalItems)
+	return anyItemsRemoved
+}
+
 // LoopRemoveOldITems calls RightSizerReportBuilder.RemoveOldItems() every
 // minute, and calls RightSizerReportBuilder.WriteConfigMap() if any items were removed.
-// This is meant to be run in its own ruiteen.
+// This is meant to be run in its own Go ruiteen.
 func (b *RightSizerReportBuilder) LoopRemoveOldItems() {
 	for range time.Tick(time.Minute * 1) {
 		if b.RemoveOldItems() {
@@ -220,7 +299,9 @@ func (b *RightSizerReportBuilder) WriteConfigMap() error {
 }
 
 // ReadConfigMap reads the report from a Kubernetes ConfigMap resource. IF
-// the ConfigMap does not exist, the report remains unchanged.
+// the ConfigMap does not exist, the report remains unchanged, and a new
+// (empty) ConfigMap is created so the Insights Uploader has something to
+// read.
 // This is useful to populate the report with previous data on Kubernetes controller startup.
 func (b *RightSizerReportBuilder) ReadConfigMap() error {
 	var configMap *core.ConfigMap

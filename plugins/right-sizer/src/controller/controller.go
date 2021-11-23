@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -132,6 +133,16 @@ func isSameEventOccurrence(g *eventUpdateGroup) bool {
 func (c *Controller) evaluateEvent(event *core.Event) {
 	glog.V(2).Infof("got event %s/%s (count: %d), reason: %s, involved object: %s", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
 	if !isContainerStartedEvent(event) {
+		// IF this update matches a kind/namespace/name of a pod-controller in the
+		// report, remove related report items.
+		relatedReportItems := c.reportBuilder.MatchItemsWithOlderResourceVersion(event.InvolvedObject.ResourceVersion, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+		if relatedReportItems != nil {
+			eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+			glog.V(1).Infof("going to remove report items related to event %q: %v", eventSummary, relatedReportItems)
+			if c.reportBuilder.RemoveItems(*relatedReportItems) {
+				c.reportBuilder.WriteConfigMap()
+			}
+		}
 		return
 	}
 	pod, err := c.podLister.Pods(event.InvolvedObject.Namespace).Get(event.InvolvedObject.Name)
@@ -152,11 +163,21 @@ func (c *Controller) evaluateEventUpdate(eventUpdate *eventUpdateGroup) {
 		glog.V(4).Infof("Event %s/%s (count: %d), reason: %s, involved object: %s, did not change: skipping processing", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
 		return
 	}
-	if !isContainerStartedEvent(event) {
-		return
-	}
 	if isSameEventOccurrence(eventUpdate) {
 		glog.V(3).Infof("Event %s/%s (count: %d), reason: %s, involved object: %s, did not change wrt. to restart count: skipping processing", eventUpdate.newEvent.ObjectMeta.Namespace, eventUpdate.newEvent.ObjectMeta.Name, eventUpdate.newEvent.Count, eventUpdate.newEvent.Reason, eventUpdate.newEvent.InvolvedObject.Kind)
+		return
+	}
+	if !isContainerStartedEvent(event) {
+		// IF this update matches a kind/namespace/name of a pod-controller in the
+		// report, remove related report items.
+		relatedReportItems := c.reportBuilder.MatchItemsWithOlderResourceVersion(event.InvolvedObject.ResourceVersion, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+		if relatedReportItems != nil {
+			eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+			glog.V(1).Infof("going to remove report items related to event %q: %v", eventSummary, relatedReportItems)
+			if c.reportBuilder.RemoveItems(*relatedReportItems) {
+				c.reportBuilder.WriteConfigMap()
+			}
+		}
 		return
 	}
 	pod, err := c.podLister.Pods(event.InvolvedObject.Namespace).Get(event.InvolvedObject.Name)
