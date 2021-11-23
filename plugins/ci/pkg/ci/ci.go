@@ -411,10 +411,7 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	info := gitInfo{}
 
-	_, err := GetResultsFromCommand("git", "rev-parse", "--is-inside-work-tree")
-	if err != nil {
-		return info, fmt.Errorf("%v: %v", "Please be sure to run the insights-ci script inside of a valid git repository, with the branch you are scanning checked out", err)
-	}
+	var err error
 
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {

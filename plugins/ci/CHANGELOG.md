@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.12.2
+## 0.13.0
 * Added environment variable for git informations.
 
 ## 0.12.1
