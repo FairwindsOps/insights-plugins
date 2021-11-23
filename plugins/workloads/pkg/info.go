@@ -137,17 +137,16 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		topController := workload.TopController
 		var containers []ContainerResult
 		podCount := float64(len(workload.Pods))
-		for _, pod := range workload.Pods {
-			// Convert the unstructured object to cluster.
-			var pd corev1.Pod
-			err = runtime.DefaultUnstructuredConverter.
-				FromUnstructured(pod.UnstructuredContent(), &pd)
-			if err != nil {
-				return nil, err
-			}
-			for _, ctn := range pd.Spec.Containers {
-				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp()))
-			}
+		pod := workload.Pods[0]
+		// Convert the unstructured object to cluster.
+		var pd corev1.Pod
+		err = runtime.DefaultUnstructuredConverter.
+			FromUnstructured(pod.UnstructuredContent(), &pd)
+		if err != nil {
+			return nil, err
+		}
+		for _, ctn := range pd.Spec.Containers {
+			containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp()))
 		}
 		controller := formatControllers(topController.GetKind(), topController.GetName(), topController.GetNamespace(), string(topController.GetUID()), topController.GetOwnerReferences(), containers, topController.GetAnnotations(), topController.GetLabels())
 		controller.PodCount = podCount
