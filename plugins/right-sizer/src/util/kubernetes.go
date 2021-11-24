@@ -12,6 +12,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc" // needed for local development with .kube/config
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
@@ -20,12 +21,17 @@ func Clientset() (kubernetes.Interface, dynamic.Interface, meta.RESTMapper) {
 	// Try to load in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		glog.V(3).Infof("Could not load in-cluster config: %v", err)
+		glog.V(3).Infof("Could not load in-cluster config, falling back to $KUBECONFIG or ~/.kube/config: %v", err)
 
 		// Fall back to local config
-		config, err = clientcmd.BuildConfigFromFlags("", os.Getenv("HOME")+"/.kube/config")
+		var kubeConfigFilePath string
+		kubeConfigFilePath = os.Getenv("KUBECONFIG")
+		if kubeConfigFilePath == "" {
+			kubeConfigFilePath = homedir.HomeDir() + "/.kube/config"
+		}
+		config, err = clientcmd.BuildConfigFromFlags("", kubeConfigFilePath)
 		if err != nil {
-			glog.Fatalf("Failed to load client config: %v", err)
+			glog.Fatalf("Failed to load client config %q: %v", kubeConfigFilePath, err)
 		}
 	}
 

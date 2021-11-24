@@ -1,15 +1,25 @@
-# Template 
+# Right-Sizer
 
-This is a template plugin. When adding a new plugin you can start with copying this directory and changing the values from there.
-
-This section should include a description of what your plugin does.
-
-A Dockerfile will also be required (no sample is provided). And a repository will need to be created in quay for the new plugin.
+Right-sizer is a Kubernetes Controller that detects containers that have been OOM-killed, and maintains an Insights report of the owning pod-controllers such as Deployments, StatefulSets, or DaemonSets. This Controller persists report data in a Kubernetes ConfigMap, which the accompanying Insights agent CronJob retrieves and submits to the Insights API.
 
 ## Running locally
 
-If there are any special instructions needed for running the plugin locally then you can add those in this section.
+To test the right-sizer controller locally using a [kind](https://kind.sigs.k8s.io/) cluster, either:
 
-## Documentation
+* Build and run the right-sizer controller locally:
 
-If there is any external documentation then you can link to that here.
+```bash
+go build -o right-sizer cmd/main.go
+./right-sizer
+```
+
+* Build and run the right-sizer controller in a container:
+
+```bash
+docker build -t right-sizer .
+docker run --network host \
+  -e "KUBECONFIG=/local/kubeconfig" \
+  -v $HOME/.kube/config:/local/kubeconfig \
+  right-sizer
+```
+
