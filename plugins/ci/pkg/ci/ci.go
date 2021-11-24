@@ -411,44 +411,53 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	info := gitInfo{}
 
-	_, err := GetResultsFromCommand("git", "rev-parse", "--is-inside-work-tree")
-	if err != nil {
-		return info, fmt.Errorf("%v: %v", "Please be sure to run the insights-ci script inside of a valid git repository, with the branch you are scanning checked out", err)
+	var err error
+
+	masterHash := os.Getenv("MASTER_HASH")
+	if masterHash == "" {
+		masterHash, err = GetResultsFromCommand("git", "merge-base", "HEAD", baseBranch)
+		if err != nil {
+			logrus.Error("Unable to get GIT merge-base")
+			return info, err
+		}
 	}
 
-	masterHash, err := GetResultsFromCommand("git", "merge-base", "HEAD", baseBranch)
-	if err != nil {
-		logrus.Error("Unable to get GIT merge-base")
-		return info, err
+	currentHash := os.Getenv("CURRENT_HASH")
+	if currentHash == "" {
+		currentHash, err = GetResultsFromCommand("git", "rev-parse", "HEAD")
+		if err != nil {
+			logrus.Error("Unable to get GIT Hash")
+			return info, err
+		}
 	}
 
-	currentHash, err := GetResultsFromCommand("git", "rev-parse", "HEAD")
-	if err != nil {
-		logrus.Error("Unable to get GIT Hash")
-		return info, err
-	}
-
-	commitMessage, err := GetResultsFromCommand("git", "log", "--pretty=format:%s", "-1")
-	if err != nil {
-		logrus.Error("Unable to get GIT Commit message")
-		return info, err
+	commitMessage := os.Getenv("COMMIT_MESSAGE")
+	if commitMessage == "" {
+		commitMessage, err = GetResultsFromCommand("git", "log", "--pretty=format:%s", "-1")
+		if err != nil {
+			logrus.Error("Unable to get GIT Commit message")
+			return info, err
+		}
 	}
 	if len(commitMessage) > 100 {
 		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
 	}
-
-	branch, err := GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
-	if err != nil {
-		logrus.Error("Unable to get GIT Branch Name")
-		return info, err
+	branch := os.Getenv("BRANCH_NAME")
+	if branch == "" {
+		branch, err = GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+		if err != nil {
+			logrus.Error("Unable to get GIT Branch Name")
+			return info, err
+		}
 	}
-
-	origin, err := GetResultsFromCommand("git", "remote", "get-url", "origin")
-	if err != nil {
-		logrus.Error("Unable to get GIT Origin")
-		return info, err
+	origin := os.Getenv("ORIGIN_URL")
+	if origin == "" {
+		origin, err = GetResultsFromCommand("git", "remote", "get-url", "origin")
+		if err != nil {
+			logrus.Error("Unable to get GIT Origin")
+			return info, err
+		}
 	}
-
 	if repoName == "" {
 		repoName = origin
 		if strings.Contains(repoName, "@") { // git@github.com URLs are allowed
