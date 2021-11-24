@@ -24,6 +24,8 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 
 ## Code-level Considerations
 
+* Definitely add tests - the only tests are currently from the original Kubernetes OOM Event Generator project. I haven't added tests so far, to speed proof-of-concept development.
+
 ### General Layout Questions
 
 * Move code from `src` to `pkg` sub-directory?
