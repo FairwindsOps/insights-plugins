@@ -65,7 +65,7 @@ func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerRepo
 		// tooOldAge: 6e+10, // 1 minute
 		// tooOldAge:              3e+11, // 5 minutes
 		configMapNamespaceName: "insights-agent",
-		configMapName:          "right-sizer-controller-state",
+		configMapName:          "insights-agent-right-sizer-controller-state",
 		HTTPServer: &http.Server{
 			ReadTimeout:  2500 * time.Millisecond, // time to read request headers and   optionally body
 			WriteTimeout: 10 * time.Second,
@@ -248,9 +248,9 @@ func (b RightSizerReportBuilder) RunServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/report", b.ReportHandler)
 	b.HTTPServer.Handler = mux
-	inKubernetes := (os.Getenv("KUBERNETES_SERVICE_HOST") != "")
-	if inKubernetes {
-		b.HTTPServer.Addr = ":8080"
+	inKube := os.Getenv("KUBERNETES_SERVICE_HOST")
+	if inKube != "" {
+		b.HTTPServer.Addr = "0.0.0.0:8080"
 	} else {
 		// Use localhost outside of Kubernetes, to avoid Mac OS
 		// accept-incoming-network-connection warnings.
