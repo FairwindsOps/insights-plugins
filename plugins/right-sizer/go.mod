@@ -1,7 +1,7 @@
 module github.com/fairwindsops/insights-plugins/right-sizer
 
 require (
-	github.com/fairwindsops/controller-utils v0.1.0 // indirect
+	github.com/fairwindsops/controller-utils v0.1.0
 	github.com/go-openapi/spec v0.19.3 // indirect
 	github.com/golang/glog v0.0.0-20210429001901-424d2337a529
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -25,7 +25,7 @@ require (
 	k8s.io/client-go v0.22.2
 	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210527164424-3c818078ee3d // indirect
-	sigs.k8s.io/controller-runtime v0.10.2 // indirect
+	sigs.k8s.io/controller-runtime v0.10.2
 )
 
 go 1.16
