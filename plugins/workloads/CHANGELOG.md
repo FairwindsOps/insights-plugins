@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.1
+* Bump go modules
+
 ## 2.2.0
 * Start using controller-utils to get all top workloads.
 

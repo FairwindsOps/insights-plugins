@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+* Bump go modules
+
 ## 0.4.1
 * rebuild to fix CVEs in alpine:3.14
 
