@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -27,27 +28,27 @@ type RightSizerReportItem struct {
 	EndingMemory      *resource.Quantity `json:"endingMemory"`
 	NumOOMs           int64              `json:"numOOMs"`
 	FirstOOM          time.Time          `json:"firstOOM"`
-	LastOOM           time.Time          `json:"LastOOM"`
+	LastOOM           time.Time          `json:"lastOOM"`
 	ResourceVersion   string             `json:"ResourceVersion"`
 }
 
-// RightSizerReportProperties holds multiple right-sizer-item properties.
+// RightSizerReportProperties holds multiple right-sizer-items
 type RightSizerReportProperties struct {
 	Items []RightSizerReportItem `json:"items"`
 }
 
-// RightSizerReportBuilder holds internal resources required to create a
-// RightSizerReport, and provides methods to manipulate the report.
+// RightSizerReportBuilder holds internal resources required to create and
+// manipulate a RightSizerReport
 type RightSizerReportBuilder struct {
 	Report                                *RightSizerReportProperties
 	itemsLock                             *sync.RWMutex
-	tooOldAge                             time.Duration // When an item should be removed based on its age
-	configMapNamespaceName, configMapName string        // ConfigMap name to persist report state
-	HTTPServer                            *http.Server  // Allows retrieving the current report
-	kubeClient                            kubernetes.Interface
+	tooOldAge                             time.Duration        // When an item should be removed based on its age
+	configMapNamespaceName, configMapName string               // ConfigMap name to persist report state
+	HTTPServer                            *http.Server         // Allows retrieving the current report
+	kubeClient                            kubernetes.Interface // Used to read/write state ConfigMap
 }
 
-// String represents unique fields of a report item.
+// String represents unique fields to differentiate a report item.
 func (i RightSizerReportItem) String() string {
 	return fmt.Sprintf("%s %s/%s:%s", i.Kind, i.ResourceNamespace, i.ResourceName, i.ResourceContainer)
 }
@@ -73,9 +74,9 @@ func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerRepo
 	return b
 }
 
-// AddOrUpdateItem accepts a new RightSizerReportItem and adds or updates it
+// AddOrUpdateItem accepts a RightSizerReportItem and adds or updates it
 // in the report.
-// If the item already exists, fields are updated.
+// If the item already exists, `NumOOMs` and `LastOOM` fields are updated.
 func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
@@ -85,7 +86,7 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 			b.Report.Items[i].NumOOMs++
 			b.Report.Items[i].ResourceVersion = newItem.ResourceVersion // SHouldn't change, but just in case
 			b.Report.Items[i].LastOOM = time.Now()
-			glog.V(1).Infof("updating OOMKill information for existing report item %s", item)
+			glog.V(1).Infof("updating OOMKill information for existing report item %s: %d OOMs, latest OOM %s", item, b.Report.Items[i].NumOOMs, b.Report.Items[i].LastOOM)
 			return
 		}
 	}
@@ -98,7 +99,7 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 	return
 }
 
-// MatchItems returns *[]RightSizerReportItem matching the supplied kind,
+// MatchItems returns a pointer to a slice of RightSizerReportItem matching the supplied kind,
 // namespace, and resource name. IF no items match, nil is returned.
 func (b *RightSizerReportBuilder) MatchItems(resourceKind, resourceNamespace, resourceName string) *[]RightSizerReportItem {
 	glog.V(2).Infof("starting match items based on kind %s, namespace %s, and name %s", resourceKind, resourceNamespace, resourceName)
@@ -120,6 +121,9 @@ func (b *RightSizerReportBuilder) MatchItems(resourceKind, resourceNamespace, re
 	return nil
 }
 
+// MatchItemsWithOlderResourceVersion wraps a call to MatchItems(), only
+// returning matches with a `ResourceVersion` field lessthan the
+// `currentResourceVersion` parameter.
 func (b *RightSizerReportBuilder) MatchItemsWithOlderResourceVersion(currentResourceVersion, resourceKind, resourceNamespace, resourceName string) *[]RightSizerReportItem {
 	glog.V(2).Infof("starting match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s", currentResourceVersion, resourceKind, resourceNamespace, resourceName)
 	allMatches := b.MatchItems(resourceKind, resourceNamespace, resourceName)
@@ -139,22 +143,22 @@ func (b *RightSizerReportBuilder) MatchItemsWithOlderResourceVersion(currentReso
 		glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - %d matches", currentResourceVersion, resourceKind, resourceNamespace, resourceName, numOlderItems)
 		return &olderItems
 	}
-	glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - no older ResourceVersions from %d possible matches", currentResourceVersion, resourceKind, resourceNamespace, resourceName, len(*allMatches))
+	glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - no older ResourceVersions out of %d possible matches", currentResourceVersion, resourceKind, resourceNamespace, resourceName, len(*allMatches))
 	return nil
 }
 
-// RemoveOldItems removes report items that have a last OOMKill older than
+// RemoveOldItems removes items from the report that have a last OOMKill older than
 // RightSizerReportBuilder.tooOldAge, and returns true if any items were
 // removed.
 func (b *RightSizerReportBuilder) RemoveOldItems() (anyItemsRemoved bool) {
-	glog.V(3).Infoln("starting removing old items based on last OOM kill. . .")
+	glog.V(2).Infoln("starting removing old items based on last OOM kill. . .")
 	var finalItems []RightSizerReportItem
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
 	for _, item := range b.Report.Items {
 		if time.Since(item.LastOOM) >= b.tooOldAge {
 			glog.V(1).Infof("aging out item %s as its last OOM kill %s is older than %s", item, item.LastOOM, b.tooOldAge)
-			// This item is not kept, via finalItems
+			// This item is not retained in finalItems
 		} else {
 			finalItems = append(finalItems, item)
 			glog.V(4).Infof("keeping item %s as its last OOM kill %s is not older than %s", item, item.LastOOM, b.tooOldAge)
@@ -164,13 +168,24 @@ func (b *RightSizerReportBuilder) RemoveOldItems() (anyItemsRemoved bool) {
 		b.Report.Items = finalItems
 		anyItemsRemoved = true
 	}
-	glog.V(3).Infof("finished removing old items based on last OOM kill - removed=%v", anyItemsRemoved)
+	glog.V(2).Infof("finished removing old items based on last OOM kill - removed=%v", anyItemsRemoved)
 	return anyItemsRemoved
+}
+
+// LoopRemoveOldItems calls RemoveOldItems() every
+// minute, and calls RightSizerReportBuilder.WriteConfigMap() if any items were removed.
+// This is meant to be run in its own Go ruiteen.
+func (b *RightSizerReportBuilder) LoopRemoveOldItems() {
+	for range time.Tick(time.Minute * 1) {
+		if b.RemoveOldItems() {
+			b.WriteConfigMap()
+		}
+	}
 }
 
 // RemoveItems accepts a slice of RightSizerReportItems, and removes them from
 // the report, returning true if any items were removed.
-// Only the fields included in RightSizerReportITem.String() are compared,
+// Only the fields included in RightSizerReportItem.String() are compared,
 // when matching an item for removal.
 func (b *RightSizerReportBuilder) RemoveItems(removeItems []RightSizerReportItem) (anyItemsRemoved bool) {
 	numToRemove := len(removeItems)
@@ -189,7 +204,7 @@ func (b *RightSizerReportBuilder) RemoveItems(removeItems []RightSizerReportItem
 				glog.V(4).Infof("removing item %s", finalItems[itemNum])
 				finalItems = append(finalItems[:itemNum], finalItems[itemNum+1:]...)
 				anyItemsRemoved = true
-				itemNum-- // go back one index since an item was just removed
+				itemNum-- // re-process this index since an item was just removed
 			}
 		}
 	}
@@ -201,19 +216,7 @@ func (b *RightSizerReportBuilder) RemoveItems(removeItems []RightSizerReportItem
 	return anyItemsRemoved
 }
 
-// LoopRemoveOldITems calls RightSizerReportBuilder.RemoveOldItems() every
-// minute, and calls RightSizerReportBuilder.WriteConfigMap() if any items were removed.
-// This is meant to be run in its own Go ruiteen.
-func (b *RightSizerReportBuilder) LoopRemoveOldItems() {
-	for range time.Tick(time.Minute * 1) {
-		if b.RemoveOldItems() {
-			b.WriteConfigMap()
-
-		}
-	}
-}
-
-// GetReportJSON( returns a RightSizerReport in JSON form.
+// GetReportJSON( returns the RightSizerReport in JSON form.
 func (b *RightSizerReportBuilder) GetReportJSON() ([]byte, error) {
 	b.itemsLock.RLock()
 	defer b.itemsLock.RUnlock()
@@ -230,21 +233,29 @@ func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.R
 	data, err := b.GetReportJSON()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		glog.Errorf("error while getting report JSON to serve over HTTP: %v", err)
 		return
 	}
 	_, err = w.Write(data)
 	if err != nil {
-		glog.Errorf("error sending report data: %v", err)
+		glog.Errorf("error sending report data over HTTP: %v", err)
 	}
 }
 
 // RunServer starts the report builder HTTP server and registers the report
-// handler.
+// handler. This server can be used to retrieve the current report JSON.
 func (b RightSizerReportBuilder) RunServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/report", b.ReportHandler)
 	b.HTTPServer.Handler = mux
-	b.HTTPServer.Addr = "localhost:8080" // should become a parameter to this function
+	inKubernetes := (os.Getenv("KUBERNETES_SERVICE_HOST") != "")
+	if inKubernetes {
+		b.HTTPServer.Addr = ":8080"
+	} else {
+		// Use localhost outside of Kubernetes, to avoid Mac OS
+		// accept-incoming-network-connection warnings.
+		b.HTTPServer.Addr = "localhost:8080"
+	}
 	go func() { glog.Fatal(b.HTTPServer.ListenAndServe()) }()
 }
 
