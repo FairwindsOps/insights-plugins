@@ -5,6 +5,11 @@ set -eo pipefail
 message=$1
 force=$2
 
+if [[ -z $message ]]; then
+  echo "Usage: ./scripts/bump-changed.sh 'Message to add to the changelog' [--force]"
+  exit 1
+fi
+
 for d in ./plugins/*/ ; do
     if [[ $d == "_template" ]]; then
       continue
