@@ -21,6 +21,11 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 	* The HTTP listen port (server serves the report and will be used for Kube readiness/liveness probes)
 * Require a minimum number of OOM-kills before acting on a pod-controller.
 * Finish feature to update memory-limits for the owning pod-controller of an OOM-killed pod.
+* Revamping storage of controller state (repopulate report when the controller dies or is restarted):
+	* Don't store state at all, change Insights architecture to support submitting report items without requiring a full report to be submitted each time.
+	* Additional protections around loading a state ConfigMap that a user may have tampered with? Encrypt with a static key? Use a checksum?
+	* Store state in a Secret instead of a ConfigMap? Could be a better RBAC story, if limited to our namespace.
+	* Store state in persistent storage (StatefulSet) instead?
 
 ## Code-level Considerations
 
