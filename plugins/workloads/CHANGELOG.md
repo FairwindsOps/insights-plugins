@@ -1,5 +1,7 @@
 # Changelog
 
+## 2.2.2
+* Bump alpine to 3.15
 ## 2.2.1
 * Bump go modules
 
