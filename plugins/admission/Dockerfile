@@ -22,7 +22,7 @@ COPY ./admission/cmd cmd
 RUN packr2 build /go/pkg/mod/github.com/fairwindsops/polaris*/main.go
 RUN go build ./cmd/admission
 
-FROM alpine:3.14
+FROM alpine:3.15
 WORKDIR /insights
 COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/admission/admission /usr/local/bin/insights-admission
 

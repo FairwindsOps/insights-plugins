@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.2
+* Bump alpine to 3.15
+
+## 0.13.1
+* Bump go modules
+
+## 0.13.0
+* Added environment variable for git informations.
+
+## 0.12.1
+* rebuild to fix CVEs in alpine:3.14
+
+## 0.12.0
+* Add helm `fluxFile` and `version` support
 ## 0.11.0
 * Add helm remote chart functionality
 ## 0.10.13

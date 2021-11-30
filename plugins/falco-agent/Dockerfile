@@ -12,18 +12,19 @@ COPY go.sum go.sum
 RUN go mod download
 
 COPY pkg pkg
-COPY main.go main.go
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o fw-opa main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o falco-agent pkg/*.go
 
 
 FROM alpine:3.15
 WORKDIR /usr/local/bin
 RUN apk --no-cache add ca-certificates
 
+RUN addgroup -S insights && adduser -u 1200 -S insights -G insights
 USER 1200
-COPY --from=builder /workspace/fw-opa .
+COPY --from=builder /workspace/falco-agent .
 
 WORKDIR /opt/app
 
-CMD ["fw-opa"]
+EXPOSE 3031
+CMD ["falco-agent"]

@@ -116,12 +116,12 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		logrus.Warn("Unable to Get Checks from Insights")
+		logrus.Warnf("Unable to Get Checks from Insights(%s)", configurationObject.Options.Hostname)
 		return nil, nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, err := ioutil.ReadAll(resp.Body)
-		logrus.Warn("Unable to Get Checks from Insights")
+		logrus.Warnf("Unable to Get Checks from Insights(%s)", configurationObject.Options.Hostname)
 		if err != nil {
 			logrus.Warn("Unable to read response body")
 			return nil, nil, err
