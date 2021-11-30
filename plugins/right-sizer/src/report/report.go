@@ -82,7 +82,7 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 	defer b.itemsLock.Unlock()
 	for i, item := range b.Report.Items {
 		if item.Kind == newItem.Kind && item.ResourceNamespace == newItem.ResourceNamespace && item.ResourceName == newItem.ResourceName && item.ResourceContainer == newItem.ResourceContainer {
-			// UPdate the existing item.
+			// Update the existing item.
 			b.Report.Items[i].NumOOMs++
 			b.Report.Items[i].ResourceVersion = newItem.ResourceVersion // SHouldn't change, but just in case
 			b.Report.Items[i].LastOOM = time.Now()
@@ -156,7 +156,7 @@ func (b *RightSizerReportBuilder) RemoveOldItems() (anyItemsRemoved bool) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
 	for _, item := range b.Report.Items {
-		if time.Since(item.LastOOM) >= b.tooOldAge {
+		if b.tooOldAge > 0 && time.Since(item.LastOOM) >= b.tooOldAge {
 			glog.V(1).Infof("aging out item %s as its last OOM kill %s is older than %s", item, item.LastOOM, b.tooOldAge)
 			// This item is not retained in finalItems
 		} else {
