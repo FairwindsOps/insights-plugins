@@ -4,6 +4,10 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 
 ## Plugin Known Issues / Planned Fixes
 
+### General
+
+* Fill out the `results.schema` file for this plugin.
+
 ### Report / Action Item
 
 * Clean up the right-sizer report action item description to use a more friendly time display format, and not show both first and last OOM if only one OOM has been seen.. Also bold the number of OOMs to draw user attention.
