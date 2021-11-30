@@ -1,7 +1,9 @@
 # Changelog
+## 0.3.8
+* remove debug log
 
 ## 0.3.7
-* remove debug log
+* Bump alpine to 3.15
 
 ## 0.3.6
 * rebuild to fix CVEs in alpine:3.14

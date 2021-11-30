@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.2
+* Bump alpine to 3.15
+
+## 0.13.1
+* Bump go modules
+
 ## 0.13.0
 * Added environment variable for git informations.
 

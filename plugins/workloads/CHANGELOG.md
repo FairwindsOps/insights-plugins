@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.2
+* Bump alpine to 3.15
+## 2.2.1
+* Bump go modules
+
 ## 2.2.0
 * Start using controller-utils to get all top workloads.
 
