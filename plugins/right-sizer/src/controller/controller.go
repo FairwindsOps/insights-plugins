@@ -14,6 +14,7 @@ import (
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -267,5 +268,39 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 		return nil, err
 	}
 	glog.V(2).Infof("found controller kind %q named %q", topController.GetKind(), topController.GetName())
+	// podSpecInterface := fwControllerUtils.GetPodSpec(topController.UnstructuredContent())
+	podSpecInterface, found, err := unstructured.NestedMap(topController.UnstructuredContent(), "spec", "template", "spec")
+	if err != nil {
+		fmt.Printf("error finding pod spec in unstructured top controller: %v\n", err)
+	}
+	if !found {
+		fmt.Println("pod spec not found in unstructured top controller")
+	}
+	fmt.Printf("PodSpec interface is %v\n", podSpecInterface)
+	var podSpec core.PodSpec
+	err = runtime.DefaultUnstructuredConverter.
+		FromUnstructured(podSpecInterface, &podSpec)
+	if err != nil {
+		fmt.Printf("error converting podSpec interface to pod: %v, err")
+	}
+	for i, container := range podSpec.Containers {
+		fmt.Printf("container %d name %s has limits %s\n", i, container.Name, container.Resources.Limits.Memory)
+		doubledContainerMemoryLimit := container.Resources.Limits.Memory()
+doubledContainerMemoryLimit.Add(*doubledContainerMemoryLimit)
+fmt.Printf("Doubled limits is %s\n", doubledContainerMemoryLimit)
+	}
+patch := []interface{}{
+		map[string]interface{}{
+			"op":    "replace",
+			"path":  "/spec/template/spec/containers/0/resources/limits/memory",
+			"value": memoryString,
+		},
+	}
+	patchJSON, err := json.Marshal(patch)
+	if err != nil {
+		fmt.Printf("Unable to marshal patch JSON: %v\n", err)
+	}
+// marker
+// dynamicClient.Resource(mapping.Resource).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	return &topController, nil
 }
