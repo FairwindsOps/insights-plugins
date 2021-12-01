@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
@@ -13,8 +14,12 @@ import (
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -268,6 +273,8 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 		return nil, err
 	}
 	glog.V(2).Infof("found controller kind %q named %q", topController.GetKind(), topController.GetName())
+	// begin temporary code to double limits
+
 	// podSpecInterface := fwControllerUtils.GetPodSpec(topController.UnstructuredContent())
 	podSpecInterface, found, err := unstructured.NestedMap(topController.UnstructuredContent(), "spec", "template", "spec")
 	if err != nil {
@@ -283,24 +290,48 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 	if err != nil {
 		fmt.Printf("error converting podSpec interface to pod: %v, err")
 	}
+	var doubledContainerMemoryLimit *resource.Quantity
 	for i, container := range podSpec.Containers {
 		fmt.Printf("container %d name %s has limits %s\n", i, container.Name, container.Resources.Limits.Memory)
-		doubledContainerMemoryLimit := container.Resources.Limits.Memory()
-doubledContainerMemoryLimit.Add(*doubledContainerMemoryLimit)
-fmt.Printf("Doubled limits is %s\n", doubledContainerMemoryLimit)
+		doubledContainerMemoryLimit = container.Resources.Limits.Memory()
+		doubledContainerMemoryLimit.Add(*doubledContainerMemoryLimit)
+		fmt.Printf("Doubled limits is %s\n", doubledContainerMemoryLimit)
 	}
-patch := []interface{}{
+	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
 			"path":  "/spec/template/spec/containers/0/resources/limits/memory",
-			"value": memoryString,
+			"value": doubledContainerMemoryLimit.String(),
 		},
 	}
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
 		fmt.Printf("Unable to marshal patch JSON: %v\n", err)
 	}
-// marker
-// dynamicClient.Resource(mapping.Resource).Namespace(namespace).List(ctx, metav1.ListOptions{})
+
+	// Create resources we need to patch the topController.
+	GVK := topController.GroupVersionKind()
+	fmt.Printf("group version kind is: %v\n", GVK)
+	mapping, err := c.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
+	if err != nil {
+		fmt.Printf("error getting mapping from GVK: %v\n", err)
+	}
+	fmt.Printf("Showing mapping: %v\n", mapping)
+	GVR := schema.GroupVersionResource{
+		Group:    GVK.Group,
+		Version:  GVK.Version,
+		Resource: strings.ToLower(GVK.Kind) + "s",
+	}
+	fmt.Printf("The group-version-resource  is: %v\n", GVR)
+	patchClient := c.dynamicClient.Resource(mapping.Resource).Namespace(topController.GetNamespace())
+	// patchClient := c.dynamicClient.Resource(GVR).Namespace(topController.GetNamespace())
+	fmt.Printf("Going to patch namespace %s and name %s with: %#v\n", topController.GetNamespace(), topController.GetName(), string(patchJSON))
+	_, err = patchClient.Patch(context.TODO(), topController.GetName(), types.JSONPatchType, patchJSON, metav1.PatchOptions{})
+	if err != nil {
+		fmt.Printf("Error patching: %v\n", err)
+	}
+
+	// marker
+	// dynamicClient.Resource(mapping.Resource).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	return &topController, nil
 }
