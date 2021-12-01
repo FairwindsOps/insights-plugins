@@ -12,11 +12,8 @@ import (
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -33,18 +30,16 @@ const (
 // Controller is a controller that listens on Pod changes and create Kubernetes Events
 // when a container reports it was previously killed
 type Controller struct {
-	Stop           chan struct{}
-	client         kubernetes.Interface
-	dynamicClient  dynamic.Interface // used to find owning pod-controller
-	k8sFactory     informers.SharedInformerFactory
-	podLister      util.PodLister
-	recorder       record.EventRecorder
-	startTime      time.Time
-	stopCh         chan struct{}
-	eventAddedCh   chan *core.Event
-	eventUpdatedCh chan *eventUpdateGroup
-	RESTMapper     meta.RESTMapper // used to find owning pod-controller
-	reportBuilder  *report.RightSizerReportBuilder
+	kubeClientResources util.KubeClientResources
+	Stop                chan struct{}
+	k8sFactory          informers.SharedInformerFactory
+	podLister           util.PodLister
+	recorder            record.EventRecorder
+	startTime           time.Time
+	stopCh              chan struct{}
+	eventAddedCh        chan *core.Event
+	eventUpdatedCh      chan *eventUpdateGroup
+	reportBuilder       *report.RightSizerReportBuilder
 }
 
 type eventUpdateGroup struct {
@@ -54,26 +49,24 @@ type eventUpdateGroup struct {
 
 // NewController returns an instance of the Controller
 func NewController(stop chan struct{}) *Controller {
-	client, dynamicClient, RESTMapper := util.Clientset()
-	k8sFactory := informers.NewSharedInformerFactory(client, time.Minute*informerSyncMinute)
+	kubeClientResources := util.Clientset()
+	k8sFactory := informers.NewSharedInformerFactory(kubeClientResources.Client, time.Minute*informerSyncMinute)
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: client.CoreV1().Events("")})
+	eventBroadcaster.StartRecordingToSink(&corev1.EventSinkImpl{Interface: kubeClientResources.Client.CoreV1().Events("")})
 
 	controller := &Controller{
-		stopCh:         make(chan struct{}),
-		Stop:           stop,
-		k8sFactory:     k8sFactory,
-		client:         client,
-		dynamicClient:  dynamicClient,
-		RESTMapper:     RESTMapper,
-		podLister:      k8sFactory.Core().V1().Pods().Lister(),
-		eventAddedCh:   make(chan *core.Event),
-		eventUpdatedCh: make(chan *eventUpdateGroup),
-		recorder:       eventBroadcaster.NewRecorder(scheme.Scheme, core.EventSource{Component: "oom-event-generator"}),
-		startTime:      time.Now(),
-		reportBuilder:  report.NewRightSizerReportBuilder(client),
+		stopCh:              make(chan struct{}),
+		Stop:                stop,
+		k8sFactory:          k8sFactory,
+		kubeClientResources: kubeClientResources,
+		podLister:           k8sFactory.Core().V1().Pods().Lister(),
+		eventAddedCh:        make(chan *core.Event),
+		eventUpdatedCh:      make(chan *eventUpdateGroup),
+		recorder:            eventBroadcaster.NewRecorder(scheme.Scheme, core.EventSource{Component: "oom-event-generator"}),
+		startTime:           time.Now(),
+		reportBuilder:       report.NewRightSizerReportBuilder(kubeClientResources.Client),
 	}
 
 	eventsInformer := informers.SharedInformerFactory(k8sFactory).Core().V1().Events().Informer()
@@ -262,7 +255,7 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 		Object: objectAsMap,
 	}
 
-	topController, err := fwControllerUtils.GetTopController(context.TODO(), c.dynamicClient, c.RESTMapper, unstructuredPod, nil)
+	topController, err := fwControllerUtils.GetTopController(context.TODO(), c.kubeClientResources.DynamicClient, c.kubeClientResources.RESTMapper, unstructuredPod, nil)
 	if err != nil {
 		return nil, err
 	}

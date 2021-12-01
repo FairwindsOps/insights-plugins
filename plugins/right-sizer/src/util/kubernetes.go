@@ -16,8 +16,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
+// KubeClientResources bundles together Kubernetes clients and related
+// resources.
+type KubeClientResources struct {
+	Client        kubernetes.Interface
+	DynamicClient dynamic.Interface // used to find owning pod-controller
+	RESTMapper    meta.RESTMapper   // used with dynamicClient
+}
+
 // Clientset abstracts the cluster config loading both locally and on Kubernetes
-func Clientset() (kubernetes.Interface, dynamic.Interface, meta.RESTMapper) {
+func Clientset() KubeClientResources {
 	// Try to load in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -49,7 +57,12 @@ func Clientset() (kubernetes.Interface, dynamic.Interface, meta.RESTMapper) {
 		glog.Fatalf("Error creating REST Mapper: %v", err)
 	}
 
-	return client, dynamicClient, RESTMapper
+	r := KubeClientResources{
+		Client:        client,
+		DynamicClient: dynamicClient,
+		RESTMapper:    RESTMapper,
+	}
+	return r
 }
 
 type PodLister interface {
