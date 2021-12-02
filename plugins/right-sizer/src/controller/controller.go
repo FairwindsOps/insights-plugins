@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
+	"strconv"
 	"time"
 
 	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
@@ -18,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
@@ -215,11 +214,9 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 				break
 			}
 		}
-		containerMemoryLimit := containerInfo.Resources.Limits.Memory()
-		// This `doubled limit` code is incomplete, and only serves to test
-		// calculating a higher limit for the future.
-		doubledContainerMemoryLimit := containerInfo.Resources.Limits.Memory()
-		doubledContainerMemoryLimit.Add(*containerMemoryLimit)
+		containerMemoryLimits := containerInfo.Resources.Limits.Memory()
+		doubledContainerMemoryLimits := containerInfo.Resources.Limits.Memory()
+		doubledContainerMemoryLimits.Add(*containerMemoryLimits)
 		c.recorder.Eventf(pod, core.EventTypeWarning, "PreviousContainerWasOOMKilled", "The previous instance of the container '%s' (%s) was OOMKilled", s.Name, s.ContainerID)
 		ProcessedContainerUpdates.WithLabelValues("oomkilled_event_sent").Inc()
 
@@ -229,7 +226,7 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
 		glog.V(1).Infof("Pod %s/%s is owned by pod-controller %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
-		glog.V(1).Infof("Container %s has memory  limit %v, if we doubled that it would be %v", containerInfo.Name, containerMemoryLimit, doubledContainerMemoryLimit)
+		glog.V(1).Infof("Container %s has memory  limit %v, doubling to %v", containerInfo.Name, containerMemoryLimits, doubledContainerMemoryLimits)
 		// Construct a report item.
 		var reportItem report.RightSizerReportItem
 		reportItem.Kind = podControllerObject.GetKind()
@@ -237,14 +234,19 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceName = podControllerObject.GetName()
 		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
 		reportItem.ResourceContainer = containerInfo.Name
-		reportItem.StartingMemory = containerMemoryLimit
-		reportItem.EndingMemory = containerMemoryLimit // same as limit for now
+		reportItem.StartingMemory = containerMemoryLimits
+		reportItem.EndingMemory = doubledContainerMemoryLimits
 		glog.V(1).Infof("Constructed report item: %+v\n", reportItem)
 		c.reportBuilder.AddOrUpdateItem(reportItem)
 		// Update the state to a ConfigMap.
 		err = c.reportBuilder.WriteConfigMap()
 		if err != nil {
 			glog.Error(err)
+		}
+		// DOuble memory in-cluster.
+		err = c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, doubledContainerMemoryLimits)
+		if err != nil {
+			glog.Errorf("error patching container memory limits: %v", err)
 		}
 	}
 }
@@ -273,65 +275,68 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 		return nil, err
 	}
 	glog.V(2).Infof("found controller kind %q named %q", topController.GetKind(), topController.GetName())
-	// begin temporary code to double limits
+	return &topController, nil
+}
 
-	// podSpecInterface := fwControllerUtils.GetPodSpec(topController.UnstructuredContent())
-	podSpecInterface, found, err := unstructured.NestedMap(topController.UnstructuredContent(), "spec", "template", "spec")
+func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unstructured, containerName string, newContainerMemoryLimits *resource.Quantity) error {
+	glog.V(1).Infof("starting patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
+	// THis will eventually be a loop to search in different levels of a resource
+	// spec.
+	podSpecAsInterface, podSpecFound, err := unstructured.NestedMap(podController.UnstructuredContent(), "spec", "template", "spec")
 	if err != nil {
-		fmt.Printf("error finding pod spec in unstructured top controller: %v\n", err)
+		return fmt.Errorf("error finding pod spec in unstructured resource %s %s/%s: %v\n", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
 	}
-	if !found {
-		fmt.Println("pod spec not found in unstructured top controller")
+	if !podSpecFound {
+		return fmt.Errorf("unable to find pod spec in unstructured resource %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	}
-	fmt.Printf("PodSpec interface is %v\n", podSpecInterface)
 	var podSpec core.PodSpec
 	err = runtime.DefaultUnstructuredConverter.
-		FromUnstructured(podSpecInterface, &podSpec)
+		FromUnstructured(podSpecAsInterface, &podSpec)
 	if err != nil {
-		fmt.Printf("error converting podSpec interface to pod: %v, err")
+		fmt.Errorf("error converting podSpec interface %v to a structured pod object: %v", podSpecAsInterface, err)
 	}
 	var doubledContainerMemoryLimit *resource.Quantity
+	var containerNumber string
+	var foundContainer bool
 	for i, container := range podSpec.Containers {
-		fmt.Printf("container %d name %s has limits %s\n", i, container.Name, container.Resources.Limits.Memory)
-		doubledContainerMemoryLimit = container.Resources.Limits.Memory()
-		doubledContainerMemoryLimit.Add(*doubledContainerMemoryLimit)
-		fmt.Printf("Doubled limits is %s\n", doubledContainerMemoryLimit)
+		// fmt.Printf("container %d name %s has limits %s\n", i, container.Name, container.Resources.Limits.Memory)
+		if container.Name == containerName {
+			containerNumber = strconv.Itoa(i)
+			foundContainer = true
+			doubledContainerMemoryLimit = container.Resources.Limits.Memory()
+			break
+		}
 	}
+	if !foundContainer {
+		return fmt.Errorf("did not find container %s in pod spec %v", containerName, podSpec)
+	}
+	// until now doubledContainerMemoryLimit is the current limit for the
+	// container.
+	doubledContainerMemoryLimit.Add(*doubledContainerMemoryLimit)
+	glog.V(3).Infof("doubled memory limits for container %s will be %s", containerName, doubledContainerMemoryLimit)
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
-			"path":  "/spec/template/spec/containers/0/resources/limits/memory",
-			"value": doubledContainerMemoryLimit.String(),
+			"path":  "/spec/template/spec/containers/" + containerNumber + "/resources/limits/memory",
+			"value": newContainerMemoryLimits.String(),
 		},
 	}
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
-		fmt.Printf("Unable to marshal patch JSON: %v\n", err)
+		return fmt.Errorf("unable to marshal patch %v: %v", patch, err)
 	}
-
-	// Create resources we need to patch the topController.
-	GVK := topController.GroupVersionKind()
-	fmt.Printf("group version kind is: %v\n", GVK)
-	mapping, err := c.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
+	GVK := podController.GroupVersionKind()
+	GVKMapping, err := c.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
 	if err != nil {
-		fmt.Printf("error getting mapping from GVK: %v\n", err)
+		return fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
 	}
-	fmt.Printf("Showing mapping: %v\n", mapping)
-	GVR := schema.GroupVersionResource{
-		Group:    GVK.Group,
-		Version:  GVK.Version,
-		Resource: strings.ToLower(GVK.Kind) + "s",
-	}
-	fmt.Printf("The group-version-resource  is: %v\n", GVR)
-	patchClient := c.dynamicClient.Resource(mapping.Resource).Namespace(topController.GetNamespace())
-	// patchClient := c.dynamicClient.Resource(GVR).Namespace(topController.GetNamespace())
-	fmt.Printf("Going to patch namespace %s and name %s with: %#v\n", topController.GetNamespace(), topController.GetName(), string(patchJSON))
-	_, err = patchClient.Patch(context.TODO(), topController.GetName(), types.JSONPatchType, patchJSON, metav1.PatchOptions{})
+	patchClient := c.dynamicClient.Resource(GVKMapping.Resource).Namespace(podController.GetNamespace())
+	glog.V(2).Infof("going to patch %s/%s: %#v", podController.GetNamespace(), podController.GetName(), string(patchJSON))
+	patchedResource, err := patchClient.Patch(context.TODO(), podController.GetName(), types.JSONPatchType, patchJSON, metav1.PatchOptions{})
 	if err != nil {
-		fmt.Printf("Error patching: %v\n", err)
+		return fmt.Errorf("error patching %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
 	}
-
-	// marker
-	// dynamicClient.Resource(mapping.Resource).Namespace(namespace).List(ctx, metav1.ListOptions{})
-	return &topController, nil
+	glog.V(4).Infof("resource after patch is: %v", patchedResource)
+	glog.V(1).Infof("finished patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
+	return nil
 }
