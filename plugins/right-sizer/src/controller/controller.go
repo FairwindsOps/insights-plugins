@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
@@ -278,22 +279,52 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 	return &topController, nil
 }
 
+func (c *Controller) findPodSpec(podController *unstructured.Unstructured) (podSpec core.PodSpec, foundPath string, returnErr error) {
+	glog.V(3).Infof("starting find pod spec in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
+	type fields []string
+	type listOfFields []fields
+
+	searchFields := listOfFields{
+		{"spec"},
+		{"spec", "jobTemplate"},
+		{"spec", "template", "spec"},
+	}
+
+	for _, currentFields := range searchFields {
+		glog.V(5).Infof("attempting to match pod spec in fields %v of %s %s/%s", currentFields, podController.GetKind(), podController.GetNamespace(), podController.GetName())
+		podSpecAsInterface, podSpecMatched, err := unstructured.NestedMap(podController.UnstructuredContent(), currentFields...)
+		if err == nil && podSpecMatched {
+			// Something exists at this field path, now convert it to a structured
+			// pod type.
+			// THis conversion typically succeeds even if there is no actual pod
+			// spec. :(
+			foundPath = strings.Join(currentFields, "/") // Save the matched path.
+			err = runtime.DefaultUnstructuredConverter.
+				FromUnstructured(podSpecAsInterface, &podSpec)
+			if err == nil && len(podSpec.Containers) > 0 {
+				glog.V(3).Infof("finished find pod spec in %s %s/%s: found in path %q", podController.GetKind(), podController.GetNamespace(), podController.GetName(), foundPath)
+				return // uses named return arguments in func definition
+			}
+			// There was an error converting to a structured pod type.
+			// This may have matched something that is not a pod spec, like the top-level
+			// Deployment spec vs. template.spec.
+			// THis is not a hard failure because there may be other matches in
+			// searchFields.
+			glog.V(5).Info("soft failure converting podSpec interface to a structured pod: found %d containers, error = %v, pod spec interface is: %v", len(podSpec.Containers), err, podSpecAsInterface)
+		}
+	}
+	// By this point, no pod spec was matched in the Unstructured resource, or
+	// convertable to a structured pod type.
+	glog.V(3).Infof("finished find pod spec in %s %s/%s (unsuccessful)", podController.GetKind(), podController.GetNamespace(), podController.GetName())
+	returnErr = fmt.Errorf("no pod spec found in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
+	return // uses named return arguments in func definition
+}
+
 func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unstructured, containerName string, newContainerMemoryLimits *resource.Quantity) error {
 	glog.V(1).Infof("starting patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
-	// THis will eventually be a loop to search in different levels of a resource
-	// spec.
-	podSpecAsInterface, podSpecFound, err := unstructured.NestedMap(podController.UnstructuredContent(), "spec", "template", "spec")
+	podSpec, podSpecPath, err := c.findPodSpec(podController)
 	if err != nil {
-		return fmt.Errorf("error finding pod spec in unstructured resource %s %s/%s: %v\n", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
-	}
-	if !podSpecFound {
-		return fmt.Errorf("unable to find pod spec in unstructured resource %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
-	}
-	var podSpec core.PodSpec
-	err = runtime.DefaultUnstructuredConverter.
-		FromUnstructured(podSpecAsInterface, &podSpec)
-	if err != nil {
-		fmt.Errorf("error converting podSpec interface %v to a structured pod object: %v", podSpecAsInterface, err)
+		return fmt.Errorf("error finding pod spec in unstructured resource %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
 	}
 	var doubledContainerMemoryLimit *resource.Quantity
 	var containerNumber string
@@ -317,7 +348,7 @@ func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unst
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
-			"path":  "/spec/template/spec/containers/" + containerNumber + "/resources/limits/memory",
+			"path":  "/" + podSpecPath + "/containers/" + containerNumber + "/resources/limits/memory",
 			"value": newContainerMemoryLimits.String(),
 		},
 	}
