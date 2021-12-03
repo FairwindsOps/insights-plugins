@@ -25,6 +25,14 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 	* The HTTP listen port (server serves the report and will be used for Kube readiness/liveness probes)
 * Require a minimum number of OOM-kills before acting on a pod-controller.
 * Finish feature to update memory-limits for the owning pod-controller of an OOM-killed pod.
+* Provide enough useful information in an action item to help customers identify the correct area of a custom resource manifest which may manage multiple pod-controllers (Deployments or other CRDs). Likely including Pod labels in the action item, will provide enough useful information. We may be able to reliably understand/modify memory limits of some CRDs, but the complexity of some is not worth our risk.
+	* For example, the [Vitess database operator](https://vitess.io/docs/get-started/operator/) has a `VitessCluster` CRD that manages multiple groups of Pods using multiple Deployments and a `EtcdLockserver` CRD.
+		* The Pod labels include enough background for the customer to map an OOM-kill to the area of the parent `VitessCluster` resource that the customer should adjust.
+		* Examples of information available in pod labels include the Vitess cluster name, cell/zone, and component (etcd, vtctld, vtgateway).
+		* Within the owning `VitessCluster` pod-controller, limits can be set in a variety of places that inform the child managed pod-controller resources. For example:
+			* spec -> partitionings -> {partition equality list} -> shardTemplate -> tabletPools -> cell -> mysqld
+			* spec -> cells -> {cell name} -> gateway -> vttablet
+	* Q: Should all of these labels be included in the differentiating information of an action item? Current differentiating information is Kube resource kind, resource namespace, resource name, and OOM-killed container name.
 * Revamping storage of controller state (repopulate report when the controller dies or is restarted):
 	* Don't store state at all, change Insights architecture to support submitting report items without requiring a full report to be submitted each time.
 	* Additional protections around loading a state ConfigMap that a user may have tampered with? Encrypt with a static key? Use a checksum?
