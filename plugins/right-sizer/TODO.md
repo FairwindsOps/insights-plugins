@@ -33,11 +33,20 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 			* spec -> partitionings -> {partition equality list} -> shardTemplate -> tabletPools -> cell -> mysqld
 			* spec -> cells -> {cell name} -> gateway -> vttablet
 	* Q: Should all of these labels be included in the differentiating information of an action item? Current differentiating information is Kube resource kind, resource namespace, resource name, and OOM-killed container name.
-* Revamping storage of controller state (repopulate report when the controller dies or is restarted):
+
+## Future Ideas / Consideration
+
+### Controller
+
+* Revamp storage of controller state (repopulate report when the controller dies or is restarted):
 	* Don't store state at all, change Insights architecture to support submitting report items without requiring a full report to be submitted each time.
-	* Additional protections around loading a state ConfigMap that a user may have tampered with? Encrypt with a static key? Use a checksum?
 	* Store state in a Secret instead of a ConfigMap? Could be a better RBAC story, if limited to our namespace.
+	* Store controller state in a CRD instead (still lives in Etcd but a "more proper architecture")?
 	* Store state in persistent storage (StatefulSet) instead?
+	* Additional protections around loading a state ConfigMap that a user may have tampered with? Encrypt with a static key? Use a checksum?
+	* If we frequently update the ConfigMap or it gets larger, we *could* impact Etcd. E.G. Argo can have this problem with a significant scale of Argo workflows (each using a compressed/encoded Configmap).
+* Require Prometheus and kube-state-metrics, and use that to obtain OOM-kill information via kube-state-metrics?
+	* We still may not get the level of completeness we would on our own (controller watching events and in-cluster changes).
 
 ## Code-level Considerations
 
