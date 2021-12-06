@@ -279,15 +279,19 @@ func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured
 	return &topController, nil
 }
 
+// findPodSpec searches an unstructured.Unstructured resource for a pod
+// specification, returning it as a core.podspec type, along with the path
+// where the pod spec was found (such as spec.template.spec).
 func (c *Controller) findPodSpec(podController *unstructured.Unstructured) (podSpec core.PodSpec, foundPath string, returnErr error) {
 	glog.V(3).Infof("starting find pod spec in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
+	// Types are used here to help searchFields below be more readable than an
+	// anonymous slice of slices of strings.
 	type fields []string
 	type listOfFields []fields
-
-	searchFields := listOfFields{
-		{"spec"},
-		{"spec", "jobTemplate"},
-		{"spec", "template", "spec"},
+	searchFields := listOfFields{ // Where to search for a pod specification
+		{"spec"},                     // stand-alone pod
+		{"spec", "jobTemplate"},      // CronJob
+		{"spec", "template", "spec"}, // Deployment, Job, and others
 	}
 
 	for _, currentFields := range searchFields {
@@ -295,10 +299,10 @@ func (c *Controller) findPodSpec(podController *unstructured.Unstructured) (podS
 		podSpecAsInterface, podSpecMatched, err := unstructured.NestedMap(podController.UnstructuredContent(), currentFields...)
 		if err == nil && podSpecMatched {
 			// Something exists at this field path, now convert it to a structured
-			// pod type.
+			// pod type and make sure has containers.
+			foundPath = strings.Join(currentFields, "/") // Save the path of the pod spec
 			// THis conversion typically succeeds even if there is no actual pod
 			// spec. :(
-			foundPath = strings.Join(currentFields, "/") // Save the matched path.
 			err = runtime.DefaultUnstructuredConverter.
 				FromUnstructured(podSpecAsInterface, &podSpec)
 			if err == nil && len(podSpec.Containers) > 0 {
@@ -306,45 +310,40 @@ func (c *Controller) findPodSpec(podController *unstructured.Unstructured) (podS
 				return // uses named return arguments in func definition
 			}
 			// There was an error converting to a structured pod type.
-			// This may have matched something that is not a pod spec, like the top-level
-			// Deployment spec vs. template.spec.
 			// THis is not a hard failure because there may be other matches in
 			// searchFields.
 			glog.V(5).Info("soft failure converting podSpec interface to a structured pod: found %d containers, error = %v, pod spec interface is: %v", len(podSpec.Containers), err, podSpecAsInterface)
 		}
 	}
 	// By this point, no pod spec was matched in the Unstructured resource, or
-	// convertable to a structured pod type.
+	// able to be converted to a structured pod type.
 	glog.V(3).Infof("finished find pod spec in %s %s/%s (unsuccessful)", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	returnErr = fmt.Errorf("no pod spec found in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	return // uses named return arguments in func definition
 }
 
+// patchContainerMemoryLimits patches the named container with a new
+// resources.limits.memory. The resource to be patched is of type
+// unstructured.Unstructured, to support multiple pod-controller kinds, using
+// findPodSpec() to locate the pod and container definitions.
 func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unstructured, containerName string, newContainerMemoryLimits *resource.Quantity) error {
-	glog.V(1).Infof("starting patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
+	glog.V(2).Infof("starting patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
 	podSpec, podSpecPath, err := c.findPodSpec(podController)
 	if err != nil {
 		return fmt.Errorf("error finding pod spec in unstructured resource %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
 	}
-	var doubledContainerMemoryLimit *resource.Quantity
 	var containerNumber string
 	var foundContainer bool
 	for i, container := range podSpec.Containers {
-		// fmt.Printf("container %d name %s has limits %s\n", i, container.Name, container.Resources.Limits.Memory)
 		if container.Name == containerName {
 			containerNumber = strconv.Itoa(i)
 			foundContainer = true
-			doubledContainerMemoryLimit = container.Resources.Limits.Memory()
 			break
 		}
 	}
 	if !foundContainer {
 		return fmt.Errorf("did not find container %s in pod spec %v", containerName, podSpec)
 	}
-	// until now doubledContainerMemoryLimit is the current limit for the
-	// container.
-	doubledContainerMemoryLimit.Add(*doubledContainerMemoryLimit)
-	glog.V(3).Infof("doubled memory limits for container %s will be %s", containerName, doubledContainerMemoryLimit)
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
@@ -356,6 +355,9 @@ func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unst
 	if err != nil {
 		return fmt.Errorf("unable to marshal patch %v: %v", patch, err)
 	}
+	// A GroupVersionKind is required to create the RESTMapping, which maps;
+	// converts the API version and kind to the correct capitolization and plural
+	// syntax required by the Kube API.
 	GVK := podController.GroupVersionKind()
 	GVKMapping, err := c.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
 	if err != nil {
@@ -368,6 +370,6 @@ func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unst
 		return fmt.Errorf("error patching %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
 	}
 	glog.V(4).Infof("resource after patch is: %v", patchedResource)
-	glog.V(1).Infof("finished patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
+	glog.V(2).Infof("finished patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
 	return nil
 }
