@@ -37,10 +37,24 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	var namespace, podName, repository string
 
-	namespace := falcoOutput.OutputFields["k8s.ns.name"].(string)
-	podName := falcoOutput.OutputFields["k8s.pod.name"].(string)
-	repository := falcoOutput.OutputFields["container.image.repository"].(string)
+	if falcoOutput.OutputFields["k8s.ns.name"] != nil {
+		namespace = falcoOutput.OutputFields["k8s.ns.name"].(string)
+	}
+
+	if falcoOutput.OutputFields["k8s.pod.name"] != nil {
+		podName = falcoOutput.OutputFields["k8s.pod.name"].(string)
+	}
+	if falcoOutput.OutputFields["container.image.repository"] != nil {
+		repository = falcoOutput.OutputFields["container.image.repository"].(string)
+	}
+	if namespace == "" || podName == "" {
+		logrus.Error("Failed to get namespace or podName")
+		http.Error(w, "Failed to get namespace or podName", http.StatusInternalServerError)
+		return
+	}
+
 	pod, err := data.GetPodByPodName(ctx, dynamicClient, restMapper, namespace, podName)
 	if err != nil {
 		logrus.Errorf("Error retrieving pod using podname: %v", err)
