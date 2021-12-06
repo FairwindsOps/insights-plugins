@@ -236,18 +236,20 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
 		reportItem.ResourceContainer = containerInfo.Name
 		reportItem.StartingMemory = containerMemoryLimits
-		reportItem.EndingMemory = doubledContainerMemoryLimits
+		// DOuble memory in-cluster.
+		err = c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, doubledContainerMemoryLimits)
+		if err != nil {
+			reportItem.EndingMemory = containerMemoryLimits
+			glog.Errorf("error patching container memory limits: %v", err)
+		} else {
+			reportItem.EndingMemory = doubledContainerMemoryLimits
+		}
 		glog.V(1).Infof("Constructed report item: %+v\n", reportItem)
 		c.reportBuilder.AddOrUpdateItem(reportItem)
 		// Update the state to a ConfigMap.
 		err = c.reportBuilder.WriteConfigMap()
 		if err != nil {
 			glog.Error(err)
-		}
-		// DOuble memory in-cluster.
-		err = c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, doubledContainerMemoryLimits)
-		if err != nil {
-			glog.Errorf("error patching container memory limits: %v", err)
 		}
 	}
 }
