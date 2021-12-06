@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.1.3
+* Fix panics if no podname or namespace is retrieved
 ## 0.1.2
 * Bump alpine to 3.15
 
