@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,6 +43,7 @@ type RightSizerReportProperties struct {
 type RightSizerReportBuilder struct {
 	Report                                *RightSizerReportProperties
 	itemsLock                             *sync.RWMutex
+	memoryLimitMultiplier                 float64              // The multiplier used to increase container memory limits.
 	tooOldAge                             time.Duration        // When an item should be removed based on its age
 	configMapNamespaceName, configMapName string               // ConfigMap name to persist report state
 	HTTPServer                            *http.Server         // Allows retrieving the current report
@@ -51,6 +53,17 @@ type RightSizerReportBuilder struct {
 // String represents unique fields to differentiate a report item.
 func (i RightSizerReportItem) String() string {
 	return fmt.Sprintf("%s %s/%s:%s", i.Kind, i.ResourceNamespace, i.ResourceName, i.ResourceContainer)
+}
+
+// MaxAllowedEndingMemory returns the highest value that memory limits are allowed to
+// be increased. A multiplier for RightSizerReportItem.StartingMemory is
+// currently hard-coded into this function.
+func (i RightSizerReportItem) MaxAllowedEndingMemory() (*resource.Quantity, error) {
+	max, err := util.MultiplyResourceQuantity(i.StartingMemory, 2.0)
+	if err != nil {
+		return max, fmt.Errorf("while determining maximum memory limits: %w", err)
+	}
+	return max, nil
 }
 
 // NewRightSizerReportBuilder returns a pointer to a new initialized
@@ -72,6 +85,12 @@ func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerRepo
 		},
 	}
 	return b
+}
+
+// GetMemoryLimitsMultiplier returns the configured multiplier, the multiplier
+// by which container memory limits are increased.
+func (b *RightSizerReportBuilder) GetMemoryLimitsMultiplier() float64 {
+	return b.memoryLimitMultiplier
 }
 
 // AddOrUpdateItem accepts a RightSizerReportItem and adds or updates it
