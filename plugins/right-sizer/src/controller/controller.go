@@ -123,6 +123,8 @@ func isSameEventOccurrence(g *eventUpdateGroup) bool {
 		g.oldEvent.Count == g.newEvent.Count)
 }
 
+// evaluateEvent processes a Kubernetes event, including add/update/delete of
+// related report items.
 func (c *Controller) evaluateEvent(event *core.Event) {
 	glog.V(2).Infof("got event %s/%s (count: %d), reason: %s, involved object: %s", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
 	if !isContainerStartedEvent(event) {
@@ -146,6 +148,8 @@ func (c *Controller) evaluateEvent(event *core.Event) {
 	c.evaluatePodStatus(pod)
 }
 
+// evaluateEventUpdate is a wrapper around evaluateEvent, which first verifies
+// an event is not a duplicate.
 func (c *Controller) evaluateEventUpdate(eventUpdate *eventUpdateGroup) {
 	event := eventUpdate.newEvent
 	if eventUpdate.oldEvent == nil {
@@ -160,25 +164,7 @@ func (c *Controller) evaluateEventUpdate(eventUpdate *eventUpdateGroup) {
 		glog.V(3).Infof("Event %s/%s (count: %d), reason: %s, involved object: %s, did not change wrt. to restart count: skipping processing", eventUpdate.newEvent.ObjectMeta.Namespace, eventUpdate.newEvent.ObjectMeta.Name, eventUpdate.newEvent.Count, eventUpdate.newEvent.Reason, eventUpdate.newEvent.InvolvedObject.Kind)
 		return
 	}
-	if !isContainerStartedEvent(event) {
-		// IF this update matches a kind/namespace/name of a pod-controller in the
-		// report, remove related report items.
-		relatedReportItems := c.reportBuilder.MatchItemsWithOlderResourceVersion(event.InvolvedObject.ResourceVersion, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
-		if relatedReportItems != nil {
-			eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
-			glog.V(1).Infof("going to remove report items related to event %q: %v", eventSummary, relatedReportItems)
-			if c.reportBuilder.RemoveItems(*relatedReportItems) {
-				c.reportBuilder.WriteConfigMap()
-			}
-		}
-		return
-	}
-	pod, err := c.podLister.Pods(event.InvolvedObject.Namespace).Get(event.InvolvedObject.Name)
-	if err != nil {
-		glog.Errorf("Failed to retrieve pod %s/%s, due to: %v", event.InvolvedObject.Namespace, event.InvolvedObject.Name, err)
-		return
-	}
-	c.evaluatePodStatus(pod)
+	c.evaluateEvent(event)
 }
 
 func (c *Controller) evaluatePodStatus(pod *core.Pod) {
