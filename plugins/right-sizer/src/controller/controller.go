@@ -216,8 +216,6 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			}
 		}
 		containerMemoryLimits := containerInfo.Resources.Limits.Memory()
-		doubledContainerMemoryLimits := containerInfo.Resources.Limits.Memory()
-		doubledContainerMemoryLimits.Add(*containerMemoryLimits)
 		c.recorder.Eventf(pod, core.EventTypeWarning, "PreviousContainerWasOOMKilled", "The previous instance of the container '%s' (%s) was OOMKilled", s.Name, s.ContainerID)
 		ProcessedContainerUpdates.WithLabelValues("oomkilled_event_sent").Inc()
 
@@ -227,7 +225,6 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
 		glog.V(1).Infof("Pod %s/%s is owned by pod-controller %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
-		glog.V(1).Infof("Container %s has memory  limit %v, doubling to %v", containerInfo.Name, containerMemoryLimits, doubledContainerMemoryLimits)
 		// Construct a report item.
 		var reportItem report.RightSizerReportItem
 		reportItem.Kind = podControllerObject.GetKind()
@@ -236,13 +233,29 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
 		reportItem.ResourceContainer = containerInfo.Name
 		reportItem.StartingMemory = containerMemoryLimits
-		// DOuble memory in-cluster.
-		err = c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, doubledContainerMemoryLimits)
-		if err != nil {
-			reportItem.EndingMemory = containerMemoryLimits
-			glog.Errorf("error patching container memory limits: %v", err)
-		} else {
-			reportItem.EndingMemory = doubledContainerMemoryLimits
+		// Increase memory limits in-cluster.
+		newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.reportBuilder.GetMemoryLimitsMultiplier())
+		if newConversionErr != nil {
+			glog.Infof("error multiplying new memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
+		}
+		maxAllowedLimits, maxConversionErr := reportItem.MaxAllowedEndingMemory()
+		if maxConversionErr != nil {
+			glog.Infof("error multiplying maximum allowed memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
+		}
+		// Besides being a good sanity check, using IsZero validates there were no
+		// conversion errors above.
+		if !newContainerMemoryLimits.IsZero() && newContainerMemoryLimits.Cmp(*maxAllowedLimits) < 0 {
+			glog.V(1).Infof("%s has memory  limit %v, updating to %v", reportItem, containerMemoryLimits, newContainerMemoryLimits)
+			err = c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
+			if err != nil {
+				reportItem.EndingMemory = containerMemoryLimits
+				glog.Errorf("error patching %s memory limits: %v", reportItem, err)
+			} else {
+				reportItem.EndingMemory = newContainerMemoryLimits
+			}
+		}
+		if !newContainerMemoryLimits.IsZero() && newContainerMemoryLimits.Cmp(*maxAllowedLimits) >= 0 {
+			glog.Infof("%s memory limits will not be updated, %s is at its maximum allowed limits of %s", reportItem, containerMemoryLimits, maxAllowedLimits)
 		}
 		glog.V(1).Infof("Constructed report item: %+v\n", reportItem)
 		c.reportBuilder.AddOrUpdateItem(reportItem)
