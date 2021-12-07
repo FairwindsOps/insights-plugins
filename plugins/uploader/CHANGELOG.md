@@ -1,4 +1,6 @@
 # Changelog
+## 0.3.8
+* remove debug log
 
 ## 0.3.7
 * Bump alpine to 3.15
