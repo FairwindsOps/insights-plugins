@@ -9,7 +9,6 @@ import (
 	"gopkg.in/inf.v0"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	listersV1 "k8s.io/client-go/listers/core/v1"
