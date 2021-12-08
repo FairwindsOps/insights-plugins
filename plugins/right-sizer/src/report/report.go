@@ -77,6 +77,7 @@ func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerRepo
 		tooOldAge:  8.64e+13, // 24 HRs
 		// tooOldAge: 6e+10, // 1 minute
 		// tooOldAge:              3e+11, // 5 minutes
+		memoryLimitMultiplier:  1.2,
 		configMapNamespaceName: "insights-agent",
 		configMapName:          "insights-agent-right-sizer-controller-state",
 		HTTPServer: &http.Server{

@@ -88,10 +88,12 @@ func MultiplyResourceQuantity(q *resource.Quantity, multiplier float64) (*resour
 	multiplierAsString := fmt.Sprintf("%.2f", multiplier)
 	x, ok := multiplierAsDec.SetString(multiplierAsString)
 	if !ok {
+		glog.Errorf("unable to convert resource-request multiplier to type inf.Dec, input=%f, stringified=%q, and the result is %v", multiplier, multiplierAsString, x)
 		return &resource.Quantity{}, fmt.Errorf("unable to convert multiplier to type inf.Dec, input=%f, stringified=%q, and the result is %v", multiplier, multiplierAsString, x)
 	}
 	productAsDec := new(inf.Dec)
 	productAsDec.Mul(qAsDec, multiplierAsDec)
 	product := resource.NewDecimalQuantity(*productAsDec, q.Format) // Retain format from the original quantity.
+	glog.V(5).Infof("multiplying resource quantity %s * %.2f = %s", q, multiplier, product)
 	return product, nil
 }

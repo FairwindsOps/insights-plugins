@@ -138,7 +138,9 @@ func (c *Controller) evaluateEvent(event *core.Event) {
 		// report, remove related report items.
 		relatedReportItems := c.reportBuilder.MatchItemsWithOlderResourceVersion(event.InvolvedObject.ResourceVersion, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
 		if relatedReportItems != nil {
-			eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+// marker
+fmt.Printf("event resource generation is %v\n", event.InvolvedObject.ResourceGeneration)
+eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
 			glog.V(1).Infof("going to remove report items related to event %q: %v", eventSummary, relatedReportItems)
 			if c.reportBuilder.RemoveItems(*relatedReportItems) {
 				c.reportBuilder.WriteConfigMap()
@@ -210,28 +212,40 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceNamespace = podControllerObject.GetNamespace()
 		reportItem.ResourceName = podControllerObject.GetName()
 		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
-		reportItem.ResourceContainer = containerInfo.Name
+// marker
+		generation, generationMatched, err := unstructured.NestedInt64(podControllerObject.UnstructuredContent(), "metadata", "generation")
+if ! generationMatched {
+	fmt.Printf("did not match generation\n")
+}
+if err != nil {
+	fmt.Printf("error matching generation: %v\n", err)
+}
+fmt.Printf("generation is %d\n", generation)
+reportItem.ResourceContainer = containerInfo.Name
 		reportItem.StartingMemory = containerMemoryLimits
 		// Increase memory limits in-cluster.
 		newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.reportBuilder.GetMemoryLimitsMultiplier())
 		if newConversionErr != nil {
-			glog.Infof("error multiplying new memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
+			glog.Errorf("error multiplying new memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
 		}
 		maxAllowedLimits, maxConversionErr := reportItem.MaxAllowedEndingMemory()
 		if maxConversionErr != nil {
-			glog.Infof("error multiplying maximum allowed memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
+			glog.Errorf("error multiplying maximum allowed memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
 		}
 		// Besides being a good sanity check, using IsZero validates there were no
 		// conversion errors above.
+		glog.V(4).Infof("calculated new potential container memory limits for %s to be %s", reportItem, newContainerMemoryLimits)
 		if !newContainerMemoryLimits.IsZero() && newContainerMemoryLimits.Cmp(*maxAllowedLimits) < 0 {
 			glog.V(1).Infof("%s has memory  limit %v, updating to %v", reportItem, containerMemoryLimits, newContainerMemoryLimits)
-			err = c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
+			patchedResource, err := c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
 			if err != nil {
 				reportItem.EndingMemory = containerMemoryLimits
 				glog.Errorf("error patching %s memory limits: %v", reportItem, err)
 			} else {
 				reportItem.EndingMemory = newContainerMemoryLimits
-			}
+glog.V(4).Infof("updating %s resourceVersion to %s after successful patch", reportItem, patchedResource.GetResourceVersion())
+}
+reportItem.ResourceVersion = patchedResource.GetResourceVersion()
 		}
 		if !newContainerMemoryLimits.IsZero() && newContainerMemoryLimits.Cmp(*maxAllowedLimits) >= 0 {
 			glog.Infof("%s memory limits will not be updated, %s is at its maximum allowed limits of %s", reportItem, containerMemoryLimits, maxAllowedLimits)
@@ -320,11 +334,11 @@ func (c *Controller) findPodSpec(podController *unstructured.Unstructured) (podS
 // resources.limits.memory. The resource to be patched is of type
 // unstructured.Unstructured, to support multiple pod-controller kinds, using
 // findPodSpec() to locate the pod and container definitions.
-func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unstructured, containerName string, newContainerMemoryLimits *resource.Quantity) error {
+func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unstructured, containerName string, newContainerMemoryLimits *resource.Quantity) (*unstructured.Unstructured, error) {
 	glog.V(2).Infof("starting patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
 	podSpec, podSpecPath, err := c.findPodSpec(podController)
 	if err != nil {
-		return fmt.Errorf("error finding pod spec in unstructured resource %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
+		return nil, fmt.Errorf("error finding pod spec in unstructured resource %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
 	}
 	var containerNumber string
 	var foundContainer bool
@@ -336,7 +350,7 @@ func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unst
 		}
 	}
 	if !foundContainer {
-		return fmt.Errorf("did not find container %s in pod spec %v", containerName, podSpec)
+		return nil, fmt.Errorf("did not find container %s in pod spec %v", containerName, podSpec)
 	}
 	patch := []interface{}{
 		map[string]interface{}{
@@ -347,7 +361,7 @@ func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unst
 	}
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
-		return fmt.Errorf("unable to marshal patch %v: %v", patch, err)
+		return nil, fmt.Errorf("unable to marshal patch %v: %v", patch, err)
 	}
 	// A GroupVersionKind is required to create the RESTMapping, which maps;
 	// converts the API version and kind to the correct capitolization and plural
@@ -355,15 +369,15 @@ func (c *Controller) patchContainerMemoryLimits(podController *unstructured.Unst
 	GVK := podController.GroupVersionKind()
 	GVKMapping, err := c.kubeClientResources.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
 	if err != nil {
-		return fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
+		return nil, fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
 	}
 	patchClient := c.kubeClientResources.DynamicClient.Resource(GVKMapping.Resource).Namespace(podController.GetNamespace())
 	glog.V(2).Infof("going to patch %s/%s: %#v", podController.GetNamespace(), podController.GetName(), string(patchJSON))
 	patchedResource, err := patchClient.Patch(context.TODO(), podController.GetName(), types.JSONPatchType, patchJSON, metav1.PatchOptions{})
 	if err != nil {
-		return fmt.Errorf("error patching %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
+		return nil, fmt.Errorf("error patching %s %s/%s: %v", podController.GetKind(), podController.GetNamespace(), podController.GetName(), err)
 	}
 	glog.V(4).Infof("resource after patch is: %v", patchedResource)
 	glog.V(2).Infof("finished patch %s %s/%s:%s memory limits to %s", podController.GetNamespace(), podController.GetKind(), podController.GetName(), containerName, newContainerMemoryLimits)
-	return nil
+	return patchedResource, nil
 }
