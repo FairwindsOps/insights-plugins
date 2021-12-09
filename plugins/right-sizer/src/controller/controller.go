@@ -144,7 +144,7 @@ func (c *Controller) evaluateEvent(event *core.Event) {
 		}
 		if relatedReportItems != nil {
 			eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
-			glog.V(1).Infof("going to remove these report items related to event %q: %#v", eventSummary, relatedReportItems)
+			glog.V(1).Infof("going to remove these report items, triggered by the related event %q: %#v", eventSummary, relatedReportItems)
 			if c.reportBuilder.RemoveItems(*relatedReportItems) {
 				c.reportBuilder.WriteConfigMap()
 			}
@@ -271,7 +271,6 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		if !newContainerMemoryLimits.IsZero() && MLEquality > 0 {
 			glog.V(1).Infof("%s memory limits will not be updated, %s is at its maximum allowed limits of %s", reportItem, containerMemoryLimits, maxAllowedLimits)
 		}
-		glog.V(1).Infof("report item (new=%v): %#v\n", !itemAlreadyExists, reportItem)
 		c.reportBuilder.AddOrUpdateItem(reportItem)
 		// Update the state to a ConfigMap.
 		err = c.reportBuilder.WriteConfigMap()

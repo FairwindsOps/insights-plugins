@@ -57,6 +57,12 @@ func (i RightSizerReportItem) String() string {
 	return fmt.Sprintf("%s %s/%s:%s", i.Kind, i.ResourceNamespace, i.ResourceName, i.ResourceContainer)
 }
 
+// StringFull represents all fields of a report item, for pretty-printing,
+// such as debug logs.
+func (i RightSizerReportItem) StringFull() string {
+	return fmt.Sprintf("%s %s/%s:%s, generation %d, StartingMemory %s, NumOOMs %d, EndingMemory %s, FirstOOM %s, LastOOM %s", i.Kind, i.ResourceNamespace, i.ResourceName, i.ResourceContainer, i.ResourceGeneration, i.StartingMemory, i.NumOOMs, i.EndingMemory, i.FirstOOM, i.LastOOM)
+}
+
 // MaxAllowedEndingMemory returns the highest value that memory limits are allowed to
 // be increased. A multiplier for RightSizerReportItem.StartingMemory is
 // currently hard-coded into this function.
@@ -127,7 +133,7 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 			b.Report.Items[i].ResourceVersion = newItem.ResourceVersion
 			b.Report.Items[i].ResourceGeneration = newItem.ResourceGeneration
 			b.Report.Items[i].EndingMemory = newItem.EndingMemory
-			glog.V(1).Infof("updating OOMKill information for existing report item %#v", b.Report.Items[i])
+			glog.V(1).Infof("updating existing report item %s", b.Report.Items[i].StringFull())
 			return
 		}
 	}
@@ -136,7 +142,7 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 	newItem.FirstOOM = time.Now()
 	newItem.LastOOM = newItem.FirstOOM
 	b.Report.Items = append(b.Report.Items, newItem)
-	glog.V(1).Infof("adding new report item %v", newItem)
+	glog.V(1).Infof("adding new report item %s", newItem.StringFull())
 	return
 }
 
@@ -150,7 +156,7 @@ func (b *RightSizerReportBuilder) MatchItems(resourceKind, resourceNamespace, re
 	for _, item := range b.Report.Items {
 		if item.Kind == resourceKind && item.ResourceNamespace == resourceNamespace && item.ResourceName == resourceName {
 			matchedItems = append(matchedItems, item)
-			glog.V(4).Infof("matched item %v to kind %s, namespace %s, and name %s", item, resourceKind, resourceNamespace, resourceName)
+			glog.V(4).Infof("matched item %s to kind %s, namespace %s, and name %s", item, resourceKind, resourceNamespace, resourceName)
 		}
 	}
 	numMatched := len(matchedItems)
@@ -222,17 +228,17 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 	var olderItems []RightSizerReportItem
 	for _, item := range *allMatches {
 		if item.ResourceGeneration < 1 {
-			glog.Errorf("skipping matching report item as older with different memory limits item - item has no ResourceGeneration: %#v", item)
+			glog.Errorf("skipping matching report item as older with different memory limits item - item has no ResourceGeneration: %#s", item.StringFull())
 			continue
 		}
 		currentPodSpec, _, err := util.FindPodSpec(currentResource)
 		if err != nil {
-			glog.Errorf("skipping matching report item %q as older with different memory limits - error finding pod spec in unstructured resource %s %s/%s: %v", item, currentResource.GetKind(), currentResource.GetNamespace(), currentResource.GetName(), err)
+			glog.Errorf("skipping matching report item %q as older with different memory limits - error finding pod spec in unstructured resource %s %s/%s: %v", item.StringFull(), currentResource.GetKind(), currentResource.GetNamespace(), currentResource.GetName(), err)
 			continue
 		}
 		currentContainer, _, foundContainer := util.FindContainerInPodSpec(currentPodSpec, item.ResourceContainer)
 		if !foundContainer {
-			glog.Errorf("skipping matching report item %q as older with different memory limits - error finding container %s in pod-spec: %v", item.ResourceContainer, currentPodSpec)
+			glog.Errorf("skipping matching report item %q as older with different memory limits - error finding container %s in pod-spec: %v", item.StringFull(), item.ResourceContainer, currentPodSpec)
 			continue
 		}
 		currentMemoryLimits := *currentContainer.Resources.Limits.Memory()
@@ -307,7 +313,7 @@ func (b *RightSizerReportBuilder) RemoveItems(removeItems []RightSizerReportItem
 	for itemNum := 0; itemNum < len(finalItems); itemNum++ {
 		for _, itemToRemove := range removeItems {
 			if finalItems[itemNum].String() == itemToRemove.String() {
-				glog.V(4).Infof("removing item %s", finalItems[itemNum])
+				glog.V(4).Infof("removing item %s", finalItems[itemNum].StringFull())
 				finalItems = append(finalItems[:itemNum], finalItems[itemNum+1:]...)
 				anyItemsRemoved = true
 				itemNum-- // re-process this index since an item was just removed
