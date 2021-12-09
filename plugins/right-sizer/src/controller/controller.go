@@ -16,7 +16,6 @@ import (
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -350,27 +349,6 @@ func (c *Controller) findPodSpec(podController *unstructured.Unstructured) (podS
 	glog.V(3).Infof("finished find pod spec in %s %s/%s (unsuccessful)", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	returnErr = fmt.Errorf("no pod spec found in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	return // uses named return arguments in func definition
-}
-
-func (c *Controller) GetResourceFromInvolvedObject(involvedObject core.ObjectReference) (resource *unstructured.Unstructured, found bool, err error) {
-	// A GroupVersionKind is required to create the RESTMapping, which maps;
-	// converts the API version and kind to the correct capitolization and plural
-	// syntax required by the Kube API.
-	GVK := involvedObject.GroupVersionKind()
-	GVKMapping, err := c.kubeClientResources.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
-	if err != nil {
-		return nil, false, fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
-	}
-	getterClient := c.kubeClientResources.DynamicClient.Resource(GVKMapping.Resource).Namespace(involvedObject.Namespace)
-	glog.V(2).Infof("going to fetch resource %s/%s: %#v", involvedObject.Namespace, involvedObject.Name)
-	resource, err = getterClient.Get(context.TODO(), involvedObject.Name, metav1.GetOptions{})
-	if k8sErrors.IsNotFound(err) {
-		return nil, false, nil // not found is not a true error
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return resource, true, nil
 }
 
 // patchContainerMemoryLimits patches the named container with a new

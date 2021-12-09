@@ -13,12 +13,9 @@ import (
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // RightSizerReportItem contains properties of a right-sizer item.
@@ -204,7 +201,7 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 		glog.V(2).Infof("finished match items with older metadata.generation and different memory limits than in-cluster, based on kind %s, namespace %s, and name %s - no matches regardless of generation", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
 		return nil, nil
 	}
-	currentResource, foundResource, err := b.GetResourceFromInvolvedObject(involvedObject)
+	currentResource, foundResource, err := util.GetUnstructuredResourceFromObjectRef(b.kubeClientResources, involvedObject)
 	if !foundResource {
 		// Since there is no generation in-cluster to compare, return no matches
 		// This could mean that the resource has been deleted from the cluster, but
@@ -455,29 +452,4 @@ func (b *RightSizerReportBuilder) ReadConfigMap() error {
 		glog.V(2).Infof("Read report from ConfigMap %s/%s: %#v", b.configMapNamespaceName, b.configMapName, b.Report)
 	}
 	return nil
-}
-
-// GetResourceFromInvolvedObject fetches a resource from in-cluster, based on
-// the core.ObjectReference, which is typically included in a Kube Event.
-// The primary reason this function is in this package, is to use a Kube
-// dynamic client and RESTMapper, without them having to be parameters.
-func (b *RightSizerReportBuilder) GetResourceFromInvolvedObject(involvedObject core.ObjectReference) (resource *unstructured.Unstructured, found bool, err error) {
-	// A GroupVersionKind is required to create the RESTMapping, which maps;
-	// converts the API version and kind to the correct capitolization and plural
-	// syntax required by the Kube API.
-	GVK := involvedObject.GroupVersionKind()
-	GVKMapping, err := b.kubeClientResources.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
-	if err != nil {
-		return nil, false, fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
-	}
-	getterClient := b.kubeClientResources.DynamicClient.Resource(GVKMapping.Resource).Namespace(involvedObject.Namespace)
-	glog.V(2).Infof("going to fetch resource %s %s/%s", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
-	resource, err = getterClient.Get(context.TODO(), involvedObject.Name, metav1.GetOptions{})
-	if k8sErrors.IsNotFound(err) {
-		return nil, false, nil // not found is not a true error
-	}
-	if err != nil {
-		return nil, false, err
-	}
-	return resource, true, nil
 }

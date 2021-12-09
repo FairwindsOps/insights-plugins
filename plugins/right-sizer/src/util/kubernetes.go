@@ -1,15 +1,20 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/golang/glog"
 
+	"strings"
+
 	"gopkg.in/inf.v0"
 	core "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
@@ -20,7 +25,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"strings"
 )
 
 // KubeClientResources bundles together Kubernetes clients and related
@@ -142,6 +146,30 @@ func FindContainerInUnstructured(u *unstructured.Unstructured, containerName str
 	}
 	containerResource, _, foundContainer = FindContainerInPodSpec(podSpec, containerName)
 	return // uses named return arguments in func definition
+}
+
+// GetUnstructuredResourceFromObjectRef fffetches a resource from in-cluster, based on
+// the GroupVersionKind from the provided core.ObjectReference. An
+// ObjectReference is typically included in a Kube Event.
+func GetUnstructuredResourceFromObjectRef(kubeClientResources KubeClientResources, objectRef core.ObjectReference) (resource *unstructured.Unstructured, found bool, err error) {
+	// A GroupVersionKind is required to create the RESTMapping, which maps;
+	// converts the API version and kind to the correct capitolization and plural
+	// syntax required by the Kube API.
+	GVK := objectRef.GroupVersionKind()
+	GVKMapping, err := kubeClientResources.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
+	if err != nil {
+		return nil, false, fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
+	}
+	getterClient := kubeClientResources.DynamicClient.Resource(GVKMapping.Resource).Namespace(objectRef.Namespace)
+	glog.V(2).Infof("going to fetch resource %s %s/%s", objectRef.Kind, objectRef.Namespace, objectRef.Name)
+	resource, err = getterClient.Get(context.TODO(), objectRef.Name, metav1.GetOptions{})
+	if k8sErrors.IsNotFound(err) {
+		return nil, false, nil // not found is not a true error
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return resource, true, nil
 }
 
 // MultiplyResourceQuantity multiplies a
