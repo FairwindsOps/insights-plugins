@@ -210,11 +210,16 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
 		glog.V(1).Infof("Pod %s/%s is owned by pod-controller %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
-		// Construct a report item.
+		// Start constructing a report item
 		var reportItem report.RightSizerReportItem
 		reportItem.Kind = podControllerObject.GetKind()
 		reportItem.ResourceNamespace = podControllerObject.GetNamespace()
 		reportItem.ResourceName = podControllerObject.GetName()
+		reportItem.ResourceContainer = containerInfo.Name
+		itemAlreadyExists := c.reportBuilder.PopulateExistingItemFields(&reportItem) // Get StartingMemory, Etc.
+		if !itemAlreadyExists {
+			reportItem.StartingMemory = containerMemoryLimits
+		}
 		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
 		// marker
 		generation, generationMatched, err := unstructured.NestedInt64(podControllerObject.UnstructuredContent(), "metadata", "generation")
@@ -226,8 +231,6 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		}
 		fmt.Printf("generation is %d\n", generation)
 		reportItem.ResourceGeneration = generation // at the time the OOM-kill is seen.
-		reportItem.ResourceContainer = containerInfo.Name
-		reportItem.StartingMemory = containerMemoryLimits
 		// Increase memory limits in-cluster.
 		newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.reportBuilder.GetMemoryLimitsMultiplier())
 		if newConversionErr != nil {
@@ -239,8 +242,9 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		}
 		// Besides being a good sanity check, using IsZero validates there were no
 		// conversion errors above.
-		glog.V(4).Infof("calculated new potential container memory limits for %s to be %s", reportItem, newContainerMemoryLimits)
-		if !newContainerMemoryLimits.IsZero() && newContainerMemoryLimits.Cmp(*maxAllowedLimits) < 0 {
+		MLEquality := newContainerMemoryLimits.Cmp(*maxAllowedLimits) // will be -1 if max<new, 1 if max>new
+		glog.V(4).Infof("calculated new memory limits are %s, max allowed is %s, limit comparison is %d (-1=new<max or 1=new>max), for report item %s", newContainerMemoryLimits, maxAllowedLimits, MLEquality, reportItem)
+		if !newContainerMemoryLimits.IsZero() && MLEquality <= 0 {
 			glog.V(1).Infof("%s has memory  limit %v, updating to %v", reportItem, containerMemoryLimits, newContainerMemoryLimits)
 			patchedResource, err := c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
 			if err != nil {
@@ -256,7 +260,7 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 					glog.V(1).Infof("setting report item %s EndingMemory to the post-patch value: %s", reportItem, patchedContainerMemoryLimits)
 					reportItem.EndingMemory = patchedContainerMemoryLimits
 				} else {
-					glog.Errorf("unable to find the container %s in patched report item %s, and will have to set report memory limits to the value we sent in our patch: %s", reportItem.ResourceContainer, reportItem, newContainerMemoryLimits)
+					glog.Errorf("unable to find the container %s in patched report item %s, and will have to set report memory limits to the value sent in the patch: %s", reportItem.ResourceContainer, reportItem, newContainerMemoryLimits)
 					reportItem.EndingMemory = newContainerMemoryLimits
 				}
 				glog.V(4).Infof("updating %s resourceVersion to %s after successful patch", reportItem, patchedResource.GetResourceVersion())
@@ -265,10 +269,10 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 				reportItem.ResourceGeneration = patchedResource.GetGeneration()
 			}
 		}
-		if !newContainerMemoryLimits.IsZero() && newContainerMemoryLimits.Cmp(*maxAllowedLimits) >= 0 {
-			glog.Infof("%s memory limits will not be updated, %s is at its maximum allowed limits of %s", reportItem, containerMemoryLimits, maxAllowedLimits)
+		if !newContainerMemoryLimits.IsZero() && MLEquality > 0 {
+			glog.V(1).Infof("%s memory limits will not be updated, %s is at its maximum allowed limits of %s", reportItem, containerMemoryLimits, maxAllowedLimits)
 		}
-		glog.V(1).Infof("Constructed report item: %#v\n", reportItem)
+		glog.V(1).Infof("report item (new=%v): %#v\n", !itemAlreadyExists, reportItem)
 		c.reportBuilder.AddOrUpdateItem(reportItem)
 		// Update the state to a ConfigMap.
 		err = c.reportBuilder.WriteConfigMap()

@@ -100,6 +100,19 @@ func (b *RightSizerReportBuilder) GetMemoryLimitsMultiplier() float64 {
 	return b.memoryLimitMultiplier
 }
 
+func (b *RightSizerReportBuilder) PopulateExistingItemFields(yourItem *RightSizerReportItem) (foundItem bool) {
+	b.itemsLock.RLock()
+	defer b.itemsLock.RUnlock()
+	for _, item := range b.Report.Items {
+		if item.Kind == yourItem.Kind && item.ResourceNamespace == yourItem.ResourceNamespace && item.ResourceName == yourItem.ResourceName && item.ResourceContainer == yourItem.ResourceContainer {
+			foundItem = true
+			*yourItem = item
+			return // uses the named arguments in the func definition
+		}
+	}
+	return // uses the named arguments in the func definition
+}
+
 // AddOrUpdateItem accepts a RightSizerReportItem and adds or updates it
 // in the report.
 // If the item already exists, `NumOOMs` and `LastOOM` fields are updated.
@@ -111,13 +124,13 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 			// Update the existing item.
 			b.Report.Items[i].NumOOMs++
 			b.Report.Items[i].LastOOM = time.Now()
-// The entire newItem is not updated in the report, because some fields need to
-// be retain from the original item, such as FirstOOM and StartingMemory.
-// UPdate fields that the controller will have set, in the new item.
-b.Report.Items[i].ResourceVersion = newItem.ResourceVersion
-b.Report.Items[i].ResourceGeneration = newItem.ResourceGeneration
-b.Report.Items[i].EndingMemory = newItem.EndingMemory
-glog.V(1).Infof("updating OOMKill information for existing report item %#v", b.Report.Items[i])
+			// The entire newItem is not updated in the report, because some fields need to
+			// be retain from the original item, such as FirstOOM and StartingMemory.
+			// UPdate fields that the controller will have set, in the new item.
+			b.Report.Items[i].ResourceVersion = newItem.ResourceVersion
+			b.Report.Items[i].ResourceGeneration = newItem.ResourceGeneration
+			b.Report.Items[i].EndingMemory = newItem.EndingMemory
+			glog.V(1).Infof("updating OOMKill information for existing report item %#v", b.Report.Items[i])
 			return
 		}
 	}
