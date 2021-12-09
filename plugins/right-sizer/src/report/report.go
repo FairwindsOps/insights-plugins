@@ -109,11 +109,15 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 	for i, item := range b.Report.Items {
 		if item.Kind == newItem.Kind && item.ResourceNamespace == newItem.ResourceNamespace && item.ResourceName == newItem.ResourceName && item.ResourceContainer == newItem.ResourceContainer {
 			// Update the existing item.
-			b.Report.Items[i] = newItem // Update any/all fields changed when newItem was created.
 			b.Report.Items[i].NumOOMs++
-			b.Report.Items[i].ResourceVersion = newItem.ResourceVersion // SHouldn't change, but just in case
 			b.Report.Items[i].LastOOM = time.Now()
-			glog.V(1).Infof("updating OOMKill information for existing report item %#v", b.Report.Items[i])
+// The entire newItem is not updated in the report, because some fields need to
+// be retain from the original item, such as FirstOOM and StartingMemory.
+// UPdate fields that the controller will have set, in the new item.
+b.Report.Items[i].ResourceVersion = newItem.ResourceVersion
+b.Report.Items[i].ResourceGeneration = newItem.ResourceGeneration
+b.Report.Items[i].EndingMemory = newItem.EndingMemory
+glog.V(1).Infof("updating OOMKill information for existing report item %#v", b.Report.Items[i])
 			return
 		}
 	}
