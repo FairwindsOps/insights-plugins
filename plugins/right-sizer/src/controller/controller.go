@@ -15,6 +15,8 @@ import (
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,7 +74,7 @@ func NewController(stop chan struct{}) *Controller {
 		eventUpdatedCh:      make(chan *eventUpdateGroup),
 		recorder:            eventBroadcaster.NewRecorder(scheme.Scheme, core.EventSource{Component: "oom-event-generator"}),
 		startTime:           time.Now(),
-		reportBuilder:       report.NewRightSizerReportBuilder(kubeClientResources.Client),
+		reportBuilder:       report.NewRightSizerReportBuilder(kubeClientResources),
 	}
 
 	eventsInformer := informers.SharedInformerFactory(k8sFactory).Core().V1().Events().Informer()
@@ -136,12 +138,14 @@ func (c *Controller) evaluateEvent(event *core.Event) {
 	if !isContainerStartedEvent(event) {
 		// IF this update matches a kind/namespace/name of a pod-controller in the
 		// report, remove related report items.
-		relatedReportItems := c.reportBuilder.MatchItemsWithOlderResourceVersion(event.InvolvedObject.ResourceVersion, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+		// relatedReportItems := c.reportBuilder.MatchItemsWithOlderResourceVersion(event.InvolvedObject.ResourceVersion, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+		relatedReportItems, err := c.reportBuilder.MatchItemsOlderWithModifiedMemoryLimits(event.InvolvedObject)
+		if err != nil {
+			glog.Errorf("error getting related report items: %w", err)
+		}
 		if relatedReportItems != nil {
-// marker
-fmt.Printf("event resource generation is %v\n", event.InvolvedObject.ResourceGeneration)
-eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
-			glog.V(1).Infof("going to remove report items related to event %q: %v", eventSummary, relatedReportItems)
+			eventSummary := fmt.Sprintf("%s %s/%s %s", event.Reason, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+			glog.V(1).Infof("going to remove these report items related to event %q: %#v", eventSummary, relatedReportItems)
 			if c.reportBuilder.RemoveItems(*relatedReportItems) {
 				c.reportBuilder.WriteConfigMap()
 			}
@@ -212,16 +216,17 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceNamespace = podControllerObject.GetNamespace()
 		reportItem.ResourceName = podControllerObject.GetName()
 		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
-// marker
+		// marker
 		generation, generationMatched, err := unstructured.NestedInt64(podControllerObject.UnstructuredContent(), "metadata", "generation")
-if ! generationMatched {
-	fmt.Printf("did not match generation\n")
-}
-if err != nil {
-	fmt.Printf("error matching generation: %v\n", err)
-}
-fmt.Printf("generation is %d\n", generation)
-reportItem.ResourceContainer = containerInfo.Name
+		if !generationMatched {
+			fmt.Printf("did not match generation\n")
+		}
+		if err != nil {
+			fmt.Printf("error matching generation: %v\n", err)
+		}
+		fmt.Printf("generation is %d\n", generation)
+		reportItem.ResourceGeneration = generation // at the time the OOM-kill is seen.
+		reportItem.ResourceContainer = containerInfo.Name
 		reportItem.StartingMemory = containerMemoryLimits
 		// Increase memory limits in-cluster.
 		newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.reportBuilder.GetMemoryLimitsMultiplier())
@@ -242,15 +247,28 @@ reportItem.ResourceContainer = containerInfo.Name
 				reportItem.EndingMemory = containerMemoryLimits
 				glog.Errorf("error patching %s memory limits: %v", reportItem, err)
 			} else {
-				reportItem.EndingMemory = newContainerMemoryLimits
-glog.V(4).Infof("updating %s resourceVersion to %s after successful patch", reportItem, patchedResource.GetResourceVersion())
-}
-reportItem.ResourceVersion = patchedResource.GetResourceVersion()
+				// The post-patch memory limits may be different than the limits in our patch.
+				// I.E. We patch with 15655155794400u, post-patch shows 15655155795m
+				// Therefore, update the report item with the actual; post-patch memory.
+				patchedContainer, _, foundPatchedContainer := util.FindContainerInUnstructured(patchedResource, reportItem.ResourceContainer)
+				if foundPatchedContainer {
+					patchedContainerMemoryLimits := patchedContainer.Resources.Limits.Memory()
+					glog.V(1).Infof("setting report item %s EndingMemory to the post-patch value: %s", reportItem, patchedContainerMemoryLimits)
+					reportItem.EndingMemory = patchedContainerMemoryLimits
+				} else {
+					glog.Errorf("unable to find the container %s in patched report item %s, and will have to set report memory limits to the value we sent in our patch: %s", reportItem.ResourceContainer, reportItem, newContainerMemoryLimits)
+					reportItem.EndingMemory = newContainerMemoryLimits
+				}
+				glog.V(4).Infof("updating %s resourceVersion to %s after successful patch", reportItem, patchedResource.GetResourceVersion())
+				reportItem.ResourceVersion = patchedResource.GetResourceVersion()
+				glog.V(4).Infof("updating %s ResourceGeneration to %d after successful patch", reportItem, patchedResource.GetGeneration())
+				reportItem.ResourceGeneration = patchedResource.GetGeneration()
+			}
 		}
 		if !newContainerMemoryLimits.IsZero() && newContainerMemoryLimits.Cmp(*maxAllowedLimits) >= 0 {
 			glog.Infof("%s memory limits will not be updated, %s is at its maximum allowed limits of %s", reportItem, containerMemoryLimits, maxAllowedLimits)
 		}
-		glog.V(1).Infof("Constructed report item: %+v\n", reportItem)
+		glog.V(1).Infof("Constructed report item: %#v\n", reportItem)
 		c.reportBuilder.AddOrUpdateItem(reportItem)
 		// Update the state to a ConfigMap.
 		err = c.reportBuilder.WriteConfigMap()
@@ -328,6 +346,27 @@ func (c *Controller) findPodSpec(podController *unstructured.Unstructured) (podS
 	glog.V(3).Infof("finished find pod spec in %s %s/%s (unsuccessful)", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	returnErr = fmt.Errorf("no pod spec found in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	return // uses named return arguments in func definition
+}
+
+func (c *Controller) GetResourceFromInvolvedObject(involvedObject core.ObjectReference) (resource *unstructured.Unstructured, found bool, err error) {
+	// A GroupVersionKind is required to create the RESTMapping, which maps;
+	// converts the API version and kind to the correct capitolization and plural
+	// syntax required by the Kube API.
+	GVK := involvedObject.GroupVersionKind()
+	GVKMapping, err := c.kubeClientResources.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
+	if err != nil {
+		return nil, false, fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
+	}
+	getterClient := c.kubeClientResources.DynamicClient.Resource(GVKMapping.Resource).Namespace(involvedObject.Namespace)
+	glog.V(2).Infof("going to fetch resource %s/%s: %#v", involvedObject.Namespace, involvedObject.Name)
+	resource, err = getterClient.Get(context.TODO(), involvedObject.Name, metav1.GetOptions{})
+	if k8sErrors.IsNotFound(err) {
+		return nil, false, nil // not found is not a true error
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return resource, true, nil
 }
 
 // patchContainerMemoryLimits patches the named container with a new

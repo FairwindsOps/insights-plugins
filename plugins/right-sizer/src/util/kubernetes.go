@@ -7,8 +7,11 @@ import (
 	"github.com/golang/glog"
 
 	"gopkg.in/inf.v0"
+	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	listersV1 "k8s.io/client-go/listers/core/v1"
@@ -17,6 +20,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"strings"
 )
 
 // KubeClientResources bundles together Kubernetes clients and related
@@ -70,6 +74,74 @@ func Clientset() KubeClientResources {
 
 type PodLister interface {
 	Pods(namespace string) listersV1.PodNamespaceLister
+}
+
+// findPodSpec searches an unstructured.Unstructured resource for a pod
+// specification, returning it as a core.podspec type, along with the path
+// where the pod spec was found (such as spec.template.spec).
+func FindPodSpec(podController *unstructured.Unstructured) (podSpec *core.PodSpec, foundPath string, returnErr error) {
+	glog.V(3).Infof("starting find pod spec in resource %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
+	// Types are used here to help searchFields below be more readable than an
+	// anonymous slice of slices of strings.
+	type fields []string
+	type listOfFields []fields
+	searchFields := listOfFields{ // Where to search for a pod specification
+		{"spec"},                     // stand-alone pod
+		{"spec", "jobTemplate"},      // CronJob
+		{"spec", "template", "spec"}, // Deployment, Job, and others
+	}
+
+	for _, currentFields := range searchFields {
+		glog.V(5).Infof("attempting to match pod spec in fields %v of resource %s %s/%s", currentFields, podController.GetKind(), podController.GetNamespace(), podController.GetName())
+		podSpecAsInterface, podSpecMatched, err := unstructured.NestedMap(podController.UnstructuredContent(), currentFields...)
+		if err == nil && podSpecMatched {
+			// Something exists at this field path, now convert it to a structured
+			// pod type and make sure has containers.
+			foundPath = strings.Join(currentFields, "/") // Save the path of the pod spec
+			// THis conversion typically succeeds even if there is no actual pod
+			// spec. :(
+			err = runtime.DefaultUnstructuredConverter.
+				FromUnstructured(podSpecAsInterface, &podSpec)
+			if err == nil && len(podSpec.Containers) > 0 {
+				glog.V(3).Infof("finished find pod spec in resource %s %s/%s: found in path %q", podController.GetKind(), podController.GetNamespace(), podController.GetName(), foundPath)
+				return // uses named return arguments in func definition
+			}
+			// There was an error converting to a structured pod type.
+			// THis is not a hard failure because there may be other matches in
+			// searchFields.
+			glog.V(5).Info("soft failure converting podSpec interface to a structured pod: found %d containers, error = %v, pod spec interface is: %v", len(podSpec.Containers), err, podSpecAsInterface)
+		}
+	}
+	// By this point, no pod spec was matched in the Unstructured resource, or
+	// able to be converted to a structured pod type.
+	glog.V(3).Infof("finished find pod spec in resource %s %s/%s (unsuccessful)", podController.GetKind(), podController.GetNamespace(), podController.GetName())
+	returnErr = fmt.Errorf("no pod spec found in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
+	return // uses named return arguments in func definition
+}
+
+// FindContainerInPodSpec returns the named container from a core/v1.PodSpec
+//resource.
+func FindContainerInPodSpec(podSpec *core.PodSpec, containerName string) (containerResource *core.Container, containerNumber int, foundContainer bool) {
+	for i, c := range podSpec.Containers {
+		if c.Name == containerName {
+			foundContainer = true
+			containerNumber = i
+			containerResource = &c
+			return // uses named return arguments in func definition
+		}
+	}
+	return // uses named return arguments in func definition
+}
+
+func FindContainerInUnstructured(u *unstructured.Unstructured, containerName string) (containerResource *core.Container, containerNumber int, foundContainer bool) {
+	podSpec, _, err := FindPodSpec(u)
+	if err != nil {
+		// REturning false because a pod-spec could not be found in the Unstructured
+		// object. We could propagate the error instead?
+		return // uses named return arguments in func definition
+	}
+	containerResource, _, foundContainer = FindContainerInPodSpec(podSpec, containerName)
+	return // uses named return arguments in func definition
 }
 
 // MultiplyResourceQuantity multiplies a
