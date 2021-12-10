@@ -324,7 +324,7 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 				}
 			}
 			if !newContainerMemoryLimits.IsZero() && MLEquality > 0 {
-				glog.V(1).Infof("%s memory limits will not be updated, the current limit of %s cannot be increased by %.2f without exceeding the maximum allowed limit of %.1f (%s)", reportItem, containerMemoryLimits, c.config.updateMemoryLimitsMultiplier, c.config.maxMemoryLimitsUpdateFactor, maxAllowedLimits)
+				glog.V(1).Infof("%s memory limits will not be updated, the current %s limit cannot be increased by %.2f without exceeding the maximum allowed limit of %.1fX which is %s for this resource", reportItem, containerMemoryLimits, c.config.updateMemoryLimitsMultiplier, c.config.maxMemoryLimitsUpdateFactor, maxAllowedLimits)
 			}
 		} else {
 			glog.V(1).Infof("not updating memory limits for %s as updating has not ben enabled", reportItem)
