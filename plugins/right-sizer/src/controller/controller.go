@@ -53,8 +53,9 @@ type Controller struct {
 
 // ControllerConfig represents configurable options for the controller.
 type controllerConfig struct {
-	updateMemoryLimits                          bool
-	stateConfigMapNameSpace, stateConfigMapName string
+	updateMemoryLimits           bool
+	updateMemoryLimitsMultiplier float64
+	maxMemoryLimitsUpdateFactor  float64
 }
 
 type eventUpdateGroup struct {
@@ -66,26 +67,6 @@ type eventUpdateGroup struct {
 // THis is the "functional options" pattern, allowing the NewController() constructor to use something like "named parameters," and for those parameters to be optional.
 type controllerOption func(*controllerConfig)
 
-// WithStateConfigMapNameSpace sets the corresponding field in a controllerConfig type.
-func WithStateConfigMapNameSpace(value string) controllerOption {
-	return func(c *controllerConfig) {
-		if value != "" {
-			c.stateConfigMapNameSpace = value
-		}
-		return
-	}
-}
-
-// WithStateConfigMapName sets the corresponding field in a controllerConfig type.
-func WithStateConfigMapName(value string) controllerOption {
-	return func(c *controllerConfig) {
-		if value != "" {
-			c.stateConfigMapName = value
-		}
-		return
-	}
-}
-
 // WithUpdateMemoryLimits sets the corresponding field in a controllerConfig type.
 func WithUpdateMemoryLimits(value bool) controllerOption {
 	return func(c *controllerConfig) {
@@ -94,14 +75,33 @@ func WithUpdateMemoryLimits(value bool) controllerOption {
 	}
 }
 
-// NewController returns an instance of the Controller
-func NewController(stop chan struct{}, options ...controllerOption) *Controller {
-	kubeClientResources := util.Clientset()
+// WithUpdateMemoryLimitsMultiplier sets the corresponding field in a controllerConfig type.
+func WithUpdateMemoryLimitsMultiplier(value float64) controllerOption {
+	return func(c *controllerConfig) {
+		if value > 0.0 {
+			c.updateMemoryLimitsMultiplier = value
+		}
+		return
+	}
+}
 
+// WithMaxMemoryLimitsUpdateFactor sets the corresponding field in a
+// controllerConfig type.
+func WithMaxMemoryLimitsUpdateFactor(value float64) controllerOption {
+	return func(c *controllerConfig) {
+		if value > 0.0 {
+			c.maxMemoryLimitsUpdateFactor = value
+		}
+		return
+	}
+}
+
+// NewController returns an instance of the Controller
+func NewController(stop chan struct{}, kubeClientResources util.KubeClientResources, rb *report.RightSizerReportBuilder, options ...controllerOption) *Controller {
 	cfg := &controllerConfig{
-		updateMemoryLimits:      false,
-		stateConfigMapNameSpace: "insights-agent",
-		stateConfigMapName:      "insights-agent-right-sizer-controller-state",
+		updateMemoryLimits:           false,
+		updateMemoryLimitsMultiplier: 1.2,
+		maxMemoryLimitsUpdateFactor:  2.0,
 	}
 
 	// Process functional options.
@@ -126,7 +126,7 @@ func NewController(stop chan struct{}, options ...controllerOption) *Controller 
 		eventUpdatedCh:      make(chan *eventUpdateGroup),
 		recorder:            eventBroadcaster.NewRecorder(scheme.Scheme, core.EventSource{Component: "oom-event-generator"}),
 		startTime:           time.Now(),
-		reportBuilder:       report.NewRightSizerReportBuilder(kubeClientResources),
+		reportBuilder:       rb,
 	}
 
 	eventsInformer := informers.SharedInformerFactory(k8sFactory).Core().V1().Events().Informer()
@@ -272,6 +272,7 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		if !itemAlreadyExists {
 			reportItem.StartingMemory = containerMemoryLimits
 		}
+		reportItem.EndingMemory = containerMemoryLimits // equals Starting Memory unless limits are to be updated.
 		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
 		// marker
 		generation, generationMatched, err := unstructured.NestedInt64(podControllerObject.UnstructuredContent(), "metadata", "generation")
@@ -283,46 +284,50 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		}
 		fmt.Printf("generation is %d\n", generation)
 		reportItem.ResourceGeneration = generation // at the time the OOM-kill is seen.
-		// Increase memory limits in-cluster.
-		newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.reportBuilder.GetMemoryLimitsMultiplier())
-		if newConversionErr != nil {
-			glog.Errorf("error multiplying new memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
-		}
-		maxAllowedLimits, maxConversionErr := reportItem.MaxAllowedEndingMemory()
-		if maxConversionErr != nil {
-			glog.Errorf("error multiplying maximum allowed memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
-		}
-		// Besides being a good sanity check, using IsZero validates there were no
-		// conversion errors above.
-		MLEquality := newContainerMemoryLimits.Cmp(*maxAllowedLimits) // will be -1 if max<new, 1 if max>new
-		glog.V(4).Infof("calculated new memory limits are %s, max allowed is %s, limit comparison is %d (-1=new<max or 1=new>max), for report item %s", newContainerMemoryLimits, maxAllowedLimits, MLEquality, reportItem)
-		if !newContainerMemoryLimits.IsZero() && MLEquality <= 0 {
-			glog.V(1).Infof("%s has memory  limit %v, updating to %v", reportItem, containerMemoryLimits, newContainerMemoryLimits)
-			patchedResource, err := c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
-			if err != nil {
-				reportItem.EndingMemory = containerMemoryLimits
-				glog.Errorf("error patching %s memory limits: %v", reportItem, err)
-			} else {
-				// The post-patch memory limits may be different than the limits in our patch.
-				// I.E. We patch with 15655155794400u, post-patch shows 15655155795m
-				// Therefore, update the report item with the actual; post-patch memory.
-				patchedContainer, _, foundPatchedContainer := util.FindContainerInUnstructured(patchedResource, reportItem.ResourceContainer)
-				if foundPatchedContainer {
-					patchedContainerMemoryLimits := patchedContainer.Resources.Limits.Memory()
-					glog.V(1).Infof("setting report item %s EndingMemory to the post-patch value: %s", reportItem, patchedContainerMemoryLimits)
-					reportItem.EndingMemory = patchedContainerMemoryLimits
-				} else {
-					glog.Errorf("unable to find the container %s in patched report item %s, and will have to set report memory limits to the value sent in the patch: %s", reportItem.ResourceContainer, reportItem, newContainerMemoryLimits)
-					reportItem.EndingMemory = newContainerMemoryLimits
-				}
-				glog.V(4).Infof("updating %s resourceVersion to %s after successful patch", reportItem, patchedResource.GetResourceVersion())
-				reportItem.ResourceVersion = patchedResource.GetResourceVersion()
-				glog.V(4).Infof("updating %s ResourceGeneration to %d after successful patch", reportItem, patchedResource.GetGeneration())
-				reportItem.ResourceGeneration = patchedResource.GetGeneration()
+		if c.config.updateMemoryLimits {
+			// Increase memory limits in-cluster.
+			newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.config.updateMemoryLimitsMultiplier)
+			if newConversionErr != nil {
+				glog.Errorf("error multiplying new memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
 			}
-		}
-		if !newContainerMemoryLimits.IsZero() && MLEquality > 0 {
-			glog.V(1).Infof("%s memory limits will not be updated, %s is at its maximum allowed limits of %s", reportItem, containerMemoryLimits, maxAllowedLimits)
+			maxAllowedLimits, maxConversionErr := reportItem.MaxAllowedEndingMemory(c.config.maxMemoryLimitsUpdateFactor)
+			if maxConversionErr != nil {
+				glog.Errorf("error multiplying maximum allowed memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
+			}
+			MLEquality := newContainerMemoryLimits.Cmp(*maxAllowedLimits) // will be -1 if max<new, 1 if max>new
+			glog.V(4).Infof("calculated new memory limits are %s, max allowed is %s, limit comparison is %d (-1=new<max or 1=new>max), for report item %s", newContainerMemoryLimits, maxAllowedLimits, MLEquality, reportItem)
+			// Besides being a good sanity check, using IsZero validates there were no
+			// conversion errors above.
+			if !newContainerMemoryLimits.IsZero() && MLEquality <= 0 {
+				glog.V(1).Infof("%s has memory  limit %v, updating to %v", reportItem, containerMemoryLimits, newContainerMemoryLimits)
+				patchedResource, err := c.patchContainerMemoryLimits(podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
+				if err != nil {
+					// EndingMemory remains the previously set StartingMemory value.
+					glog.Errorf("error patching %s memory limits: %v", reportItem, err)
+				} else {
+					// The post-patch memory limits may be different than the limits in our patch.
+					// I.E. We patch with 15655155794400u, post-patch shows 15655155795m
+					// Therefore, update the report item with the actual; post-patch memory.
+					patchedContainer, _, foundPatchedContainer := util.FindContainerInUnstructured(patchedResource, reportItem.ResourceContainer)
+					if foundPatchedContainer {
+						patchedContainerMemoryLimits := patchedContainer.Resources.Limits.Memory()
+						glog.V(1).Infof("setting report item %s EndingMemory to the post-patch value: %s", reportItem, patchedContainerMemoryLimits)
+						reportItem.EndingMemory = patchedContainerMemoryLimits
+					} else {
+						glog.Errorf("unable to find the container %s in patched report item %s, and will have to set report memory limits to the value sent in the patch: %s", reportItem.ResourceContainer, reportItem, newContainerMemoryLimits)
+						reportItem.EndingMemory = newContainerMemoryLimits
+					}
+					glog.V(4).Infof("updating %s resourceVersion to %s after successful patch", reportItem, patchedResource.GetResourceVersion())
+					reportItem.ResourceVersion = patchedResource.GetResourceVersion()
+					glog.V(4).Infof("updating %s ResourceGeneration to %d after successful patch", reportItem, patchedResource.GetGeneration())
+					reportItem.ResourceGeneration = patchedResource.GetGeneration()
+				}
+			}
+			if !newContainerMemoryLimits.IsZero() && MLEquality > 0 {
+				glog.V(1).Infof("%s memory limits will not be updated, the current limit of %s cannot be increased by %.2f without exceeding the maximum allowed limit of %.1f (%s)", reportItem, containerMemoryLimits, c.config.updateMemoryLimitsMultiplier, c.config.maxMemoryLimitsUpdateFactor, maxAllowedLimits)
+			}
+		} else {
+			glog.V(1).Infof("not updating memory limits for %s as updating has not ben enabled", reportItem)
 		}
 		c.reportBuilder.AddOrUpdateItem(reportItem)
 		// Update the state to a ConfigMap.

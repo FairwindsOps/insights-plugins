@@ -41,15 +41,38 @@ type RightSizerReportProperties struct {
 // RightSizerReportBuilder holds internal resources required to create and
 // manipulate a RightSizerReport
 type RightSizerReportBuilder struct {
-	Report                                *RightSizerReportProperties
-	itemsLock                             *sync.RWMutex
-	memoryLimitMultiplier                 float64       // The multiplier used to increase container memory limits.
-	tooOldAge                             time.Duration // When an item should be removed based on its age
-	configMapNamespaceName, configMapName string        // ConfigMap name to persist report state
-	HTTPServer                            *http.Server  // Allows retrieving the current report
-	kubeClientResources                   util.KubeClientResources
+	Report                                      *RightSizerReportProperties
+	itemsLock                                   *sync.RWMutex
+	tooOldAge                                   time.Duration // When an item should be removed based on its age
+	stateConfigMapNamespace, stateConfigMapName string        // ConfigMap name to persist report state
+	HTTPServer                                  *http.Server  // Allows retrieving the current report
+	kubeClientResources                         util.KubeClientResources
 	// marker
 	// kubeClient                            kubernetes.Interface // Used to read/write state ConfigMap
+}
+
+// rightSizerReportBuilderOption specifies RightSizerReportBuilder fields as functions.
+// THis is the "functional options" pattern, allowing the NewRightSizerReportBuilder() constructor to use something like "named parameters," and for those parameters to be optional.
+type rightSizerReportBuilderOption func(*RightSizerReportBuilder)
+
+// WithStateConfigMapNamespace sets the corresponding field in a RightSizerReportBuilder type.
+func WithStateConfigMapNamespace(value string) rightSizerReportBuilderOption {
+	return func(r *RightSizerReportBuilder) {
+		if value != "" {
+			r.stateConfigMapNamespace = value
+		}
+		return
+	}
+}
+
+// WithStateConfigMapName sets the corresponding field in a RightSizerReportBuilder type.
+func WithStateConfigMapName(value string) rightSizerReportBuilderOption {
+	return func(r *RightSizerReportBuilder) {
+		if value != "" {
+			r.stateConfigMapName = value
+		}
+		return
+	}
 }
 
 // String represents unique fields to differentiate a report item.
@@ -65,9 +88,9 @@ func (i RightSizerReportItem) StringFull() string {
 
 // MaxAllowedEndingMemory returns the highest value that memory limits are allowed to
 // be increased. A multiplier for RightSizerReportItem.StartingMemory is
-// currently hard-coded into this function.
-func (i RightSizerReportItem) MaxAllowedEndingMemory() (*resource.Quantity, error) {
-	max, err := util.MultiplyResourceQuantity(i.StartingMemory, 2.0)
+// RightSizerReportBuilder.MaxMemoryLimitsUpdateFactor.
+func (i RightSizerReportItem) MaxAllowedEndingMemory(maxMultiplier float64) (*resource.Quantity, error) {
+	max, err := util.MultiplyResourceQuantity(i.StartingMemory, maxMultiplier)
 	if err != nil {
 		return max, fmt.Errorf("while determining maximum memory limits: %w", err)
 	}
@@ -76,9 +99,7 @@ func (i RightSizerReportItem) MaxAllowedEndingMemory() (*resource.Quantity, erro
 
 // NewRightSizerReportBuilder returns a pointer to a new initialized
 // RightSizerReportBuilder type.
-// TODO: populate defaults (state ConfigMap, too-old-age) from CLI flags.
-func NewRightSizerReportBuilder(kubeClientResources util.KubeClientResources) *RightSizerReportBuilder {
-	// func NewRightSizerReportBuilder(kubeClient kubernetes.Interface) *RightSizerReportBuilder {
+func NewRightSizerReportBuilder(kubeClientResources util.KubeClientResources, options ...rightSizerReportBuilderOption) *RightSizerReportBuilder {
 	b := &RightSizerReportBuilder{
 		Report:              &RightSizerReportProperties{},
 		itemsLock:           &sync.RWMutex{},
@@ -86,21 +107,18 @@ func NewRightSizerReportBuilder(kubeClientResources util.KubeClientResources) *R
 		tooOldAge:           8.64e+13, // 24 HRs
 		// tooOldAge: 6e+10, // 1 minute
 		// tooOldAge:              3e+11, // 5 minutes
-		memoryLimitMultiplier:  1.2,
-		configMapNamespaceName: "insights-agent",
-		configMapName:          "insights-agent-right-sizer-controller-state",
+		stateConfigMapNamespace: "insights-agent",
+		stateConfigMapName:      "insights-agent-right-sizer-controller-state",
 		HTTPServer: &http.Server{
 			ReadTimeout:  2500 * time.Millisecond, // time to read request headers and   optionally body
 			WriteTimeout: 10 * time.Second,
 		},
 	}
+	// Process functional options.
+	for _, o := range options {
+		o(b)
+	}
 	return b
-}
-
-// GetMemoryLimitsMultiplier returns the configured multiplier, the multiplier
-// by which container memory limits are increased.
-func (b *RightSizerReportBuilder) GetMemoryLimitsMultiplier() float64 {
-	return b.memoryLimitMultiplier
 }
 
 func (b *RightSizerReportBuilder) PopulateExistingItemFields(yourItem *RightSizerReportItem) (foundItem bool) {
@@ -381,11 +399,11 @@ func (b *RightSizerReportBuilder) WriteConfigMap() error {
 		return err
 	}
 	reportJSON := string(reportBytes)
-	configMaps := b.kubeClientResources.Client.CoreV1().ConfigMaps(b.configMapNamespaceName)
-	configMap, err = configMaps.Get(context.TODO(), b.configMapName, meta.GetOptions{})
+	configMaps := b.kubeClientResources.Client.CoreV1().ConfigMaps(b.stateConfigMapNamespace)
+	configMap, err = configMaps.Get(context.TODO(), b.stateConfigMapName, meta.GetOptions{})
 	if err != nil && !kube_errors.IsNotFound(err) {
 		// This is an unexpected error.
-		return fmt.Errorf("unable to get ConfigMap %s/%s to write report: %w", b.configMapNamespaceName, b.configMapName, err)
+		return fmt.Errorf("unable to get ConfigMap %s/%s to write report: %w", b.stateConfigMapNamespace, b.stateConfigMapName, err)
 	}
 	if err == nil {
 		// Update existing ConfigMap with the report and time-stamp annotation.
@@ -396,15 +414,15 @@ func (b *RightSizerReportBuilder) WriteConfigMap() error {
 		configMap.ObjectMeta.Annotations["last-updated"] = updateTime
 		_, err = configMaps.Update(context.TODO(), configMap, meta.UpdateOptions{})
 		if err != nil {
-			return fmt.Errorf("unable to update ConfigMap %s/%s to write report: %w", b.configMapNamespaceName, b.configMapName, err)
+			return fmt.Errorf("unable to update ConfigMap %s/%s to write report: %w", b.stateConfigMapNamespace, b.stateConfigMapName, err)
 		}
 	}
 	if kube_errors.IsNotFound(err) {
 		// No ConfigMap found, create one.
 		configMap = &core.ConfigMap{
 			ObjectMeta: meta.ObjectMeta{
-				Namespace: b.configMapNamespaceName,
-				Name:      b.configMapName,
+				Namespace: b.stateConfigMapNamespace,
+				Name:      b.stateConfigMapName,
 				Annotations: map[string]string{
 					"last-updated": updateTime,
 				},
@@ -415,7 +433,7 @@ func (b *RightSizerReportBuilder) WriteConfigMap() error {
 		}
 		_, err = configMaps.Create(context.TODO(), configMap, meta.CreateOptions{})
 		if err != nil {
-			return fmt.Errorf("unable to create ConfigMap %s/%s to write report: %w", b.configMapNamespaceName, b.configMapName, err)
+			return fmt.Errorf("unable to create state ConfigMap %s/%s: %w", b.stateConfigMapNamespace, b.stateConfigMapName, err)
 		}
 	}
 	return nil
@@ -429,33 +447,36 @@ func (b *RightSizerReportBuilder) WriteConfigMap() error {
 func (b *RightSizerReportBuilder) ReadConfigMap() error {
 	var configMap *core.ConfigMap
 	var reportJSON string
-	configMaps := b.kubeClientResources.Client.CoreV1().ConfigMaps(b.configMapNamespaceName)
-	configMap, err := configMaps.Get(context.TODO(), b.configMapName, meta.GetOptions{})
+	configMaps := b.kubeClientResources.Client.CoreV1().ConfigMaps(b.stateConfigMapNamespace)
+	configMap, err := configMaps.Get(context.TODO(), b.stateConfigMapName, meta.GetOptions{})
 	if kube_errors.IsNotFound(err) {
 		// No ConfigMap found; no data to populate the report.
-		glog.V(1).Infof("ConfigMap %s/%s does not exist, the report will not be populated with existing state and an empty ConfigMap will be created", b.configMapNamespaceName, b.configMapName)
-		b.WriteConfigMap()
+		glog.V(1).Infof("ConfigMap %s/%s does not exist, the report will not be populated with existing state and an empty ConfigMap will be created", b.stateConfigMapNamespace, b.stateConfigMapName)
+		err := b.WriteConfigMap()
+		if err != nil {
+			return fmt.Errorf("unable to nitialize new ConfigMap %s/%s, state will be lost when this controller restarts if this error is not resolved: %v", b.stateConfigMapNamespace, b.stateConfigMapName, err)
+		}
 		return nil
 	}
 	if err != nil && !kube_errors.IsNotFound(err) {
 		// This is an unexpected error.
-		return fmt.Errorf("unable to get ConfigMap %s/%s to read report state: %w", b.configMapNamespaceName, b.configMapName, err)
+		return fmt.Errorf("unable to get ConfigMap %s/%s to read report state: %w", b.stateConfigMapNamespace, b.stateConfigMapName, err)
 	}
 	if err == nil {
 		// Read the report from the ConfigMap
 		var ok bool
 		reportJSON, ok = configMap.Data["report"]
 		if !ok {
-			return fmt.Errorf("unable to read report from ConfigMap %s/%s as it does not contain a report key", b.configMapNamespaceName, b.configMapName)
+			return fmt.Errorf("unable to read report from ConfigMap %s/%s as it does not contain a report key", b.stateConfigMapNamespace, b.stateConfigMapName)
 		}
-		glog.V(2).Infof("got report JSON from ConfigMap %s/%s: %q", b.configMapNamespaceName, b.configMapName, reportJSON)
+		glog.V(2).Infof("got report JSON from ConfigMap %s/%s: %q", b.stateConfigMapNamespace, b.stateConfigMapName, reportJSON)
 		dec := json.NewDecoder(strings.NewReader(reportJSON))
 		dec.DisallowUnknownFields() // Return an error if unmarshalling unexpected fields.
 		err = dec.Decode(&b.Report)
 		if err != nil {
-			return fmt.Errorf("unable to unmarshal while reading report from ConfigMap %s/%s: %v", b.configMapNamespaceName, b.configMapName, err)
+			return fmt.Errorf("unable to unmarshal while reading report from ConfigMap %s/%s: %v", b.stateConfigMapNamespace, b.stateConfigMapName, err)
 		}
-		glog.V(2).Infof("Read report from ConfigMap %s/%s: %#v", b.configMapNamespaceName, b.configMapName, b.Report)
+		glog.V(2).Infof("Read report from ConfigMap %s/%s: %#v", b.stateConfigMapNamespace, b.stateConfigMapName, b.Report)
 	}
 	return nil
 }
