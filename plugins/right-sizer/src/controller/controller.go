@@ -34,10 +34,12 @@ const (
 	TerminationReasonOOMKilled = "OOMKilled"
 )
 
-// Controller is a controller that listens on Pod changes and create Kubernetes Events
-// when a container reports it was previously killed
+// Controller is a controller that listens for Pod OOM-kill events and changes
+// to owning pod-controllers, optionally changing memory limits of the
+// pod-controller.
 type Controller struct {
 	kubeClientResources util.KubeClientResources
+	config              controllerConfig
 	Stop                chan struct{}
 	k8sFactory          informers.SharedInformerFactory
 	podLister           util.PodLister
@@ -49,14 +51,64 @@ type Controller struct {
 	reportBuilder       *report.RightSizerReportBuilder
 }
 
+// ControllerConfig represents configurable options for the controller.
+type controllerConfig struct {
+	updateMemoryLimits                          bool
+	stateConfigMapNameSpace, stateConfigMapName string
+}
+
 type eventUpdateGroup struct {
 	oldEvent *core.Event
 	newEvent *core.Event
 }
 
+// controllerOption specifies controllerConfig fields as functions.
+// THis is the "functional options" pattern, allowing the NewController() constructor to use something like "named parameters," and for those parameters to be optional.
+type controllerOption func(*controllerConfig)
+
+// WithStateConfigMapNameSpace sets the corresponding field in a controllerConfig type.
+func WithStateConfigMapNameSpace(value string) controllerOption {
+	return func(c *controllerConfig) {
+		if value != "" {
+			c.stateConfigMapNameSpace = value
+		}
+		return
+	}
+}
+
+// WithStateConfigMapName sets the corresponding field in a controllerConfig type.
+func WithStateConfigMapName(value string) controllerOption {
+	return func(c *controllerConfig) {
+		if value != "" {
+			c.stateConfigMapName = value
+		}
+		return
+	}
+}
+
+// WithUpdateMemoryLimits sets the corresponding field in a controllerConfig type.
+func WithUpdateMemoryLimits(value bool) controllerOption {
+	return func(c *controllerConfig) {
+		c.updateMemoryLimits = value
+		return
+	}
+}
+
 // NewController returns an instance of the Controller
-func NewController(stop chan struct{}) *Controller {
+func NewController(stop chan struct{}, options ...controllerOption) *Controller {
 	kubeClientResources := util.Clientset()
+
+	cfg := &controllerConfig{
+		updateMemoryLimits:      false,
+		stateConfigMapNameSpace: "insights-agent",
+		stateConfigMapName:      "insights-agent-right-sizer-controller-state",
+	}
+
+	// Process functional options.
+	for _, o := range options {
+		o(cfg)
+	}
+
 	k8sFactory := informers.NewSharedInformerFactory(kubeClientResources.Client, time.Minute*informerSyncMinute)
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -68,6 +120,7 @@ func NewController(stop chan struct{}) *Controller {
 		Stop:                stop,
 		k8sFactory:          k8sFactory,
 		kubeClientResources: kubeClientResources,
+		config:              *cfg,
 		podLister:           k8sFactory.Core().V1().Pods().Lister(),
 		eventAddedCh:        make(chan *core.Event),
 		eventUpdatedCh:      make(chan *eventUpdateGroup),
