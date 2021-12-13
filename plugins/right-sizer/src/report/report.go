@@ -75,6 +75,16 @@ func WithStateConfigMapName(value string) rightSizerReportBuilderOption {
 	}
 }
 
+// WithTooOldAge sets the corresponding field in a RightSizerReportBuilder type.
+func WithTooOldAge(value time.Duration) rightSizerReportBuilderOption {
+	return func(r *RightSizerReportBuilder) {
+		if value > 0 {
+			r.tooOldAge = value
+		}
+		return
+	}
+}
+
 // String represents unique fields to differentiate a report item.
 func (i RightSizerReportItem) String() string {
 	return fmt.Sprintf("%s %s/%s:%s", i.Kind, i.ResourceNamespace, i.ResourceName, i.ResourceContainer)
@@ -118,6 +128,8 @@ func NewRightSizerReportBuilder(kubeClientResources util.KubeClientResources, op
 	for _, o := range options {
 		o(b)
 	}
+	// marker
+	fmt.Printf("The window is %v\n", b.tooOldAge)
 	return b
 }
 
@@ -136,21 +148,21 @@ func (b *RightSizerReportBuilder) PopulateExistingItemFields(yourItem *RightSize
 
 // AddOrUpdateItem accepts a RightSizerReportItem and adds or updates it
 // in the report.
-// If the item already exists, `NumOOMs` and `LastOOM` fields are updated.
+// If the item already exists, `FirstOOM` and `StartingMemory` fields are
+// retained from the original, and all other fields are updated from the new
+// item.
 func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
 	for i, item := range b.Report.Items {
 		if item.Kind == newItem.Kind && item.ResourceNamespace == newItem.ResourceNamespace && item.ResourceName == newItem.ResourceName && item.ResourceContainer == newItem.ResourceContainer {
 			// Update the existing item.
-			b.Report.Items[i].NumOOMs++
-			b.Report.Items[i].LastOOM = time.Now()
-			// The entire newItem is not updated in the report, because some fields need to
-			// be retain from the original item, such as FirstOOM and StartingMemory.
-			// UPdate fields that the controller will have set, in the new item.
-			b.Report.Items[i].ResourceVersion = newItem.ResourceVersion
-			b.Report.Items[i].ResourceGeneration = newItem.ResourceGeneration
-			b.Report.Items[i].EndingMemory = newItem.EndingMemory
+			var retained RightSizerReportItem // Retain some fields from the existing item.
+			retained.FirstOOM = b.Report.Items[i].FirstOOM
+			retained.StartingMemory = b.Report.Items[i].StartingMemory
+			b.Report.Items[i] = newItem
+			b.Report.Items[i].FirstOOM = retained.FirstOOM
+			b.Report.Items[i].StartingMemory = retained.StartingMemory
 			glog.V(1).Infof("updating existing report item %s", b.Report.Items[i].StringFull())
 			return
 		}
