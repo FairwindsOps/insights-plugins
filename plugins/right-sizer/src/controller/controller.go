@@ -56,6 +56,7 @@ type controllerConfig struct {
 	updateMemoryLimits           bool
 	updateMemoryLimitsMultiplier float64
 	maxMemoryLimitsUpdateFactor  float64
+	allowedNamespaces            []string // Allowed namespaces for all operations (alert, updating limits).
 }
 
 type eventUpdateGroup struct {
@@ -66,6 +67,14 @@ type eventUpdateGroup struct {
 // controllerOption specifies controllerConfig fields as functions.
 // THis is the "functional options" pattern, allowing the NewController() constructor to use something like "named parameters," and for those parameters to be optional.
 type controllerOption func(*controllerConfig)
+
+// WithNamespaces sets the corresponding field in a controllerConfig type.
+func WithAllowedNamespaces(value []string) controllerOption {
+	return func(c *controllerConfig) {
+		c.allowedNamespaces = value
+		return
+	}
+}
 
 // WithUpdateMemoryLimits sets the corresponding field in a controllerConfig type.
 func WithUpdateMemoryLimits(value bool) controllerOption {
@@ -186,7 +195,11 @@ func isSameEventOccurrence(g *eventUpdateGroup) bool {
 // evaluateEvent processes a Kubernetes event, including add/update/delete of
 // related report items.
 func (c *Controller) evaluateEvent(event *core.Event) {
-	glog.V(2).Infof("got event %s/%s (count: %d), reason: %s, involved object: %s", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
+	glog.V(4).Infof("got event %s/%s (count: %d), reason: %s, involved object: %s", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
+	if len(c.config.allowedNamespaces) > 0 && !util.Contains(c.config.allowedNamespaces, event.ObjectMeta.Namespace) {
+		glog.V(4).Infof("ignoring event %s/%s as its namespace is not allowed", event.ObjectMeta.Namespace, event.ObjectMeta.Name)
+		return
+	}
 	if !isContainerStartedEvent(event) {
 		// IF this update matches a kind/namespace/name of a pod-controller in the
 		// report, remove related report items.
