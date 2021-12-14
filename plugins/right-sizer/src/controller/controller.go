@@ -1,13 +1,10 @@
 package controller
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
 
-	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/report"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
@@ -276,7 +273,7 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		ProcessedContainerUpdates.WithLabelValues("oomkilled_event_sent").Inc()
 
 		// Find the owning pod-controller for this pod.
-		podControllerObject, err := c.getPodController(pod)
+		podControllerObject, err := util.GetControllerFromPod(c.kubeClientResources, pod)
 		if err != nil {
 			glog.Errorf("unable to get top controller for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 		}
@@ -367,25 +364,3 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 // which owns the pod.
 // E.G. an owning pod-controller might be a Kubernetes Deployment, DaemonSet,
 // or CronJob.
-func (c *Controller) getPodController(pod *core.Pod) (*unstructured.Unstructured, error) {
-	// Convert a pod type to an unstructured one.
-	podJSON, err := json.Marshal(pod)
-	if err != nil {
-		return nil, err
-	}
-	objectAsMap := make(map[string]interface{})
-	err = json.Unmarshal(podJSON, &objectAsMap)
-	if err != nil {
-		return nil, err
-	}
-	unstructuredPod := unstructured.Unstructured{
-		Object: objectAsMap,
-	}
-
-	topController, err := fwControllerUtils.GetTopController(context.TODO(), c.kubeClientResources.DynamicClient, c.kubeClientResources.RESTMapper, unstructuredPod, nil)
-	if err != nil {
-		return nil, err
-	}
-	glog.V(2).Infof("found controller kind %q named %q", topController.GetKind(), topController.GetName())
-	return &topController, nil
-}

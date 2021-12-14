@@ -11,6 +11,7 @@ import (
 
 	"encoding/json"
 
+	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
 	"gopkg.in/inf.v0"
 	core "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -217,6 +218,33 @@ func GetUnstructuredResourceFromObjectRef(kubeClientResources KubeClientResource
 		return nil, false, err
 	}
 	return resource, true, nil
+}
+
+// GetPodController accepts a typed pod object, and returns the pod-controller
+// which owns the pod.
+// E.G. an owning pod-controller might be a Kubernetes Deployment, DaemonSet,
+// or CronJob.
+func GetControllerFromPod(kubeClientResources KubeClientResources, pod *core.Pod) (*unstructured.Unstructured, error) {
+	// Convert a pod type to an unstructured one.
+	podJSON, err := json.Marshal(pod)
+	if err != nil {
+		return nil, err
+	}
+	objectAsMap := make(map[string]interface{})
+	err = json.Unmarshal(podJSON, &objectAsMap)
+	if err != nil {
+		return nil, err
+	}
+	unstructuredPod := unstructured.Unstructured{
+		Object: objectAsMap,
+	}
+
+	topController, err := fwControllerUtils.GetTopController(context.TODO(), kubeClientResources.DynamicClient, kubeClientResources.RESTMapper, unstructuredPod, nil)
+	if err != nil {
+		return nil, err
+	}
+	glog.V(2).Infof("found controller kind %q named %q for pod %s/%s", topController.GetKind(), topController.GetName(), pod.Namespace, pod.Name)
+	return &topController, nil
 }
 
 // MultiplyResourceQuantity multiplies a
