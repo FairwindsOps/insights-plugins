@@ -9,6 +9,8 @@ import (
 
 	"strings"
 
+	"encoding/json"
+
 	"gopkg.in/inf.v0"
 	core "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	listersV1 "k8s.io/client-go/listers/core/v1"
@@ -137,15 +140,59 @@ func FindContainerInPodSpec(podSpec *core.PodSpec, containerName string) (contai
 	return // uses named return arguments in func definition
 }
 
-func FindContainerInUnstructured(u *unstructured.Unstructured, containerName string) (containerResource *core.Container, containerNumber int, foundContainer bool) {
-	podSpec, _, err := FindPodSpec(u)
+// FindContainerInUnstructured is a wrapper around FindPodSpecInUnstructured
+// and FindContainerInPodSpec.
+func FindContainerInUnstructured(u *unstructured.Unstructured, containerName string) (containerResource *core.Container, podSpecPath string, containerNumber int, foundContainer bool, returnedErr error) {
+	podSpec, podSpecPath, err := FindPodSpec(u)
 	if err != nil {
-		// REturning false because a pod-spec could not be found in the Unstructured
-		// object. We could propagate the error instead?
+		returnedErr = fmt.Errorf("unable to find podspec to find container %q: %w", containerName, err)
 		return // uses named return arguments in func definition
 	}
-	containerResource, _, foundContainer = FindContainerInPodSpec(podSpec, containerName)
+	containerResource, containerNumber, foundContainer = FindContainerInPodSpec(podSpec, containerName)
 	return // uses named return arguments in func definition
+}
+
+// patchContainerMemoryLimits patches the named container with a new
+// resources.limits.memory. The resource to be patched is of type
+// unstructured.Unstructured, to support multiple Kinds that have a pod spec, using
+// FindPodSpecInUnstructured() to locate the pod spec and containers.
+func PatchContainerMemoryLimits(kubeClientResources KubeClientResources, resource *unstructured.Unstructured, containerName string, newContainerMemoryLimits *resource.Quantity) (*unstructured.Unstructured, error) {
+	glog.V(2).Infof("starting patch %s %s/%s:%s memory limits to %s", resource.GetNamespace(), resource.GetKind(), resource.GetName(), containerName, newContainerMemoryLimits)
+	_, podSpecPath, containerNumber, foundContainer, err := FindContainerInUnstructured(resource, containerName)
+	if err != nil {
+		return nil, err
+	}
+	if !foundContainer {
+		return nil, fmt.Errorf("no container %q found in resource %v", containerName, resource)
+	}
+	patch := []interface{}{
+		map[string]interface{}{
+			"op":    "replace",
+			"path":  "/" + podSpecPath + "/containers/" + string(containerNumber) + "/resources/limits/memory",
+			"value": newContainerMemoryLimits.String(),
+		},
+	}
+	patchJSON, err := json.Marshal(patch)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal patch %v: %v", patch, err)
+	}
+	// A GroupVersionKind is required to create the RESTMapping, which maps;
+	// converts the API version and kind to the correct capitolization and plural
+	// syntax required by the Kube API.
+	GVK := resource.GroupVersionKind()
+	GVKMapping, err := kubeClientResources.RESTMapper.RESTMapping(GVK.GroupKind(), GVK.Version)
+	if err != nil {
+		return nil, fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
+	}
+	patchClient := kubeClientResources.DynamicClient.Resource(GVKMapping.Resource).Namespace(resource.GetNamespace())
+	glog.V(2).Infof("going to patch %s/%s: %#v", resource.GetNamespace(), resource.GetName(), string(patchJSON))
+	patchedResource, err := patchClient.Patch(context.TODO(), resource.GetName(), types.JSONPatchType, patchJSON, metav1.PatchOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("error patching %s %s/%s: %v", resource.GetKind(), resource.GetNamespace(), resource.GetName(), err)
+	}
+	glog.V(4).Infof("resource after patch is: %v", patchedResource)
+	glog.V(2).Infof("finished patch %s %s/%s:%s memory limits to %s", resource.GetNamespace(), resource.GetKind(), resource.GetName(), containerName, newContainerMemoryLimits)
+	return patchedResource, nil
 }
 
 // GetUnstructuredResourceFromObjectRef fffetches a resource from in-cluster, based on
