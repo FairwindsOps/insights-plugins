@@ -309,11 +309,17 @@ func GetImageSha(path string, configFileName string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		sha, ok := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"].(string)
-		if !ok {
-			return "", nil
+		shaInterface := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"]
+
+		if shaInterface != nil {
+			sha, ok := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"].(string)
+			if !ok {
+				return "", nil
+			}
+			return sha, nil
+		} else {
+			logrus.Warn(jsonBody)
 		}
-		return sha, nil
 	}
 	return "", nil
 }
