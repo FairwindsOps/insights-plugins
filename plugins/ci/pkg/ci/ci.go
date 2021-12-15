@@ -312,7 +312,7 @@ func GetImageSha(path string, configFileName string) (string, error) {
 		shaInterface := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"]
 
 		if shaInterface != nil {
-			sha, ok := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"].(string)
+			sha, ok := shaInterface.(string)
 			if !ok {
 				return "", nil
 			}
