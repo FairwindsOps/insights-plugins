@@ -29,7 +29,6 @@ type RightSizerReportItem struct {
 	NumOOMs            int64              `json:"numOOMs"`
 	FirstOOM           time.Time          `json:"firstOOM"`
 	LastOOM            time.Time          `json:"lastOOM"`
-	ResourceVersion    string             `json:"ResourceVersion"`
 	ResourceGeneration int64              `json:"resourceGeneration"`
 }
 
@@ -195,32 +194,6 @@ func (b *RightSizerReportBuilder) MatchItems(resourceKind, resourceNamespace, re
 		return &matchedItems
 	}
 	glog.V(2).Infof("finished match items based on kind %s, namespace %s, and name %s - matched %d", resourceKind, resourceNamespace, resourceName, numMatched)
-	return nil
-}
-
-// MatchItemsWithOlderResourceVersion wraps a call to MatchItems(), only
-// returning matches with a `ResourceVersion` field lessthan the
-// `currentResourceVersion` parameter.
-func (b *RightSizerReportBuilder) MatchItemsWithOlderResourceVersion(currentResourceVersion, resourceKind, resourceNamespace, resourceName string) *[]RightSizerReportItem {
-	glog.V(2).Infof("starting match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s", currentResourceVersion, resourceKind, resourceNamespace, resourceName)
-	allMatches := b.MatchItems(resourceKind, resourceNamespace, resourceName)
-	if allMatches == nil {
-		glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - no matches regardless of ResourceVersion", currentResourceVersion, resourceKind, resourceNamespace, resourceName)
-		return nil
-	}
-	var olderItems []RightSizerReportItem
-	for _, item := range *allMatches {
-		if item.ResourceVersion < currentResourceVersion {
-			// THis item is older than the current version.
-			olderItems = append(olderItems, item)
-		}
-	}
-	numOlderItems := len(olderItems)
-	if numOlderItems > 0 {
-		glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - %d matches", currentResourceVersion, resourceKind, resourceNamespace, resourceName, numOlderItems)
-		return &olderItems
-	}
-	glog.V(2).Infof("finished match items with older ResourceVersion than %q, based on kind %s, namespace %s, and name %s - no older ResourceVersions out of %d possible matches", currentResourceVersion, resourceKind, resourceNamespace, resourceName, len(*allMatches))
 	return nil
 }
 

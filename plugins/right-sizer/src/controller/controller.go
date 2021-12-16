@@ -206,7 +206,6 @@ func (c *Controller) evaluateEvent(event *core.Event) {
 	if !isContainerStartedEvent(event) {
 		// IF this update matches a kind/namespace/name of a pod-controller in the
 		// report, remove related report items.
-		// relatedReportItems := c.reportBuilder.MatchItemsWithOlderResourceVersion(event.InvolvedObject.ResourceVersion, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
 		relatedReportItems, err := c.reportBuilder.MatchItemsOlderWithModifiedMemoryLimits(event.InvolvedObject)
 		if err != nil {
 			glog.Errorf("error getting related report items: %w", err)
@@ -291,8 +290,6 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.NumOOMs++
 		reportItem.EndingMemory = containerMemoryLimits // equals Starting Memory unless limits are to be updated.
 		reportItem.LastOOM = time.Now()
-		reportItem.ResourceVersion = podControllerObject.GetResourceVersion()
-		// marker
 		generation, generationMatched, err := unstructured.NestedInt64(podControllerObject.UnstructuredContent(), "metadata", "generation")
 		if !generationMatched {
 			fmt.Printf("did not match generation\n")
@@ -336,8 +333,6 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 							glog.V(1).Infof("setting report item %s EndingMemory to the post-patch value: %s", reportItem, patchedContainerMemoryLimits)
 							reportItem.EndingMemory = patchedContainerMemoryLimits
 						}
-						glog.V(4).Infof("updating %s resourceVersion to %s after successful patch", reportItem, patchedResource.GetResourceVersion())
-						reportItem.ResourceVersion = patchedResource.GetResourceVersion()
 						glog.V(4).Infof("updating %s ResourceGeneration to %d after successful patch", reportItem, patchedResource.GetGeneration())
 						reportItem.ResourceGeneration = patchedResource.GetGeneration()
 					}
