@@ -46,8 +46,6 @@ type RightSizerReportBuilder struct {
 	stateConfigMapNamespace, stateConfigMapName string        // ConfigMap name to persist report state
 	HTTPServer                                  *http.Server  // Allows retrieving the current report
 	kubeClientResources                         util.KubeClientResources
-	// marker
-	// kubeClient                            kubernetes.Interface // Used to read/write state ConfigMap
 }
 
 // rightSizerReportBuilderOption specifies RightSizerReportBuilder fields as functions.
@@ -127,11 +125,12 @@ func NewRightSizerReportBuilder(kubeClientResources util.KubeClientResources, op
 	for _, o := range options {
 		o(b)
 	}
-	// marker
-	fmt.Printf("The window is %v\n", b.tooOldAge)
 	return b
 }
 
+// PopulateExistingItemFields finds the specified report item via its unique
+// fields, and returns the fully-populated item from the report.
+// The unique fields are kind, namespace, and resource name.
 func (b *RightSizerReportBuilder) PopulateExistingItemFields(yourItem *RightSizerReportItem) (foundItem bool) {
 	b.itemsLock.RLock()
 	defer b.itemsLock.RUnlock()

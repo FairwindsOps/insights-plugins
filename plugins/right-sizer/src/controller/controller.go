@@ -292,12 +292,11 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.LastOOM = time.Now()
 		generation, generationMatched, err := unstructured.NestedInt64(podControllerObject.UnstructuredContent(), "metadata", "generation")
 		if !generationMatched {
-			fmt.Printf("did not match generation\n")
+			glog.Errorf("could not match metadata.generation from %s", reportItem)
 		}
 		if err != nil {
-			fmt.Printf("error matching generation: %v\n", err)
+			glog.Errorf("error while matching metadata.generation from %s: %v", reportItem, err)
 		}
-		fmt.Printf("generation is %d\n", generation)
 		reportItem.ResourceGeneration = generation // at the time the OOM-kill is seen.
 		if c.config.updateMemoryLimits {
 			// Increase memory limits in-cluster.
@@ -354,8 +353,3 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		}
 	}
 }
-
-// GetPodController accepts a typed pod object, and returns the pod-controller
-// which owns the pod.
-// E.G. an owning pod-controller might be a Kubernetes Deployment, DaemonSet,
-// or CronJob.
