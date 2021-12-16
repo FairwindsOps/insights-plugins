@@ -342,6 +342,23 @@ func (b *RightSizerReportBuilder) GetReportJSON() ([]byte, error) {
 	return data, nil
 }
 
+// GetNumItems returns the number of items currently in the report.
+func (b *RightSizerReportBuilder) GetNumItems() int {
+	b.itemsLock.RLock()
+	defer b.itemsLock.RUnlock()
+	return len(b.Report.Items)
+}
+
+// HealthHandler handles HTTP requests for Kubernetes health checks.
+func (b *RightSizerReportBuilder) HealthHandler(w http.ResponseWriter, r *http.Request) {
+	numItems := b.GetNumItems() // Make sure there isn't a mutex deadlock.
+	data := []byte(fmt.Sprintf("I am healthy and have %d items in my report.\n", numItems))
+	_, err := w.Write(data)
+	if err != nil {
+		glog.Errorf("error sending health-check data over HTTP: %v", err)
+	}
+}
+
 // ReportHandler handles HTTP requests by serving the report as JSON.
 func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := b.GetReportJSON()
@@ -360,6 +377,7 @@ func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.R
 // handler. This server can be used to retrieve the current report JSON.
 func (b RightSizerReportBuilder) RunServer() {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", b.HealthHandler)
 	mux.HandleFunc("/report", b.ReportHandler)
 	b.HTTPServer.Handler = mux
 	inKube := os.Getenv("KUBERNETES_SERVICE_HOST")
