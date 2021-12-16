@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.11
+* Bump alpine to 3.15
+
+## 1.3.10
+* rebuild to fix CVEs in alpine:3.14
+
+## 1.3.9
+* update schema
+
 ## 1.3.8
 * rebuild to fix CVEs in alpine:3.14
 
