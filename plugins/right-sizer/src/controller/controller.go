@@ -44,11 +44,11 @@ type Controller struct {
 
 // ControllerConfig represents configurable options for the controller.
 type controllerConfig struct {
-	updateMemoryLimits           bool
-	updateMemoryLimitsMultiplier float64
-	maxMemoryLimitsUpdateFactor  float64
-	updateMemoryMinimumOOMs      int64
-	allowedNamespaces            []string // Allowed namespaces for all operations (alert, updating limits).
+	updateMemoryLimits            bool
+	updateMemoryLimitsIncrement   float64
+	updateMemoryLimitsMax         float64
+	updateMemoryLimitsMinimumOOMs int64
+	allowedNamespaces             []string // Allowed namespaces for all operations (alert, updating limits).
 }
 
 type eventUpdateGroup struct {
@@ -76,32 +76,32 @@ func WithUpdateMemoryLimits(value bool) controllerOption {
 	}
 }
 
-// WithUpdateMemoryLimitsMultiplier sets the corresponding field in a controllerConfig type.
-func WithUpdateMemoryLimitsMultiplier(value float64) controllerOption {
+// WithUpdateMemoryLimitsIncrement sets the corresponding field in a controllerConfig type.
+func WithUpdateMemoryLimitsIncrement(value float64) controllerOption {
 	return func(c *controllerConfig) {
 		if value > 0.0 {
-			c.updateMemoryLimitsMultiplier = value
+			c.updateMemoryLimitsIncrement = value
 		}
 		return
 	}
 }
 
-// WithUpdateMemoryMinimumOOMs sets the corresponding field in a controllerConfig type.
-func WithUpdateMemoryMinimumOOMs(value int64) controllerOption {
+// WithUpdateMemoryLimitsMinimumOOMs sets the corresponding field in a controllerConfig type.
+func WithUpdateMemoryLimitsMinimumOOMs(value int64) controllerOption {
 	return func(c *controllerConfig) {
 		if value > 0 {
-			c.updateMemoryMinimumOOMs = value
+			c.updateMemoryLimitsMinimumOOMs = value
 		}
 		return
 	}
 }
 
-// WithMaxMemoryLimitsUpdateFactor sets the corresponding field in a
+// WithUpdateMemoryLimitsMax sets the corresponding field in a
 // controllerConfig type.
-func WithMaxMemoryLimitsUpdateFactor(value float64) controllerOption {
+func WithUpdateMemoryLimitsMax(value float64) controllerOption {
 	return func(c *controllerConfig) {
 		if value > 0.0 {
-			c.maxMemoryLimitsUpdateFactor = value
+			c.updateMemoryLimitsMax = value
 		}
 		return
 	}
@@ -110,10 +110,10 @@ func WithMaxMemoryLimitsUpdateFactor(value float64) controllerOption {
 // NewController returns an instance of the Controller
 func NewController(stop chan struct{}, kubeClientResources util.KubeClientResources, rb *report.RightSizerReportBuilder, options ...controllerOption) *Controller {
 	cfg := &controllerConfig{
-		updateMemoryLimits:           false,
-		updateMemoryMinimumOOMs:      2,
-		updateMemoryLimitsMultiplier: 1.2,
-		maxMemoryLimitsUpdateFactor:  2.0,
+		updateMemoryLimits:            false,
+		updateMemoryLimitsMinimumOOMs: 2,
+		updateMemoryLimitsIncrement:   1.2,
+		updateMemoryLimitsMax:         2.0,
 	}
 
 	// Process functional options.
@@ -304,12 +304,12 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 		reportItem.ResourceGeneration = generation // at the time the OOM-kill is seen.
 		if c.config.updateMemoryLimits {
 			// Increase memory limits in-cluster.
-			if c.config.updateMemoryMinimumOOMs > 0 && reportItem.NumOOMs >= c.config.updateMemoryMinimumOOMs {
-				newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.config.updateMemoryLimitsMultiplier)
+			if c.config.updateMemoryLimitsMinimumOOMs > 0 && reportItem.NumOOMs >= c.config.updateMemoryLimitsMinimumOOMs {
+				newContainerMemoryLimits, newConversionErr := util.MultiplyResourceQuantity(containerMemoryLimits, c.config.updateMemoryLimitsIncrement)
 				if newConversionErr != nil {
 					glog.Errorf("error multiplying new memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
 				}
-				maxAllowedLimits, maxConversionErr := reportItem.MaxAllowedEndingMemory(c.config.maxMemoryLimitsUpdateFactor)
+				maxAllowedLimits, maxConversionErr := reportItem.MaxAllowedEndingMemory(c.config.updateMemoryLimitsMax)
 				if maxConversionErr != nil {
 					glog.Errorf("error multiplying maximum allowed memory limits for %s - memory limits cannot be updated: %v", reportItem, err)
 				}
@@ -343,10 +343,10 @@ func (c *Controller) evaluatePodStatus(pod *core.Pod) {
 					}
 				}
 				if !newContainerMemoryLimits.IsZero() && MLEquality > 0 {
-					glog.V(1).Infof("%s memory limits will not be updated, the current %s limit cannot be increased by %.2f without exceeding the maximum allowed limit of %.1fX which is %s for this resource", reportItem, containerMemoryLimits, c.config.updateMemoryLimitsMultiplier, c.config.maxMemoryLimitsUpdateFactor, maxAllowedLimits)
+					glog.V(1).Infof("%s memory limits will not be updated, the current %s limit cannot be increased by %.2f without exceeding the maximum allowed limit of %.1fX which is %s for this resource", reportItem, containerMemoryLimits, c.config.updateMemoryLimitsIncrement, c.config.updateMemoryLimitsMax, maxAllowedLimits)
 				}
 			} else {
-				glog.V(1).Infof("%s memory limits will not be updated, %d OOM-kills has not yet reached the minimum threshold of %d", reportItem, reportItem.NumOOMs, c.config.updateMemoryMinimumOOMs)
+				glog.V(1).Infof("%s memory limits will not be updated, %d OOM-kills has not yet reached the minimum threshold of %d", reportItem, reportItem.NumOOMs, c.config.updateMemoryLimitsMinimumOOMs)
 			}
 		} else {
 			glog.V(1).Infof("not updating memory limits for %s as updating has not ben enabled", reportItem)
