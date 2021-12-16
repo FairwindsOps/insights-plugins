@@ -1,0 +1,8 @@
+parameters:
+  blocklist:
+    - kube-system
+targets:
+  - apiGroups:
+      - apps
+    kinds:
+      - Deployment
