@@ -159,6 +159,8 @@ func NewController(stop chan struct{}, kubeClientResources util.KubeClientResour
 
 // Run is the main loop that processes Kubernetes Pod changes
 func (c *Controller) Run() error {
+	glog.Infof("Controller configuration is: %+v", c.config)
+	glog.Infof("Report configuration is: %s", c.reportBuilder.GetConfigAsString())
 	err := c.reportBuilder.ReadConfigMap()
 	if err != nil {
 		glog.Errorf("while attempting to read state from ConfigMap: %v", err)

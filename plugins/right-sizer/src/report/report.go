@@ -128,6 +128,11 @@ func NewRightSizerReportBuilder(kubeClientResources util.KubeClientResources, op
 	return b
 }
 
+// GetConfigAsString returns RightSizerReportBuilder configuration struct members formatted as a string for pretty-printing, such as logs. This does not return all struct fields.
+func (b *RightSizerReportBuilder) GetConfigAsString() string {
+	return fmt.Sprintf("{stateConfigMapNamespace:%s stateConfigMapName:%s resetOOMsWindow:%s}", b.stateConfigMapNamespace, b.stateConfigMapName, b.tooOldAge)
+}
+
 // PopulateExistingItemFields finds the specified report item via its unique
 // fields, and returns the fully-populated item from the report.
 // The unique fields are kind, namespace, and resource name.
