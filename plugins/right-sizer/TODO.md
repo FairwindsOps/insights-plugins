@@ -14,17 +14,14 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 
 ### Controller
 
+* Bug: Sometimes crash-loop-backoffs due to OOM-kill may not be detected, likely because the Kube event is not yet "container started", which is what the controller currently looks for.
+* Bug: Perhaps related to above (crash-loop-backoff may not be detected), often the first OOM-kill of a pod is ignored by the controller. because it thinks the event has already been seen; is a repeat.
 * Do we want to keep adding Kube events to pods where an OOM-kill is detected? This is the original purpose of the Kube-OOM-Event-Generator code, on which this controller is based.
 * Should we directly monitor create/update/delete operations to catch changes to pod-controllers to remove their action items? Currently the event stream we listen to, catches transient events (ReplicaSet scaling when a deployment happened to get updated).
-* Handle OOM-killed cron jobs.
+	* A challenge with directly monitoring pod-controllers that are report items, is we can't know-to-monitor custom resources a customer may be using.
+* Add `minimum OOMs` option before an action-item is created. Currently this option exists for updating limits, but action-items are created when the first OOM-kill is seen.
 	* CronJob pods do not have subsequent "container started" events, which we use as our trigger to inspect the previous "reason for container death" for other pod-controllers.
 	* One CronJob idea is to inspect Job resources for all pods having failed, then inspect those pods for OOMKills?
-* Add CLI options for
-	* The state ConfigMap namespace and name
-	* The `too old age` interval (when action items should be aged out that we haven't heard from)
-	* The HTTP listen port (server serves the report and will be used for Kube readiness/liveness probes)
-* Require a minimum number of OOM-kills before acting on a pod-controller.
-* Finish feature to update memory-limits for the owning pod-controller of an OOM-killed pod.
 * Provide enough useful information in an action item to help customers identify the correct area of a custom resource manifest which may manage multiple pod-controllers (Deployments or other CRDs). Likely including Pod labels in the action item, will provide enough useful information. We may be able to reliably understand/modify memory limits of some CRDs, but the complexity of some is not worth our risk.
 	* For example, the [Vitess database operator](https://vitess.io/docs/get-started/operator/) has a `VitessCluster` CRD that manages multiple groups of Pods using multiple Deployments and a `EtcdLockserver` CRD.
 		* The Pod labels include enough background for the customer to map an OOM-kill to the area of the parent `VitessCluster` resource that the customer should adjust.
@@ -33,6 +30,7 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 			* spec -> partitionings -> {partition equality list} -> shardTemplate -> tabletPools -> cell -> mysqld
 			* spec -> cells -> {cell name} -> gateway -> vttablet
 	* Q: Should all of these labels be included in the differentiating information of an action item? Current differentiating information is Kube resource kind, resource namespace, resource name, and OOM-killed container name.
+
 
 ## Future Ideas / Consideration
 
@@ -64,6 +62,6 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 ### Kubernetes-OOM-event-generator Code Questions
 
 * Where/how to give credit, that we’ve used this code in our plugin??? https://github.com/xing/kubernetes-oom-event-generator
-* Should `reportBuilder` be a member of the controller struct? I think this is the cleanest way to maintain a report in the controller without polluting the controller code. I may end up passing the ReportBuilder into the NewController() struct, to facilitate command-line flags.
+* Should `reportBuilder` be a member of the controller struct? I think this is the cleanest way to maintain a report in the controller without polluting the controller code.
 * I overloaded `util.Clientset()` to return `client, dynamicClient, RESTMapper` because all three of those things require a KubeConfig. Should this be refactored?
 * Use less temporary variables when constructing a report item, in `evaluatePodStatus`?
