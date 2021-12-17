@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/golang/glog"
 
@@ -169,7 +170,7 @@ func PatchContainerMemoryLimits(kubeClientResources KubeClientResources, resourc
 	patch := []interface{}{
 		map[string]interface{}{
 			"op":    "replace",
-			"path":  "/" + podSpecPath + "/containers/" + string(containerNumber) + "/resources/limits/memory",
+			"path":  "/" + podSpecPath + "/containers/" + strconv.Itoa(containerNumber) + "/resources/limits/memory",
 			"value": newContainerMemoryLimits.String(),
 		},
 	}
