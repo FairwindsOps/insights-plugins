@@ -34,7 +34,7 @@ func main() {
 	}
 
 	stopChan := make(chan struct{})
-	kubeClientResources := util.Clientset() // Create client, dynamic client, RESTMapper...
+	kubeClientResources := util.CreateKubeClientResources() // Create client, dynamic client, RESTMapper...
 	reportBuilder := report.NewRightSizerReportBuilder(kubeClientResources,
 		report.WithStateConfigMapNamespace(opts.StateConfigMapNamespace),
 		report.WithStateConfigMapName(opts.StateConfigMapName),

@@ -40,14 +40,13 @@ type KubeClientResources struct {
 	RESTMapper    meta.RESTMapper   // used with dynamicClient
 }
 
-// Clientset abstracts the cluster config loading both locally and on Kubernetes
-func Clientset() KubeClientResources {
+// CreateKubeClientResources returns a KubeClientResources type, trying first
+// in-cluster, then local, KubeConfig.
+func CreateKubeClientResources() KubeClientResources {
 	// Try to load in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		glog.V(3).Infof("Could not load in-cluster config, falling back to $KUBECONFIG or ~/.kube/config: %v", err)
-
-		// Fall back to local config
 		var kubeConfigFilePath string
 		kubeConfigFilePath = os.Getenv("KUBECONFIG")
 		if kubeConfigFilePath == "" {
@@ -85,10 +84,10 @@ type PodLister interface {
 	Pods(namespace string) listersV1.PodNamespaceLister
 }
 
-// findPodSpec searches an unstructured.Unstructured resource for a pod
+// findPodSpecInUnstructured searches an unstructured.Unstructured resource for a pod
 // specification, returning it as a core.podspec type, along with the path
 // where the pod spec was found (such as spec.template.spec).
-func FindPodSpec(podController *unstructured.Unstructured) (podSpec *core.PodSpec, foundPath string, returnErr error) {
+func FindPodSpecInUnstructured(podController *unstructured.Unstructured) (podSpec *core.PodSpec, foundPath string, returnErr error) {
 	glog.V(3).Infof("starting find pod spec in resource %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	// Types are used here to help searchFields below be more readable than an
 	// anonymous slice of slices of strings.
@@ -113,7 +112,7 @@ func FindPodSpec(podController *unstructured.Unstructured) (podSpec *core.PodSpe
 				FromUnstructured(podSpecAsInterface, &podSpec)
 			if err == nil && len(podSpec.Containers) > 0 {
 				glog.V(3).Infof("finished find pod spec in resource %s %s/%s: found in path %q", podController.GetKind(), podController.GetNamespace(), podController.GetName(), foundPath)
-				return // uses named return arguments in func definition
+				return
 			}
 			// There was an error converting to a structured pod type.
 			// THis is not a hard failure because there may be other matches in
@@ -125,33 +124,33 @@ func FindPodSpec(podController *unstructured.Unstructured) (podSpec *core.PodSpe
 	// able to be converted to a structured pod type.
 	glog.V(3).Infof("finished find pod spec in resource %s %s/%s (unsuccessful)", podController.GetKind(), podController.GetNamespace(), podController.GetName())
 	returnErr = fmt.Errorf("no pod spec found in %s %s/%s", podController.GetKind(), podController.GetNamespace(), podController.GetName())
-	return // uses named return arguments in func definition
+	return
 }
 
-// FindContainerInPodSpec returns the named container from a core/v1.PodSpec
-//resource.
+// FindContainerInPodSpec finds a named container in a core/v1.PodSpec
+// resource.
 func FindContainerInPodSpec(podSpec *core.PodSpec, containerName string) (containerResource *core.Container, containerNumber int, foundContainer bool) {
 	for i, c := range podSpec.Containers {
 		if c.Name == containerName {
 			foundContainer = true
 			containerNumber = i
 			containerResource = &c
-			return // uses named return arguments in func definition
+			return
 		}
 	}
-	return // uses named return arguments in func definition
+	return
 }
 
 // FindContainerInUnstructured is a wrapper around FindPodSpecInUnstructured
 // and FindContainerInPodSpec.
 func FindContainerInUnstructured(u *unstructured.Unstructured, containerName string) (containerResource *core.Container, podSpecPath string, containerNumber int, foundContainer bool, returnedErr error) {
-	podSpec, podSpecPath, err := FindPodSpec(u)
+	podSpec, podSpecPath, err := FindPodSpecInUnstructured(u)
 	if err != nil {
 		returnedErr = fmt.Errorf("unable to find podspec to find container %q: %w", containerName, err)
-		return // uses named return arguments in func definition
+		return
 	}
 	containerResource, containerNumber, foundContainer = FindContainerInPodSpec(podSpec, containerName)
-	return // uses named return arguments in func definition
+	return
 }
 
 // patchContainerMemoryLimits patches the named container with a new
@@ -210,18 +209,21 @@ func GetUnstructuredResourceFromObjectRef(kubeClientResources KubeClientResource
 		return nil, false, fmt.Errorf("error creating RESTMapper mapping from group-version-kind %v: %v", GVK, err)
 	}
 	getterClient := kubeClientResources.DynamicClient.Resource(GVKMapping.Resource).Namespace(objectRef.Namespace)
-	glog.V(2).Infof("going to fetch resource %s %s/%s", objectRef.Kind, objectRef.Namespace, objectRef.Name)
+	glog.V(3).Infof("starting fetch resource %s %s/%s in-cluster to get the full resource from an objectRef", objectRef.Kind, objectRef.Namespace, objectRef.Name)
 	resource, err = getterClient.Get(context.TODO(), objectRef.Name, metav1.GetOptions{})
 	if k8sErrors.IsNotFound(err) {
-		return nil, false, nil // not found is not a true error
+		glog.V(3).Infof("resource %s %s/%s not found in-cluster while getting the full resource from an objectRef", objectRef.Kind, objectRef.Namespace, objectRef.Name)
+		return nil, false, nil
 	}
 	if err != nil {
+		glog.V(3).Infof("error fetching %s %s/%s in-cluster while getting the full resource from an objectRef: %v", objectRef.Kind, objectRef.Namespace, objectRef.Name, err)
 		return nil, false, err
 	}
+	glog.V(3).Infof("finished fetch resource %s %s/%s in-cluster to get the full resource from an objectRef", objectRef.Kind, objectRef.Namespace, objectRef.Name)
 	return resource, true, nil
 }
 
-// GetPodController accepts a typed pod object, and returns the pod-controller
+// GetControllerFromPod accepts a typed pod object, and returns the pod-controller
 // which owns the pod.
 // E.G. an owning pod-controller might be a Kubernetes Deployment, DaemonSet,
 // or CronJob.
@@ -252,13 +254,12 @@ func GetControllerFromPod(kubeClientResources KubeClientResources, pod *core.Pod
 // k8s.io/apimachinery/pkg/api/resource.Quantity with a float64, returning a
 // new resource.Quantity.
 // If an error is returned, the resource.Quantity will be its zero value.
-// To avoid losing precision, the resource.Quantity and multiplier are
-// converted to inf.Dec types.
+// To avoid losing precision and occasional failures converting to int64, the resource.Quantity and multiplier are
+// converted to inf.Dec types to perform multiplication.
+// For reference, see the quantity.AsInt64 documentation: https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity.AsInt64
 // Note that certain multipliers cause the units of the result to become
 // smaller, I.E. from Gi to Mi or Ki.
 func MultiplyResourceQuantity(q *resource.Quantity, multiplier float64) (*resource.Quantity, error) {
-	// An intermediate type inf.Dec is used, because sometimes converting resource.QUantity to int64 can fail.
-	// For reference, see the quantity.AsInt64 documentation: https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity.AsInt64
 	qAsDec := q.AsDec()
 	multiplierAsDec := new(inf.Dec)
 	multiplierAsString := fmt.Sprintf("%.2f", multiplier)

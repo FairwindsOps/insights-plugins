@@ -16,6 +16,7 @@ import (
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // RightSizerReportItem contains properties of a right-sizer item.
@@ -93,9 +94,38 @@ func (i RightSizerReportItem) StringFull() string {
 	return fmt.Sprintf("%s %s/%s:%s, generation %d, StartingMemory %s, NumOOMs %d, EndingMemory %s, FirstOOM %s, LastOOM %s", i.Kind, i.ResourceNamespace, i.ResourceName, i.ResourceContainer, i.ResourceGeneration, i.StartingMemory, i.NumOOMs, i.EndingMemory, i.FirstOOM, i.LastOOM)
 }
 
-// MaxAllowedEndingMemory returns the highest value that memory limits are allowed to
-// be increased. A multiplier for RightSizerReportItem.StartingMemory is
-// RightSizerReportBuilder.MaxMemoryLimitsUpdateFactor.
+// GetConfigAsString returns RightSizerReportBuilder configuration struct members formatted as a string for pretty-printing, such as logs. This does not return all struct fields.
+func (b *RightSizerReportBuilder) GetConfigAsString() string {
+	return fmt.Sprintf("{stateConfigMapNamespace:%s stateConfigMapName:%s resetOOMsWindow:%s}", b.stateConfigMapNamespace, b.stateConfigMapName, b.tooOldAge)
+}
+
+// IncrementMemory validates that incrementing a RightSizerReportItem memory
+// limits would not exceed the specified maximum, then returns a
+// resource.Quantity reflecting the incremented value.
+// An empty resource.Quantity is returned if incrementing is not allowed
+// because it would exceed the maximum.
+func (i RightSizerReportItem) IncrementMemory(currentMemory *resource.Quantity, incrementMultiplier, maxMultiplier float64) *resource.Quantity {
+	newMemory, err := util.MultiplyResourceQuantity(currentMemory, incrementMultiplier)
+	if err != nil {
+		glog.Errorf("error calculating incremented memory for %s: %v", i, err)
+		return &resource.Quantity{}
+	}
+	maxAllowed, err := i.MaxAllowedEndingMemory(maxMultiplier)
+	if err != nil {
+		glog.Errorf("error calculating maximum allowed memory for %s: %v", i, err)
+		return &resource.Quantity{}
+	}
+	MLEquality := newMemory.Cmp(*maxAllowed) // will be -1 if max<new, 1 if max>new
+	glog.V(2).Infof("calculated new memory is %s, max allowed is %s, limit comparison is %d (-1=new<max or 1=new>max), for report item %s", newMemory, maxAllowed, MLEquality, i)
+	if MLEquality > 0 { // memory can not be incremented
+		return &resource.Quantity{}
+	}
+	return newMemory
+}
+
+// MaxAllowedEndingMemory returns a resource.Quantity that is the highest
+// a report item memory limits is allowed to be increased. This is determined
+// by multiplying the item starting memory limits by the supplied factor.
 func (i RightSizerReportItem) MaxAllowedEndingMemory(maxMultiplier float64) (*resource.Quantity, error) {
 	max, err := util.MultiplyResourceQuantity(i.StartingMemory, maxMultiplier)
 	if err != nil {
@@ -121,20 +151,41 @@ func NewRightSizerReportBuilder(kubeClientResources util.KubeClientResources, op
 			WriteTimeout: 10 * time.Second,
 		},
 	}
-	// Process functional options.
+	// Process functional options, overriding the above defaults.
 	for _, o := range options {
 		o(b)
 	}
 	return b
 }
 
-// GetConfigAsString returns RightSizerReportBuilder configuration struct members formatted as a string for pretty-printing, such as logs. This does not return all struct fields.
-func (b *RightSizerReportBuilder) GetConfigAsString() string {
-	return fmt.Sprintf("{stateConfigMapNamespace:%s stateConfigMapName:%s resetOOMsWindow:%s}", b.stateConfigMapNamespace, b.stateConfigMapName, b.tooOldAge)
+// CreateRightSizerReportItem constructs a new report item using fields from
+// the specified resources, and any existing report item of the same
+// Kubernetes kind, namespace, and name.
+// Although the unstructured.Unstructured pod-controller contains a
+// `Containers` block, A separate core.Container is required for situations where the container is
+// not defined in the pod-controller, such asinjection by Kubernetes admission
+// webhooks.
+func (b *RightSizerReportBuilder) CreateRightSizerReportItem(podController *unstructured.Unstructured, container *core.Container) *RightSizerReportItem {
+	var reportItem RightSizerReportItem
+	reportItem.Kind = podController.GetKind()
+	reportItem.ResourceNamespace = podController.GetNamespace()
+	reportItem.ResourceName = podController.GetName()
+	reportItem.ResourceGeneration = podController.GetGeneration()
+	reportItem.ResourceContainer = container.Name
+	itemAlreadyExists := b.PopulateExistingItemFields(&reportItem)
+	containerMemoryLimits := container.Resources.Limits.Memory()
+	reportItem.LastOOM = time.Now()
+	reportItem.NumOOMs++
+	reportItem.EndingMemory = containerMemoryLimits // equals Starting Memory until limits may be updated.
+	if !itemAlreadyExists {
+		reportItem.FirstOOM = reportItem.LastOOM
+		reportItem.StartingMemory = containerMemoryLimits
+	}
+	return &reportItem
 }
 
 // PopulateExistingItemFields finds the specified report item via its unique
-// fields, and returns the fully-populated item from the report.
+// fields, and populates the rest of the fields.
 // The unique fields are kind, namespace, and resource name.
 func (b *RightSizerReportBuilder) PopulateExistingItemFields(yourItem *RightSizerReportItem) (foundItem bool) {
 	b.itemsLock.RLock()
@@ -143,18 +194,17 @@ func (b *RightSizerReportBuilder) PopulateExistingItemFields(yourItem *RightSize
 		if item.Kind == yourItem.Kind && item.ResourceNamespace == yourItem.ResourceNamespace && item.ResourceName == yourItem.ResourceName && item.ResourceContainer == yourItem.ResourceContainer {
 			foundItem = true
 			*yourItem = item
-			return // uses the named arguments in the func definition
+			return
 		}
 	}
-	return // uses the named arguments in the func definition
+	return
 }
 
-// AddOrUpdateItem accepts a RightSizerReportItem and adds or updates it
-// in the report.
-// If the item already exists, `FirstOOM` and `StartingMemory` fields are
-// retained from the original, and all other fields are updated from the new
-// item.
-func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) {
+// StoreItem accepts a RightSizerReportItem and adds or updates it
+// in the report. If the item already exists, `FirstOOM` and `StartingMemory`
+// fields are retained from the original, and all other fields are updated
+// from the new item.
+func (b *RightSizerReportBuilder) StoreItem(newItem RightSizerReportItem) {
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
 	for i, item := range b.Report.Items {
@@ -166,7 +216,7 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 			b.Report.Items[i] = newItem
 			b.Report.Items[i].FirstOOM = retained.FirstOOM
 			b.Report.Items[i].StartingMemory = retained.StartingMemory
-			glog.V(1).Infof("updating existing report item %s", b.Report.Items[i].StringFull())
+			glog.V(1).Infof("storing existing report item %s", b.Report.Items[i].StringFull())
 			return
 		}
 	}
@@ -175,14 +225,15 @@ func (b *RightSizerReportBuilder) AddOrUpdateItem(newItem RightSizerReportItem) 
 	newItem.FirstOOM = time.Now()
 	newItem.LastOOM = newItem.FirstOOM
 	b.Report.Items = append(b.Report.Items, newItem)
-	glog.V(1).Infof("adding new report item %s", newItem.StringFull())
+	glog.V(1).Infof("storing new report item %s", newItem.StringFull())
 	return
 }
 
 // MatchItems returns a pointer to a slice of RightSizerReportItem matching the supplied kind,
-// namespace, and resource name. IF no items match, nil is returned.
+// namespace, and resource name. IF no items match, nil is returned. There may
+// be multiple matches, differing by other fields such as ResourceContainer.
 func (b *RightSizerReportBuilder) MatchItems(resourceKind, resourceNamespace, resourceName string) *[]RightSizerReportItem {
-	glog.V(2).Infof("starting match items based on kind %s, namespace %s, and name %s", resourceKind, resourceNamespace, resourceName)
+	glog.V(3).Infof("starting match items based on kind %s, namespace %s, and name %s", resourceKind, resourceNamespace, resourceName)
 	b.itemsLock.RLock()
 	defer b.itemsLock.RUnlock()
 	var matchedItems []RightSizerReportItem
@@ -194,24 +245,24 @@ func (b *RightSizerReportBuilder) MatchItems(resourceKind, resourceNamespace, re
 	}
 	numMatched := len(matchedItems)
 	if numMatched > 0 {
-		glog.V(2).Infof("finished match items based on kind %s, namespace %s, and name %s - matched %d", resourceKind, resourceNamespace, resourceName, numMatched)
+		glog.V(3).Infof("finished match items based on kind %s, namespace %s, and name %s - matched %d", resourceKind, resourceNamespace, resourceName, numMatched)
 		return &matchedItems
 	}
-	glog.V(2).Infof("finished match items based on kind %s, namespace %s, and name %s - matched %d", resourceKind, resourceNamespace, resourceName, numMatched)
+	glog.V(3).Infof("finished match items based on kind %s, namespace %s, and name %s - matched %d", resourceKind, resourceNamespace, resourceName, numMatched)
 	return nil
 }
 
 // MatchItemsOlderWithModifiedMemoryLimits wraps a call to MatchItems(), only
-// returning matches where items have an older ResourceGeneration than the `metadata.generation` field of the current
-// in-cluster resource, and whos memory limits are different from last
-// seen/updated in our report.
-// The current resource is fetched from Kube via core/v1.ObjectReference, typically
-// provided along with a Kube Event.
+// returning matches where items have an older ResourceGeneration than the
+// `metadata.generation` field of the current in-cluster resource, and whos
+// memory limits are different from those last seen/updated in our report. The
+// current resource is fetched from Kube via core/v1.ObjectReference,
+// typically provided along with a Kube Event.
 func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involvedObject core.ObjectReference) (*[]RightSizerReportItem, error) {
-	glog.V(2).Infof("starting match items with older metadata.generation and different memory limits than the in-cluster resource, based on kind %s, namespace %s, and name %s", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
+	glog.V(3).Infof("starting match items with older metadata.generation and different memory limits than the in-cluster resource, based on kind %s, namespace %s, and name %s", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
 	allMatches := b.MatchItems(involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
 	if allMatches == nil {
-		glog.V(2).Infof("finished match items with older metadata.generation and different memory limits than in-cluster, based on kind %s, namespace %s, and name %s - no matches regardless of generation", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
+		glog.V(3).Infof("finished match items with older metadata.generation and different memory limits than in-cluster, based on kind %s, namespace %s, and name %s - no matches regardless of generation", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
 		return nil, nil
 	}
 	currentResource, foundResource, err := util.GetUnstructuredResourceFromObjectRef(b.kubeClientResources, involvedObject)
@@ -220,7 +271,7 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 		// This could mean that the resource has been deleted from the cluster, but
 		// we'll allow the separate time-based aging out of report items to handle
 		// this case for now.
-		glog.V(2).Infof("finished match items with older metadata.generation and different memory limits than the in-cluster resource, based on kind %s, namespace %s, and name %s - no resource was found in-cluster", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
+		glog.V(3).Infof("finished match items with older metadata.generation and different memory limits than the in-cluster resource, based on kind %s, namespace %s, and name %s - no resource was found in-cluster", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
 		return nil, nil
 	}
 	if err != nil {
@@ -230,7 +281,7 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 	currentGeneration := currentResource.GetGeneration()
 	glog.V(4).Infof("got in-cluster generation %d, while matching items with older metadata.generation and different memory limits than the in-cluster resource, based on kind %s, namespace %s, and name %s", currentGeneration, involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
 	if currentGeneration < 1 {
-		glog.V(2).Infof("finished match items with older metadata.generation and different memory limits than the in-cluster resource, based on kind %s, namespace %s, and name %s - the resource has no generation", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
+		glog.V(3).Infof("finished match items with older metadata.generation and different memory limits than the in-cluster resource, based on kind %s, namespace %s, and name %s - the resource has no generation", involvedObject.Kind, involvedObject.Namespace, involvedObject.Name)
 	}
 	var olderItems []RightSizerReportItem
 	for _, item := range *allMatches {
@@ -238,7 +289,7 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 			glog.Errorf("skipping matching report item as older with different memory limits item - item has no ResourceGeneration: %#s", item.StringFull())
 			continue
 		}
-		currentPodSpec, _, err := util.FindPodSpec(currentResource)
+		currentPodSpec, _, err := util.FindPodSpecInUnstructured(currentResource)
 		if err != nil {
 			glog.Errorf("skipping matching report item %q as older with different memory limits - error finding pod spec in unstructured resource %s %s/%s: %v", item.StringFull(), currentResource.GetKind(), currentResource.GetNamespace(), currentResource.GetName(), err)
 			continue
@@ -271,20 +322,19 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 // removed.
 func (b *RightSizerReportBuilder) RemoveOldItems() (anyItemsRemoved bool) {
 	glog.V(2).Infoln("starting removing old items based on last OOM kill. . .")
-	var finalItems []RightSizerReportItem
+	var keptItems []RightSizerReportItem
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
 	for _, item := range b.Report.Items {
 		if b.tooOldAge > 0 && time.Since(item.LastOOM) >= b.tooOldAge {
 			glog.V(1).Infof("aging out item %s as its last OOM kill %s is older than %s", item, item.LastOOM, b.tooOldAge)
-			// This item is not retained in finalItems
 		} else {
-			finalItems = append(finalItems, item)
+			keptItems = append(keptItems, item)
 			glog.V(4).Infof("keeping item %s as its last OOM kill %s is not older than %s", item, item.LastOOM, b.tooOldAge)
 		}
 	}
-	if len(finalItems) != len(b.Report.Items) {
-		b.Report.Items = finalItems
+	if len(keptItems) != len(b.Report.Items) {
+		b.Report.Items = keptItems
 		anyItemsRemoved = true
 	}
 	glog.V(2).Infof("finished removing old items based on last OOM kill - removed=%v", anyItemsRemoved)
@@ -302,6 +352,25 @@ func (b *RightSizerReportBuilder) LoopRemoveOldItems() {
 	}
 }
 
+// RemoveRelatedItemsOlderWithModifiedMemoryLimits wraps a call to
+// MatchRelatedItemsOlderWithModifiedMemoryLimits, removing any report items
+// that match.
+func (b *RightSizerReportBuilder) RemoveRelatedItemsOlderWithModifiedMemoryLimits(objRef core.ObjectReference) error {
+	objInfo := fmt.Sprintf("%s %s/%s", objRef.Kind, objRef.Namespace, objRef.Name)
+	relatedItems, err := b.MatchItemsOlderWithModifiedMemoryLimits(objRef)
+	if err != nil {
+		glog.Errorf("error getting related report items while attempting to remove items related to %s: %w", objInfo, err)
+		return err
+	}
+	if relatedItems != nil {
+		glog.V(1).Infof("going to remove these report items related to %s: %#v", objInfo, relatedItems)
+		if b.RemoveItems(*relatedItems) {
+			b.WriteConfigMap()
+		}
+	}
+	return nil
+}
+
 // RemoveItems accepts a slice of RightSizerReportItems, and removes them from
 // the report, returning true if any items were removed.
 // Only the fields included in RightSizerReportItem.String() are compared,
@@ -313,25 +382,25 @@ func (b *RightSizerReportBuilder) RemoveItems(removeItems []RightSizerReportItem
 	}
 	glog.V(3).Infof("starting removing %d items . . .", numToRemove)
 	numStartingItems := len(b.Report.Items)
-	finalItems := make([]RightSizerReportItem, numStartingItems)
-	copy(finalItems, b.Report.Items)
+	keptItems := make([]RightSizerReportItem, numStartingItems)
 	b.itemsLock.Lock()
 	defer b.itemsLock.Unlock()
-	for itemNum := 0; itemNum < len(finalItems); itemNum++ {
+	copy(keptItems, b.Report.Items)
+	for itemNum := 0; itemNum < len(keptItems); itemNum++ {
 		for _, itemToRemove := range removeItems {
-			if finalItems[itemNum].String() == itemToRemove.String() {
-				glog.V(4).Infof("removing item %s", finalItems[itemNum].StringFull())
-				finalItems = append(finalItems[:itemNum], finalItems[itemNum+1:]...)
+			if keptItems[itemNum].String() == itemToRemove.String() {
+				glog.V(4).Infof("removing item %s", keptItems[itemNum].StringFull())
+				keptItems = append(keptItems[:itemNum], keptItems[itemNum+1:]...)
 				anyItemsRemoved = true
 				itemNum-- // re-process this index since an item was just removed
 			}
 		}
 	}
-	numFinalItems := len(finalItems)
+	numKeptItems := len(keptItems)
 	if anyItemsRemoved {
-		b.Report.Items = finalItems
+		b.Report.Items = keptItems
 	}
-	glog.V(3).Infof("finished removing %d items - actually removed %d", numToRemove, numStartingItems-numFinalItems)
+	glog.V(3).Infof("finished removing %d items - actually removed %d", numToRemove, numStartingItems-numKeptItems)
 	return anyItemsRemoved
 }
 
@@ -379,7 +448,8 @@ func (b *RightSizerReportBuilder) ReportHandler(w http.ResponseWriter, r *http.R
 }
 
 // RunServer starts the report builder HTTP server and registers the report
-// handler. This server can be used to retrieve the current report JSON.
+// handler. This server can be used to retrieve the current report JSON or
+// issue health checks.
 func (b RightSizerReportBuilder) RunServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", b.HealthHandler)
