@@ -30,6 +30,10 @@ type ImageReport struct {
 	Report         []VulnerabilityList
 }
 
+type TrivyResults struct {
+	Results []VulnerabilityList
+}
+
 // VulnerabilityList is the results from Trivy
 type VulnerabilityList struct {
 	Target          string
