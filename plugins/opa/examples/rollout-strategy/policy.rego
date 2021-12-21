@@ -18,7 +18,7 @@ rollingUpdate[actionItem] {
   newMaxUnavailable = to_number(maxUnavailble)
   
   # If newMaxUnavailable is greater than 25 then create an action item.
-  newMaxUnavailable = 25
+  newMaxUnavailable > 25
 
   actionItem := {
     "title": "Rolling Update policy is too aggressive",
