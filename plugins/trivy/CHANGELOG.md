@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.14.10
+## 0.14.11
 * Updated trivy version in CI
 ## 0.14.10
 * Bump trivy to 0.21.3
