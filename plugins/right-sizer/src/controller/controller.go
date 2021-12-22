@@ -7,6 +7,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/report"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
+	"github.com/thoas/go-funk"
 	core "k8s.io/api/core/v1"
 
 	"k8s.io/client-go/informers"
@@ -203,7 +204,7 @@ func isSameEventOccurrence(g *eventUpdateGroup) bool {
 // pod, or an update related to an existing report item.
 func (c *Controller) processEvent(event *core.Event) {
 	glog.V(4).Infof("got event %s/%s (count: %d), reason: %s, involved object: %s", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
-	if len(c.config.allowedNamespaces) > 0 && !util.Contains(c.config.allowedNamespaces, event.ObjectMeta.Namespace) {
+	if len(c.config.allowedNamespaces) > 0 && !funk.ContainsString(c.config.allowedNamespaces, event.ObjectMeta.Namespace) {
 		glog.V(4).Infof("ignoring event %s/%s as its namespace is not allowed", event.ObjectMeta.Namespace, event.ObjectMeta.Name)
 		return
 	}
