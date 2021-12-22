@@ -1,6 +1,8 @@
 # Changelog
 
 ## 0.13.3
+* Updated trivy version
+## 0.13.3
 * Fix panic for missing sha in the image
 ## 0.13.2
 * Bump alpine to 3.15
