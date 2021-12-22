@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.13.3
+## 0.13.4
 * Updated trivy version
 ## 0.13.3
 * Fix panic for missing sha in the image
