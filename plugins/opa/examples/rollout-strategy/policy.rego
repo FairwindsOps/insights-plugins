@@ -15,7 +15,7 @@ rollingUpdate[actionItem] {
   maxUnavailable := input.spec.strategy.rollingUpdate.maxUnavailable
   contains(maxUnavailable, "%")
   maxUnavailble = replace(maxUnavailable, "%", "")
-  newMaxUnavailable = to_number(maxUnavailble)
+  newMaxUnavailable := to_number(maxUnavailble)
   
   # If newMaxUnavailable is greater than 25 then create an action item.
   newMaxUnavailable > 25
