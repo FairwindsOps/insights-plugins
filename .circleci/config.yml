@@ -88,14 +88,11 @@ commands:
             fi
           done
 
-executors:
-  docker-build:
-    docker:
-      - image: quay.io/reactiveops/ci-images:v11-stretch
-
 jobs:
   build_plugins:
-    executor: docker-build
+    executor:
+      docker:
+        - image: quay.io/reactiveops/ci-images:v11-stretch
     steps:
       - docker_build
       - insights_test
@@ -105,7 +102,11 @@ jobs:
           template: basic_fail_1
 
   build_and_push_plugins:
-    executor: docker-build
+    executor:
+      resource_class: large
+      docker:
+        - image: quay.io/reactiveops/ci-images:v11-stretch
+
     steps:
       - docker_build
       - insights_test
