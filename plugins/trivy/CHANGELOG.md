@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.14.10
+* Bump trivy to 0.21.3
 ## 0.14.9
 * Bump alpine to 3.15
 

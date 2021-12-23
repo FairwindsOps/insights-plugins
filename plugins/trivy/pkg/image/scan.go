@@ -115,7 +115,7 @@ func ScanImageFile(imagePath string, imageID string, tempDir string) ([]models.V
 		os.Remove(reportFile)
 	}()
 
-	report := []models.VulnerabilityList{}
+	report := models.TrivyResults{}
 	data, err := ioutil.ReadFile(reportFile)
 	if err != nil {
 		logrus.Errorf("Error reading report %s: %s", imageID, err)
@@ -127,7 +127,7 @@ func ScanImageFile(imagePath string, imageID string, tempDir string) ([]models.V
 		return nil, err
 	}
 
-	return report, nil
+	return report.Results, nil
 }
 
 func downloadAndScanPullRef(pullRef string) ([]models.VulnerabilityList, error) {
