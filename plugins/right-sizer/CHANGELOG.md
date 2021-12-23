@@ -6,7 +6,7 @@
 * Add a global `--namespace` flag to limit Kubernetes namespaces considered for both creating action-items and updating memory limits.
 * Add an HTTP health-check endpoint, for Kubernetes readiness and liveness probes.
 
-## 0.1.0
+## 0.2.0
 
 * Initial release
 
