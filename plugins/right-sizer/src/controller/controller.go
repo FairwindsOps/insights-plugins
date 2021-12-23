@@ -1,15 +1,15 @@
 package controller
 
 import (
-	"reflect"
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/report"
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
 	"github.com/golang/glog"
-	"github.com/thoas/go-funk"
 	core "k8s.io/api/core/v1"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/thoas/go-funk"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -238,7 +238,7 @@ func (c *Controller) processEventUpdate(eventUpdate *eventUpdateGroup) {
 		glog.V(4).Infof("No old event present for event %s/%s (count: %d), reason: %s, involved object: %s, skipping processing", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
 		return
 	}
-	if reflect.DeepEqual(eventUpdate.oldEvent, eventUpdate.newEvent) {
+	if cmp.Equal(eventUpdate.oldEvent, eventUpdate.newEvent) {
 		glog.V(4).Infof("Event %s/%s (count: %d), reason: %s, involved object: %s, did not change: skipping processing", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
 		return
 	}
@@ -254,12 +254,14 @@ func (c *Controller) processEventUpdate(eventUpdate *eventUpdateGroup) {
 // owning pod-controller.
 func (c *Controller) processOOMKilledPod(pod *core.Pod) {
 	for _, s := range pod.Status.ContainerStatuses {
-		if s.LastTerminationState.Terminated == nil || s.LastTerminationState.Terminated.Reason != TerminationReasonOOMKilled {
+		// The .State.Terminated is also checked to catch the first OOM-kill for a
+		// container.
+		if (s.LastTerminationState.Terminated == nil || s.LastTerminationState.Terminated.Reason != TerminationReasonOOMKilled) && (s.State.Terminated == nil || s.State.Terminated.Reason != TerminationReasonOOMKilled) {
 			ProcessedContainerUpdates.WithLabelValues("not_oomkilled").Inc()
 			continue
 		}
 
-		if s.LastTerminationState.Terminated.FinishedAt.Time.Before(c.startTime) {
+		if (s.LastTerminationState.Terminated != nil && s.LastTerminationState.Terminated.FinishedAt.Time.Before(c.startTime)) || (s.State.Terminated != nil && s.State.Terminated.FinishedAt.Time.Before(c.startTime)) {
 			glog.V(1).Infof("The container '%s' in '%s/%s' was terminated before this controller started - termination-time=%s, controller-start-time=%s", s.Name, pod.Namespace, pod.Name, s.LastTerminationState.Terminated.FinishedAt.Time, c.startTime)
 			ProcessedContainerUpdates.WithLabelValues("oomkilled_termination_too_old").Inc()
 			continue
