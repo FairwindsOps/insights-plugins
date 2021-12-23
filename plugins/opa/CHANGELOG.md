@@ -1,7 +1,7 @@
 # Changelog
 
-## 0.3.91
-* Add additional example policies for deployment strategies
+## 0.3.10
+* Add additional example policies for roll-out strategies
 ## 0.3.9
 * Bump alpine to 3.15
 ## 0.3.8
