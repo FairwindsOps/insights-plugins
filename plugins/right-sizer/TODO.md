@@ -15,7 +15,6 @@ As this plugin is experimental, there are a higher amount of to-do items and pos
 ### Controller
 
 * Bug: Sometimes crash-loop-backoffs due to OOM-kill may not be detected, likely because the Kube event is not yet "container started", which is what the controller currently looks for.
-* Bug: Perhaps related to above (crash-loop-backoff may not be detected), often the first OOM-kill of a pod is ignored by the controller. because it thinks the event has already been seen; is a repeat.
 * Do we want to keep adding Kube events to pods where an OOM-kill is detected? This is the original purpose of the Kube-OOM-Event-Generator code, on which this controller is based.
 * Should we directly monitor create/update/delete operations to catch changes to pod-controllers to remove their action items? Currently the event stream we listen to, catches transient events (ReplicaSet scaling when a deployment happened to get updated).
 	* A challenge with directly monitoring pod-controllers that are report items, is we can't know-to-monitor custom resources a customer may be using.
