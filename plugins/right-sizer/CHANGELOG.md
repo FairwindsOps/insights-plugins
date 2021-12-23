@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+* Fix missing the first OOM-kill of a pod.
+
 ## 0.2.0
 
 * Add an option to update memory limits of the pod-controller (Deployment) in response to OOM-killed pods, using a configurable increment and maximum.
