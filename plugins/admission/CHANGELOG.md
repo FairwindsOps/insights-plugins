@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.4
+* Add some logging for OPA
+
 ## 0.4.3
 * Bump alpine to 3.15
 
