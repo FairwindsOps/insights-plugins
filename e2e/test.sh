@@ -32,9 +32,9 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
 
 sleep 5
 
-echo Applying right-sizer test workload and triggerin first OOM-kill.
-kubectl apply -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
-kubectl create job trigger-oomkill-testworkload --image=curlimages/curl -- curl http://testworkload:8080
+echo Applying right-sizer test workload and triggering first OOM-kill.
+kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
+kubectl create job trigger-oomkill-testworkload -n insights-agent --image=curlimages/curl -- curl http://testworkload:8080
 
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
