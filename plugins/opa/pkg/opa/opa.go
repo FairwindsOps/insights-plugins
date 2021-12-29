@@ -103,6 +103,7 @@ func processCheck(ctx context.Context, check CustomCheck, checkInstance CustomCh
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
 		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
+			logrus.Errorf("Error while processing check %s: %v", checkInstance.Spec.CustomCheckName, err)
 			return nil, err
 		}
 
@@ -135,9 +136,9 @@ func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance Cu
 }
 
 func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string) ([]ActionItem, error) {
-
 	results, err := runRegoForItem(ctx, check.Spec.Rego, instance.Spec.Parameters, obj)
 	if err != nil {
+		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
 		return nil, err
 	}
 	aiDetails := OutputFormat{}
