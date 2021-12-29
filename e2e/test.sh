@@ -59,14 +59,28 @@ jsonschema -i output/workloads.json plugins/workloads/results.schema || (cat out
 echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/kubesec.json && exit 1)
 echo "Testing right-sizer"
-# For now, right-sizer data will be pulled directly from its state ConfigMap,
-# instead of using a collector CronJob which would need to be delayed.
-# parse ConfigMap JSON, and replace dynamic values.
-# The below jq expression looks for `firstOOM` to avoid jq duplicating replaced
-# keys unnecessarily to the top-level JSON object.
-kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
-  | jq '(..|select(has("firstOOM"))?) += {firstOOM: "dummyvalue", lastOOM: "dummyvalue", "resourceGeneration": 0}' \
-    > output/right-sizer.json
-jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
+# Make sure the test workload has a container restart.
+# Container restarts are added across all pods, in case the deployment recycles pods for any reason.
+for n in `seq 1 20` ; do
+  rightsizer_restarts=$(kubectl get po -l app=testworkload -o json | jq '.items[].status.containerStatuses[0].restartCount' | awk '{s+=$1} END {printf "%.0f", s}')
+  if [ ${rightsizer_restarts} -gt 0 ] ; then
+    break
+  fi
+  sleep 3
+done
+if [ rightsizer_restarts -eq 0 ] ; then
+  echo Did not see right-sizer test workload restarts after $n attempts
+  false # Fail the test
+else
+  # For now, right-sizer data will be pulled directly from its state ConfigMap,
+  # instead of using a collector CronJob which would need to be delayed.
+  # parse ConfigMap JSON, and replace dynamic values.
+  # The below jq expression looks for `firstOOM` to avoid jq duplicating replaced
+  # keys unnecessarily to the top-level JSON object.
+  kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
+    | jq '(..|select(has("firstOOM"))?) += {firstOOM: "dummyvalue", lastOOM: "dummyvalue", "resourceGeneration": 0}' \
+      > output/right-sizer.json
+  jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
+fi
 
 ls output
