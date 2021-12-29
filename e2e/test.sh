@@ -68,8 +68,8 @@ for n in `seq 1 20` ; do
   fi
   sleep 3
 done
-if [ rightsizer_restarts -eq 0 ] ; then
-  echo Did not see right-sizer test workload restarts after $n attempts
+if [ $rightsizer_restarts -eq 0 ] ; then
+  echo There were no right-sizer test workload restarts after checking $n times.
   false # Fail the test
 else
   # For now, right-sizer data will be pulled directly from its state ConfigMap,
