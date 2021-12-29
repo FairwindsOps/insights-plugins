@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testworkload
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: testworkload
+  template:
+    metadata:
+      labels:
+        app: testworkload
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        runAsNonRoot: true
+      containers:
+        - name: mem-eater
+          image: ivanfetch/mem-eater
+          securityContext:
+            readOnlyRootFilesystem: true
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8080
+          resources:
+            limits:
+              cpu: 1
+              memory: 8Mi
+            requests:
+              cpu: 50m
+              memory: 7Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: testworkload
+  labels:
+    app: testworkload
+spec:
+  type: NodePort
+  ports:
+  - nodePort: 30052
+    port: 8080
+  selector:
+    app: testworkload
+

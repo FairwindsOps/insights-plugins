@@ -67,4 +67,6 @@ workloads:
 
 kubehunter:
   enabled: false
- 
+
+  rightsizer:
+  enabled: true 
