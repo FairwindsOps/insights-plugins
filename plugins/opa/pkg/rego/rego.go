@@ -8,6 +8,7 @@ import (
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
+	"github.com/sirupsen/logrus"
 )
 
 type KubeDataFunction interface {
@@ -36,6 +37,7 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 	r := GetRegoQuery(regoStr, dataFn)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
+		logrus.Errorf("Error while preparing rego query for evaluation: %v", err)
 		return nil, err
 	}
 	if params == nil {
@@ -48,6 +50,7 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 	evaluatedInput := rego.EvalInput(obj)
 	rs, err := query.Eval(ctx, evaluatedInput)
 	if err != nil {
+		logrus.Errorf("Error while evaluation query: %v", err)
 		return nil, err
 	}
 	return getOutputArray(rs), nil
@@ -57,15 +60,19 @@ func getDataFunction(fn func(context.Context, string, string) ([]interface{}, er
 	return func(rctx rego.BuiltinContext, groupAST, kindAST *ast.Term) (*ast.Term, error) {
 		group, err1 := getStringFromAST(groupAST)
 		kind, err2 := getStringFromAST(kindAST)
+
 		if err1 != nil || err2 != nil {
 			return nil, errors.New("the kubernetes function should be passed a group and kind as strings")
 		}
+		logrus.Infof("Getting Kubernetes data for %s/%s", group, kind)
 		items, err := fn(rctx.Context, group, kind)
 		if err != nil {
+			logrus.Errorf("Error while getting data for %s/%s: %v", group, kind, err)
 			return nil, err
 		}
 		itemValue, err := ast.InterfaceToValue(items)
 		if err != nil {
+			logrus.Errorf("Error while converting data for %s/%s: %v", group, kind, err)
 			return nil, err
 		}
 
