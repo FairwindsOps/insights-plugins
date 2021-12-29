@@ -34,6 +34,7 @@ sleep 5
 
 echo Applying right-sizer test workload and triggering first OOM-kill.
 kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
+kubectl wait --for=condition=ready -l app=testworkload pod --timeout=60s --namespace insights-agent
 kubectl create job trigger-oomkill-testworkload -n insights-agent --image=curlimages/curl -- curl http://testworkload:8080
 
 kubectl get all --namespace insights-agent
@@ -62,7 +63,7 @@ echo "Testing right-sizer"
 # Make sure the test workload has a container restart.
 # Container restarts are added across all pods, in case the deployment recycles pods for any reason.
 for n in `seq 1 20` ; do
-  rightsizer_restarts=$(kubectl get po -l app=testworkload -o json | jq '.items[].status.containerStatuses[0].restartCount' | awk '{s+=$1} END {printf "%.0f", s}')
+  rightsizer_restarts=$(kubectl get po -n insights-agent -l app=testworkload -o json | jq '.items[].status.containerStatuses[0].restartCount' | awk '{s+=$1} END {printf "%.0f", s}')
   if [ ${rightsizer_restarts} -gt 0 ] ; then
     break
   fi
