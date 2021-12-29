@@ -1,3 +1,4 @@
+# This Deployment will OOM-kill itself when accessed over HTTP.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,7 +28,7 @@ spec:
           resources:
             limits:
               cpu: 1
-              memory: 8Mi
+              memory: 10Mi
             requests:
               cpu: 50m
               memory: 7Mi
@@ -39,10 +40,9 @@ metadata:
   labels:
     app: testworkload
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
-  - nodePort: 30052
-    port: 8080
+  - port: 8080
   selector:
     app: testworkload
 
