@@ -73,13 +73,24 @@ for n in `seq 1 20` ; do
 done
 if [ $rightsizer_workload_restarts -eq 0 ] ; then
   echo There were no right-sizer test workload restarts after checking $n times.
-  false # Fail the test
-else
-  # Pull right-sizer data directly from the controller state ConfigMap,
-  # to obtain JSON for checking against the schema.
+  false # Fail the test.
+fi
+# Pull right-sizer data directly from the controller state ConfigMap,
+# to obtain JSON for checking against the schema.
+for n in `seq 1 10` ; do
   kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
     > output/right-sizer.json
-  jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
+  rightsizer_num_items=$(jq '.items |length' output/right-sizer.json)
+  if [ $rightsizer_num_items -gt 0 ] ; then
+    break
+  fi
+  sleep 3
+done
+if [ $rightsizer_num_items -eq 0 ] ; then
+  echo The right-sizer controller has no report items.
+  cat output/right-sizer.json
+  false # Fail the test.
 fi
+jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
 
 ls output
