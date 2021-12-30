@@ -34,8 +34,8 @@ sleep 5
 
 echo Applying right-sizer test workload and triggering first OOM-kill.
 kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
-kubectl wait --for=condition=ready -l app=testworkload pod --timeout=60s --namespace insights-agent
-kubectl create job trigger-oomkill-testworkload -n insights-agent --image=curlimages/curl -- curl http://testworkload:8080
+kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
+kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
@@ -45,7 +45,7 @@ kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insig
 # TODO: enable OPA
 # kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
 kubectl wait --for=condition=complete job/kubesec --timeout=480s --namespace insights-agent
-kubectl wait --for=condition=complete job/trigger-oomkill-testworkload --timeout=10s --namespace insights-agent
+kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=10s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
 
@@ -61,26 +61,24 @@ echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/kubesec.json && exit 1)
 echo "Testing right-sizer"
 # Make sure the test workload has a container restart.
-# Container restarts are added across all pods, in case the deployment recycles pods for any reason.
 for n in `seq 1 20` ; do
-  rightsizer_restarts=$(kubectl get po -n insights-agent -l app=testworkload -o json | jq '.items[].status.containerStatuses[0].restartCount' | awk '{s+=$1} END {printf "%.0f", s}')
-  if [ ${rightsizer_restarts} -gt 0 ] ; then
+  # Restarts from all Deployment pods are sumed, in case the ReplicaSet is healing.
+  rightsizer_workload_restarts=$(kubectl get po -n insights-agent -l app=right-sizer-test-workload -o json \
+    | jq '.items[].status.containerStatuses[0].restartCount' \
+    | awk '{s+=$1} END {printf "%.0f", s}')
+  if [ ${rightsizer_workload_restarts} -gt 0 ] ; then
     break
   fi
   sleep 3
 done
-if [ $rightsizer_restarts -eq 0 ] ; then
+if [ $rightsizer_workload_restarts -eq 0 ] ; then
   echo There were no right-sizer test workload restarts after checking $n times.
   false # Fail the test
 else
-  # For now, right-sizer data will be pulled directly from its state ConfigMap,
-  # instead of using a collector CronJob which would need to be delayed.
-  # parse ConfigMap JSON, and replace dynamic values.
-  # The below jq expression looks for `firstOOM` to avoid jq duplicating replaced
-  # keys unnecessarily to the top-level JSON object.
+  # Pull right-sizer data directly from the controller state ConfigMap,
+  # to obtain JSON for checking against the schema.
   kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
-    | jq '(..|select(has("firstOOM"))?) += {firstOOM: "dummyvalue", lastOOM: "dummyvalue", "resourceGeneration": 0}' \
-      > output/right-sizer.json
+    > output/right-sizer.json
   jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
 fi
 

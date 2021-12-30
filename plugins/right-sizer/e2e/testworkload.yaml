@@ -2,16 +2,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: testworkload
+  name: right-sizer-test-workload
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: testworkload
+      app: right-sizer-test-workload
   template:
     metadata:
       labels:
-        app: testworkload
+        app: right-sizer-test-workload
     spec:
       securityContext:
         runAsUser: 1001
@@ -31,18 +31,18 @@ spec:
               memory: 10Mi
             requests:
               cpu: 50m
-              memory: 7Mi
+              memory: 1Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: testworkload
+  name: right-sizer-test-workload
   labels:
-    app: testworkload
+    app: right-sizer-test-workload
 spec:
   type: ClusterIP
   ports:
   - port: 8080
   selector:
-    app: testworkload
+    app: right-sizer-test-workload
 
