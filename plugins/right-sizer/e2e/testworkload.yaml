@@ -19,7 +19,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: mem-eater
-          image: ivanfetch/mem-eater
+          image: ivanfetch/noisy-neighbor:0.4.0
           securityContext:
             readOnlyRootFilesystem: true
           imagePullPolicy: Always
