@@ -80,6 +80,8 @@ fi
 for n in `seq 1 10` ; do
   kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
     > output/right-sizer.json
+  # Wait for the right-sizer controller to process the test workload OOM-kill,
+  # before processing right-sizer output.
   rightsizer_num_items=$(jq '.items |length' output/right-sizer.json)
   if [ $rightsizer_num_items -gt 0 ] ; then
     break
@@ -87,7 +89,7 @@ for n in `seq 1 10` ; do
   sleep 3
 done
 if [ $rightsizer_num_items -eq 0 ] ; then
-  echo The right-sizer controller has no report items.
+  echo The right-sizer controller has no report items after checking $n times.
   cat output/right-sizer.json
   false # Fail the test.
 fi
