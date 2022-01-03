@@ -1,0 +1,48 @@
+# This Deployment will OOM-kill itself when accessed over HTTP.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: right-sizer-test-workload
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: right-sizer-test-workload
+  template:
+    metadata:
+      labels:
+        app: right-sizer-test-workload
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        runAsNonRoot: true
+      containers:
+        - name: mem-eater
+          image: ivanfetch/noisy-neighbor:0.4.0
+          securityContext:
+            readOnlyRootFilesystem: true
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8080
+          resources:
+            limits:
+              cpu: 1
+              memory: 10Mi
+            requests:
+              cpu: 50m
+              memory: 1Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: right-sizer-test-workload
+  labels:
+    app: right-sizer-test-workload
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+  selector:
+    app: right-sizer-test-workload
+
