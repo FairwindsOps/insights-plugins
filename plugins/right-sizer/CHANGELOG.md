@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.2.2
+## 0.2.3
 * Update Go modules
+
+## 0.2.2
+* Add end-to-end tests for right-sizer controller.
 
 ## 0.2.1
 
