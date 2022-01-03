@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/fairwindsops/controller-utils v0.1.0
-	github.com/falcosecurity/falcosidekick v0.0.0-20211223184827-10ffedce498c
+	github.com/falcosecurity/falcosidekick v0.0.0-20220103163434-fde58f71eb1d
 	github.com/gorilla/mux v1.8.0
 	github.com/sirupsen/logrus v1.8.1
 	k8s.io/api v0.23.1

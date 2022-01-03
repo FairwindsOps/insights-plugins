@@ -205,8 +205,8 @@ github.com/evanphx/json-patch v4.12.0+incompatible h1:4onqiflcdA9EOZ4RxV643DvftH
 github.com/evanphx/json-patch v4.12.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fairwindsops/controller-utils v0.1.0 h1:TzKF2SHmunnpX0Z/p4uM1wlPzJjuxTYR+MTnyCO9eQs=
 github.com/fairwindsops/controller-utils v0.1.0/go.mod h1:ZieJ69jKpqWbgwQvBcE700sCCPobEeACtd1mmfUDF6A=
-github.com/falcosecurity/falcosidekick v0.0.0-20211223184827-10ffedce498c h1:ByOcAozBxThCWHMB5fJxr+dH4cjBoxeBqiFjwnCHD7Y=
-github.com/falcosecurity/falcosidekick v0.0.0-20211223184827-10ffedce498c/go.mod h1:P1RVbr7UONeIJHP5dyDa5439p7gUZvpLcK/V/6JP4LA=
+github.com/falcosecurity/falcosidekick v0.0.0-20220103163434-fde58f71eb1d h1:O+19DfR8sJ1uC3+dwm6xu3Y20vZYb46VOGylhczvqp0=
+github.com/falcosecurity/falcosidekick v0.0.0-20220103163434-fde58f71eb1d/go.mod h1:P1RVbr7UONeIJHP5dyDa5439p7gUZvpLcK/V/6JP4LA=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
