@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.4.13
-* Update Go modules
-
 ## 0.4.12
 * Update Go modules
 
