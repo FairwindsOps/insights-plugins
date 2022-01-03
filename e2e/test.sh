@@ -32,7 +32,7 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
 
 sleep 5
 
-echo Applying right-sizer test workload and triggering first OOM-kill.
+echo "Applying right-sizer test workload and triggering first OOM-kill."
 kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
@@ -72,7 +72,7 @@ for n in `seq 1 20` ; do
   sleep 3
 done
 if [ $rightsizer_workload_restarts -eq 0 ] ; then
-  echo There were no right-sizer test workload restarts after checking $n times.
+  echo "There were no right-sizer test workload restarts after checking $n times."
   false # Fail the test.
 fi
 # Pull right-sizer data directly from the controller state ConfigMap,
@@ -89,7 +89,7 @@ for n in `seq 1 10` ; do
   sleep 3
 done
 if [ $rightsizer_num_items -eq 0 ] ; then
-  echo The right-sizer controller has no report items after checking $n times.
+  echo "The right-sizer controller has no report items after checking $n times."
   cat output/right-sizer.json
   false # Fail the test.
 fi
