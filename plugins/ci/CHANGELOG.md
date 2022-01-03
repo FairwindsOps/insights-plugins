@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.5
+* Update Go modules
+
 ## 0.13.4
 * Updated trivy version
 ## 0.13.3
