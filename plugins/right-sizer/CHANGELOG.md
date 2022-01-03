@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+* Update Go modules
+
 ## 0.2.1
 
 * Fix detecting the first OOM-kill of a pod.
