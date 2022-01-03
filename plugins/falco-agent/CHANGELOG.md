@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4
+* Update Go modules
+
 ## 0.1.3
 * Fix panics if no podname or namespace is retrieved
 ## 0.1.2
