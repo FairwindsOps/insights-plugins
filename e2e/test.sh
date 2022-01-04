@@ -61,20 +61,13 @@ echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/kubesec.json && exit 1)
 echo "Testing right-sizer"
 # Make sure the test workload has a container restart.
-for n in `seq 1 20` ; do
-  # Restarts from all Deployment pods are sumed, in case the ReplicaSet is healing.
-  rightsizer_workload_restarts=$(kubectl get po -n insights-agent -l app=right-sizer-test-workload -o json \
-    | jq '.items[].status.containerStatuses[0].restartCount' \
-    | awk '{s+=$1} END {printf "%.0f", s}')
-  if [ ${rightsizer_workload_restarts} -gt 0 ] ; then
-    break
-  fi
-  sleep 3
-done
-if [ $rightsizer_workload_restarts -eq 0 ] ; then
-  echo "There were no right-sizer test workload restarts after checking $n times."
-  false # Fail the test.
-fi
+rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
+    echo "Got ${rightsizer_workload_restarts} after the first trigger of an OOM-kill."
+echo "Triggering second OOM-kill for right-sizer test workload."
+kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
+kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=10s --namespace insights-agent
+rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 2 -n insights-agent)
+    echo "Got ${rightsizer_workload_restarts} after the second trigger of an OOM-kill."
 # Pull right-sizer data directly from the controller state ConfigMap,
 # to obtain JSON for checking against the schema.
 for n in `seq 1 10` ; do
@@ -94,5 +87,40 @@ if [ $rightsizer_num_items -eq 0 ] ; then
   false # Fail the test.
 fi
 jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
-
+echo right-sizer output is: && cat output/right-sizer.json
 ls output
+
+# Get the number of restarts for the first container of all pods with the given label.
+# Parameters: <label> <expected restarts> [optional arguments to kubectl]
+# <label> is a key=value form passed to the -l kubectl flag.
+# <expected restarts> is the number of restarts expected, after which the function returns.
+# [optional arguments to kubectl] allows specifying I.E. a namespace or other flags.
+get_restarts_of_first_container() {
+  local label="$1"
+  local expected_restarts="$2"
+  shift 2
+  if [ "x${label}" == "x" ] ; then
+    >&2 echo "get_restarts_of_first_container() called without a label parameter"
+    return 1
+  fi
+  if [ "x${expected_restarts}" == "x" ] ; then
+    >&2 echo "get_restarts_of_first_container() called without an expected_restarts parameter"
+    return 1
+  fi
+  for n in `seq 1 20` ; do
+    # Restarts from all pods are sumed, in case the ReplicaSet is healing.
+    local restarts=$(kubectl get po -l "${label}" $@ -o json \
+      | jq '.items[].status.containerStatuses[0].restartCount' \
+      | awk '{s+=$1} END {printf "%.0f", s}')
+    if [ ${restarts} -ge ${expected_restarts} ] ; then
+      break
+    fi
+    sleep 3
+  done
+  if [ $restarts -lt $expected_restarts ] ; then
+    >&2 echo "Expected there to be %{expected_restarts} restarts for pods with label ${label}, but got ${restarts}"
+    return 1
+  fi
+  return 0
+}
+
