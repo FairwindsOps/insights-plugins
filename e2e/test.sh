@@ -1,6 +1,42 @@
 set -eo pipefail
-cd /workspace
 
+
+# Get the number of restarts for the first container of all pods with the given label.
+# Parameters: <label> <expected restarts> [optional arguments to kubectl]
+# <label> is a key=value form passed to the -l kubectl flag.
+# <expected restarts> is the number of restarts expected, after which the function returns.
+# [optional arguments to kubectl] allows specifying I.E. a namespace or other flags.
+get_restarts_of_first_container() {
+  local label="$1"
+  local expected_restarts="$2"
+  shift 2
+  if [ "x${label}" == "x" ] ; then
+    >&2 echo "get_restarts_of_first_container() called without a label parameter"
+    return 1
+  fi
+  if [ "x${expected_restarts}" == "x" ] ; then
+    >&2 echo "get_restarts_of_first_container() called without an expected_restarts parameter"
+    return 1
+  fi
+  for n in `seq 1 20` ; do
+    # Restarts from all pods are sumed, in case the ReplicaSet is healing.
+    local restarts=$(kubectl get po -l "${label}" $@ -o json \
+      | jq '.items[].status.containerStatuses[0].restartCount' \
+      | awk '{s+=$1} END {printf "%.0f", s}')
+    if [ ${restarts} -ge ${expected_restarts} ] ; then
+      break
+    fi
+    sleep 3
+  done
+  if [ $restarts -lt $expected_restarts ] ; then
+    >&2 echo "Expected there to be ${expected_restarts} restarts for pods with label ${label}, but got ${restarts}"
+    return 1
+  fi
+  return 0
+}
+
+
+cd /workspace
 helm repo add fairwinds-incubator https://charts.fairwinds.com/incubator
 helm repo add fairwinds-stable https://charts.fairwinds.com/stable
 python3 -u e2e/testServer.py &> /workspace/py.log &
@@ -62,12 +98,13 @@ jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/
 echo "Testing right-sizer"
 # Make sure the test workload has a container restart.
 rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
-    echo "Got ${rightsizer_workload_restarts} after the first trigger of an OOM-kill."
+    echo "Got \"${rightsizer_workload_restarts}\" after the first trigger of an OOM-kill."
 echo "Triggering second OOM-kill for right-sizer test workload."
 kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=10s --namespace insights-agent
-rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 2 -n insights-agent)
-    echo "Got ${rightsizer_workload_restarts} after the second trigger of an OOM-kill."
+# Container restarts drop to 0 after right-sizer updates the Deployment memory limits.
+rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 0 -n insights-agent)
+echo "Got \"${rightsizer_workload_restarts}\" (empty string is expected) after the second trigger of an OOM-kill."
 # Pull right-sizer data directly from the controller state ConfigMap,
 # to obtain JSON for checking against the schema.
 for n in `seq 1 10` ; do
@@ -77,7 +114,10 @@ for n in `seq 1 10` ; do
   # before processing right-sizer output.
   rightsizer_num_items=$(jq '.items |length' output/right-sizer.json)
   if [ $rightsizer_num_items -gt 0 ] ; then
-    break
+    rightsizer_num_ooms=$(jq '.items[0].numOOMs' output/right-sizer.json)           
+    if [ ${rightsizer_num_ooms} -eq 2 ] ; then
+      break
+    fi
   fi
   sleep 3
 done
@@ -86,41 +126,23 @@ if [ $rightsizer_num_items -eq 0 ] ; then
   cat output/right-sizer.json
   false # Fail the test.
 fi
+if [ $rightsizer_num_ooms -ne 2 ] ; then
+  echo "The right-sizer report item has \"${rightsizer_num_ooms}\" numOOMs instead of 2."
+  cat output/right-sizer.json
+  false # Fail the test.
+fi
 jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
-echo right-sizer output is: && cat output/right-sizer.json
-ls output
+# Normalize dynamic fields in right-sizer output,
+# to compare that output against output we expect.
+# This allows matching whether I.E. endingMemory has changed.
+jq '(..|select(has("firstOOM"))?) += {firstOOM: "dummyvalue", lastOOM: "dummyvalue", "resourceGeneration": 0}' output/right-sizer.json >output/right-sizer_normalized.json
+echo "Diffing wanted JSON output against normalized right-sizer output."
+diff plugins/right-sizer/e2e/want.json output/right-sizer_normalized.json
+if [ $? -gt 0 ] ; then
+  echo "The normalized right-sizer output failed to match wanted output."
+  echo "** Expected Normalized Output **" && cat plugins/right-sizer/e2e/want.json
+  echo "** Got Normalized Output **" && cat output/right-sizer_normalized.json
+fi
 
-# Get the number of restarts for the first container of all pods with the given label.
-# Parameters: <label> <expected restarts> [optional arguments to kubectl]
-# <label> is a key=value form passed to the -l kubectl flag.
-# <expected restarts> is the number of restarts expected, after which the function returns.
-# [optional arguments to kubectl] allows specifying I.E. a namespace or other flags.
-get_restarts_of_first_container() {
-  local label="$1"
-  local expected_restarts="$2"
-  shift 2
-  if [ "x${label}" == "x" ] ; then
-    >&2 echo "get_restarts_of_first_container() called without a label parameter"
-    return 1
-  fi
-  if [ "x${expected_restarts}" == "x" ] ; then
-    >&2 echo "get_restarts_of_first_container() called without an expected_restarts parameter"
-    return 1
-  fi
-  for n in `seq 1 20` ; do
-    # Restarts from all pods are sumed, in case the ReplicaSet is healing.
-    local restarts=$(kubectl get po -l "${label}" $@ -o json \
-      | jq '.items[].status.containerStatuses[0].restartCount' \
-      | awk '{s+=$1} END {printf "%.0f", s}')
-    if [ ${restarts} -ge ${expected_restarts} ] ; then
-      break
-    fi
-    sleep 3
-  done
-  if [ $restarts -lt $expected_restarts ] ; then
-    >&2 echo "Expected there to be %{expected_restarts} restarts for pods with label ${label}, but got ${restarts}"
-    return 1
-  fi
-  return 0
-}
+ls output
 

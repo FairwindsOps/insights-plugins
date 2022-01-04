@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "kind": "Deployment",
+      "resourceName": "right-sizer-test-workload",
+      "resourceNamespace": "insights-agent",
+      "resourceContainer": "mem-eater",
+      "startingMemory": "10Mi",
+      "endingMemory": "12Mi",
+      "numOOMs": 2,
+      "firstOOM": "dummyvalue",
+      "lastOOM": "dummyvalue",
+      "resourceGeneration": 0
+    }
+  ]
+}
