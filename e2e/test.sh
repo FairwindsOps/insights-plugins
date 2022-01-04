@@ -119,7 +119,7 @@ for n in `seq 1 10` ; do
       break
     fi
   fi
-  sleep 3
+  sleep 5
 done
 if [ $rightsizer_num_items -eq 0 ] ; then
   echo "The right-sizer controller has no report items after checking $n times."
@@ -127,7 +127,7 @@ if [ $rightsizer_num_items -eq 0 ] ; then
   false # Fail the test.
 fi
 if [ $rightsizer_num_ooms -ne 2 ] ; then
-  echo "The right-sizer report item has \"${rightsizer_num_ooms}\" numOOMs instead of 2."
+  echo "The right-sizer report item has \"${rightsizer_num_ooms}\" numOOMs instead of 2, after checking $n times."
   cat output/right-sizer.json
   false # Fail the test.
 fi
