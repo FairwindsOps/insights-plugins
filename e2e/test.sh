@@ -31,12 +31,12 @@ sleep 5
       | awk '{s+=$1} END {printf "%.0f", s}')
     >&2 echo restarts is $restarts in loop $n
     local new_restarts=$((${restarts} - ${initial_restarts}))
-    if [ ${new_restarts} -ge ${expected_restarts} ] ; then
+    if [ ${new_restarts} -ge ${expected_new_restarts} ] ; then
       break
     fi
   done
-  if [ $new_restarts -lt $expected_restarts ] ; then
-    >&2 echo "Expected there to be ${expected_restarts} new restarts for pods with label ${label}, but got ${new_restarts} new restarts after ${initial_restarts} initial restarts"
+  if [ $new_restarts -lt $expected_new_restarts ] ; then
+    >&2 echo "Expected there to be ${expected_new_restarts} new restarts for pods with label ${label}, but got ${new_restarts} new restarts beyond ${initial_restarts} initial restarts"
 echo ${new_restarts}
     return 1
   fi
@@ -124,6 +124,7 @@ for n in `seq 1 18` ; do
   if [ $rightsizer_num_items -gt 0 ] ; then
     rightsizer_num_ooms=$(jq '.items[0].numOOMs' output/right-sizer.json)           
     if [ ${rightsizer_num_ooms} -eq 2 ] ; then
+      echo "Got expected right-sizer report after checking $n times."
       break
     fi
   fi
