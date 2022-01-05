@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+* Add option to filter the Kubernetes namespaces where memory limits will be updated.
+
 ## 0.2.3
 * Update Go modules
 
