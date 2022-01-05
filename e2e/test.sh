@@ -44,6 +44,17 @@ echo "${new_restarts}"
   return 0
 }
 
+collect_rightsizer_debug() {
+  local debug_dir="output/right-sizer-debug"
+  mkdir "${debug_dir}"
+  kubectl logs -l job-name=trigger-oomkill-right-sizer-test-workload -n insights-agent >"${debug_dir}/trigger-oomkill-right-sizer-test-workload.log"
+  kubectl logs -l job-name=trigger-oomkill2-right-sizer-test-workload -n insights-agent >"${debug_dir}/trigger-oomkill2-right-sizer-test-workload.log"
+  kubectl logs -l app=insights-agent,component=right-sizer -n insights-agent >"${debug_dir}/right-sizer-controller.log"
+  kubectl describe pod -l app=right-sizer-test-workload -n insights-agent >"${debug_dir}/describe_pod_right-sizer-test-workload.log"
+  kubectl get all -n insights-agent >"${debug_dir}/kubectl_get_all-insights_agent.txt"
+  echo "Please see the ${debug_dir} directory in CI artifacts for additional logs."
+}
+
 cd /workspace
 helm repo add fairwinds-incubator https://charts.fairwinds.com/incubator
 helm repo add fairwinds-stable https://charts.fairwinds.com/stable
@@ -137,23 +148,13 @@ done
 if [ $rightsizer_num_items -eq 0 ] ; then
   echo "The right-sizer controller has no report items after checking $n times."
   cat output/right-sizer.json
-  echo "** start of  logs for the pod triggering the first OOM-kill **"
-  kubectl logs -l job-name=trigger-oomkill-right-sizer-test-workload -n insights-agent
-  echo "** end of  logs for the pod triggering the first OOM-kill **"
-  echo "** start of kubectl describe of the test workload pod **"
-  kubectl describe pod -l app=right-sizer-test-workload -n insights-agent
-  echo "** end of kubectl describe of the test workload pod **"
+  collect_rightsizer_debug
   false # Fail the test.
 fi
 if [ $rightsizer_num_ooms -ne 2 ] ; then
   echo "The right-sizer report item has \"${rightsizer_num_ooms}\" numOOMs instead of 2, after checking $n times."
   cat output/right-sizer.json
-  echo "** start of  logs for the pod triggering the second OOM-kill **"
-  kubectl logs -l job-name=trigger-oomkill2-right-sizer-test-workload -n insights-agent
-  echo "** end of  logs for the pod triggering the second OOM-kill **"
-  echo "** start of kubectl describe of the test workload pod **"
-  kubectl describe pod -l app=right-sizer-test-workload -n insights-agent
-  echo "** end of kubectl describe of the test workload pod **"
+  collect_rightsizer_debug
   false # Fail the test.
 fi
 jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
