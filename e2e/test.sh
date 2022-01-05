@@ -141,7 +141,7 @@ if [ $rightsizer_num_items -eq 0 ] ; then
   kubectl logs -l job-name=trigger-oomkill-right-sizer-test-workload -n insights-agent
   echo "** end of  logs for the pod triggering the first OOM-kill **"
   echo "** start of kubectl describe of the test workload pod **"
-  kubectl describe pod -l app=right-sizer-test-workload
+  kubectl describe pod -l app=right-sizer-test-workload -n insights-agent
   echo "** end of kubectl describe of the test workload pod **"
   false # Fail the test.
 fi
@@ -152,7 +152,7 @@ if [ $rightsizer_num_ooms -ne 2 ] ; then
   kubectl logs -l job-name=trigger-oomkill2-right-sizer-test-workload -n insights-agent
   echo "** end of  logs for the pod triggering the second OOM-kill **"
   echo "** start of kubectl describe of the test workload pod **"
-  kubectl describe pod -l app=right-sizer-test-workload
+  kubectl describe pod -l app=right-sizer-test-workload -n insights-agent
   echo "** end of kubectl describe of the test workload pod **"
   false # Fail the test.
 fi
