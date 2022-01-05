@@ -1,42 +1,48 @@
 set -eo pipefail
 
 
-# Get the number of restarts for the first container of all pods with the given label.
-# Parameters: <label> <expected restarts> [optional arguments to kubectl]
+# Wait for new restarts for the first container of all pods with the given label.
+# Parameters: <label> <expected new restarts> [optional arguments to kubectl]
 # <label> is a key=value form passed to the -l kubectl flag.
-# <expected restarts> is the number of restarts expected, after which the function returns.
+# <expected new restarts> is the number of restarts expected, after which the function returns.
 # [optional arguments to kubectl] allows specifying I.E. a namespace or other flags.
-get_restarts_of_first_container() {
+wait_new_restarts_of_first_container() {
   local label="$1"
-  local expected_restarts="$2"
+  local expected_new_restarts="$2"
   shift 2
   if [ "x${label}" == "x" ] ; then
     >&2 echo "get_restarts_of_first_container() called without a label parameter"
     return 1
   fi
-  if [ "x${expected_restarts}" == "x" ] ; then
-    >&2 echo "get_restarts_of_first_container() called without an expected_restarts parameter"
+  if [ "x${expected_new_restarts}" == "x" ] ; then
+    >&2 echo "get_restarts_of_first_container() called without an expected_new_restarts parameter"
     return 1
   fi
+  # Restarts from all pods are sumed, in case the ReplicaSet is healing.
+  local initial_restarts=$(kubectl get po -l "${label}" $@ -o json \
+    | jq '.items[].status.containerStatuses[0].restartCount' \
+    | awk '{s+=$1} END {printf "%.0f", s}')
+  >&2 echo "initial restarts for ${label} pods is $initial_restarts, waiting for ${expected_new_restarts} new restarts..."
   for n in `seq 1 20` ; do
+sleep 5
     # Restarts from all pods are sumed, in case the ReplicaSet is healing.
     local restarts=$(kubectl get po -l "${label}" $@ -o json \
       | jq '.items[].status.containerStatuses[0].restartCount' \
       | awk '{s+=$1} END {printf "%.0f", s}')
-    if [ ${restarts} -eq ${expected_restarts} ] ; then
+    >&2 echo restarts is $restarts in loop $n
+    local new_restarts=$((${restarts} - ${initial_restarts}))
+    if [ ${new_restarts} -ge ${expected_restarts} ] ; then
       break
     fi
-    sleep 3
   done
-  if [ $restarts -ne $expected_restarts ] ; then
-    >&2 echo "Expected there to be ${expected_restarts} restarts for pods with label ${label}, but got ${restarts}, after $n loops"
-    echo "${restarts}"
+  if [ $new_restarts -lt $expected_restarts ] ; then
+    >&2 echo "Expected there to be ${expected_restarts} new restarts for pods with label ${label}, but got ${new_restarts} new restarts after ${initial_restarts} initial restarts"
+echo ${new_restarts}
     return 1
   fi
-  echo "${restarts}"
+  echo ${new_restarts}
   return 0
 }
-
 
 cd /workspace
 helm repo add fairwinds-incubator https://charts.fairwinds.com/incubator
@@ -99,20 +105,21 @@ echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/kubesec.json && exit 1)
 echo "Testing right-sizer"
 # Make sure the test workload has a container restart.
-rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
+rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
 echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trigger of an OOM-kill."
 echo "Triggering second OOM-kill for right-sizer test workload."
 kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=10s --namespace insights-agent
-rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 2 -n insights-agent)
-echo "Got \"${rightsizer_workload_restarts}\" (should be 2) after the second trigger of an OOM-kill."
+#rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 2 -n insights-agent)
+#echo "Got \"${rightsizer_workload_restarts}\" (should be 2) after the second trigger of an OOM-kill."
 # Pull right-sizer data directly from the controller state ConfigMap,
 # to obtain JSON for checking against the schema.
-for n in `seq 1 10` ; do
+echo "Waiting for right-sizer report items to show up in the state ConfigMap..."
+for n in `seq 1 18` ; do
+  sleep 5
   kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
     > output/right-sizer.json
-  # Wait for the right-sizer controller to process the test workload OOM-kill,
-  # before processing right-sizer output.
+  # Wait for expected data in the right-sizer controller report.
   rightsizer_num_items=$(jq '.items |length' output/right-sizer.json)
   if [ $rightsizer_num_items -gt 0 ] ; then
     rightsizer_num_ooms=$(jq '.items[0].numOOMs' output/right-sizer.json)           
@@ -120,7 +127,6 @@ for n in `seq 1 10` ; do
       break
     fi
   fi
-  sleep 5
 done
 if [ $rightsizer_num_items -eq 0 ] ; then
   echo "The right-sizer controller has no report items after checking $n times."
