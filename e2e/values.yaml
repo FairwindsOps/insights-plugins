@@ -75,3 +75,5 @@ rightsizer:
     minOOMs: 2
     increment: 1.2
     max: 2.0
+  extraArgs:
+  - "-v4"
