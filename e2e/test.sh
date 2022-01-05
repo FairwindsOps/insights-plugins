@@ -134,11 +134,15 @@ done
 if [ $rightsizer_num_items -eq 0 ] ; then
   echo "The right-sizer controller has no report items after checking $n times."
   cat output/right-sizer.json
+  echo "Showing logs for the pod triggering the first OOM-kill:"
+  kubectl logs -l job-name=trigger-oomkill-right-sizer-test-workload -n insights-agent
   false # Fail the test.
 fi
 if [ $rightsizer_num_ooms -ne 2 ] ; then
   echo "The right-sizer report item has \"${rightsizer_num_ooms}\" numOOMs instead of 2, after checking $n times."
   cat output/right-sizer.json
+  echo "Showing logs for the pod triggering the second OOM-kill:"
+  kubectl logs -l job-name=trigger-oomkill2-right-sizer-test-workload -n insights-agent
   false # Fail the test.
 fi
 jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
