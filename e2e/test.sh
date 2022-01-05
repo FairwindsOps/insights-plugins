@@ -80,6 +80,13 @@ echo "Applying right-sizer test workload and triggering first OOM-kill."
 kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
+kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=10s --namespace insights-agent
+# Make sure the test workload has a container restart.
+rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
+echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trigger of an OOM-kill."
+echo "Triggering second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
+kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
+kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=10s --namespace insights-agent
 
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
@@ -89,7 +96,6 @@ kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insig
 # TODO: enable OPA
 # kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
 kubectl wait --for=condition=complete job/kubesec --timeout=480s --namespace insights-agent
-kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=10s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
 
@@ -104,14 +110,8 @@ jsonschema -i output/workloads.json plugins/workloads/results.schema || (cat out
 echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/kubesec.json && exit 1)
 echo "Testing right-sizer"
-# Make sure the test workload has a container restart.
-rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
-echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trigger of an OOM-kill."
-echo "Triggering second OOM-kill for right-sizer test workload."
-kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
-kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=10s --namespace insights-agent
-#rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 2 -n insights-agent)
-#echo "Got \"${rightsizer_workload_restarts}\" (should be 2) after the second trigger of an OOM-kill."
+# Above, a test workload has been deployed and OOM-killed multiple times.
+# The controler has had time to act on OOM-kills.
 # Pull right-sizer data directly from the controller state ConfigMap,
 # to obtain JSON for checking against the schema.
 echo "Waiting for right-sizer report items to show up in the state ConfigMap..."
