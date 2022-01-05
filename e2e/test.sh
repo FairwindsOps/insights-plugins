@@ -87,7 +87,7 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
 
 sleep 5
 
-echo "Applying right-sizer test workload and triggering first OOM-kill."
+echo "Applying right-sizer test workload and triggering the first OOM-kill."
 kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 # Be sure the right-sizer controller is available to see this OOM-kill.
@@ -97,11 +97,13 @@ kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workl
 # Verify the test workload has a new container restart.
 rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
 if [ ${rightsizer_workload_restarts} -ne 1 ] ; then
-  echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trigger of an OOM-kill."
+  echo "Got \"${rightsizer_workload_restarts}\" restarts (should be 1) after the first trigger of an OOM-kill."
   false # Fail the test.
 fi
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=120s --namespace insights-agent
-echo "Triggering second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
+# Although the test workload is ready, avoid CrashLoopBackoff by introducing more delay.
+sleep 30
+echo "Triggering the second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
 kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 
 kubectl get all --namespace insights-agent
