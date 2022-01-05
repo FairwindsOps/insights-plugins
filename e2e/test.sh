@@ -84,6 +84,7 @@ kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workl
 # Make sure the test workload has a container restart.
 rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
 echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trigger of an OOM-kill."
+kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 echo "Triggering second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
 kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=40s --namespace insights-agent
