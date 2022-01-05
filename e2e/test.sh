@@ -4,8 +4,8 @@ set -eo pipefail
 # Wait for new restarts for the first container of all pods with the given label.
 # Parameters: <label> <expected new restarts> [optional arguments to kubectl]
 # <label> is a key=value form passed to the -l kubectl flag.
-# <expected new restarts> is the number of restarts expected, after which the function returns.
-# [optional arguments to kubectl] allows specifying I.E. a namespace or other flags.
+# <expected new restarts> is the number of NEW restarts expected, after which the function returns.
+# [optional arguments to kubectl] allows specifying other flags, such as a namespace.
 wait_new_restarts_of_first_container() {
   local label="$1"
   local expected_new_restarts="$2"
@@ -24,23 +24,23 @@ wait_new_restarts_of_first_container() {
     | awk '{s+=$1} END {printf "%.0f", s}')
   >&2 echo "initial restarts for ${label} pods is $initial_restarts, waiting for ${expected_new_restarts} new restarts..."
   for n in `seq 1 20` ; do
-sleep 5
+    sleep 5
     # Restarts from all pods are sumed, in case the ReplicaSet is healing.
     local restarts=$(kubectl get po -l "${label}" $@ -o json \
       | jq '.items[].status.containerStatuses[0].restartCount' \
       | awk '{s+=$1} END {printf "%.0f", s}')
-    >&2 echo restarts is $restarts in loop $n
+    >&2 echo "Restarts for ${label} pods is $restarts in loop $n"
     local new_restarts=$((${restarts} - ${initial_restarts}))
     if [ ${new_restarts} -ge ${expected_new_restarts} ] ; then
       break
     fi
   done
   if [ $new_restarts -lt $expected_new_restarts ] ; then
-    >&2 echo "Expected there to be ${expected_new_restarts} new restarts for pods with label ${label}, but got ${new_restarts} new restarts beyond ${initial_restarts} initial restarts"
-echo ${new_restarts}
+    >&2 echo "Expected ${expected_new_restarts} new restarts for pods with label ${label}, but got ${new_restarts} new restarts beyond ${initial_restarts} initial restarts"
+echo "${new_restarts}"
     return 1
   fi
-  echo ${new_restarts}
+  echo "${new_restarts}"
   return 0
 }
 
@@ -79,16 +79,19 @@ sleep 5
 echo "Applying right-sizer test workload and triggering first OOM-kill."
 kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
+# Be sure the right-sizer controller is available to see this OOM-kill.
 kubectl wait --for=condition=ready -l app=insights-agent,component=right-sizer pod --timeout=60s --namespace insights-agent
 kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
-# Make sure the test workload has a container restart.
+# Verify the test workload has a new container restart.
 rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
-echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trigger of an OOM-kill."
+if [ ${rightsizer_workload_restarts} -gt 1 ] ; then
+  echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trigger of an OOM-kill."
+  false # Fail the test.
+fi
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 echo "Triggering second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
 kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
-kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=40s --namespace insights-agent
 
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
@@ -114,11 +117,10 @@ jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/
 echo "Testing right-sizer"
 # Above, a test workload has been deployed and OOM-killed multiple times.
 # The controler has had time to act on OOM-kills.
+kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=40s --namespace insights-agent
 # Pull right-sizer data directly from the controller state ConfigMap,
 # to obtain JSON for checking against the schema.
-echo "Waiting for right-sizer report items to show up in the state ConfigMap..."
 for n in `seq 1 18` ; do
-  sleep 5
   kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
     > output/right-sizer.json && echo >>output/right-sizer.json
   # Wait for expected data in the right-sizer controller report.
@@ -130,6 +132,7 @@ for n in `seq 1 18` ; do
       break
     fi
   fi
+  sleep 5
 done
 if [ $rightsizer_num_items -eq 0 ] ; then
   echo "The right-sizer controller has no report items after checking $n times."
@@ -146,17 +149,18 @@ if [ $rightsizer_num_ooms -ne 2 ] ; then
   false # Fail the test.
 fi
 jsonschema -i output/right-sizer.json plugins/right-sizer/results.schema || (cat output/right-sizer.json && exit 1)
-# Normalize dynamic fields in right-sizer output,
-# to compare that output against output we expect.
-# This allows matching whether I.E. endingMemory has changed.
+# The jq select() avoids it creating the fields being replaced,
+# in the top object of the resulting JSON.
 jq '(..|select(has("firstOOM"))?) += {firstOOM: "dummyvalue", lastOOM: "dummyvalue", "resourceGeneration": 0}' output/right-sizer.json >output/right-sizer_normalized.json
-echo "Diffing wanted JSON output against normalized right-sizer output."
+# Diffing plugin output with wanted; known JSON,
+# allows matching whether fields like `endingMemory` have changed.
 diff plugins/right-sizer/e2e/want.json output/right-sizer_normalized.json
 if [ $? -gt 0 ] ; then
-  echo "The normalized right-sizer output failed to match wanted output."
+  echo "The normalized right-sizer output failed to match wanted output (the diff is shown above)."
   echo "** Expected Normalized Output **" && cat plugins/right-sizer/e2e/want.json
   echo "** Got Normalized Output **" && cat output/right-sizer_normalized.json
 fi
 
+echo "Showing content of output sub-directory:"
 ls output
 
