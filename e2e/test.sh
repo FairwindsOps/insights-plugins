@@ -29,7 +29,7 @@ get_restarts_of_first_container() {
     sleep 3
   done
   if [ $restarts -ne $expected_restarts ] ; then
-    >&2 echo "Expected there to be ${expected_restarts} restarts for pods with label ${label}, but got ${restarts}"
+    >&2 echo "Expected there to be ${expected_restarts} restarts for pods with label ${label}, but got ${restarts}, after $n loops"
     echo "${restarts}"
     return 1
   fi
@@ -104,9 +104,8 @@ echo "Got \"${rightsizer_workload_restarts}\" (should be 1) after the first trig
 echo "Triggering second OOM-kill for right-sizer test workload."
 kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=10s --namespace insights-agent
-# Container restarts drop to 0 after right-sizer updates the Deployment memory limits.
-rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 0 -n insights-agent)
-echo "Got \"${rightsizer_workload_restarts}\" (should be 0) after the second trigger of an OOM-kill."
+rightsizer_workload_restarts=$(get_restarts_of_first_container app=right-sizer-test-workload 2 -n insights-agent)
+echo "Got \"${rightsizer_workload_restarts}\" (should be 2) after the second trigger of an OOM-kill."
 # Pull right-sizer data directly from the controller state ConfigMap,
 # to obtain JSON for checking against the schema.
 for n in `seq 1 10` ; do
