@@ -70,3 +70,8 @@ kubehunter:
 
 rightsizer:
   enabled: true 
+  updateMemoryLimits:
+    enabled: true
+    minOOMs: 2
+    increment: 1.2
+    max: 2.0

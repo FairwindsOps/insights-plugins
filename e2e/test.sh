@@ -79,6 +79,7 @@ sleep 5
 echo "Applying right-sizer test workload and triggering first OOM-kill."
 kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworkload.yaml
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
+kubectl wait --for=condition=ready -l app=insights-agent,component=right-sizer pod --timeout=60s --namespace insights-agent
 kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
 # Make sure the test workload has a container restart.
@@ -119,7 +120,7 @@ echo "Waiting for right-sizer report items to show up in the state ConfigMap..."
 for n in `seq 1 18` ; do
   sleep 5
   kubectl get configmap -n insights-agent insights-agent-right-sizer-controller-state -o jsonpath='{.data.report}' \
-    > output/right-sizer.json
+    > output/right-sizer.json && echo >>output/right-sizer.json
   # Wait for expected data in the right-sizer controller report.
   rightsizer_num_items=$(jq '.items |length' output/right-sizer.json)
   if [ $rightsizer_num_items -gt 0 ] ; then
