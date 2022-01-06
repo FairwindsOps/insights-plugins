@@ -1,10 +1,11 @@
 set -eo pipefail
 
 
-# Wait for new restarts for the first container of all pods with the given label.
+# Loop for a fixed number of seconds, until new restarts are seen for the
+first container of all pods with the given label.
 # Parameters: <label> <expected new restarts> [optional arguments to kubectl]
 # <label> is a key=value form passed to the -l kubectl flag.
-# <expected new restarts> is the number of NEW restarts expected, after which the function returns.
+# <expected new restarts> is the number of NEW restarts to wait for.
 # [optional arguments to kubectl] allows specifying other flags, such as a namespace.
 wait_new_restarts_of_first_container() {
   local label="$1"
@@ -44,6 +45,8 @@ echo "${new_restarts}"
   return 0
 }
 
+# Collect right-sizer related resources from the cluster, to a directory
+# that will be collected as CI artifacts.
 collect_rightsizer_debug() {
   local debug_dir="output/right-sizer-debug"
   mkdir "${debug_dir}"
@@ -100,7 +103,6 @@ if [ ${rightsizer_workload_restarts} -ne 1 ] ; then
   echo "Got \"${rightsizer_workload_restarts}\" restarts (should be 1) after the first trigger of an OOM-kill."
   false # Fail the test.
 fi
-kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=120s --namespace insights-agent
 
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
@@ -127,7 +129,7 @@ jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/
 # on the time it takes for other CronJob checks to complete.
 # This allows the test workload to settle; avoid CrashLoopBackOff.
 echo "Triggering the second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
-kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
+kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=120s --namespace insights-agent
 kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=120s --namespace insights-agent
 echo "Testing right-sizer"
@@ -175,4 +177,3 @@ fi
 
 echo "Showing content of output sub-directory:"
 ls output
-
