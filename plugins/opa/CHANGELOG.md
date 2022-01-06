@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.13
+* Add additional policy examples related to CVE-2021-43816
+
 ## 0.3.12
 * Update Go modules
 
