@@ -1,0 +1,19 @@
+parameters:
+  blocklist: []
+runEnvironments: null
+targets:
+  - apiGroups:
+      - batch
+    kinds:
+      - CronJob
+      - Job
+  - apiGroups:
+      - ""
+    kinds:
+      - pod
+  - apiGroups:
+      - apps
+    kinds:
+      - DaemonSet
+      - Deployment
+      - StatefulSet
