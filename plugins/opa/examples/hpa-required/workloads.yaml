@@ -1,5 +1,5 @@
 targets:
-- apiGroups: ["apps"]
-  kinds: ["Deployment"]
+  - apiGroups: ["apps"]
+    kinds: ["Deployment"]
 parameters:
   blocklist: ["kube-system"]
