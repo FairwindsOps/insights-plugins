@@ -1,9 +1,9 @@
 targets:
-- apiGroups: [""]
-  kinds: ["pod"]
-- apiGroups: ["apps"]
-  kinds: ["DaemonSet", "Deployment", "StatefulSet"]
-- apiGroups: ["batch"]
-  kinds: ["CronJob", "Job"]
+  - apiGroups: [""]
+    kinds: ["pod"]
+  - apiGroups: ["apps"]
+    kinds: ["DaemonSet", "Deployment", "StatefulSet"]
+  - apiGroups: ["batch"]
+    kinds: ["CronJob", "Job"]
 parameters:
   blocklist: ["kube-system"]

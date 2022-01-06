@@ -1,6 +1,6 @@
 targets:
-- apiGroups: ["extensions"]
-  kinds: ["Ingress"]
+  - apiGroups: ["extensions"]
+    kinds: ["Ingress"]
 parameters:
   annotations: ["certmanager.k8s.io/issuer"]
   blocklist: ["kube-system"]

@@ -1,6 +1,6 @@
 targets:
-- apiGroups: ["apps"]
-  kinds: ["Deployment"]
+  - apiGroups: ["apps"]
+    kinds: ["Deployment"]
 parameters:
   annotations: ["meta.helm.sh/release-name"]
   blocklist: ["kube-system"]
