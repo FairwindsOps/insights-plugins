@@ -2,7 +2,7 @@ set -eo pipefail
 
 
 # Loop for a fixed number of seconds, until new restarts are seen for the
-first container of all pods with the given label.
+# first container of all pods with the given label.
 # Parameters: <label> <expected new restarts> [optional arguments to kubectl]
 # <label> is a key=value form passed to the -l kubectl flag.
 # <expected new restarts> is the number of NEW restarts to wait for.
