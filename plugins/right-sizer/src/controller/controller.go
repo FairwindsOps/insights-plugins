@@ -171,6 +171,10 @@ func NewController(stop chan struct{}, kubeClientResources util.KubeClientResour
 func (c *Controller) Run() error {
 	glog.Infof("Controller configuration is: %+v", c.config)
 	glog.Infof("Report configuration is: %s", c.reportBuilder.GetConfigAsString())
+	dissimilarNamespaces := funk.LeftJoinString(c.config.allowedUpdateNamespaces, c.config.allowedNamespaces)
+	if c.config.updateMemoryLimits && len(dissimilarNamespaces) > 0 {
+		glog.Errorf("NOTE: memory limits will not be updated in these Kubernetes namespaces: %v Although these namespaces are in the allowedUpdateNamespaces list, they are missing from the global allowedNamespaces one.", dissimilarNamespaces)
+	}
 	err := c.reportBuilder.ReadConfigMap()
 	if err != nil {
 		glog.Errorf("while attempting to read state from ConfigMap: %v", err)
