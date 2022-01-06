@@ -101,10 +101,6 @@ if [ ${rightsizer_workload_restarts} -ne 1 ] ; then
   false # Fail the test.
 fi
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=120s --namespace insights-agent
-# Although the test workload is ready, avoid CrashLoopBackoff by introducing more delay.
-sleep 30
-echo "Triggering the second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
-kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 
 kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
@@ -127,10 +123,14 @@ echo "Testing Workloads"
 jsonschema -i output/workloads.json plugins/workloads/results.schema || (cat output/workloads.json && exit 1)
 echo "Testing Kubesec"
 jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/kubesec.json && exit 1)
-echo "Testing right-sizer"
-# Above, a test workload has been deployed and OOM-killed multiple times.
-# The controler has had time to act on OOM-kills.
+# The second right-sizer OOM-kill is triggered this late, to capitolize
+# on the time it takes for other CronJob checks to complete.
+# This allows the test workload to settle; avoid CrashLoopBackOff.
+echo "Triggering the second OOM-kill for right-sizer test workload - memory limits will be updated by the controller."
+kubectl create job trigger-oomkill2-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill2-right-sizer-test-workload --timeout=120s --namespace insights-agent
+echo "Testing right-sizer"
+kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 # Pull right-sizer data directly from the controller state ConfigMap,
 # to obtain JSON for checking against the schema.
 for n in `seq 1 18` ; do
