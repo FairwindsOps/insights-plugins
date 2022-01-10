@@ -286,7 +286,7 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 	var olderItems []RightSizerReportItem
 	for _, item := range *allMatches {
 		if item.ResourceGeneration < 1 {
-			glog.Errorf("skipping matching report item as older with different memory limits item - item has no ResourceGeneration: %#s", item.StringFull())
+			glog.Errorf("skipping matching report item as older with different memory limits item - item has no ResourceGeneration: %s", item.StringFull())
 			continue
 		}
 		currentPodSpec, _, err := util.FindPodSpecInUnstructured(currentResource)
@@ -305,7 +305,7 @@ func (b *RightSizerReportBuilder) MatchItemsOlderWithModifiedMemoryLimits(involv
 			// THis item is older, or has different memory limits, than the
 			// current in-cluster version.
 			olderItems = append(olderItems, item)
-			glog.V(2).Infof("report item is older or has different memory limits than the in-cluster resource: MLEquality is %d (-1=report < in-cluster or 1=report > in-cluster), in-cluster has memory limits %s and generation %d, report item has memory limits %s and generation %d", MLEquality, currentMemoryLimits, currentGeneration, item.EndingMemory, item.ResourceGeneration)
+			glog.V(2).Infof("report item is older or has different memory limits than the in-cluster resource: MLEquality is %d (-1=report < in-cluster or 1=report > in-cluster), in-cluster has memory limits %s and generation %d, report item has memory limits %s and generation %d", MLEquality, currentMemoryLimits.String(), currentGeneration, item.EndingMemory.String(), item.ResourceGeneration)
 		}
 	}
 	numOlderItems := len(olderItems)
@@ -359,7 +359,7 @@ func (b *RightSizerReportBuilder) RemoveRelatedItemsOlderWithModifiedMemoryLimit
 	objInfo := fmt.Sprintf("%s %s/%s", objRef.Kind, objRef.Namespace, objRef.Name)
 	relatedItems, err := b.MatchItemsOlderWithModifiedMemoryLimits(objRef)
 	if err != nil {
-		glog.Errorf("error getting related report items while attempting to remove items related to %s: %w", objInfo, err)
+		glog.Errorf("error getting related report items while attempting to remove items related to %s: %v", objInfo, err)
 		return err
 	}
 	if relatedItems != nil {
