@@ -297,7 +297,7 @@ func (c *Controller) processOOMKilledPod(pod *core.Pod) {
 		reportItem := c.reportBuilder.CreateRightSizerReportItem(podControllerObject, containerInfo)
 
 		if c.config.updateMemoryLimits {
-			if len(c.config.allowedUpdateNamespaces) > 0 && funk.ContainsString(c.config.allowedUpdateNamespaces, pod.Namespace) {
+			if len(c.config.allowedUpdateNamespaces) == 0 || (len(c.config.allowedUpdateNamespaces) == 0 && funk.ContainsString(c.config.allowedUpdateNamespaces, pod.Namespace)) {
 				if c.config.updateMemoryLimitsMinimumOOMs > 0 && reportItem.NumOOMs >= c.config.updateMemoryLimitsMinimumOOMs {
 					containerMemoryLimits := containerInfo.Resources.Limits.Memory()
 					newContainerMemoryLimits := reportItem.IncrementMemory(containerMemoryLimits, c.config.updateMemoryLimitsIncrement, c.config.updateMemoryLimitsMax)
