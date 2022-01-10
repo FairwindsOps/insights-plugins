@@ -323,9 +323,8 @@ func GetImageSha(path string, configFileName string) (string, error) {
 }
 
 // SendResults sends the results to Insights
-func SendResults(reports []models.ReportInfo, resources []models.Resource, configurationObject models.Configuration, token string) (models.ScanResults, error) {
+func SendResults(reports []models.ReportInfo, resources []models.Resource, configurationObject models.Configuration, token string) (*models.ScanResults, error) {
 	var b bytes.Buffer
-	var results models.ScanResults
 
 	formFiles := []formFile{{
 		field:    "fairwinds-insights",
@@ -368,7 +367,7 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		logrus.Warn("Unable to create Request")
-		return results, err
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
@@ -392,24 +391,26 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warn("Unable to Post results to Insights")
-		return results, err
+		return nil, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return results, fmt.Errorf("Invalid status code: %d", resp.StatusCode)
-	}
-
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
-		return results, err
-	}
-	err = json.Unmarshal(body, &results)
-	if err != nil {
-		return results, err
+		return nil, err
 	}
 
-	return results, nil
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Invalid status code: %d - %s", resp.StatusCode, string(body))
+	}
+
+	var results models.ScanResults
+	err = json.Unmarshal(body, &results)
+	if err != nil {
+		logrus.Warn("Unable to unmarshal results")
+		return nil, err
+	}
+	return &results, nil
 }
 
 func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
