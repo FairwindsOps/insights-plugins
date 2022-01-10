@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+* Add updating memory limits to the end-to-end test.
+
 ## 0.2.3
 * Update Go modules
 
