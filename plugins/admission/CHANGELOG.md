@@ -2,6 +2,7 @@
 
 ## 0.4.6
 * Add support for log level configuration
+* Add more information when insights request fails
 * Remove resetting object and oldObject structs
 
 ## 0.4.5
