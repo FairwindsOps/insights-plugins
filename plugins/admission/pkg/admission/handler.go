@@ -39,9 +39,6 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	var err error
 	var decoded map[string]interface{}
 
-	logrus.Infof("req.Object %s", string(req.Object.Raw))       // TODO: Vitor - Remove
-	logrus.Infof("req.OldObject %s", string(req.OldObject.Raw)) // TODO: Vitor - Remove
-
 	err = json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
