@@ -76,8 +76,6 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 }
 
 func getRequestReport(req admission.Request) (models.ReportInfo, error) {
-	req.AdmissionRequest.Object.Reset()
-	req.AdmissionRequest.OldObject.Reset()
 	report := models.ReportInfo{
 		Report:  "metadata",
 		Version: "0.1.0",
