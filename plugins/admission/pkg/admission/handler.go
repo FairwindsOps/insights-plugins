@@ -51,6 +51,8 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
+	logrus.Infof("req.Object %+v", req.Object)       // TODO: Vitor - Remove
+	logrus.Infof("req.OldObject %+v", req.OldObject) // TODO: Vitor - Remove
 	return processInputYAML(ctx, v.Config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
 }
 
