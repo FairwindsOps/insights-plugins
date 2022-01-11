@@ -36,6 +36,7 @@ var handler fadmission.Validator
 var organization string
 var hostname string
 var cluster string
+var token string
 
 func refreshConfig() error {
 	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", hostname, organization, cluster)
@@ -43,7 +44,6 @@ func refreshConfig() error {
 	if err != nil {
 		return err
 	}
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	req.Header.Set("Authorization", "Bearer "+token)
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -70,7 +70,7 @@ func refreshConfig() error {
 		}
 		tempConfig.Polaris = &polarisConfig
 	}
-	handler.Config = tempConfig
+	handler.InjectConfig(tempConfig)
 	return nil
 }
 
@@ -109,7 +109,7 @@ func main() {
 	var err error
 	go keepConfigurationRefreshed(context.Background())
 
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	token = strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
