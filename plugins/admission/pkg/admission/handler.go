@@ -31,6 +31,10 @@ func (v *Validator) InjectDecoder(d *admission.Decoder) error {
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
 	var err error
 	var decoded map[string]interface{}
+
+	logrus.Infof("req.Object %+v", req.Object)       // TODO: Vitor - Remove
+	logrus.Infof("req.OldObject %+v", req.OldObject) // TODO: Vitor - Remove
+
 	err = json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
@@ -51,8 +55,6 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
-	logrus.Infof("req.Object %+v", req.Object)       // TODO: Vitor - Remove
-	logrus.Infof("req.OldObject %+v", req.OldObject) // TODO: Vitor - Remove
 	return processInputYAML(ctx, v.Config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
 }
 
