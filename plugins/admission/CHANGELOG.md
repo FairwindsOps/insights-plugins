@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.6
+* Add support for log level configuration
+* Remove resetting object and oldObject structs
+
 ## 0.4.5
 * Update Go modules
 
