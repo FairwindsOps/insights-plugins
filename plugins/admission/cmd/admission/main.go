@@ -123,6 +123,8 @@ func main() {
 		exitWithError("Unable to set up overall controller manager", err)
 	}
 
+	setLogLevel()
+
 	err = mgr.AddReadyzCheck("readyz", healthz.Ping)
 	if err != nil {
 		exitWithError("Unable to add readyz check", err)
@@ -147,5 +149,17 @@ func main() {
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		logrus.Errorf("Error starting manager: %v", err)
 		os.Exit(1)
+	}
+}
+
+func setLogLevel() {
+	if os.Getenv("LOGRUS_LEVEL") != "" {
+		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+		if err != nil {
+			panic(err)
+		}
+		logrus.SetLevel(lvl)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
 	}
 }
