@@ -131,10 +131,9 @@ func NewController(stop chan struct{}, kubeClientResources util.KubeClientResour
 		o(cfg)
 	}
 
-	// newAllowedNamespaces := funk.JoinString(cfg.allowedNamespaces, cfg.allowedUpdateNamespaces, funk.InnerJoinString)
-	newAllowedNamespaces := funk.RightJoinString(cfg.allowedNamespaces, cfg.allowedUpdateNamespaces)
-	if len(cfg.allowedNamespaces) > 0 && len(newAllowedNamespaces) > 0 {
-		cfg.allowedNamespaces = append(cfg.allowedNamespaces, newAllowedNamespaces...)
+	missingAllowedNamespaces := funk.RightJoinString(cfg.allowedNamespaces, cfg.allowedUpdateNamespaces)
+	if len(cfg.allowedNamespaces) > 0 && len(missingAllowedNamespaces) > 0 {
+		cfg.allowedNamespaces = append(cfg.allowedNamespaces, missingAllowedNamespaces...)
 		glog.Infof("NOTE: allowedNamespaces has been updated to include those only specified in allowedUpdateNamespaces, the new allowedNamespaces list is: %v", cfg.allowedNamespaces)
 	}
 
