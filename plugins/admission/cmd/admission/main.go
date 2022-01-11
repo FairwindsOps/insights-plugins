@@ -50,13 +50,13 @@ func refreshConfig() error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid status code: %d", resp.StatusCode)
-	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("invalid status code: %d - %s", resp.StatusCode, string(body))
 	}
 	var tempConfig models.Configuration
 	err = json.Unmarshal(body, &tempConfig)

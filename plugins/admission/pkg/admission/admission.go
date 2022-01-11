@@ -68,15 +68,14 @@ func SendResults(reports []models.ReportInfo, token string) (passed bool, warnin
 		logrus.Warn("Unable to Post results to Insights")
 		return
 	}
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("invalid status code: %d", resp.StatusCode)
-		return
-	}
-
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("invalid status code: %d - %s", resp.StatusCode, string(body))
 		return
 	}
 	var resultMap map[string]interface{}
