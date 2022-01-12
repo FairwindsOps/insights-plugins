@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.7
+* Updated trivy version to 0.22.0
+
 ## 0.13.6
 * Adds the HTTP body to the error to provide better error messages
 
@@ -8,6 +11,7 @@
 
 ## 0.13.4
 * Updated trivy version
+
 ## 0.13.3
 * Fix panic for missing sha in the image
 ## 0.13.2
