@@ -1,10 +1,13 @@
-## Description
-<!-- what this change does -->
+**Why This PR?**
+_a short description of why this PR is needed_
 
+Fixes #
 
-## Checklist
+**Changes**
+Changes proposed in this pull request:
+*
 
-* [ ] I have updated the CHANGELOG of any plugins updated
-* [ ] I have updated the version file of any plugins updated
-* [ ] I have added tests wherever appropriate
-* [ ] I have labeled this PR with a label per plugin updated
+**Checklist:**
+
+* [ ] I have signed the CLA
+* [ ] I have updated/added any relevant documentation related to this PR
