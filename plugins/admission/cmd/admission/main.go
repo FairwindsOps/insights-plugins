@@ -121,6 +121,9 @@ func main() {
 	if portString != "" {
 		var err error
 		webhookPort, err = strconv.ParseInt(portString, 10, 0)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
