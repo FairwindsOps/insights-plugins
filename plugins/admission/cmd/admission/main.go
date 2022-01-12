@@ -114,6 +114,11 @@ func main() {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
 	webhookPort := 8443
+	portString := strings.TrimSpace(os.Getenv("WEBHOOK_PORT"))
+	if portString != "" {
+		var err error
+		webhookPort, err = strconv.ParseInt(portString, 10, 0)
+	}
 	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
 		CertDir:                "/opt/cert",
 		HealthProbeBindAddress: ":8081",
