@@ -115,7 +115,7 @@ func main() {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
 
-	var webhookPort int
+	var webhookPort int64
 	webhookPort = 8443
 	portString := strings.TrimSpace(os.Getenv("WEBHOOK_PORT"))
 	if portString != "" {
@@ -126,7 +126,7 @@ func main() {
 	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
 		CertDir:                "/opt/cert",
 		HealthProbeBindAddress: ":8081",
-		Port:                   int64(webhookPort),
+		Port:                   int(webhookPort),
 	})
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
