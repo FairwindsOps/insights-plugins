@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.6
+* Make webhook port configurable via env variable `WEBHOOK_PORT`
+
 ## 0.4.5
 * Update Go modules
 
