@@ -18,19 +18,27 @@ import (
 // Validator is the entry point for the admission webhook.
 type Validator struct {
 	decoder *admission.Decoder
-	Config  models.Configuration
+	config  *models.Configuration
 }
 
 // InjectDecoder injects the decoder.
-func (v *Validator) InjectDecoder(d *admission.Decoder) error {
+func (v *Validator) InjectDecoder(d admission.Decoder) error {
 	logrus.Info("Injecting decoder")
-	v.decoder = d
+	v.decoder = &d
+	return nil
+}
+
+// InjectConfig injects the config.
+func (v *Validator) InjectConfig(c models.Configuration) error {
+	logrus.Info("Injecting config")
+	v.config = &c
 	return nil
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
 	var err error
 	var decoded map[string]interface{}
+
 	err = json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
@@ -45,13 +53,13 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 
-	logrus.Debugf("Processing with config %+v", v.Config)
+	logrus.Debugf("Processing with config %+v", v.config)
 	metadata, err := getRequestReport(req)
 	if err != nil {
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
-	return processInputYAML(ctx, v.Config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
+	return processInputYAML(ctx, *v.config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
 }
 
 // Handle for Validator to run validation checks.
@@ -76,8 +84,6 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 }
 
 func getRequestReport(req admission.Request) (models.ReportInfo, error) {
-	req.AdmissionRequest.Object.Reset()
-	req.AdmissionRequest.OldObject.Reset()
 	report := models.ReportInfo{
 		Report:  "metadata",
 		Version: "0.1.0",

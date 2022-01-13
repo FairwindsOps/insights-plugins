@@ -36,6 +36,7 @@ var handler fadmission.Validator
 var organization string
 var hostname string
 var cluster string
+var token string
 
 func refreshConfig() error {
 	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", hostname, organization, cluster)
@@ -44,20 +45,19 @@ func refreshConfig() error {
 	if err != nil {
 		return err
 	}
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	req.Header.Set("Authorization", "Bearer "+token)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid status code: %d", resp.StatusCode)
-	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("invalid status code: %d - %s", resp.StatusCode, string(body))
 	}
 	var tempConfig models.Configuration
 	err = json.Unmarshal(body, &tempConfig)
@@ -71,7 +71,7 @@ func refreshConfig() error {
 		}
 		tempConfig.Polaris = &polarisConfig
 	}
-	handler.Config = tempConfig
+	handler.InjectConfig(tempConfig)
 	return nil
 }
 
@@ -110,7 +110,7 @@ func main() {
 	var err error
 	go keepConfigurationRefreshed(context.Background())
 
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	token = strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
@@ -134,6 +134,8 @@ func main() {
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
 	}
+
+	setLogLevel()
 
 	err = mgr.AddReadyzCheck("readyz", healthz.Ping)
 	if err != nil {
@@ -159,5 +161,17 @@ func main() {
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		logrus.Errorf("Error starting manager: %v", err)
 		os.Exit(1)
+	}
+}
+
+func setLogLevel() {
+	if os.Getenv("LOGRUS_LEVEL") != "" {
+		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+		if err != nil {
+			panic(err)
+		}
+		logrus.SetLevel(lvl)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
 	}
 }

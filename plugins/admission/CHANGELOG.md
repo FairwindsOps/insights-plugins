@@ -1,7 +1,12 @@
 # Changelog
 
-## 0.4.6
+## 0.4.7
 * Make webhook port configurable via env variable `WEBHOOK_PORT`
+
+## 0.4.6
+* Add support for log level configuration
+* Add more information when insights request fails
+* Remove resetting object and oldObject structs
 
 ## 0.4.5
 * Update Go modules
