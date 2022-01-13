@@ -1,6 +1,5 @@
 targets:
-- apiGroups: [""]
-  kinds: ["Pod"]
+  - apiGroups: [""]
+    kinds: ["Pod"]
 parameters:
   namespaces: ["default"]
-

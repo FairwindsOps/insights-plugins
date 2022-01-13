@@ -145,7 +145,7 @@ func main() {
 	printActionItems(results.FixedActionItems)
 
 	if configurationObject.Options.JUnitOutput != "" {
-		err = ci.SaveJUnitFile(results, configurationObject.Options.JUnitOutput)
+		err = ci.SaveJUnitFile(*results, configurationObject.Options.JUnitOutput)
 		if err != nil {
 			exitWithError("Could not save jUnit results", nil)
 		}

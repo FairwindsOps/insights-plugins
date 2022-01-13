@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.6
+* Adds the HTTP body to the error to provide better error messages
+
 ## 0.13.5
 * Update Go modules
 
