@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/right-sizer/src/report"
@@ -48,6 +49,7 @@ type controllerConfig struct {
 	updateMemoryLimitsMax         float64 // Multiplied by first-seen limits.
 	updateMemoryLimitsMinimumOOMs int64
 	allowedNamespaces             []string // Limits all operations (alert or update).
+	allowedUpdateNamespaces       []string // Limits updating memory limits.
 }
 
 type eventUpdateGroup struct {
@@ -63,6 +65,14 @@ type controllerOption func(*controllerConfig)
 func WithAllowedNamespaces(value []string) controllerOption {
 	return func(c *controllerConfig) {
 		c.allowedNamespaces = value
+		return
+	}
+}
+
+// WithAllowedUpdateNamespaces sets the corresponding field in a controllerConfig type.
+func WithAllowedUpdateNamespaces(value []string) controllerOption {
+	return func(c *controllerConfig) {
+		c.allowedUpdateNamespaces = value
 		return
 	}
 }
@@ -120,6 +130,12 @@ func NewController(stop chan struct{}, kubeClientResources util.KubeClientResour
 	// Process functional options, overriding the above defaults.
 	for _, o := range options {
 		o(cfg)
+	}
+
+	missingAllowedNamespaces := funk.RightJoinString(cfg.allowedNamespaces, cfg.allowedUpdateNamespaces)
+	if len(cfg.allowedNamespaces) > 0 && len(missingAllowedNamespaces) > 0 {
+		cfg.allowedNamespaces = append(cfg.allowedNamespaces, missingAllowedNamespaces...)
+		glog.Infof("NOTE: allowedNamespaces has been updated to include those only specified in allowedUpdateNamespaces, the new allowedNamespaces list is: %v", cfg.allowedNamespaces)
 	}
 
 	k8sFactory := informers.NewSharedInformerFactory(kubeClientResources.Client, time.Minute*informerSyncMinute)
@@ -249,6 +265,24 @@ func (c *Controller) processEventUpdate(eventUpdate *eventUpdateGroup) {
 	c.processEvent(event)
 }
 
+// UpdateMemoryLimitsPrecheck returns true if the controller configuration would
+// allow memory limits to be updated for the specified Kube namespace and a
+// number of out-of-memory-kills. If this determination is false, the string
+// return argument provides the reason updating is not allowed, for use
+// logging upstream where additional context is available.
+func (c *Controller) UpdateMemoryLimitsPrecheck(namespace string, OOMs int64) (bool, string) {
+	if !c.config.updateMemoryLimits {
+		return false, "updating memory limits has not been enabled"
+	}
+	if len(c.config.allowedUpdateNamespaces) > 0 && !funk.ContainsString(c.config.allowedUpdateNamespaces, namespace) {
+		return false, fmt.Sprintf("namespace %s is not allowed by allowedUpdateNamespaces", namespace)
+	}
+	if c.config.updateMemoryLimitsMinimumOOMs > 0 && OOMs < c.config.updateMemoryLimitsMinimumOOMs {
+		return false, fmt.Sprintf("%d OOMs is lessthan the minimum required %d OOMs", OOMs, c.config.updateMemoryLimitsMinimumOOMs)
+	}
+	return true, ""
+}
+
 // processOOMKilledPod takes action on a pod that has a OOM-killed container,
 // including updating metrics and optionally updating memory limits of the
 // owning pod-controller.
@@ -272,7 +306,7 @@ func (c *Controller) processOOMKilledPod(pod *core.Pod) {
 
 		containerInfo, _, foundContainer := util.FindContainerInPodSpec(&pod.Spec, s.Name)
 		if !foundContainer {
-			glog.Errorf("cannot find OOM-killed container %s in pod %v", s.Name, pod)
+			glog.Errorf("cannot find OOM-killed container %s in pod spec %v", s.Name, pod)
 			continue
 		}
 		podControllerObject, err := util.GetControllerFromPod(c.kubeClientResources, pod)
@@ -283,43 +317,46 @@ func (c *Controller) processOOMKilledPod(pod *core.Pod) {
 		glog.V(1).Infof("Pod %s/%s is owned by pod-controller %s %s", pod.Namespace, pod.Name, podControllerObject.GetKind(), podControllerObject.GetName())
 		reportItem := c.reportBuilder.CreateRightSizerReportItem(podControllerObject, containerInfo)
 
-		if c.config.updateMemoryLimits {
-			if c.config.updateMemoryLimitsMinimumOOMs > 0 && reportItem.NumOOMs >= c.config.updateMemoryLimitsMinimumOOMs {
-				containerMemoryLimits := containerInfo.Resources.Limits.Memory()
-				newContainerMemoryLimits := reportItem.IncrementMemory(containerMemoryLimits, c.config.updateMemoryLimitsIncrement, c.config.updateMemoryLimitsMax)
-				if !newContainerMemoryLimits.IsZero() {
-					glog.V(1).Infof("%s has memory  limit %v, updating to %v", reportItem, containerMemoryLimits, newContainerMemoryLimits)
-					patchedResource, err := util.PatchContainerMemoryLimits(c.kubeClientResources, podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
-					if err != nil {
-						// EndingMemory remains the previously set StartingMemory value.
-						glog.Errorf("error patching %s memory limits: %v", reportItem, err)
-					} else {
-						// The post-patch memory limits may be different than the limits in our patch.
-						// I.E. We patch with 15655155794400u, post-patch shows 15655155795m
-						// Update  report item with the actual; post-patch memory.
-						patchedContainer, _, _, foundPatchedContainer, err := util.FindContainerInUnstructured(patchedResource, reportItem.ResourceContainer)
-						if !foundPatchedContainer || err != nil {
-							glog.Errorf("unable to find the container %s in patched report item %s, and will have to set report memory limits to the value sent in the patch: %s - potential error = %v", reportItem.ResourceContainer, reportItem, newContainerMemoryLimits, err)
-							reportItem.EndingMemory = newContainerMemoryLimits
-						} else {
-							patchedContainerMemoryLimits := patchedContainer.Resources.Limits.Memory()
-							glog.V(1).Infof("setting report item %s EndingMemory to the post-patch value: %s", reportItem, patchedContainerMemoryLimits)
-							reportItem.EndingMemory = patchedContainerMemoryLimits
-						}
-						glog.V(4).Infof("updating %s ResourceGeneration to %d after successful patch", reportItem, patchedResource.GetGeneration())
-						reportItem.ResourceGeneration = patchedResource.GetGeneration()
-					}
-				}
-			} else {
-				glog.V(1).Infof("%s memory limits will not be updated, %d OOM-kills has not yet reached the minimum threshold of %d", reportItem, reportItem.NumOOMs, c.config.updateMemoryLimitsMinimumOOMs)
-			}
-		} else {
-			glog.V(1).Infof("not updating memory limits for %s as updating has not ben enabled", reportItem)
+		okToUpdate, updateDeniedReason := c.UpdateMemoryLimitsPrecheck(pod.Namespace, reportItem.NumOOMs)
+		if !okToUpdate {
+			glog.V(1).Infof("memory limits for %s will not be updated because %s", reportItem, updateDeniedReason)
+			c.reportBuilder.StoreItem(*reportItem)
+			continue
 		}
-		c.reportBuilder.StoreItem(*reportItem)
-		err = c.reportBuilder.WriteConfigMap()
+		containerMemoryLimits := containerInfo.Resources.Limits.Memory()
+		newContainerMemoryLimits := reportItem.IncrementMemory(containerMemoryLimits, c.config.updateMemoryLimitsIncrement, c.config.updateMemoryLimitsMax)
+		if newContainerMemoryLimits.IsZero() {
+			glog.V(1).Infof("memory limits for %s will not be updated because its current %s has already reached the maximum of %.1f X the original %s limits", reportItem, containerMemoryLimits, c.config.updateMemoryLimitsMax, reportItem.StartingMemory)
+			c.reportBuilder.StoreItem(*reportItem)
+			continue
+		}
+		glog.V(1).Infof("%s has memory  limit %v, updating to %v", reportItem, containerMemoryLimits, newContainerMemoryLimits)
+		patchedResource, err := util.PatchContainerMemoryLimits(c.kubeClientResources, podControllerObject, reportItem.ResourceContainer, newContainerMemoryLimits)
 		if err != nil {
-			glog.Error(err)
+			// EndingMemory remains the previously set StartingMemory value.
+			glog.Errorf("error patching %s memory limits: %v", reportItem, err)
+			c.reportBuilder.StoreItem(*reportItem)
+			continue
 		}
+		glog.V(4).Infof("updating %s ResourceGeneration to %d after successful patch", reportItem, patchedResource.GetGeneration())
+		reportItem.ResourceGeneration = patchedResource.GetGeneration()
+		// The post-patch memory limits may be different than the limits in our patch.
+		// I.E. We patch with 15655155794400u, post-patch shows 15655155795m
+		// Update  report item with the actual; post-patch memory.
+		patchedContainer, _, _, foundPatchedContainer, err := util.FindContainerInUnstructured(patchedResource, reportItem.ResourceContainer)
+		if !foundPatchedContainer || err != nil {
+			glog.Errorf("unable to find the container %s in patched report item %s, and will have to set report memory limits to the value sent in the patch: %s - potential error = %v", reportItem.ResourceContainer, reportItem, newContainerMemoryLimits, err)
+			reportItem.EndingMemory = newContainerMemoryLimits
+			c.reportBuilder.StoreItem(*reportItem)
+			continue
+		}
+		patchedContainerMemoryLimits := patchedContainer.Resources.Limits.Memory()
+		glog.V(1).Infof("setting report item %s EndingMemory to the post-patch value: %s", reportItem, patchedContainerMemoryLimits)
+		reportItem.EndingMemory = patchedContainerMemoryLimits
+		c.reportBuilder.StoreItem(*reportItem)
+	}
+	err := c.reportBuilder.WriteConfigMap()
+	if err != nil {
+		glog.Error(err)
 	}
 }

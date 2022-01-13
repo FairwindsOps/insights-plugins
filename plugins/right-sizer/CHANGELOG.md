@@ -1,7 +1,9 @@
 # Changelog
 
-## 0.2.4
+## 0.3.0
+* Add option to filter the Kubernetes namespaces where memory limits will be updated.
 
+## 0.2.4
 * Add updating memory limits to the end-to-end test.
 
 ## 0.2.3
