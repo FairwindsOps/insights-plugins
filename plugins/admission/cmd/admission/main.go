@@ -40,6 +40,7 @@ var token string
 
 func refreshConfig() error {
 	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", hostname, organization, cluster)
+	logrus.Infof("Refreshing configuration from url %s", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
@@ -113,11 +114,22 @@ func main() {
 	if token == "" {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
-	webhookPort := 8443
+
+	var webhookPort int64
+	webhookPort = 8443
+	portString := strings.TrimSpace(os.Getenv("WEBHOOK_PORT"))
+	if portString != "" {
+		var err error
+		webhookPort, err = strconv.ParseInt(portString, 10, 0)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
 		CertDir:                "/opt/cert",
 		HealthProbeBindAddress: ":8081",
-		Port:                   webhookPort,
+		Port:                   int(webhookPort),
 	})
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
