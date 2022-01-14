@@ -33,8 +33,9 @@ commands:
         command: |
           for plugin in "${CHANGED[@]}"; do
             docker-pull -f ./plugins/$plugin/build.config
-            ROK8S_DOCKER_BUILD_EXTRAARGS="--no-cache" docker-build -f ./plugins/$plugin/build.config
+            ROK8S_DOCKER_BUILD_EXTRAARGS="--no-cache" docker-build -f ./plugins/$plugin/build.config &
           done
+          wait
 
   docker_push_plugins:
     description: Push docker images that were built
