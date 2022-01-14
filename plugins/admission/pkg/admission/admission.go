@@ -19,11 +19,14 @@ import (
 var organization string
 var hostname string
 var cluster string
+var version string
 
 func init() {
 	organization = os.Getenv("FAIRWINDS_ORGANIZATION")
 	hostname = os.Getenv("FAIRWINDS_HOSTNAME")
 	cluster = os.Getenv("FAIRWINDS_CLUSTER")
+	version = "1.0.0"
+
 }
 
 // SendResults sends the results to Insights
@@ -57,6 +60,7 @@ func SendResults(reports []models.ReportInfo, token string) (passed bool, warnin
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-Fairwinds-Admission-Version", version)
 
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)
