@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.12
+* Rebuild
+
 ## 1.3.11
 * Bump alpine to 3.15
 

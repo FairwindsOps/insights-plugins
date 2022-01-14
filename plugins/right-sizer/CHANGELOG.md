@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1
+* Rebuild
+
 ## 0.3.0
 * Add option to filter the Kubernetes namespaces where memory limits will be updated.
 

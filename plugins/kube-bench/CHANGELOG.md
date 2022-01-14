@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.8
+* Rebuild
+
 ## 0.3.7
 * Bump go modules
 

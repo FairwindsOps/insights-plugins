@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.13
+* Rebuild
+
 ## 0.4.12
 * Update Go modules
 

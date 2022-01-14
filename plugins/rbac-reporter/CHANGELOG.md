@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.10
+* Rebuild
+
 ## 1.2.9
 * Update Go modules
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.8
+* Rebuild
+
 ## 0.4.7
 * Make webhook port configurable via env variable `WEBHOOK_PORT`
 

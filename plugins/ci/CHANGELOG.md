@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.8
+* Rebuild
+
 ## 0.13.7
 * Updated trivy version to 0.22.0
 

@@ -10,7 +10,7 @@ if [[ -z $message ]]; then
 fi
 
 for d in ./plugins/*/ ; do
-    if [[ $d == "_template" ]]; then
+    if [[ $d == "./plugins/_template/" ]]; then
       continue
     fi
     echo "$d"

@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.3.9
+* Rebuild
 ## 0.3.8
 * remove debug log
 
