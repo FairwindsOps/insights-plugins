@@ -19,6 +19,7 @@ RUN go get -u github.com/gobuffalo/packr/v2/packr2
 
 COPY ./admission/pkg pkg
 COPY ./admission/cmd cmd
+COPY ./admission/version.txt pkg/admission/version.txt
 RUN packr2 build /go/pkg/mod/github.com/fairwindsops/polaris*/main.go
 RUN go build ./cmd/admission
 

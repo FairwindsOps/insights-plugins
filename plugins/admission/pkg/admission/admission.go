@@ -2,6 +2,8 @@ package admission
 
 import (
 	"bytes"
+	"embed"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,16 +18,21 @@ import (
 	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
 )
 
-var organization string
-var hostname string
-var cluster string
-var version string
+var (
+	organization string
+	hostname     string
+	cluster      string
+	//go:embed version.txt
+	content embed.FS
+	version string = "1.0.0"
+)
 
 func init() {
 	organization = os.Getenv("FAIRWINDS_ORGANIZATION")
 	hostname = os.Getenv("FAIRWINDS_HOSTNAME")
 	cluster = os.Getenv("FAIRWINDS_CLUSTER")
-	version = "1.0.0"
+	data, _ := content.ReadFile("version.txt")
+	version = string(data)
 
 }
 
