@@ -2,6 +2,10 @@
 
 ## 1.0.0
 * Send admission version as a flag
+
+## 0.4.7
+* Make webhook port configurable via env variable `WEBHOOK_PORT`
+
 ## 0.4.6
 * Add support for log level configuration
 * Add more information when insights request fails
