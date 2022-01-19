@@ -137,6 +137,7 @@ jobs:
             cd ../..
           done
       - run: cd plugins/opa ; go test ./... ; cd ../..
+      - run: cp plugins/admission/version.txt plugins/admission/pkg/admission/version.txt
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - slack/notify:
           event: fail
