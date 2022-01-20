@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.0
+* Update Polaris to version 5.0.0
+
 ## 0.13.7
 * Updated trivy version to 0.22.0
 
