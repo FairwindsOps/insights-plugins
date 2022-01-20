@@ -11,8 +11,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
@@ -37,57 +35,37 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 		thisNamespace = string(namespaceBytes)
 	}
 
-	client := kube.GetKubeClient()
-	checkInstances, err := client.DynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
+	jsonResponse, err := getInsightsChecks()
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Found %d checks", len(checkInstances.Items))
 
-	ais, err := processAllChecks(ctx, client, checkInstances.Items, thisNamespace)
+	logrus.Infof("Found %d checks", len(jsonResponse.Instances))
+
+	ais, err := processAllChecks(ctx, jsonResponse.Instances, jsonResponse.Checks, thisNamespace)
 	if err != nil {
 		return nil, err
 	}
 	return ais, nil
 }
 
-func processAllChecks(ctx context.Context, client *kube.Client, checkInstances []unstructured.Unstructured, thisNamespace string) ([]ActionItem, error) {
+func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks []OPACustomCheck, thisNamespace string) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var lastError error = nil
 
 	for _, checkInstance := range checkInstances {
-		if checkInstance.GetLabels()["insights.fairwinds.com/managed"] != "" && checkInstance.GetNamespace() != thisNamespace {
-			continue
-		}
-		var checkInstanceObject CustomCheckInstance
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
-		if err != nil {
-			lastError = fmt.Errorf("failed to parse a check instance: %v", err)
-			logrus.Warn(lastError.Error())
-			continue
-		}
-		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
-		check, err := client.DynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
-		if err != nil {
-			lastError = fmt.Errorf("failed to find check %s/%s referenced by instance %s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name, err)
-			logrus.Warn(lastError.Error())
-			continue
-		}
-		var checkObject CustomCheck
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
-		if err != nil {
-			lastError = fmt.Errorf("failed to parse check %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, err)
-			logrus.Warn(lastError.Error())
-			continue
-		}
 
-		newItems, err := processCheck(ctx, checkObject, checkInstanceObject)
-		if err != nil {
-			lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Name, err)
-			logrus.Warn(lastError.Error())
-			continue
+		for _, check := range checks {
+			if check.Name == checkInstance.CheckName {
+				newItems, err := processCheck(ctx, check.GetCustomCheck(), checkInstance.GetCustomCheckInstance())
+				if err != nil {
+					lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
+					logrus.Warn(lastError.Error())
+					continue
+				}
+				actionItems = append(actionItems, newItems...)
+			}
 		}
-		actionItems = append(actionItems, newItems...)
 	}
 	return actionItems, lastError
 }
