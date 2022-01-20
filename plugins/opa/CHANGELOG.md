@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.0
+* Remove Opa CRD
+
 ## 0.3.14
 * Update policy examples to have consistent indentation
 
