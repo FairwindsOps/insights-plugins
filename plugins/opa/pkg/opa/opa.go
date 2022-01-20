@@ -36,11 +36,6 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	if err == nil { //Ignore errors because that means this isn't running in a container
 		thisNamespace = string(namespaceBytes)
 	}
-	refreshErr := refreshLocalChecks(ctx, thisNamespace)
-	if refreshErr != nil {
-		logrus.Warnf("An error occured refreshing the local cache of checks: %v", refreshErr)
-		// Continue despite the error
-	}
 
 	client := kube.GetKubeClient()
 	checkInstances, err := client.DynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
@@ -53,7 +48,7 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ais, refreshErr
+	return ais, nil
 }
 
 func processAllChecks(ctx context.Context, client *kube.Client, checkInstances []unstructured.Unstructured, thisNamespace string) ([]ActionItem, error) {
@@ -180,113 +175,6 @@ func getInsightsChecks() (clusterCheckModel, error) {
 		return jsonResponse, err
 	}
 	return jsonResponse, nil
-}
-
-func refreshLocalChecks(ctx context.Context, thisNamespace string) error {
-	client := kube.GetKubeClient()
-	logrus.Infof("Reconciling checks with Insights backend")
-
-	checkClient := client.DynamicInterface.Resource(checkGvr)
-	instanceClient := client.DynamicInterface.Resource(instanceGvr)
-
-	checkInstances, err := instanceClient.Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	checks, err := checkClient.Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	jsonResponse, err := getInsightsChecks()
-	if err != nil {
-		return err
-	}
-
-	logrus.Infof("Found %d checks in Insights, and %d checks in the cluster", len(jsonResponse.Checks), len(checks.Items))
-	logrus.Infof("Found %d check instances in Insights, and %d check instances in the cluster", len(jsonResponse.Instances), len(checkInstances.Items))
-
-	logrus.Infof("Deleting stale checks from the cluster")
-	for _, check := range checks.Items {
-		found := false
-		for _, supposedCheck := range jsonResponse.Checks {
-			if check.GetName() == supposedCheck.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			err = checkClient.Namespace(check.GetNamespace()).Delete(ctx, check.GetName(), metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-
-		}
-	}
-
-	logrus.Infof("Deleting stale check instances from the cluster")
-	for _, instance := range checkInstances.Items {
-		found := false
-		for _, supposedInstance := range jsonResponse.Instances {
-			if instance.GetName() == supposedInstance.AdditionalData.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			err = instanceClient.Namespace(instance.GetNamespace()).Delete(ctx, instance.GetName(), metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	logrus.Infof("Updating checks in the cluster")
-	for _, supposedCheck := range jsonResponse.Checks {
-		found := false
-		for _, check := range checks.Items {
-			if check.GetName() == supposedCheck.Name {
-				found = true
-				break
-			}
-		}
-		newCheck := supposedCheck.GetUnstructuredObject(thisNamespace)
-		if found {
-			err = checkClient.Namespace(thisNamespace).Delete(ctx, supposedCheck.Name, metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
-		_, err = checkClient.Namespace(thisNamespace).Create(ctx, newCheck, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-
-	}
-
-	logrus.Infof("Updating check instances in the cluster")
-	for _, supposedInstance := range jsonResponse.Instances {
-		found := false
-		for _, instance := range checkInstances.Items {
-			if instance.GetName() == supposedInstance.AdditionalData.Name {
-				found = true
-				break
-			}
-		}
-		newInstance := supposedInstance.GetUnstructuredObject(thisNamespace)
-		if found {
-
-			err = instanceClient.Namespace(thisNamespace).Delete(ctx, supposedInstance.AdditionalData.Name, metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
-
-		_, err = instanceClient.Namespace(thisNamespace).Create(ctx, newInstance, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func maybeGetStringField(m map[string]interface{}, key string) (*string, error) {
