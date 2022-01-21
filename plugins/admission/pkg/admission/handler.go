@@ -30,7 +30,7 @@ func (v *Validator) InjectDecoder(d admission.Decoder) error {
 
 // InjectConfig injects the config.
 func (v *Validator) InjectConfig(c models.Configuration) error {
-	logrus.Info("Injecting config - Polaris: %v, OPA: %v, Pluto: %v", c.Reports.Polaris, c.Reports.OPA, c.Reports.Pluto)
+	logrus.Infof("Injecting config - Polaris: %v, OPA: %v, Pluto: %v", c.Reports.Polaris, c.Reports.OPA, c.Reports.Pluto)
 	v.config = &c
 	return nil
 }
