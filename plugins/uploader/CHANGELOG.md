@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.3.9
+* Log  more
 ## 0.3.8
 * remove debug log
 

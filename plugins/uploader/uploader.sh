@@ -2,10 +2,8 @@
 set -e
 set -x
 
-if [ -z "$DEBUG" ]
-then
-    set +x
-fi
+set +x
+
 usage()
 {
 cat << EOF
@@ -68,6 +66,8 @@ if [[ -z $host || -z $organization || -z $cluster || -z $datatype || -z $file ||
   usage
   exit 1
 fi
+
+cat $file
 
 attempts=0
 while [ $attempts -lt $timeout ]
