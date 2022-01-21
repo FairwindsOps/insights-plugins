@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+* Update Polaris to version 5.0.0
+
 ## 0.4.7
 * Make webhook port configurable via env variable `WEBHOOK_PORT`
 
