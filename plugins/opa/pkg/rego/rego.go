@@ -3,6 +3,7 @@ package rego
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/open-policy-agent/opa/ast"
@@ -30,7 +31,14 @@ func GetRegoQuery(body string, dataFn KubeDataFunction) *rego.Rego {
 				Name: "kubernetes",
 				Decl: types.NewFunction(types.Args(types.S, types.S), types.A),
 			},
-			getDataFunction(dataFn.GetData)))
+			getDataFunction(dataFn.GetData)),
+		rego.Function1(
+			&rego.Function{
+				Name: "insightsinfo",
+				Decl: types.NewFunction(types.Args(types.S), types.A),
+			},
+			GetInsightsInfoFunction()))
+
 }
 
 func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction) ([]interface{}, error) {
@@ -77,6 +85,23 @@ func getDataFunction(fn func(context.Context, string, string) ([]interface{}, er
 		}
 
 		return ast.NewTerm(itemValue), nil
+	}
+}
+
+type InsightsInfoFunc func(bc rego.BuiltinContext, inf *ast.Term) (*ast.Term, error)
+
+func GetInsightsInfoFunction() func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
+	return func(bc rego.BuiltinContext, inf *ast.Term) (*ast.Term, error) {
+		desiredInfo, err := getStringFromAST(inf)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert InsightsInfo to string: %w", err)
+		}
+		info := fmt.Sprintf("info %s requested", desiredInfo)
+		infoAsValue, err := ast.InterfaceToValue(info)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert information %q to ast value: %w", info, err)
+		}
+		return ast.NewTerm(infoAsValue), nil
 	}
 }
 
