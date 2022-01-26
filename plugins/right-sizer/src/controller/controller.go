@@ -295,8 +295,20 @@ func (c *Controller) processOOMKilledPod(pod *core.Pod) {
 			continue
 		}
 
-		if (s.LastTerminationState.Terminated != nil && s.LastTerminationState.Terminated.FinishedAt.Time.Before(c.startTime)) || (s.State.Terminated != nil && s.State.Terminated.FinishedAt.Time.Before(c.startTime)) {
-			glog.V(1).Infof("The container '%s' in '%s/%s' was terminated before this controller started - termination-time=%s, controller-start-time=%s", s.Name, pod.Namespace, pod.Name, s.LastTerminationState.Terminated.FinishedAt.Time, c.startTime)
+		var containerTerminatedTime time.Time
+		var containerTerminatedFound string
+		if s.LastTerminationState.Terminated != nil {
+			containerTerminatedTime = s.LastTerminationState.Terminated.FinishedAt.Time
+			containerTerminatedFound = "LastTerminationState.Terminated"
+		} else if s.State.Terminated != nil {
+			containerTerminatedTime = s.State.Terminated.FinishedAt.Time
+			containerTerminatedFound = "State.Terminated"
+		} else {
+			glog.Errorf("Cannot find a start-time for the container '%s' in '%s/%s'", s.Name, pod.Namespace, pod.Name)
+			continue
+		}
+		if containerTerminatedTime.Before(c.startTime) {
+			glog.V(1).Infof("The container '%s' in '%s/%s' was terminated (%s) before this controller started - termination-time=%s, controller-start-time=%s", s.Name, pod.Namespace, pod.Name, containerTerminatedTime, containerTerminatedFound, c.startTime)
 			ProcessedContainerUpdates.WithLabelValues("oomkilled_termination_too_old").Inc()
 			continue
 		}
