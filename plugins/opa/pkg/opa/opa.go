@@ -94,7 +94,7 @@ func processAllChecks(ctx context.Context, client *kube.Client, checkInstances [
 		}
 		actionItems = append(actionItems, newItems...)
 	}
-	return actionItems, lastError
+	return actionItems, nil
 }
 
 func processCheck(ctx context.Context, check CustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
