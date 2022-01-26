@@ -12,6 +12,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// InsightsInfo exposes Insights perspective, for consideration in rego
+// policies.  FOr example, the context rego has been executed -
+// Continuous Integration, Admission Controller, or the Insights Agent.
+type InsightsInfo struct {
+	InsightsContext string
+	Cluster         string
+	Repository      string
+}
+
 type KubeDataFunction interface {
 	GetData(context.Context, string, string) ([]interface{}, error)
 }
@@ -22,7 +31,7 @@ func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]int
 	return nil, nil
 }
 
-func GetRegoQuery(body string, dataFn KubeDataFunction) *rego.Rego {
+func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo *InsightsInfo) *rego.Rego {
 	return rego.New(
 		rego.Query("results = data"),
 		rego.Module("fairwinds", body),
@@ -37,12 +46,11 @@ func GetRegoQuery(body string, dataFn KubeDataFunction) *rego.Rego {
 				Name: "insightsinfo",
 				Decl: types.NewFunction(types.Args(types.S), types.A),
 			},
-			GetInsightsInfoFunction()))
-
+			GetInsightsInfoFunction(insightsInfo)))
 }
 
-func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction) ([]interface{}, error) {
-	r := GetRegoQuery(regoStr, dataFn)
+func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
+	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		logrus.Errorf("Error while preparing rego query for evaluation: %v", err)
@@ -58,7 +66,7 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 	evaluatedInput := rego.EvalInput(obj)
 	rs, err := query.Eval(ctx, evaluatedInput)
 	if err != nil {
-		logrus.Errorf("Error while evaluation query: %v", err)
+		logrus.Errorf("Error while evaluating query: %v", err)
 		return nil, err
 	}
 	return getOutputArray(rs), nil
@@ -88,20 +96,28 @@ func getDataFunction(fn func(context.Context, string, string) ([]interface{}, er
 	}
 }
 
-type InsightsInfoFunc func(bc rego.BuiltinContext, inf *ast.Term) (*ast.Term, error)
-
-func GetInsightsInfoFunction() func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
+// GetInsightsInfoFunction returns a function that is called from a rego
+// policy, to provide Insights information to the policy depending on the
+// function parameter.
+func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
 	return func(bc rego.BuiltinContext, inf *ast.Term) (*ast.Term, error) {
-		desiredInfo, err := getStringFromAST(inf)
+		reqInfo, err := getStringFromAST(inf)
 		if err != nil {
-			return nil, fmt.Errorf("unable to convert InsightsInfo to string: %w", err)
+			return nil, fmt.Errorf("unable to convert requested InsightsInfo to string: %w", err)
 		}
-		info := fmt.Sprintf("info %s requested", desiredInfo)
-		infoAsValue, err := ast.InterfaceToValue(info)
+		var retInfo string
+		switch strings.ToLower(reqInfo) {
+		case "context":
+			retInfo = insightsInfo.InsightsContext
+		default:
+			fmt.Printf("Cannot return unknown info %q\n", reqInfo)
+			return nil, rego.NewHaltError(fmt.Errorf("cannot return unknown Insights Info %q", reqInfo))
+		}
+		retInfoAsValue, err := ast.InterfaceToValue(retInfo)
 		if err != nil {
-			return nil, fmt.Errorf("unable to convert information %q to ast value: %w", info, err)
+			return nil, fmt.Errorf("unable to convert information %q to ast value: %w", retInfo, err)
 		}
-		return ast.NewTerm(infoAsValue), nil
+		return ast.NewTerm(retInfoAsValue), nil
 	}
 }
 

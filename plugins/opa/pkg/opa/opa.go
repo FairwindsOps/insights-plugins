@@ -149,7 +149,7 @@ func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance Custom
 
 func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}) ([]interface{}, error) {
 	client := kube.GetKubeClient()
-	return rego.RunRegoForItem(ctx, body, params, obj, *client)
+	return rego.RunRegoForItem(ctx, body, params, obj, *client, &rego.InsightsInfo{InsightsContext: "Agent"})
 }
 
 func getInsightsChecks() (clusterCheckModel, error) {
