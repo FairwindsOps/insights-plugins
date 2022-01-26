@@ -78,18 +78,18 @@ func getDataFunction(fn func(context.Context, string, string) ([]interface{}, er
 		kind, err2 := getStringFromAST(kindAST)
 
 		if err1 != nil || err2 != nil {
-			return nil, errors.New("the kubernetes function should be passed a group and kind as strings")
+			return nil, rego.NewHaltError(errors.New("the kubernetes function should be passed a group and kind as strings"))
 		}
 		logrus.Infof("Getting Kubernetes data for %s/%s", group, kind)
 		items, err := fn(rctx.Context, group, kind)
 		if err != nil {
 			logrus.Errorf("Error while getting data for %s/%s: %v", group, kind, err)
-			return nil, err
+			return nil, rego.NewHaltError(err)
 		}
 		itemValue, err := ast.InterfaceToValue(items)
 		if err != nil {
 			logrus.Errorf("Error while converting data for %s/%s: %v", group, kind, err)
-			return nil, err
+			return nil, rego.NewHaltError(err)
 		}
 
 		return ast.NewTerm(itemValue), nil
