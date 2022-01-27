@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/thoas/go-funk"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -226,6 +227,10 @@ func (c *Controller) processEvent(event *core.Event) {
 	}
 	if isContainerStartedEvent(event) {
 		pod, err := c.podLister.Pods(event.InvolvedObject.Namespace).Get(event.InvolvedObject.Name)
+		if err != nil && kube_errors.IsNotFound(err) {
+			glog.V(3).Infof("Failed to retrieve pod %s/%s, due to: %v", event.InvolvedObject.Namespace, event.InvolvedObject.Name, err)
+			return
+		}
 		if err != nil {
 			glog.Errorf("Failed to retrieve pod %s/%s, due to: %v", event.InvolvedObject.Namespace, event.InvolvedObject.Name, err)
 			return
