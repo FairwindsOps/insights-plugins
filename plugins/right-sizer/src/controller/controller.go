@@ -313,7 +313,7 @@ func (c *Controller) processOOMKilledPod(pod *core.Pod) {
 			continue
 		}
 		if containerTerminatedTime.Before(c.startTime) {
-			glog.V(1).Infof("The container '%s' in '%s/%s' was terminated (%s) before this controller started - termination-time=%s, controller-start-time=%s", s.Name, pod.Namespace, pod.Name, containerTerminatedTime, containerTerminatedFound, c.startTime)
+			glog.V(1).Infof("The container '%s' in '%s/%s' was terminated (%s) before this controller started - termination-time=%s, controller-start-time=%s", s.Name, pod.Namespace, pod.Name, containerTerminatedFound, containerTerminatedTime, c.startTime)
 			ProcessedContainerUpdates.WithLabelValues("oomkilled_termination_too_old").Inc()
 			continue
 		}
