@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+* Add an `insightsinfo` function to make Insights information available in rego.
+
 ## 0.5.0
 * Update Polaris to version 5.0.0
 

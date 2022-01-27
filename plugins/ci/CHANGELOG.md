@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.1
+* Add an `insightsinfo` function to make Insights information available in rego.
+
 ## 0.14.0
 * Update Polaris to version 5.0.0
 * Update Pluto to version v5.3.2
