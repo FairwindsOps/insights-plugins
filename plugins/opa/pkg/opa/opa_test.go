@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
 )
 
 var fakeObj = unstructured.Unstructured{
@@ -75,12 +76,28 @@ k8s[actionItem] {
 }
 `
 
+const regoWithIncorrectInsightsInfo = `
+package fairwinds
+requestinvalidinsightsinfo[description] {
+  description := insightsinfo("invalidInsightsInfoRequested")
+}
+`
+
 func TestOPAParseFail(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
 
 	params := map[string]interface{}{}
-	_, err := runRegoForItem(ctx, brokenRego, params, fakeObj.Object)
+	_, err := runRegoForItem(ctx, brokenRego, params, fakeObj.Object, &rego.InsightsInfo{})
+	assert.Error(t, err)
+}
+
+func TestOPAParseInsightsInfoFail(t *testing.T) {
+	kube.SetFakeClient()
+	ctx := context.TODO()
+
+	params := map[string]interface{}{}
+	_, err := runRegoForItem(ctx, regoWithIncorrectInsightsInfo, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.Error(t, err)
 }
 
@@ -90,14 +107,14 @@ func TestReturnDescription(t *testing.T) {
 	details := OutputFormat{}
 
 	params := map[string]interface{}{}
-	results, err := runRegoForItem(ctx, basicRego, params, fakeObj.Object)
+	results, err := runRegoForItem(ctx, basicRego, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ais))
 
 	params["labels"] = []string{"foo"}
-	results, err = runRegoForItem(ctx, basicRego, params, fakeObj.Object)
+	results, err = runRegoForItem(ctx, basicRego, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -126,10 +143,10 @@ func TestExampleFiles(t *testing.T) {
 			panic(err)
 		}
 
-		rego := string(bytes)
+		regoString := string(bytes)
 		ctx := context.TODO()
 		params := map[string]interface{}{}
-		_, err = runRegoForItem(ctx, rego, params, fakeObj.Object)
+		_, err = runRegoForItem(ctx, regoString, params, fakeObj.Object, &rego.InsightsInfo{})
 		return err
 	})
 	assert.NoError(t, err)
@@ -141,7 +158,7 @@ func TestReturnFull(t *testing.T) {
 	details := OutputFormat{}
 
 	params := map[string]interface{}{}
-	results, err := runRegoForItem(ctx, returnFull, params, fakeObj.Object)
+	results, err := runRegoForItem(ctx, returnFull, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -165,7 +182,7 @@ func TestReturnFull(t *testing.T) {
 		Category:    &defaultCategory,
 	}
 
-	results, err = runRegoForItem(ctx, returnFull, params, fakeObj.Object)
+	results, err = runRegoForItem(ctx, returnFull, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -176,7 +193,7 @@ func TestReturnFull(t *testing.T) {
 	assert.Equal(t, 0.5, ais[0].Severity)
 	assert.Equal(t, "Security", ais[0].Category)
 
-	results, err = runRegoForItem(ctx, returnEmpty, params, fakeObj.Object)
+	results, err = runRegoForItem(ctx, returnEmpty, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -194,14 +211,14 @@ func TestK8sAPI(t *testing.T) {
 	details := OutputFormat{}
 
 	params := map[string]interface{}{}
-	results, err := runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object)
+	results, err := runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ais))
 
 	kube.AddFakeDeployment()
-	results, err = runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object)
+	results, err = runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
