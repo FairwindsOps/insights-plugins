@@ -13,6 +13,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
@@ -160,7 +161,7 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 		}
 		checkObject := maybeCheckObject.(opa.OPACustomCheck)
 		check := checkObject.GetCustomCheck()
-		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace)
+		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
 		if err != nil {
 			return actionItems, err
 		}

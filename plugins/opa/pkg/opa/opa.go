@@ -126,7 +126,7 @@ func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance Cu
 		return nil, err
 	}
 	for _, obj := range list.Items {
-		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace())
+		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent"})
 		if err != nil {
 			return nil, err
 		}
@@ -135,8 +135,8 @@ func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance Cu
 	return actionItems, nil
 }
 
-func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string) ([]ActionItem, error) {
-	results, err := runRegoForItem(ctx, check.Spec.Rego, instance.Spec.Parameters, obj)
+func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+	results, err := runRegoForItem(ctx, check.Spec.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
 		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
 		return nil, err
@@ -147,9 +147,9 @@ func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance Custom
 	return newItems, err
 }
 
-func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}) ([]interface{}, error) {
+func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
 	client := kube.GetKubeClient()
-	return rego.RunRegoForItem(ctx, body, params, obj, *client, &rego.InsightsInfo{InsightsContext: "Agent"})
+	return rego.RunRegoForItem(ctx, body, params, obj, *client, insightsInfo)
 }
 
 func getInsightsChecks() (clusterCheckModel, error) {

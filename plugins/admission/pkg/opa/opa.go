@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -69,7 +70,7 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 				Rego: checkObject.Rego,
 			},
 		}
-		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace)
+		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
 		if err != nil {
 			return report, err
 		}
