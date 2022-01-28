@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.15.0
+* Support for external git repository
+
 ## 0.14.0
 * Update Polaris to version 5.0.0
 * Update Pluto to version v5.3.2
