@@ -109,6 +109,8 @@ func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContex
 		switch strings.ToLower(reqInfo) {
 		case "context":
 			retInfo = insightsInfo.InsightsContext
+		case "cluster":
+			retInfo = insightsInfo.Cluster
 		default:
 			fmt.Printf("Cannot return unknown info %q\n", reqInfo)
 			return nil, rego.NewHaltError(fmt.Errorf("cannot return unknown Insights Info %q", reqInfo))

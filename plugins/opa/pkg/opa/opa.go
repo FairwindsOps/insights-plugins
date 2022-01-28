@@ -126,7 +126,7 @@ func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance Cu
 		return nil, err
 	}
 	for _, obj := range list.Items {
-		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent"})
+		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
 		if err != nil {
 			return nil, err
 		}
