@@ -405,7 +405,7 @@ func doNewStuff() error {
 
 	logrus.Infof("all required variables are set")
 
-	err := util.RunCommandInDir("app/repository", exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "Cloning github repository")
+	err := util.RunCommandInDir("/app/repository", exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "Cloning github repository")
 	if err != nil {
 		exitWithError("unable to clone repository", err)
 	}
