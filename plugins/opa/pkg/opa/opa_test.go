@@ -83,6 +83,13 @@ requestinvalidinsightsinfo[description] {
 }
 `
 
+const regoWithInsightsInfo = `
+package fairwinds
+requestinsightsinfo[description] {
+  description := sprintf("the context is %v and the cluster is %v", [insightsinfo("context"), insightsinfo("cluster")])
+}
+`
+
 func TestOPAParseFail(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
@@ -124,6 +131,14 @@ func TestReturnDescription(t *testing.T) {
 	assert.Equal(t, defaultRemediation, ais[0].Remediation)
 	assert.Equal(t, defaultCategory, ais[0].Category)
 	assert.Equal(t, "label {\"foo\"} is present", ais[0].Description)
+
+	params = map[string]interface{}{}
+	results, err = runRegoForItem(ctx, regoWithInsightsInfo, params, fakeObj.Object, &rego.InsightsInfo{InsightsContext: "Agent", Cluster: "us-east-1"})
+	assert.NoError(t, err)
+	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ais))
+	assert.Equal(t, "the context is Agent and the cluster is us-east-1", ais[0].Description)
 }
 
 func TestExampleFiles(t *testing.T) {
