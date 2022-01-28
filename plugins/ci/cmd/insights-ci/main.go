@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -34,7 +35,11 @@ func exitWithError(message string, err error) {
 }
 
 func main() {
-	ctx := context.Background()
+	err := doNewStuff()
+	if err != nil {
+		exitWithError("Could not open fairwinds-insights.yaml", err)
+	}
+
 	const configFile = "./fairwinds-insights.yaml"
 	configHandler, err := os.Open(configFile)
 	if err != nil {
@@ -120,7 +125,7 @@ func main() {
 	reports = append(reports, workloadReport)
 
 	if *configurationObject.Reports.OPA.Enabled {
-		opaReport, err := opa.ProcessOPA(ctx, configurationObject)
+		opaReport, err := opa.ProcessOPA(context.Background(), configurationObject)
 		if err != nil {
 			exitWithError("Error while running OPA", err)
 		}
@@ -365,6 +370,50 @@ func getPlutoReport(configurationObject models.Configuration, manifestFolder str
 		return report, err
 	}
 	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/"+report.Filename, []byte(plutoResults), 0644)
+	if err != nil {
+		return report, err
+	}
 	report.Version = os.Getenv("plutoVersion")
 	return report, nil
+}
+
+func doNewStuff() error {
+	repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
+	if repoName == "" {
+		// no repository name set, do normal flow
+		return nil
+	}
+
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		return errors.New("FAIRWINDS_TOKEN environment variable not set")
+	}
+
+	branch := strings.TrimSpace(os.Getenv("BRANCH"))
+	if branch == "" {
+		return errors.New("BRANCH environment variable not set")
+	}
+
+	accessToken := strings.TrimSpace(os.Getenv("ACCCESS_TOKEN"))
+	if accessToken == "" {
+		return errors.New("ACCCESS_TOKEN environment variable not set")
+	}
+
+	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
+		return errors.New("IMAGE_VERSION environment variable not set")
+	}
+
+	if strings.TrimSpace(os.Getenv("SCRIPT_VERSION")) == "" {
+		return errors.New("SCRIPT_VERSION environment variable not set")
+	}
+
+	logrus.Infof("all required variables are set")
+
+	err := util.RunCommandInDir("app/repository", exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "Cloning github repository")
+	if err != nil {
+		exitWithError("unable to clone repository", err)
+	}
+	logrus.Infof("git clone executed successfully")
+
+	return nil
 }

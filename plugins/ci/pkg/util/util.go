@@ -8,6 +8,18 @@ import (
 )
 
 // RunCommand runs a command and prints errors to Stderr
+func RunCommandInDir(dir string, cmd *exec.Cmd, message string) error {
+	logrus.Info(message)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		outputString := string(output)
+		logrus.Errorf("Error running %s: %s", cmd, err)
+		fmt.Println(outputString)
+	}
+	return err
+}
+
+// RunCommand runs a command and prints errors to Stderr
 func RunCommand(cmd *exec.Cmd, message string) error {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
