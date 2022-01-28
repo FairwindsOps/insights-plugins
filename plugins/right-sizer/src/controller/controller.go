@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/thoas/go-funk"
+	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -226,6 +227,10 @@ func (c *Controller) processEvent(event *core.Event) {
 	}
 	if isContainerStartedEvent(event) {
 		pod, err := c.podLister.Pods(event.InvolvedObject.Namespace).Get(event.InvolvedObject.Name)
+		if err != nil && kube_errors.IsNotFound(err) {
+			glog.V(3).Infof("Failed to retrieve pod %s/%s, due to: %v", event.InvolvedObject.Namespace, event.InvolvedObject.Name, err)
+			return
+		}
 		if err != nil {
 			glog.Errorf("Failed to retrieve pod %s/%s, due to: %v", event.InvolvedObject.Namespace, event.InvolvedObject.Name, err)
 			return
@@ -295,8 +300,20 @@ func (c *Controller) processOOMKilledPod(pod *core.Pod) {
 			continue
 		}
 
-		if (s.LastTerminationState.Terminated != nil && s.LastTerminationState.Terminated.FinishedAt.Time.Before(c.startTime)) || (s.State.Terminated != nil && s.State.Terminated.FinishedAt.Time.Before(c.startTime)) {
-			glog.V(1).Infof("The container '%s' in '%s/%s' was terminated before this controller started - termination-time=%s, controller-start-time=%s", s.Name, pod.Namespace, pod.Name, s.LastTerminationState.Terminated.FinishedAt.Time, c.startTime)
+		var containerTerminatedTime time.Time
+		var containerTerminatedFound string
+		if s.LastTerminationState.Terminated != nil {
+			containerTerminatedTime = s.LastTerminationState.Terminated.FinishedAt.Time
+			containerTerminatedFound = "LastTerminationState.Terminated"
+		} else if s.State.Terminated != nil {
+			containerTerminatedTime = s.State.Terminated.FinishedAt.Time
+			containerTerminatedFound = "State.Terminated"
+		} else {
+			glog.Errorf("Cannot find a start-time for the container '%s' in '%s/%s'", s.Name, pod.Namespace, pod.Name)
+			continue
+		}
+		if containerTerminatedTime.Before(c.startTime) {
+			glog.V(1).Infof("The container '%s' in '%s/%s' was terminated (%s) before this controller started - termination-time=%s, controller-start-time=%s", s.Name, pod.Namespace, pod.Name, containerTerminatedFound, containerTerminatedTime, c.startTime)
 			ProcessedContainerUpdates.WithLabelValues("oomkilled_termination_too_old").Inc()
 			continue
 		}
