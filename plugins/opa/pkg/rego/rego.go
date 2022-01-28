@@ -103,7 +103,7 @@ func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContex
 	return func(bc rego.BuiltinContext, inf *ast.Term) (*ast.Term, error) {
 		reqInfo, err := getStringFromAST(inf)
 		if err != nil {
-			return nil, fmt.Errorf("unable to convert requested InsightsInfo to string: %w", err)
+			return nil, rego.NewHaltError(fmt.Errorf("unable to convert requested InsightsInfo to string: %w", err))
 		}
 		var retInfo string
 		switch strings.ToLower(reqInfo) {
@@ -112,12 +112,11 @@ func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContex
 		case "cluster":
 			retInfo = insightsInfo.Cluster
 		default:
-			fmt.Printf("Cannot return unknown info %q\n", reqInfo)
 			return nil, rego.NewHaltError(fmt.Errorf("cannot return unknown Insights Info %q", reqInfo))
 		}
 		retInfoAsValue, err := ast.InterfaceToValue(retInfo)
 		if err != nil {
-			return nil, fmt.Errorf("unable to convert information %q to ast value: %w", retInfo, err)
+			return nil, rego.NewHaltError(fmt.Errorf("unable to convert information %q to ast value: %w", retInfo, err))
 		}
 		return ast.NewTerm(retInfoAsValue), nil
 	}
