@@ -7,7 +7,7 @@ replace github.com/fairwindsops/insights-plugins/opa => ../opa
 require (
 	github.com/fairwindsops/insights-plugins/opa v0.0.0-20200904180341-40eda9118d57
 	github.com/fairwindsops/pluto/v3 v3.5.4
-	github.com/fairwindsops/polaris v0.0.0-20211112151225-1731febeb182
+	github.com/fairwindsops/polaris v0.0.0-20220120140839-e91b9b8824da
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/thoas/go-funk v0.9.1
@@ -45,7 +45,9 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.1.3 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/markbates/errx v1.1.0 // indirect
@@ -67,6 +69,7 @@ require (
 	github.com/qri-io/jsonpointer v0.1.0 // indirect
 	github.com/qri-io/jsonschema v0.1.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
+	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
