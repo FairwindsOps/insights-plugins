@@ -37,11 +37,11 @@ func exitWithError(message string, err error) {
 func main() {
 	err := doNewStuff()
 	if err != nil {
-		exitWithError("Could not open fairwinds-insights.yaml", err)
+		exitWithError("Could not doNewStuff", err) // todo: vitor - change message
 	}
 
-	const configFile = "./fairwinds-insights.yaml"
-	configHandler, err := os.Open(configFile)
+	const configFilePath = "./fairwinds-insights.yaml"
+	configHandler, err := os.Open(configFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			exitWithError("Please add fairwinds-insights.yaml to the base of your repository.", nil)
@@ -53,19 +53,19 @@ func main() {
 	if err != nil {
 		exitWithError("Could not read fairwinds-insights.yaml", err)
 	}
-	configurationObject := models.Configuration{}
-	err = yaml.Unmarshal(configContents, &configurationObject)
+	config := models.Configuration{}
+	err = yaml.Unmarshal(configContents, &config)
 	if err != nil {
 		exitWithError("Could not parse fairwinds-insights.yaml", err)
 	}
 
-	configurationObject.SetDefaults()
-	err = configurationObject.CheckForErrors()
+	config.SetDefaults()
+	err = config.CheckForErrors()
 	if err != nil {
 		exitWithError("Error parsing fairwinds-insights.yaml", err)
 	}
 
-	configFolder := configurationObject.Options.TempFolder + "/configuration/"
+	configFolder := config.Options.TempFolder + "/configuration/"
 	err = os.MkdirAll(configFolder, 0755)
 	if err != nil {
 		exitWithError("Could not make directory "+configFolder, err)
@@ -76,21 +76,21 @@ func main() {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
 
-	if len(configurationObject.Manifests.Helm) > 0 {
-		err := ci.ProcessHelmTemplates(configurationObject.Manifests.Helm, configurationObject.Options.TempFolder, configFolder)
+	if len(config.Manifests.Helm) > 0 {
+		err := ci.ProcessHelmTemplates(config.Manifests.Helm, config.Options.TempFolder, configFolder)
 		if err != nil {
 			exitWithError("Error while processing helm templates", err)
 		}
 	}
-	if len(configurationObject.Manifests.YamlPaths) > 0 {
-		err := ci.CopyYaml(configurationObject, configFolder)
+	if len(config.Manifests.YamlPaths) > 0 {
+		err := ci.CopyYaml(config, configFolder)
 		if err != nil {
 			exitWithError("Error while copying YAML files", err)
 		}
 	}
 
 	// Scan YAML, find all images/kind/etc
-	manifestImages, resources, err := ci.GetAllResources(configFolder, configurationObject)
+	manifestImages, resources, err := ci.GetAllResources(configFolder, config)
 	if err != nil {
 		exitWithError("Error while extracting images from YAML manifests", err)
 	}
@@ -98,59 +98,59 @@ func main() {
 	var reports []models.ReportInfo
 
 	// Scan manifests with Polaris
-	if *configurationObject.Reports.Polaris.Enabled {
-		polarisReport, err := getPolarisReport(configurationObject, configFolder)
+	if *config.Reports.Polaris.Enabled {
+		polarisReport, err := getPolarisReport(config, configFolder)
 		if err != nil {
 			exitWithError("Error while running Polaris", err)
 		}
 		reports = append(reports, polarisReport)
 	}
 
-	if *configurationObject.Reports.Trivy.Enabled {
+	if *config.Reports.Trivy.Enabled {
 		manifestImagesToScan := manifestImages
-		if *configurationObject.Reports.Trivy.SkipManifests {
+		if *config.Reports.Trivy.SkipManifests {
 			manifestImagesToScan = []trivymodels.Image{}
 		}
-		trivyReport, err := getTrivyReport(manifestImagesToScan, configurationObject)
+		trivyReport, err := getTrivyReport(manifestImagesToScan, config)
 		if err != nil {
 			exitWithError("Error while running Trivy", err)
 		}
 		reports = append(reports, trivyReport)
 	}
 
-	workloadReport, err := getWorkloadReport(resources, configurationObject)
+	workloadReport, err := getWorkloadReport(resources, config)
 	if err != nil {
 		exitWithError("Error while aggregating workloads", err)
 	}
 	reports = append(reports, workloadReport)
 
-	if *configurationObject.Reports.OPA.Enabled {
-		opaReport, err := opa.ProcessOPA(context.Background(), configurationObject)
+	if *config.Reports.OPA.Enabled {
+		opaReport, err := opa.ProcessOPA(context.Background(), config)
 		if err != nil {
 			exitWithError("Error while running OPA", err)
 		}
 		reports = append(reports, opaReport)
 	}
 
-	if *configurationObject.Reports.Pluto.Enabled {
-		plutoReport, err := getPlutoReport(configurationObject, configFolder)
+	if *config.Reports.Pluto.Enabled {
+		plutoReport, err := getPlutoReport(config, configFolder)
 		if err != nil {
 			exitWithError("Error while running Pluto", err)
 		}
 		reports = append(reports, plutoReport)
 	}
 
-	results, err := ci.SendResults(reports, resources, configurationObject, token)
+	results, err := ci.SendResults(reports, resources, config, token)
 	if err != nil {
-		exitWithError("Error while sending results back to "+configurationObject.Options.Hostname, err)
+		exitWithError("Error while sending results back to "+config.Options.Hostname, err)
 	}
 	fmt.Printf("%d new Action Items:\n", len(results.NewActionItems))
 	printActionItems(results.NewActionItems)
 	fmt.Printf("%d fixed Action Items:\n", len(results.FixedActionItems))
 	printActionItems(results.FixedActionItems)
 
-	if configurationObject.Options.JUnitOutput != "" {
-		err = ci.SaveJUnitFile(*results, configurationObject.Options.JUnitOutput)
+	if config.Options.JUnitOutput != "" {
+		err = ci.SaveJUnitFile(*results, config.Options.JUnitOutput)
 		if err != nil {
 			exitWithError("Could not save jUnit results", nil)
 		}
@@ -159,8 +159,8 @@ func main() {
 	if !results.Pass {
 		fmt.Printf(
 			"\n\nFairwinds Insights checks failed:\n%v\n\nVisit %s/orgs/%s/repositories for more information\n\n",
-			err, configurationObject.Options.Hostname, configurationObject.Options.Organization)
-		if configurationObject.Options.SetExitCode {
+			err, config.Options.Hostname, config.Options.Organization)
+		if config.Options.SetExitCode {
 			os.Exit(1)
 		}
 	} else {
@@ -401,10 +401,6 @@ func doNewStuff() error {
 
 	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
 		return errors.New("IMAGE_VERSION environment variable not set")
-	}
-
-	if strings.TrimSpace(os.Getenv("SCRIPT_VERSION")) == "" {
-		return errors.New("SCRIPT_VERSION environment variable not set")
 	}
 
 	logrus.Infof("all required variables are set")
