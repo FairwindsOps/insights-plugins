@@ -9,13 +9,13 @@ import (
 	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/sirupsen/logrus"
 
+	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
 // ScanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
 func ScanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) ([]byte, string, error) {
-	err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+	err := commands.ExecWithMessage(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
 	if err != nil {
 		return nil, "", err
 	}
@@ -41,7 +41,7 @@ func ScanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		return nil, "", err
 	}
 
-	trivyVersion, err := GetResultsFromCommand("trivy", "--version")
+	trivyVersion, err := commands.Exec("trivy", "--version")
 	if err != nil {
 		return nil, "", err
 	}

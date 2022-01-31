@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -18,11 +17,11 @@ import (
 	"strings"
 
 	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
 
+	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
@@ -40,16 +39,6 @@ type gitInfo struct {
 	currentHash   string
 	commitMessage string
 	repoName      string
-}
-
-// GetResultsFromCommand executes a command and returns the results as a string.
-func GetResultsFromCommand(command string, args ...string) (string, error) {
-	bytes, err := exec.Command(command, args...).Output()
-	if err != nil {
-		logrus.Errorf("Unable to execute command: %v %v", command, strings.Join(args, " "))
-		return "", err
-	}
-	return strings.TrimSpace(string(bytes)), err
 }
 
 // GetAllResources scans a folder of yaml files and returns all of the images and resources used.
@@ -420,7 +409,7 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {
-		masterHash, err = GetResultsFromCommand("git", "merge-base", "HEAD", baseBranch)
+		masterHash, err = commands.Exec("git", "merge-base", "HEAD", baseBranch)
 		if err != nil {
 			logrus.Error("Unable to get GIT merge-base")
 			return info, err
@@ -429,7 +418,7 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 
 	currentHash := os.Getenv("CURRENT_HASH")
 	if currentHash == "" {
-		currentHash, err = GetResultsFromCommand("git", "rev-parse", "HEAD")
+		currentHash, err = commands.Exec("git", "rev-parse", "HEAD")
 		if err != nil {
 			logrus.Error("Unable to get GIT Hash")
 			return info, err
@@ -438,7 +427,7 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 
 	commitMessage := os.Getenv("COMMIT_MESSAGE")
 	if commitMessage == "" {
-		commitMessage, err = GetResultsFromCommand("git", "log", "--pretty=format:%s", "-1")
+		commitMessage, err = commands.Exec("git", "log", "--pretty=format:%s", "-1")
 		if err != nil {
 			logrus.Error("Unable to get GIT Commit message")
 			return info, err
@@ -449,7 +438,7 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	}
 	branch := os.Getenv("BRANCH_NAME")
 	if branch == "" {
-		branch, err = GetResultsFromCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+		branch, err = commands.Exec("git", "rev-parse", "--abbrev-ref", "HEAD")
 		if err != nil {
 			logrus.Error("Unable to get GIT Branch Name")
 			return info, err
@@ -457,7 +446,7 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	}
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
-		origin, err = GetResultsFromCommand("git", "remote", "get-url", "origin")
+		origin, err = commands.Exec("git", "remote", "get-url", "origin")
 		if err != nil {
 			logrus.Error("Unable to get GIT Origin")
 			return info, err
@@ -488,53 +477,6 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	info.origin = origin
 	info.repoName = repoName
 	return info, nil
-}
-
-// SaveJUnitFile will save the
-func SaveJUnitFile(results models.ScanResults, filename string) error {
-	cases := make([]formatter.JUnitTestCase, 0)
-
-	for _, actionItem := range results.NewActionItems {
-		cases = append(cases, formatter.JUnitTestCase{
-			Name: actionItem.GetReadableTitle(),
-			Failure: &formatter.JUnitFailure{
-				Message:  actionItem.Remediation,
-				Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
-			},
-		})
-	}
-
-	for _, actionItem := range results.FixedActionItems {
-		cases = append(cases, formatter.JUnitTestCase{
-			Name: actionItem.GetReadableTitle(),
-		})
-	}
-
-	testSuites := formatter.JUnitTestSuites{
-		Suites: []formatter.JUnitTestSuite{
-			{
-				Tests:     len(results.NewActionItems) + len(results.FixedActionItems),
-				TestCases: cases,
-			},
-		},
-	}
-
-	err := os.MkdirAll(filepath.Dir(filename), 0644)
-	if err != nil {
-		return err
-	}
-
-	xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
-	if err != nil {
-		return err
-	}
-	xmlBytes = append([]byte(xml.Header), xmlBytes...)
-	err = ioutil.WriteFile(filename, xmlBytes, 0644)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
@@ -623,7 +565,7 @@ func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFold
 
 func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesFile string, values, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
 	repoName := fmt.Sprintf("%s-%s-repo", helmName, chartName)
-	err := util.RunCommand(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
+	err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
 	if err != nil {
 		return err
 	}
@@ -639,7 +581,7 @@ func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesF
 	} else {
 		logrus.Infof("version for chart %v not found, using latest...", chartFullName)
 	}
-	err = util.RunCommand(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", chartName, repoName))
+	err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", chartName, repoName))
 	if err != nil {
 		return err
 	}
@@ -664,13 +606,13 @@ func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolde
 }
 
 func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {
-	err := util.RunCommand(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
+	err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
 	if err != nil {
 		return err
 	}
 
 	params := []string{"template", helmName, helmPath, "--output-dir", configFolder + helmName, "-f", helmValuesFilePath}
-	err = util.RunCommand(exec.Command("helm", params...), "Templating: "+helmName)
+	err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helmName)
 	if err != nil {
 		return err
 	}
@@ -737,7 +679,7 @@ func exactlyOneOf(inputs ...bool) bool {
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func CopyYaml(configurationObject models.Configuration, configFolder string) error {
 	for _, path := range configurationObject.Manifests.YamlPaths {
-		err := util.RunCommand(exec.Command("cp", "-r", path, configFolder), "Copying yaml file to config folder")
+		err := commands.ExecWithMessage(exec.Command("cp", "-r", path, configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}

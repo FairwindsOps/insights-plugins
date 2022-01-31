@@ -3,7 +3,10 @@ package models
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ScoreOutOfBoundsMessage is the message for the error when the score returned by Insights is out of bounds.
@@ -150,13 +153,27 @@ func maybeAddSlash(input string) string {
 }
 
 // SetDefaults sets configuration defaults
-func (c *Configuration) SetDefaults() {
+func (c *Configuration) SetMountedPathDefaults(repoBasePath string) {
+	logrus.Info("using SetMountedPathDefaults(%s)", repoBasePath)
+	c.Options.TempFolder = filepath.Join(repoBasePath, "/tmp/_insightsTemp/")
+	c.Images.FolderName = filepath.Join(repoBasePath, "./_insightsTempImages/") // TODO: images are copied via script insights-ci.sh, what now?
+}
+
+// SetDefaults sets configuration defaults
+func (c *Configuration) SetPathDefaults() {
+	logrus.Info("using SetPathDefaults()")
 	if c.Options.TempFolder == "" {
 		c.Options.TempFolder = "/tmp/_insightsTemp/"
 	}
+	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 	if c.Images.FolderName == "" {
 		c.Images.FolderName = "./_insightsTempImages/"
 	}
+	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
+}
+
+// SetDefaults sets configuration defaults
+func (c *Configuration) SetDefaults() {
 	if c.Options.BaseBranch == "" {
 		c.Options.BaseBranch = "master"
 	}
@@ -183,8 +200,6 @@ func (c *Configuration) SetDefaults() {
 	if c.Reports.Trivy.SkipManifests == nil {
 		c.Reports.Trivy.SkipManifests = &falsehood
 	}
-	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
-	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
 }
 
 // CheckForErrors checks to make sure the configuration is valid

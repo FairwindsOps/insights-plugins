@@ -14,9 +14,10 @@ import (
 
 	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
+	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
@@ -35,34 +36,9 @@ func exitWithError(message string, err error) {
 }
 
 func main() {
-	err := doNewStuff()
+	config, err := getConfiguration()
 	if err != nil {
-		exitWithError("Could not doNewStuff", err) // todo: vitor - change message
-	}
-
-	const configFilePath = "./fairwinds-insights.yaml"
-	configHandler, err := os.Open(configFilePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			exitWithError("Please add fairwinds-insights.yaml to the base of your repository.", nil)
-		} else {
-			exitWithError("Could not open fairwinds-insights.yaml", err)
-		}
-	}
-	configContents, err := ioutil.ReadAll(configHandler)
-	if err != nil {
-		exitWithError("Could not read fairwinds-insights.yaml", err)
-	}
-	config := models.Configuration{}
-	err = yaml.Unmarshal(configContents, &config)
-	if err != nil {
-		exitWithError("Could not parse fairwinds-insights.yaml", err)
-	}
-
-	config.SetDefaults()
-	err = config.CheckForErrors()
-	if err != nil {
-		exitWithError("Error parsing fairwinds-insights.yaml", err)
+		exitWithError("could not get proper configuration: ", err)
 	}
 
 	configFolder := config.Options.TempFolder + "/configuration/"
@@ -83,14 +59,14 @@ func main() {
 		}
 	}
 	if len(config.Manifests.YamlPaths) > 0 {
-		err := ci.CopyYaml(config, configFolder)
+		err := ci.CopyYaml(*config, configFolder)
 		if err != nil {
 			exitWithError("Error while copying YAML files", err)
 		}
 	}
 
 	// Scan YAML, find all images/kind/etc
-	manifestImages, resources, err := ci.GetAllResources(configFolder, config)
+	manifestImages, resources, err := ci.GetAllResources(configFolder, *config)
 	if err != nil {
 		exitWithError("Error while extracting images from YAML manifests", err)
 	}
@@ -99,7 +75,7 @@ func main() {
 
 	// Scan manifests with Polaris
 	if *config.Reports.Polaris.Enabled {
-		polarisReport, err := getPolarisReport(config, configFolder)
+		polarisReport, err := getPolarisReport(*config, configFolder)
 		if err != nil {
 			exitWithError("Error while running Polaris", err)
 		}
@@ -111,21 +87,21 @@ func main() {
 		if *config.Reports.Trivy.SkipManifests {
 			manifestImagesToScan = []trivymodels.Image{}
 		}
-		trivyReport, err := getTrivyReport(manifestImagesToScan, config)
+		trivyReport, err := getTrivyReport(manifestImagesToScan, *config)
 		if err != nil {
 			exitWithError("Error while running Trivy", err)
 		}
 		reports = append(reports, trivyReport)
 	}
 
-	workloadReport, err := getWorkloadReport(resources, config)
+	workloadReport, err := getWorkloadReport(resources, *config)
 	if err != nil {
 		exitWithError("Error while aggregating workloads", err)
 	}
 	reports = append(reports, workloadReport)
 
 	if *config.Reports.OPA.Enabled {
-		opaReport, err := opa.ProcessOPA(context.Background(), config)
+		opaReport, err := opa.ProcessOPA(context.Background(), *config)
 		if err != nil {
 			exitWithError("Error while running OPA", err)
 		}
@@ -133,14 +109,14 @@ func main() {
 	}
 
 	if *config.Reports.Pluto.Enabled {
-		plutoReport, err := getPlutoReport(config, configFolder)
+		plutoReport, err := getPlutoReport(*config, configFolder)
 		if err != nil {
 			exitWithError("Error while running Pluto", err)
 		}
 		reports = append(reports, plutoReport)
 	}
 
-	results, err := ci.SendResults(reports, resources, config, token)
+	results, err := ci.SendResults(reports, resources, *config, token)
 	if err != nil {
 		exitWithError("Error while sending results back to "+config.Options.Hostname, err)
 	}
@@ -252,7 +228,7 @@ func getTrivyReport(manifestImages []trivymodels.Image, configurationObject mode
 		logrus.Infof("Downloading missing image %s", manifestImages[idx].Name)
 		dockerURL := "docker://" + manifestImages[idx].Name
 		archiveName := "docker-archive:" + configurationObject.Images.FolderName + strconv.Itoa(idx)
-		err := util.RunCommand(exec.Command("skopeo", "copy", dockerURL, archiveName), "pulling "+manifestImages[idx].Name)
+		err := commands.ExecWithMessage(exec.Command("skopeo", "copy", dockerURL, archiveName), "pulling "+manifestImages[idx].Name)
 		if err != nil {
 			return trivyReport, err
 		}
@@ -347,11 +323,11 @@ func getPolarisReport(configurationObject models.Configuration, manifestFolder s
 		Filename: "polaris.json",
 	}
 	// Scan with Polaris
-	err := util.RunCommand(exec.Command("polaris", "audit", "--audit-path", manifestFolder, "--output-file", configurationObject.Options.TempFolder+"/"+report.Filename), "Audit with Polaris")
+	err := commands.ExecWithMessage(exec.Command("polaris", "audit", "--audit-path", manifestFolder, "--output-file", configurationObject.Options.TempFolder+"/"+report.Filename), "Audit with Polaris")
 	if err != nil {
 		return report, err
 	}
-	polarisVersion, err := ci.GetResultsFromCommand("polaris", "version")
+	polarisVersion, err := commands.Exec("polaris", "version")
 	if err != nil {
 		return report, err
 	}
@@ -365,7 +341,7 @@ func getPlutoReport(configurationObject models.Configuration, manifestFolder str
 		Filename: "pluto.json",
 	}
 	// Scan with Pluto
-	plutoResults, err := ci.GetResultsFromCommand("pluto", "detect-files", "-d", manifestFolder, "-o", "json", "--ignore-deprecations", "--ignore-removals")
+	plutoResults, err := commands.Exec("pluto", "detect-files", "-d", manifestFolder, "-o", "json", "--ignore-deprecations", "--ignore-removals")
 	if err != nil {
 		return report, err
 	}
@@ -377,39 +353,86 @@ func getPlutoReport(configurationObject models.Configuration, manifestFolder str
 	return report, nil
 }
 
-func doNewStuff() error {
+func getConfiguration() (*models.Configuration, error) {
+	configFileName := "fairwinds-insights.yaml"
+
+	configFilePath := ""
+	repoBasePath := ""
+
 	repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
-	if repoName == "" {
-		// no repository name set, do normal flow
-		return nil
+	if repoName != "" {
+		token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+		if token == "" {
+			return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
+		}
+
+		branch := strings.TrimSpace(os.Getenv("BRANCH"))
+		if branch == "" {
+			return nil, errors.New("BRANCH environment variable not set")
+		}
+
+		accessToken := strings.TrimSpace(os.Getenv("ACCCESS_TOKEN"))
+		if accessToken == "" {
+			return nil, errors.New("ACCCESS_TOKEN environment variable not set")
+		}
+
+		if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
+			return nil, errors.New("IMAGE_VERSION environment variable not set")
+		}
+
+		repoBasePath = filepath.Join("app", "repository")
+		err := commands.ExecInDir(repoBasePath, exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "Cloning github repository")
+		if err != nil {
+			return nil, fmt.Errorf("unable to clone repository: %v", err)
+		}
+
+		_, repoName := util.GetRepoDetails(repoName)
+		// rewrite configFile path to the downloaded one
+		// i.e.: /app/repository/blog/fairwinds-insights.yaml
+		configFilePath = filepath.Join(repoBasePath, repoName, configFileName)
+	} else {
+		// i.e.: ./fairwinds-insights.yaml
+		configFilePath = filepath.Base(configFileName)
 	}
 
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-	if token == "" {
-		return errors.New("FAIRWINDS_TOKEN environment variable not set")
-	}
-
-	branch := strings.TrimSpace(os.Getenv("BRANCH"))
-	if branch == "" {
-		return errors.New("BRANCH environment variable not set")
-	}
-
-	accessToken := strings.TrimSpace(os.Getenv("ACCCESS_TOKEN"))
-	if accessToken == "" {
-		return errors.New("ACCCESS_TOKEN environment variable not set")
-	}
-
-	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
-		return errors.New("IMAGE_VERSION environment variable not set")
-	}
-
-	logrus.Infof("all required variables are set")
-
-	err := util.RunCommandInDir("/app/repository", exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "Cloning github repository")
+	config, err := doGetConfiguration(configFilePath)
 	if err != nil {
-		exitWithError("unable to clone repository", err)
+		return nil, err
 	}
-	logrus.Infof("git clone executed successfully")
+	config.SetDefaults()
 
-	return nil
+	if repoName != "" {
+		config.SetMountedPathDefaults(repoBasePath)
+	} else {
+		config.SetPathDefaults()
+	}
+
+	err = config.CheckForErrors()
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+	}
+
+	return config, nil
+}
+
+func doGetConfiguration(configFilePath string) (*models.Configuration, error) {
+	logrus.Infof("reading configFile from %s", configFilePath)
+	configHandler, err := os.Open(configFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, errors.New("Please add fairwinds-insights.yaml to the base of your repository.")
+		} else {
+			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml", err)
+		}
+	}
+	configContents, err := ioutil.ReadAll(configHandler)
+	if err != nil {
+		return nil, fmt.Errorf("Could not read fairwinds-insights.yaml: %v", err)
+	}
+	config := models.Configuration{}
+	err = yaml.Unmarshal(configContents, &config)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse fairwinds-insights.yaml: %v", err)
+	}
+	return &config, nil
 }
