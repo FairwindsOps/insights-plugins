@@ -14,7 +14,7 @@ import (
 
 	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
 	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
@@ -422,7 +422,7 @@ func doGetConfiguration(configFilePath string) (*models.Configuration, error) {
 		if os.IsNotExist(err) {
 			return nil, errors.New("Please add fairwinds-insights.yaml to the base of your repository.")
 		} else {
-			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml", err)
+			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml: %v", err)
 		}
 	}
 	configContents, err := ioutil.ReadAll(configHandler)
