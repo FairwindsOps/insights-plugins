@@ -228,7 +228,7 @@ func getTrivyReport(manifestImages []trivymodels.Image, configurationObject mode
 		logrus.Infof("Downloading missing image %s", manifestImages[idx].Name)
 		dockerURL := "docker://" + manifestImages[idx].Name
 		archiveName := "docker-archive:" + configurationObject.Images.FolderName + strconv.Itoa(idx)
-		err := commands.ExecWithMessage(exec.Command("skopeo", "copy", dockerURL, archiveName), "pulling "+manifestImages[idx].Name)
+		_, err := commands.ExecWithMessage(exec.Command("skopeo", "copy", dockerURL, archiveName), "pulling "+manifestImages[idx].Name)
 		if err != nil {
 			return trivyReport, err
 		}
@@ -323,7 +323,7 @@ func getPolarisReport(configurationObject models.Configuration, manifestFolder s
 		Filename: "polaris.json",
 	}
 	// Scan with Polaris
-	err := commands.ExecWithMessage(exec.Command("polaris", "audit", "--audit-path", manifestFolder, "--output-file", configurationObject.Options.TempFolder+"/"+report.Filename), "Audit with Polaris")
+	_, err := commands.ExecWithMessage(exec.Command("polaris", "audit", "--audit-path", manifestFolder, "--output-file", configurationObject.Options.TempFolder+"/"+report.Filename), "Audit with Polaris")
 	if err != nil {
 		return report, err
 	}
@@ -380,11 +380,12 @@ func getConfiguration() (*models.Configuration, error) {
 			return nil, errors.New("IMAGE_VERSION environment variable not set")
 		}
 
-		repoBasePath = filepath.Join("app", "repository")
-		err := commands.ExecInDir(repoBasePath, exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "Cloning github repository")
+		repoBasePath = filepath.Join("/app", "repository")
+		output, err := commands.ExecInDir(repoBasePath, exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "cloning github repository")
 		if err != nil {
 			return nil, fmt.Errorf("unable to clone repository: %v", err)
 		}
+		logrus.Infof("git clone output: %s", output)
 
 		_, repoName := util.GetRepoDetails(repoName)
 		// rewrite configFile path to the downloaded one

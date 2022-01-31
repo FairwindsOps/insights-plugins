@@ -565,7 +565,7 @@ func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFold
 
 func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesFile string, values, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
 	repoName := fmt.Sprintf("%s-%s-repo", helmName, chartName)
-	err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
+	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
 	if err != nil {
 		return err
 	}
@@ -581,7 +581,7 @@ func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesF
 	} else {
 		logrus.Infof("version for chart %v not found, using latest...", chartFullName)
 	}
-	err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", chartName, repoName))
+	_, err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", chartName, repoName))
 	if err != nil {
 		return err
 	}
@@ -606,13 +606,13 @@ func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolde
 }
 
 func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {
-	err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
+	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
 	if err != nil {
 		return err
 	}
 
 	params := []string{"template", helmName, helmPath, "--output-dir", configFolder + helmName, "-f", helmValuesFilePath}
-	err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helmName)
+	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helmName)
 	if err != nil {
 		return err
 	}
@@ -679,7 +679,7 @@ func exactlyOneOf(inputs ...bool) bool {
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func CopyYaml(configurationObject models.Configuration, configFolder string) error {
 	for _, path := range configurationObject.Manifests.YamlPaths {
-		err := commands.ExecWithMessage(exec.Command("cp", "-r", path, configFolder), "Copying yaml file to config folder")
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", path, configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}

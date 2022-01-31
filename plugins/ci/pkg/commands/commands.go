@@ -9,27 +9,25 @@ import (
 )
 
 // RunCommand runs a command and prints errors to Stderr
-func ExecInDir(dir string, cmd *exec.Cmd, message string) error {
+func ExecInDir(dir string, cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		outputString := string(output)
 		logrus.Errorf("Error running %s: %s", cmd, err)
-		fmt.Println(outputString)
+		fmt.Println(string(output))
 	}
-	return err
+	return string(output), err
 }
 
 // ExecWithMessage runs a command and prints errors to Stderr
-func ExecWithMessage(cmd *exec.Cmd, message string) error {
+func ExecWithMessage(cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		outputString := string(output)
 		logrus.Errorf("Error running %s: %s", cmd, err)
-		fmt.Println(outputString)
+		fmt.Println(string(output))
 	}
-	return err
+	return string(output), err
 }
 
 // Exec executes a command and returns the results as a string.
