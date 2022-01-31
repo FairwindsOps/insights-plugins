@@ -155,8 +155,10 @@ func maybeAddSlash(input string) string {
 // SetDefaults sets configuration defaults
 func (c *Configuration) SetMountedPathDefaults(repoBasePath string) {
 	logrus.Info("using SetMountedPathDefaults(%s)", repoBasePath)
-	c.Options.TempFolder = filepath.Join(repoBasePath, "/tmp/_insightsTemp/")
-	c.Images.FolderName = filepath.Join(repoBasePath, "./_insightsTempImages/") // TODO: images are copied via script insights-ci.sh, what now?
+	c.Options.TempFolder = filepath.Join(repoBasePath, "tmp/insightsTemp")
+	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
+	c.Images.FolderName = filepath.Join(repoBasePath, "tmp/insightsTempImages") // TODO: images are copied via script insights-ci.sh, what now?
+	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
 }
 
 // SetDefaults sets configuration defaults

@@ -38,7 +38,7 @@ func exitWithError(message string, err error) {
 func main() {
 	config, err := getConfiguration()
 	if err != nil {
-		exitWithError("could not get proper configuration: ", err)
+		exitWithError("could not get proper configuration", err)
 	}
 
 	configFolder := config.Options.TempFolder + "/configuration/"
@@ -390,12 +390,23 @@ func getConfiguration() (*models.Configuration, error) {
 		// rewrite configFile path to the downloaded one
 		// i.e.: /app/repository/blog/fairwinds-insights.yaml
 		configFilePath = filepath.Join(repoBasePath, repoName, configFileName)
+
+		// TODO: Vitor - remove
+		repoPath := filepath.Join(repoBasePath, repoName)
+		files, err := ioutil.ReadDir(repoPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		logrus.Infof("files in repoPath: %s", repoPath)
+		for _, f := range files {
+			logrus.Info(f.Name())
+		}
 	} else {
 		// i.e.: ./fairwinds-insights.yaml
-		configFilePath = filepath.Base(configFileName)
+		configFilePath = "./fairwinds-insights.yaml"
 	}
 
-	config, err := doGetConfiguration(configFilePath)
+	config, err := doGetConfigurationFromFile(configFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +426,7 @@ func getConfiguration() (*models.Configuration, error) {
 	return config, nil
 }
 
-func doGetConfiguration(configFilePath string) (*models.Configuration, error) {
+func doGetConfigurationFromFile(configFilePath string) (*models.Configuration, error) {
 	logrus.Infof("reading configFile from %s", configFilePath)
 	configHandler, err := os.Open(configFilePath)
 	if err != nil {
