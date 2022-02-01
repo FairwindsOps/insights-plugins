@@ -318,13 +318,13 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	formFiles := []formFile{{
 		field:    "fairwinds-insights",
 		filename: "fairwinds-insights.yaml",
-		location: "fairwinds-insights.yaml",
+		location: filepath.Join(configurationObject.RepoBasePath, "fairwinds-insights.yaml"),
 	}}
 	for _, report := range reports {
 		formFiles = append(formFiles, formFile{
 			field:    report.Report,
 			filename: report.Filename,
-			location: configurationObject.Options.TempFolder + "/" + report.Filename,
+			location: filepath.Join(configurationObject.Options.TempFolder, report.Filename),
 		})
 	}
 
@@ -347,7 +347,7 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(configurationObject.Options.RepositoryName, configurationObject.Options.BaseBranch)
+	repoDetails, err := getGitInfo(configurationObject.RepoBasePath, configurationObject.Options.RepositoryName, configurationObject.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
@@ -402,35 +402,32 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	return &results, nil
 }
 
-func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
-	info := gitInfo{}
-
+func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
-
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {
-		masterHash, err = commands.Exec("git", "merge-base", "HEAD", baseBranch)
+		masterHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranch), "getting master hash")
 		if err != nil {
 			logrus.Error("Unable to get GIT merge-base")
-			return info, err
+			return nil, err
 		}
 	}
 
 	currentHash := os.Getenv("CURRENT_HASH")
 	if currentHash == "" {
-		currentHash, err = commands.Exec("git", "rev-parse", "HEAD")
+		currentHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "HEAD"), "getting current hash")
 		if err != nil {
 			logrus.Error("Unable to get GIT Hash")
-			return info, err
+			return nil, err
 		}
 	}
 
 	commitMessage := os.Getenv("COMMIT_MESSAGE")
 	if commitMessage == "" {
-		commitMessage, err = commands.Exec("git", "log", "--pretty=format:%s", "-1")
+		commitMessage, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message")
 		if err != nil {
 			logrus.Error("Unable to get GIT Commit message")
-			return info, err
+			return nil, err
 		}
 	}
 	if len(commitMessage) > 100 {
@@ -438,20 +435,21 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 	}
 	branch := os.Getenv("BRANCH_NAME")
 	if branch == "" {
-		branch, err = commands.Exec("git", "rev-parse", "--abbrev-ref", "HEAD")
+		branch, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD"), "getting branch name")
 		if err != nil {
 			logrus.Error("Unable to get GIT Branch Name")
-			return info, err
+			return nil, err
 		}
 	}
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
-		origin, err = commands.Exec("git", "remote", "get-url", "origin")
+		origin, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "remote", "get-url", "origin"), "getting origin url")
 		if err != nil {
 			logrus.Error("Unable to get GIT Origin")
-			return info, err
+			return nil, err
 		}
 	}
+
 	if repoName == "" {
 		repoName = origin
 		if strings.Contains(repoName, "@") { // git@github.com URLs are allowed
@@ -469,14 +467,16 @@ func getGitInfo(repoName, baseBranch string) (gitInfo, error) {
 		}
 		repoName = strings.TrimSuffix(repoName, ".git")
 	}
+	gitInfo := gitInfo{
+		masterHash:    strings.TrimSuffix(masterHash, "\n"),
+		currentHash:   strings.TrimSuffix(currentHash, "\n"),
+		commitMessage: strings.TrimSuffix(commitMessage, "\n"),
+		branch:        strings.TrimSuffix(branch, "\n"),
+		origin:        strings.TrimSuffix(origin, "\n"),
+		repoName:      strings.TrimSuffix(repoName, "\n"),
+	}
 
-	info.masterHash = masterHash
-	info.currentHash = currentHash
-	info.commitMessage = commitMessage
-	info.branch = branch
-	info.origin = origin
-	info.repoName = repoName
-	return info, nil
+	return &gitInfo, nil
 }
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.

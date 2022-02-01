@@ -11,7 +11,8 @@ import (
 // RunCommand runs a command and prints errors to Stderr
 func ExecInDir(dir string, cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
-	output, err := cmd.CombinedOutput()
+	cmd.Dir = dir
+	output, err := cmd.Output()
 	if err != nil {
 		logrus.Errorf("Error running %s: %s", cmd, err)
 		fmt.Println(string(output))

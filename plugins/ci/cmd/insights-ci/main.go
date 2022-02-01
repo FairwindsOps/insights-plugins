@@ -58,6 +58,7 @@ func main() {
 			exitWithError("Error while processing helm templates", err)
 		}
 	}
+
 	if len(config.Manifests.YamlPaths) > 0 {
 		err := ci.CopyYaml(*config, configFolder)
 		if err != nil {
@@ -357,15 +358,11 @@ func getConfiguration() (*models.Configuration, error) {
 	configFileName := "fairwinds-insights.yaml"
 
 	configFilePath := ""
+	basePath := ""
 	repoBasePath := ""
 
-	repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
-	if repoName != "" {
-		token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-		if token == "" {
-			return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
-		}
-
+	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
+	if repoFullName != "" {
 		branch := strings.TrimSpace(os.Getenv("BRANCH"))
 		if branch == "" {
 			return nil, errors.New("BRANCH environment variable not set")
@@ -380,28 +377,23 @@ func getConfiguration() (*models.Configuration, error) {
 			return nil, errors.New("IMAGE_VERSION environment variable not set")
 		}
 
-		repoBasePath = filepath.Join("/app", "repository")
-		output, err := commands.ExecInDir(repoBasePath, exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", accessToken, repoName)), "cloning github repository")
+		basePath = filepath.Join("/app", "repository")
+		_, repoName := util.GetRepoDetails(repoFullName)
+		repoBasePath = filepath.Join(basePath, repoName)
+
+		err := os.RemoveAll(repoBasePath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to delete existing directory: %v", err)
+		}
+
+		_, err = commands.ExecInDir(basePath, exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s", accessToken, repoFullName)), "cloning github repository")
 		if err != nil {
 			return nil, fmt.Errorf("unable to clone repository: %v", err)
 		}
-		logrus.Infof("git clone output: %s", output)
 
-		_, repoName := util.GetRepoDetails(repoName)
 		// rewrite configFile path to the downloaded one
 		// i.e.: /app/repository/blog/fairwinds-insights.yaml
-		configFilePath = filepath.Join(repoBasePath, repoName, configFileName)
-
-		// TODO: Vitor - remove
-		repoPath := filepath.Join(repoBasePath, repoName)
-		files, err := ioutil.ReadDir(repoPath)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		logrus.Infof("files in repoPath: %s", repoPath)
-		for _, f := range files {
-			logrus.Info(f.Name())
-		}
+		configFilePath = filepath.Join(basePath, repoName, configFileName)
 	} else {
 		// i.e.: ./fairwinds-insights.yaml
 		configFilePath = "./fairwinds-insights.yaml"
@@ -413,8 +405,11 @@ func getConfiguration() (*models.Configuration, error) {
 	}
 	config.SetDefaults()
 
-	if repoName != "" {
-		config.SetMountedPathDefaults(repoBasePath)
+	if repoFullName != "" {
+		err := config.SetMountedPathDefaults(basePath, repoBasePath)
+		if err != nil {
+			return nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
+		}
 	} else {
 		config.SetPathDefaults()
 	}
