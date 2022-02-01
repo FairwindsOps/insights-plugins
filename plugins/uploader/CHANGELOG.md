@@ -1,4 +1,7 @@
 # Changelog
+## 0.3.9
+* Update dependencies
+
 ## 0.3.8
 * remove debug log
 

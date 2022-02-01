@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.1
+* Update dependencies
+
 ## 0.14.0
 * Update Polaris to version 5.0.0
 * Update Pluto to version v5.3.2

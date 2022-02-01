@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.15
+* Update dependencies
+
 ## 0.3.14
 * Update policy examples to have consistent indentation
 
