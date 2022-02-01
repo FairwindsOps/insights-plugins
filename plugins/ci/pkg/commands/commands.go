@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 
@@ -12,10 +11,9 @@ import (
 func ExecInDir(dir string, cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	cmd.Dir = dir
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error running %s: %s", cmd, err)
-		fmt.Println(string(output))
+		logrus.Errorf("Error running %s - %s[%v]", cmd, string(output), err)
 	}
 	return string(output), err
 }
@@ -25,18 +23,16 @@ func ExecWithMessage(cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error running %s: %s", cmd, err)
-		fmt.Println(string(output))
+		logrus.Errorf("Error running %s - %s[%v]", cmd, string(output), err)
 	}
 	return string(output), err
 }
 
 // Exec executes a command and returns the results as a string.
 func Exec(command string, args ...string) (string, error) {
-	bytes, err := exec.Command(command, args...).Output()
+	bytes, err := exec.Command(command, args...).CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Unable to execute command: %v %v", command, strings.Join(args, " "))
-		return "", err
+		logrus.Errorf("Unable to execute command: %v %v %s[%v]", command, strings.Join(args, " "), string(bytes), err)
 	}
-	return strings.TrimSpace(string(bytes)), err
+	return string(bytes), err
 }

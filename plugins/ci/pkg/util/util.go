@@ -22,3 +22,16 @@ func GetRepoDetails(repositoryName string) (owner, repoName string) {
 	}
 	return "", repositoryName
 }
+
+func ExactlyOneOf(inputs ...bool) bool {
+	foundAtLeastOne := false
+	for _, input := range inputs {
+		if input {
+			if foundAtLeastOne {
+				return false
+			}
+			foundAtLeastOne = true
+		}
+	}
+	return foundAtLeastOne
+}

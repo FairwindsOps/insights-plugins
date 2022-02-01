@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 // ScoreOutOfBoundsMessage is the message for the error when the score returned by Insights is out of bounds.
@@ -32,11 +30,10 @@ type ReportInfo struct {
 
 // Configuration is a struct representing the config options for Insights CI/CD
 type Configuration struct {
-	RepoBasePath string         `yaml:"-"`
-	Images       imageConfig    `yaml:"images"`
-	Manifests    ManifestConfig `yaml:"manifests"`
-	Options      optionConfig   `yaml:"options"`
-	Reports      reportsConfig  `yaml:"reports"`
+	Images    imageConfig    `yaml:"images"`
+	Manifests ManifestConfig `yaml:"manifests"`
+	Options   optionConfig   `yaml:"options"`
+	Reports   reportsConfig  `yaml:"reports"`
 }
 
 // ManifestConfig is a struct representing the config options for Manifests
@@ -155,10 +152,8 @@ func maybeAddSlash(input string) string {
 }
 
 // SetDefaults sets configuration defaults
-func (c *Configuration) SetMountedPathDefaults(basePath, repoBasePath string) error {
-	logrus.Infof("using SetMountedPathDefaults(%s)", basePath)
-	c.RepoBasePath = repoBasePath
-	c.Options.TempFolder = filepath.Join(basePath, "tmp/insightsTemp")
+func (c *Configuration) SetMountedPathDefaults(basePath, repoPath string) error {
+	c.Options.TempFolder = filepath.Join(basePath, "tmp/_insightsTemp")
 	err := os.MkdirAll(c.Options.TempFolder, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("SetMountedPathDefaults: %v", err)
@@ -166,20 +161,17 @@ func (c *Configuration) SetMountedPathDefaults(basePath, repoBasePath string) er
 	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 
 	// TODO: images are copied via script insights-ci.sh, what now?
-	c.Images.FolderName = filepath.Join(basePath, "tmp/insightsTempImages")
+	c.Images.FolderName = filepath.Join(basePath, "tmp/_insightsTempImages")
 	err = os.MkdirAll(c.Images.FolderName, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("SetMountedPathDefaults: %v", err)
 	}
 	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
-
 	return nil
 }
 
 // SetDefaults sets configuration defaults
 func (c *Configuration) SetPathDefaults() {
-	logrus.Info("using SetPathDefaults()")
-	c.RepoBasePath = filepath.Base("")
 	if c.Options.TempFolder == "" {
 		c.Options.TempFolder = "/tmp/_insightsTemp/"
 	}

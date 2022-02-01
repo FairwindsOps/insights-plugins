@@ -12,7 +12,7 @@ import (
 )
 
 // SaveJUnitFile will save the
-func SaveJUnitFile(results models.ScanResults, filename string) error {
+func (ci *CI) SaveJUnitFile(results models.ScanResults) error {
 	cases := make([]formatter.JUnitTestCase, 0)
 
 	for _, actionItem := range results.NewActionItems {
@@ -40,7 +40,7 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 		},
 	}
 
-	err := os.MkdirAll(filepath.Dir(filename), 0644)
+	err := os.MkdirAll(filepath.Dir(ci.config.Options.JUnitOutput), 0644)
 	if err != nil {
 		return err
 	}
@@ -50,10 +50,14 @@ func SaveJUnitFile(results models.ScanResults, filename string) error {
 		return err
 	}
 	xmlBytes = append([]byte(xml.Header), xmlBytes...)
-	err = ioutil.WriteFile(filename, xmlBytes, 0644)
+	err = ioutil.WriteFile(ci.config.Options.JUnitOutput, xmlBytes, 0644)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (ci *CI) JUnitEnabled() bool {
+	return ci.config.Options.JUnitOutput != ""
 }

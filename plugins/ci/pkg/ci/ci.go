@@ -1,7 +1,6 @@
 package ci
 
 import (
-	"archive/tar"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -26,6 +25,8 @@ import (
 	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
 )
 
+const configFileName = "fairwinds-insights.yaml"
+
 type formFile struct {
 	field    string
 	filename string
@@ -41,21 +42,58 @@ type gitInfo struct {
 	repoName      string
 }
 
+type CI struct {
+	token        string
+	repoBasePath string
+	configFolder string
+	config       *models.Configuration
+}
+
+// Create a new CI instance based on flag cloneRepo
+func NewCI(cloneRepo bool) (*CI, error) {
+	logrus.Infof("cloneRepo: %v", cloneRepo)
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
+	}
+	repoBasePath, config, err := setupConfiguration(cloneRepo)
+	if err != nil {
+		return nil, fmt.Errorf("could not get configuration: %v", err)
+	}
+
+	configFolder := config.Options.TempFolder + "/configuration/"
+	err = os.MkdirAll(configFolder, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("Could not make directory %s: %v", configFolder, err)
+	}
+
+	ci := CI{
+		token:        token,
+		repoBasePath: repoBasePath,
+		configFolder: configFolder,
+		config:       config,
+	}
+
+	logrus.Infof("%+v", ci)
+
+	return &ci, nil
+}
+
 // GetAllResources scans a folder of yaml files and returns all of the images and resources used.
-func GetAllResources(configDir string, configurationObject models.Configuration) ([]trivymodels.Image, []models.Resource, error) {
+func (ci *CI) GetAllResources() ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
-	err := filepath.Walk(configDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(ci.configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
 			return nil
 		}
 
-		displayFilename, err := filepath.Rel(configDir, path)
+		displayFilename, err := filepath.Rel(ci.configFolder, path)
 		if err != nil {
 			return err
 		}
 		var helmName string
-		for _, helm := range configurationObject.Manifests.Helm {
+		for _, helm := range ci.config.Manifests.Helm {
 			if strings.HasPrefix(displayFilename, helm.Name+"/") {
 				parts := strings.Split(displayFilename, "/")
 				parts = parts[2:]
@@ -171,7 +209,7 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 		Name:      name,
 		Namespace: namespace,
 	}
-	podSpec := GetPodSpec(yamlNode)
+	podSpec := getPodSpec(yamlNode)
 	images := getImages(podSpec.(map[string]interface{}))
 	return funk.Map(images, func(c models.Container) trivymodels.Image {
 		return trivymodels.Image{
@@ -188,11 +226,11 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 var podSpecFields = []string{"jobTemplate", "spec", "template"}
 var containerSpecFields = []string{"containers", "initContainers"}
 
-// GetPodSpec looks inside arbitrary YAML for a PodSpec
-func GetPodSpec(yaml map[string]interface{}) interface{} {
+// getPodSpec looks inside arbitrary YAML for a PodSpec
+func getPodSpec(yaml map[string]interface{}) interface{} {
 	for _, child := range podSpecFields {
 		if childYaml, ok := yaml[child]; ok {
-			return GetPodSpec(childYaml.(map[string]interface{}))
+			return getPodSpec(childYaml.(map[string]interface{}))
 		}
 	}
 	return yaml
@@ -220,111 +258,20 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 	return images
 }
 
-// GetShaAndRepoTags returns the SHA and repo-tags from a tarball of a an image.
-func GetShaAndRepoTags(path string) (string, []string, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return "", nil, err
-	}
-	defer f.Close()
-
-	tarReader := tar.NewReader(f)
-	for {
-		header, err := tarReader.Next()
-
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return "", nil, err
-		}
-		if header.Name != "manifest.json" {
-			continue
-		}
-		bytes, err := ioutil.ReadAll(tarReader)
-		if err != nil {
-			return "", nil, err
-		}
-		jsonBody := make([]interface{}, 0)
-		err = json.Unmarshal(bytes, &jsonBody)
-		if err != nil {
-			return "", nil, err
-		}
-		allRepoTags := make([]string, 0)
-		var configFileName string
-		for _, imageDef := range jsonBody {
-			configFileName = imageDef.(map[string]interface{})["Config"].(string)
-			repoTags := imageDef.(map[string]interface{})["RepoTags"].([]interface{})
-			for _, tag := range repoTags {
-				allRepoTags = append(allRepoTags, tag.(string))
-			}
-		}
-		sha, err := GetImageSha(path, configFileName)
-		if err != nil {
-			return "", nil, err
-		}
-		return sha, allRepoTags, nil
-	}
-	return "", nil, err
-}
-
-// GetImageSha returns the sha from a tarball of a an image.
-func GetImageSha(path string, configFileName string) (string, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	tarReader := tar.NewReader(f)
-	for {
-		header, err := tarReader.Next()
-
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return "", err
-		}
-		if header.Name != configFileName {
-			continue
-		}
-		bytes, err := ioutil.ReadAll(tarReader)
-		if err != nil {
-			return "", err
-		}
-		var jsonBody interface{}
-		err = json.Unmarshal(bytes, &jsonBody)
-		if err != nil {
-			return "", err
-		}
-		imageSha := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"]
-
-		if imageSha != nil {
-			sha, ok := imageSha.(string)
-			if !ok {
-				return "", nil
-			}
-			return sha, nil
-		}
-	}
-	return "", nil
-}
-
 // SendResults sends the results to Insights
-func SendResults(reports []models.ReportInfo, resources []models.Resource, configurationObject models.Configuration, token string) (*models.ScanResults, error) {
+func (ci *CI) SendResults(reports []models.ReportInfo, resources []models.Resource) (*models.ScanResults, error) {
 	var b bytes.Buffer
 
 	formFiles := []formFile{{
 		field:    "fairwinds-insights",
-		filename: "fairwinds-insights.yaml",
-		location: filepath.Join(configurationObject.RepoBasePath, "fairwinds-insights.yaml"),
+		filename: configFileName,
+		location: filepath.Join(ci.repoBasePath, configFileName),
 	}}
 	for _, report := range reports {
 		formFiles = append(formFiles, formFile{
 			field:    report.Report,
 			filename: report.Filename,
-			location: filepath.Join(configurationObject.Options.TempFolder, report.Filename),
+			location: filepath.Join(ci.config.Options.TempFolder, report.Filename),
 		})
 	}
 
@@ -347,12 +294,12 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(configurationObject.RepoBasePath, configurationObject.Options.RepositoryName, configurationObject.Options.BaseBranch)
+	repoDetails, err := getGitInfo(ci.repoBasePath, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
 
-	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", configurationObject.Options.Hostname, configurationObject.Options.Organization)
+	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", ci.config.Options.Hostname, ci.config.Options.Organization)
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		logrus.Warn("Unable to create Request")
@@ -360,20 +307,20 @@ func SendResults(reports []models.ReportInfo, resources []models.Resource, confi
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+ci.token)
 	req.Header.Set("X-Commit-Hash", repoDetails.currentHash)
 	req.Header.Set("X-Commit-Message", repoDetails.commitMessage)
 	req.Header.Set("X-Branch-Name", repoDetails.branch)
 	req.Header.Set("X-Master-Hash", repoDetails.masterHash)
-	req.Header.Set("X-Base-Branch", configurationObject.Options.BaseBranch)
+	req.Header.Set("X-Base-Branch", ci.config.Options.BaseBranch)
 	req.Header.Set("X-Origin", repoDetails.origin)
 	req.Header.Set("X-Repository-Name", repoDetails.repoName)
-	req.Header.Set("X-New-AI-Threshold", strconv.Itoa(configurationObject.Options.NewActionItemThreshold))
-	req.Header.Set("X-Severity-Threshold", configurationObject.Options.SeverityThreshold)
+	req.Header.Set("X-New-AI-Threshold", strconv.Itoa(ci.config.Options.NewActionItemThreshold))
+	req.Header.Set("X-Severity-Threshold", ci.config.Options.SeverityThreshold)
 	req.Header.Set("X-Script-Version", os.Getenv("SCRIPT_VERSION"))
 	req.Header.Set("X-Image-Version", os.Getenv("IMAGE_VERSION"))
 	for _, report := range reports {
-		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)
+		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, strings.TrimSuffix(report.Version, "\n"))
 	}
 
 	client := &http.Client{}
@@ -467,37 +414,37 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 		}
 		repoName = strings.TrimSuffix(repoName, ".git")
 	}
-	gitInfo := gitInfo{
+	return &gitInfo{
 		masterHash:    strings.TrimSuffix(masterHash, "\n"),
 		currentHash:   strings.TrimSuffix(currentHash, "\n"),
 		commitMessage: strings.TrimSuffix(commitMessage, "\n"),
 		branch:        strings.TrimSuffix(branch, "\n"),
 		origin:        strings.TrimSuffix(origin, "\n"),
 		repoName:      strings.TrimSuffix(repoName, "\n"),
-	}
-
-	return &gitInfo, nil
+	}, nil
 }
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
-func ProcessHelmTemplates(helmConfigs []models.HelmConfig, tempFolder string, configFolder string) error {
+func (ci *CI) ProcessHelmTemplates() error {
+	helmConfigs := ci.config.Manifests.Helm
+	tempFolder := ci.config.Options.TempFolder
 	for _, helm := range helmConfigs {
 		if helm.IsLocal() && helm.IsRemote() {
 			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
 		}
 		if helm.IsLocal() {
-			err := handleLocalHelmChart(helm, tempFolder, configFolder)
+			err := handleLocalHelmChart(helm, tempFolder, ci.configFolder)
 			if err != nil {
 				return err
 			}
 		} else if helm.IsRemote() {
 			if helm.IsFluxFile() {
-				err := handleFluxHelmChart(helm, tempFolder, configFolder)
+				err := handleFluxHelmChart(helm, tempFolder, ci.configFolder)
 				if err != nil {
 					return err
 				}
 			} else {
-				err := handleRemoteHelmChart(helm, tempFolder, configFolder)
+				err := handleRemoteHelmChart(helm, tempFolder, ci.configFolder)
 				if err != nil {
 					return err
 				}
@@ -619,14 +566,13 @@ func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, 
 	return nil
 }
 
-// resolveHelmValuesPath file takes precedence over values
 func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, fluxValues map[string]interface{}, tempFolder string) (string, error) {
 	hasValuesFile := valuesFile != ""
 	hasValues := len(values) > 0
 	hasFluxValues := len(fluxValues) > 0
 
 	if hasValuesFile || hasValues || hasFluxValues { // has any
-		if !exactlyOneOf(hasValuesFile, hasValues, hasFluxValues) { // if has any, must have exactly one
+		if !util.ExactlyOneOf(hasValuesFile, hasValues, hasFluxValues) { // if has any, must have exactly one
 			return "", fmt.Errorf("only one of valuesFile, values or <fluxFile>.values can be specified")
 		}
 	}
@@ -663,26 +609,133 @@ func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, flu
 	return "", nil
 }
 
-func exactlyOneOf(inputs ...bool) bool {
-	foundAtLeastOne := false
-	for _, input := range inputs {
-		if input {
-			if foundAtLeastOne {
-				return false
-			}
-			foundAtLeastOne = true
-		}
-	}
-	return foundAtLeastOne
-}
-
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
-func CopyYaml(configurationObject models.Configuration, configFolder string) error {
-	for _, path := range configurationObject.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", path, configFolder), "Copying yaml file to config folder")
+func (ci *CI) CopyYaml() error {
+	for _, path := range ci.config.Manifests.YamlPaths {
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", path, ci.configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// all modifications to config struct must be done in this context
+func setupConfiguration(cloneRepo bool) (string, *models.Configuration, error) {
+	if cloneRepo {
+		return getConfigurationForClonedRepo()
+	}
+	return getDefaultConfiguration()
+}
+
+func getDefaultConfiguration() (string, *models.Configuration, error) {
+	// i.e.: ./fairwinds-insights.yaml
+	config, err := readConfigurationFromFile("./" + configFileName)
+	if err != nil {
+		return "", nil, err
+	}
+	config.SetDefaults()
+	config.SetPathDefaults()
+
+	err = config.CheckForErrors()
+	if err != nil {
+		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+	}
+	return filepath.Base(""), config, nil
+}
+
+func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
+	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
+	if repoFullName == "" {
+		return "", nil, errors.New("REPOSITORY_NAME environment variable not set")
+	}
+
+	branch := strings.TrimSpace(os.Getenv("BRANCH"))
+	if branch == "" {
+		return "", nil, errors.New("BRANCH environment variable not set")
+	}
+
+	accessToken := strings.TrimSpace(os.Getenv("ACCESS_TOKEN"))
+	if accessToken == "" {
+		return "", nil, errors.New("ACCESS_TOKEN environment variable not set")
+	}
+
+	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
+		return "", nil, errors.New("IMAGE_VERSION environment variable not set")
+	}
+
+	basePath := filepath.Join("/app", "repository")
+	_, repoName := util.GetRepoDetails(repoFullName)
+	baseRepoPath := filepath.Join(basePath, repoName)
+
+	err := os.RemoveAll(baseRepoPath)
+	if err != nil {
+		return "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
+	}
+
+	_, err = commands.ExecInDir(basePath, exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s", accessToken, repoFullName)), "cloning github repository")
+	if err != nil {
+		return "", nil, fmt.Errorf("unable to clone repository: %v", err)
+	}
+
+	// i.e.: /app/repository/blog/fairwinds-insights.yaml
+	configFilePath := filepath.Join(basePath, repoName, configFileName)
+
+	config, err := readConfigurationFromFile(configFilePath)
+	if err != nil {
+		return "", nil, err
+	}
+	config.SetDefaults()
+	err = config.SetMountedPathDefaults(basePath, baseRepoPath)
+	if err != nil {
+		return "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
+	}
+
+	err = config.CheckForErrors()
+	if err != nil {
+		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+	}
+
+	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "update-ref", "refs/heads/"+config.Options.BaseBranch, "refs/remotes/origin/"+config.Options.BaseBranch), "updating branch ref")
+	if err != nil {
+		return "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
+	}
+
+	return baseRepoPath, config, nil
+}
+
+func readConfigurationFromFile(configFilePath string) (*models.Configuration, error) {
+	configHandler, err := os.Open(configFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, errors.New("Please add fairwinds-insights.yaml to the base of your repository.")
+		} else {
+			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml: %v", err)
+		}
+	}
+	configContents, err := ioutil.ReadAll(configHandler)
+	if err != nil {
+		return nil, fmt.Errorf("Could not read fairwinds-insights.yaml: %v", err)
+	}
+	config := models.Configuration{}
+	err = yaml.Unmarshal(configContents, &config)
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse fairwinds-insights.yaml: %v", err)
+	}
+	return &config, nil
+}
+
+// Hostname return the configured hostname
+func (ci *CI) Hostname() string {
+	return ci.config.Options.Hostname
+}
+
+// ExitCode return if the exitCode flag is set
+func (ci *CI) ExitCode() bool {
+	return ci.config.Options.SetExitCode
+}
+
+// Organization returns the configured organization
+func (ci *CI) Organization() string {
+	return ci.config.Options.Organization
 }

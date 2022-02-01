@@ -1,4 +1,4 @@
-package opa
+package ci
 
 import (
 	"context"
@@ -24,20 +24,20 @@ import (
 const opaVersion = "0.2.8"
 
 // ProcessOPA runs all checks against the provided Custom Check
-func ProcessOPA(ctx context.Context, configurationObject models.Configuration) (models.ReportInfo, error) {
+func (ci CI) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "opa",
 		Filename: "opa.json",
 		Version:  opaVersion,
 	}
 
-	instances, checks, err := refreshChecks(configurationObject)
+	instances, checks, err := refreshChecks(*ci.config)
 	if err != nil {
 		return report, err
 	}
 	var files []map[string]interface{}
 	actionItems := make([]opa.ActionItem, 0)
-	configFolder := configurationObject.Options.TempFolder + "/configuration/"
+	configFolder := ci.config.Options.TempFolder + "/configuration/"
 	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") {
 			return nil
@@ -91,7 +91,7 @@ func ProcessOPA(ctx context.Context, configurationObject models.Configuration) (
 	if err != nil {
 		return report, err
 	}
-	err = ioutil.WriteFile(configurationObject.Options.TempFolder+"/"+report.Filename, bytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), bytes, 0644)
 	if err != nil {
 		return report, err
 	}
@@ -168,4 +168,8 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 
 	}
 	return actionItems, nil
+}
+
+func (ci *CI) OPAEnabled() bool {
+	return *ci.config.Reports.OPA.Enabled
 }
