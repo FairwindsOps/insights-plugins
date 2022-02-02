@@ -5,7 +5,6 @@ import (
 
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ActionItem represents an action item from a report
@@ -141,51 +140,6 @@ func (supposedInstance CheckSetting) GetCustomCheckInstance() CustomCheckInstanc
 	}
 }
 
-func (supposedInstance CheckSetting) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
-	output := map[string]interface{}{}
-	if supposedInstance.AdditionalData.Output.Remediation != nil {
-		output["remediation"] = supposedInstance.AdditionalData.Output.Remediation
-	}
-	if supposedInstance.AdditionalData.Output.Title != nil {
-		output["title"] = supposedInstance.AdditionalData.Output.Title
-	}
-	if supposedInstance.AdditionalData.Output.Severity != nil {
-		output["severity"] = supposedInstance.AdditionalData.Output.Severity
-	}
-	if supposedInstance.AdditionalData.Output.Category != nil {
-		output["category"] = supposedInstance.AdditionalData.Output.Category
-	}
-	spec := map[string]interface{}{
-		"customCheckName": supposedInstance.CheckName,
-		"output":          output,
-		"targets": funk.Map(supposedInstance.Targets, func(s string) map[string]interface{} {
-			splitValues := strings.Split(s, "/")
-			return map[string]interface{}{
-				"apiGroups": []string{splitValues[0]},
-				"kinds":     []string{splitValues[1]},
-			}
-		}).([]map[string]interface{}),
-	}
-
-	if supposedInstance.AdditionalData.Parameters != nil {
-		spec["parameters"] = supposedInstance.AdditionalData.Parameters
-	}
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "CustomCheckInstance",
-			"apiVersion": instanceGvr.Group + "/" + instanceGvr.Version,
-			"metadata": map[string]interface{}{
-				"name":      supposedInstance.AdditionalData.Name,
-				"namespace": namespace,
-				"labels": map[string]string{
-					"insights.fairwinds.com/managed": "true",
-				},
-			},
-			"spec": spec,
-		},
-	}
-}
-
 func (supposedCheck OPACustomCheck) GetCustomCheck() CustomCheck {
 	return CustomCheck{
 		ObjectMeta: metav1.ObjectMeta{
@@ -199,42 +153,6 @@ func (supposedCheck OPACustomCheck) GetCustomCheck() CustomCheck {
 				Category:    supposedCheck.Category,
 			},
 			Rego: supposedCheck.Rego,
-		},
-	}
-}
-
-func (supposedCheck OPACustomCheck) GetUnstructuredObject(namespace string) *unstructured.Unstructured {
-
-	output := map[string]interface{}{}
-	if supposedCheck.Remediation != nil {
-		output["remediation"] = supposedCheck.Remediation
-	}
-	if supposedCheck.Title != nil {
-		output["title"] = supposedCheck.Title
-	}
-	if supposedCheck.Severity != nil {
-		output["severity"] = supposedCheck.Severity
-	}
-	if supposedCheck.Category != nil {
-		output["category"] = supposedCheck.Category
-	}
-
-	// TODO add owner ref
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "CustomCheck",
-			"apiVersion": checkGvr.Group + "/" + checkGvr.Version,
-			"metadata": map[string]interface{}{
-				"name":      supposedCheck.Name,
-				"namespace": namespace,
-				"labels": map[string]string{
-					"insights.fairwinds.com/managed": "true",
-				},
-			},
-			"spec": map[string]interface{}{
-				"rego":   supposedCheck.Rego,
-				"output": output,
-			},
 		},
 	}
 }
