@@ -69,7 +69,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 			for _, checkInstance := range checkInstances {
 				if check.Name == checkInstance.CheckName {
 					fmt.Printf("PRocessing instance %s to go with check %s\n", checkInstance.CheckName, check.Name)
-					newItems, err := processCheck(ctx, check.GetCustomCheck(), checkInstance.GetCustomCheckInstance())
+					newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 					if err != nil {
 						lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
 						logrus.Warn(lastError.Error())
@@ -77,6 +77,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 					}
 					actionItems = append(actionItems, newItems...)
 					break // Go back to outer checks loop
+					// marker
 				}
 			}
 		case 2.0:
@@ -95,7 +96,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 	return actionItems, nil
 }
 
-func processCheck(ctx context.Context, check CustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
+func processCheck(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
@@ -128,7 +129,7 @@ func processCheckV2(ctx context.Context, check CustomCheck) ([]ActionItem, error
 	return actionItems, nil
 }
 
-func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance CustomCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
+func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
 	mapping, err := client.RestMapper.RESTMapping(gk)
@@ -172,14 +173,14 @@ func processCheckTargetV2(ctx context.Context, check CustomCheck, gk schema.Grou
 	return actionItems, nil
 }
 
-func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
-	results, err := runRegoForItem(ctx, check.Spec.Rego, instance.Spec.Parameters, obj, insightsInfo)
+func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
 		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
 		return nil, err
 	}
 	aiDetails := OutputFormat{}
-	aiDetails.SetDefaults(check.Spec.Output, instance.Spec.Output)
+	aiDetails.SetDefaults(check.GetOutputFormat(), instance.Spec.Output)
 	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, instance.Name, aiDetails)
 	return newItems, err
 }

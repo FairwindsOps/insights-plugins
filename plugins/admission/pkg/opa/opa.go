@@ -56,20 +56,6 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 			continue
 		}
 		checkObject := maybeCheckObject.(opa.OPACustomCheck)
-		check := opa.CustomCheck{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: checkObject.Name,
-			},
-			Spec: opa.CustomCheckSpec{
-				Output: opa.OutputFormat{
-					Title:       checkObject.Title,
-					Severity:    checkObject.Severity,
-					Remediation: checkObject.Remediation,
-					Category:    checkObject.Category,
-				},
-				Rego: checkObject.Rego,
-			},
-		}
 		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
 		if err != nil {
 			return report, err
