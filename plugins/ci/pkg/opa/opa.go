@@ -159,8 +159,7 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 		if maybeCheckObject == nil {
 			continue
 		}
-		checkObject := maybeCheckObject.(opa.OPACustomCheck)
-		check := checkObject.GetCustomCheck()
+		check := maybeCheckObject.(opa.OPACustomCheck)
 		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
 		if err != nil {
 			return actionItems, err

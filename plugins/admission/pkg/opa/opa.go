@@ -55,7 +55,7 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 		if maybeCheckObject == nil {
 			continue
 		}
-		checkObject := maybeCheckObject.(opa.OPACustomCheck)
+		check := maybeCheckObject.(opa.OPACustomCheck)
 		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
 		if err != nil {
 			return report, err

@@ -77,7 +77,6 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 					}
 					actionItems = append(actionItems, newItems...)
 					break // Go back to outer checks loop
-					// marker
 				}
 			}
 		case 2.0:

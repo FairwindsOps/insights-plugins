@@ -4,9 +4,7 @@
 * Add an `insightsinfo` function to make Insights information available in rego.
 
 ## 0.5.1
-
 * Update OPA plugin to support removal of CRD
-
 ## 0.5.0
 * Update Polaris to version 5.0.0
 

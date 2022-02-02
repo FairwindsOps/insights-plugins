@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.4.0
+## 1.0.3
+* Process v2 CustomChecks, which use a list of Kubernetes APIGroup/Kind passed to the OPA plugin, instead of Insights Instance yaml accompanying the rego policy.
 
-## 1.0.1
+## 1.0.2
 * Errors from the `kubernetes` function now cause rego to fail, and log warnings.
 * Add a `insightsinfo` function that makes Insights information available in policies.
 
