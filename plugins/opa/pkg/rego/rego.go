@@ -72,6 +72,25 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 	return getOutputArray(rs), nil
 }
 
+// func RunRegoForItemV2 evaluates rego against a Kube object. IT replaces
+// RunRegoForItemV() and supports v2 of Insights OPACustomChecks.
+func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
+	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
+	query, err := r.PrepareForEval(ctx)
+	if err != nil {
+		logrus.Errorf("Error while preparing rego query for evaluation: %v", err)
+		return nil, err
+	}
+
+	evaluatedInput := rego.EvalInput(obj)
+	rs, err := query.Eval(ctx, evaluatedInput)
+	if err != nil {
+		logrus.Errorf("Error while evaluating query: %v", err)
+		return nil, err
+	}
+	return getOutputArray(rs), nil
+}
+
 func getDataFunction(fn func(context.Context, string, string) ([]interface{}, error)) func(rego.BuiltinContext, *ast.Term, *ast.Term) (*ast.Term, error) {
 	return func(rctx rego.BuiltinContext, groupAST, kindAST *ast.Term) (*ast.Term, error) {
 		group, err1 := getStringFromAST(groupAST)

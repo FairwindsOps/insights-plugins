@@ -23,12 +23,21 @@ var (
 	defaultDescription = ""
 	defaultRemediation = ""
 	defaultCategory    = "Security"
+	CLIKubeTargets     []KubeTarget
 )
 
 var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customcheckinstances"}
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func Run(ctx context.Context) ([]ActionItem, error) {
+	// Temporary until CLI processing happens.
+	CLIKubeTargets = make([]KubeTarget, 1)
+	CLIKubeTargets[0].APIGroups = make([]string, 1)
+	CLIKubeTargets[0].Kinds = make([]string, 1)
+	CLIKubeTargets[0].APIGroups[0] = "apps"
+	CLIKubeTargets[0].Kinds[0] = "Deployment"
+	fmt.Printf("CLI Kube Targets is: %#v\n", CLIKubeTargets)
+
 	thisNamespace := "insights-agent"
 	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err == nil { //Ignore errors because that means this isn't running in a container
@@ -40,7 +49,7 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 		return nil, err
 	}
 
-	logrus.Infof("Found %d checks", len(jsonResponse.Instances))
+	logrus.Infof("Found %d checks and %d instances", len(jsonResponse.Checks), len(jsonResponse.Instances))
 
 	ais, err := processAllChecks(ctx, jsonResponse.Instances, jsonResponse.Checks, thisNamespace)
 	if err != nil {
@@ -53,18 +62,34 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 	actionItems := make([]ActionItem, 0)
 	var lastError error = nil
 
-	for _, checkInstance := range checkInstances {
-
-		for _, check := range checks {
-			if check.Name == checkInstance.CheckName {
-				newItems, err := processCheck(ctx, check.GetCustomCheck(), checkInstance.GetCustomCheckInstance())
-				if err != nil {
-					lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
-					logrus.Warn(lastError.Error())
-					continue
+	for _, check := range checks {
+		fmt.Printf("Check %s is version %.1f\n", check.Name, check.Version)
+		switch check.Version {
+		case 1.0:
+			for _, checkInstance := range checkInstances {
+				if check.Name == checkInstance.CheckName {
+					fmt.Printf("PRocessing instance %s to go with check %s\n", checkInstance.CheckName, check.Name)
+					newItems, err := processCheck(ctx, check.GetCustomCheck(), checkInstance.GetCustomCheckInstance())
+					if err != nil {
+						lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
+						logrus.Warn(lastError.Error())
+						break // Go back to outer checks loop
+					}
+					actionItems = append(actionItems, newItems...)
+					break // Go back to outer checks loop
 				}
-				actionItems = append(actionItems, newItems...)
 			}
+		case 2.0:
+			fmt.Println("processing 2.0 check. . .")
+			newItems, err := processCheckV2(ctx, check.GetCustomCheck())
+			if err != nil {
+				lastError = fmt.Errorf("error while processing check %s: %v", check.Name, err)
+				logrus.Warn(lastError.Error())
+				continue
+			}
+			actionItems = append(actionItems, newItems...)
+		default:
+			logrus.Warnf("CustomCheck %s is an unexpected version %.1f and will not be run", check.Name, check.Version)
 		}
 	}
 	return actionItems, nil
@@ -77,6 +102,23 @@ func processCheck(ctx context.Context, check CustomCheck, checkInstance CustomCh
 		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
 			logrus.Errorf("Error while processing check %s: %v", checkInstance.Spec.CustomCheckName, err)
+			return nil, err
+		}
+
+		actionItems = append(actionItems, newAI...)
+	}
+
+	return actionItems, nil
+}
+
+func processCheckV2(ctx context.Context, check CustomCheck) ([]ActionItem, error) {
+	actionItems := make([]ActionItem, 0)
+
+	for _, gk := range getGroupKinds(CLIKubeTargets) {
+		fmt.Printf("About to process target for GK %s of V2 check\n", gk)
+		newAI, err := processCheckTargetV2(ctx, check, gk)
+		if err != nil {
+			logrus.Errorf("Error while processing V2 check that I do not know how to name: %v", check.Name, err)
 			return nil, err
 		}
 
@@ -108,6 +150,28 @@ func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance Cu
 	return actionItems, nil
 }
 
+func processCheckTargetV2(ctx context.Context, check CustomCheck, gk schema.GroupKind) ([]ActionItem, error) {
+	client := kube.GetKubeClient()
+	actionItems := make([]ActionItem, 0)
+	mapping, err := client.RestMapper.RESTMapping(gk)
+	if err != nil {
+		return actionItems, err
+	}
+	gvr := mapping.Resource
+	list, err := client.DynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, obj := range list.Items {
+		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
+		if err != nil {
+			return nil, err
+		}
+		actionItems = append(actionItems, newItems...)
+	}
+	return actionItems, nil
+}
+
 func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
 	results, err := runRegoForItem(ctx, check.Spec.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
@@ -120,9 +184,26 @@ func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance Custom
 	return newItems, err
 }
 
+func ProcessCheckForItemV2(ctx context.Context, check CustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+	results, err := runRegoForItemV2(ctx, check.Spec.Rego, obj, insightsInfo)
+	if err != nil {
+		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
+		return nil, err
+	}
+	aiDetails := OutputFormat{}
+	aiDetails.SetDefaults(check.Spec.Output)
+	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, "todo get real check name", aiDetails)
+	return newItems, err
+}
+
 func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
 	client := kube.GetKubeClient()
 	return rego.RunRegoForItem(ctx, body, params, obj, *client, insightsInfo)
+}
+
+func runRegoForItemV2(ctx context.Context, body string, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
+	client := kube.GetKubeClient()
+	return rego.RunRegoForItemV2(ctx, body, obj, *client, insightsInfo)
 }
 
 func getInsightsChecks() (clusterCheckModel, error) {

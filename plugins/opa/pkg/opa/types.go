@@ -89,6 +89,7 @@ type clusterCheckModel struct {
 
 type OPACustomCheck struct {
 	Name                     string
+	Version                  float32
 	Rego                     string
 	Title                    *string
 	Severity                 *float64
