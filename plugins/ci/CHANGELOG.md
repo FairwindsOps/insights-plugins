@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.14.1
+## 0.14.2
 * Add an `insightsinfo` function to make Insights information available in rego.
+
+## 0.14.1
+* Update OPA for removed CRD.
 
 ## 0.14.0
 * Update Polaris to version 5.0.0
