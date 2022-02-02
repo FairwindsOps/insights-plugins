@@ -68,12 +68,6 @@ func (o *OutputFormat) SetDefaults(others ...OutputFormat) {
 	}
 }
 
-// CustomCheck is a custom OPA check.
-type CustomCheck struct {
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	Spec              CustomCheckSpec
-}
-
 // CustomCheckSpec is the body of a Custom Check object
 type CustomCheckSpec struct {
 	AdditionalKubernetesData []KubeTarget
@@ -140,19 +134,11 @@ func (supposedInstance CheckSetting) GetCustomCheckInstance() CustomCheckInstanc
 	}
 }
 
-func (supposedCheck OPACustomCheck) GetCustomCheck() CustomCheck {
-	return CustomCheck{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: supposedCheck.Name,
-		},
-		Spec: CustomCheckSpec{
-			Output: OutputFormat{
-				Title:       supposedCheck.Title,
-				Severity:    supposedCheck.Severity,
-				Remediation: supposedCheck.Remediation,
-				Category:    supposedCheck.Category,
-			},
-			Rego: supposedCheck.Rego,
-		},
+func (supposedCheck OPACustomCheck) GetOutputFormat() OutputFormat {
+	return OutputFormat{
+		Title:       supposedCheck.Title,
+		Severity:    supposedCheck.Severity,
+		Remediation: supposedCheck.Remediation,
+		Category:    supposedCheck.Category,
 	}
 }
