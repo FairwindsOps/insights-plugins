@@ -1,9 +1,11 @@
 # Changelog
 
-## 0.4.0
-
+## 1.0.1
 * Errors from the `kubernetes` function now cause rego to fail, and log warnings.
 * Add a `insightsinfo` function that makes Insights information available in policies.
+
+## 1.0.0
+* Remove Opa CRD
 
 ## 0.3.14
 * Update policy examples to have consistent indentation
