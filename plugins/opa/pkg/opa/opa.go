@@ -11,8 +11,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
@@ -36,68 +34,43 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	if err == nil { //Ignore errors because that means this isn't running in a container
 		thisNamespace = string(namespaceBytes)
 	}
-	refreshErr := refreshLocalChecks(ctx, thisNamespace)
-	if refreshErr != nil {
-		logrus.Warnf("An error occured refreshing the local cache of checks: %v", refreshErr)
-		// Continue despite the error
-	}
 
-	client := kube.GetKubeClient()
-	checkInstances, err := client.DynamicInterface.Resource(instanceGvr).Namespace("").List(ctx, metav1.ListOptions{})
+	jsonResponse, err := getInsightsChecks()
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Found %d checks", len(checkInstances.Items))
 
-	ais, err := processAllChecks(ctx, client, checkInstances.Items, thisNamespace)
+	logrus.Infof("Found %d checks", len(jsonResponse.Instances))
+
+	ais, err := processAllChecks(ctx, jsonResponse.Instances, jsonResponse.Checks, thisNamespace)
 	if err != nil {
 		return nil, err
 	}
-	return ais, refreshErr
+	return ais, nil
 }
 
-func processAllChecks(ctx context.Context, client *kube.Client, checkInstances []unstructured.Unstructured, thisNamespace string) ([]ActionItem, error) {
+func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks []OPACustomCheck, thisNamespace string) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var lastError error = nil
 
 	for _, checkInstance := range checkInstances {
-		if checkInstance.GetLabels()["insights.fairwinds.com/managed"] != "" && checkInstance.GetNamespace() != thisNamespace {
-			continue
-		}
-		var checkInstanceObject CustomCheckInstance
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(checkInstance.Object, &checkInstanceObject)
-		if err != nil {
-			lastError = fmt.Errorf("failed to parse a check instance: %v", err)
-			logrus.Warn(lastError.Error())
-			continue
-		}
-		logrus.Infof("Starting to process check: %s", checkInstanceObject.Name)
-		check, err := client.DynamicInterface.Resource(checkGvr).Namespace(checkInstanceObject.Namespace).Get(ctx, checkInstanceObject.Spec.CustomCheckName, metav1.GetOptions{})
-		if err != nil {
-			lastError = fmt.Errorf("failed to find check %s/%s referenced by instance %s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, checkInstanceObject.Name, err)
-			logrus.Warn(lastError.Error())
-			continue
-		}
-		var checkObject CustomCheck
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(check.Object, &checkObject)
-		if err != nil {
-			lastError = fmt.Errorf("failed to parse check %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Spec.CustomCheckName, err)
-			logrus.Warn(lastError.Error())
-			continue
-		}
 
-		newItems, err := processCheck(ctx, checkObject, checkInstanceObject)
-		if err != nil {
-			lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstanceObject.Namespace, checkInstanceObject.Name, err)
-			logrus.Warn(lastError.Error())
-			continue
+		for _, check := range checks {
+			if check.Name == checkInstance.CheckName {
+				newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
+				if err != nil {
+					lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
+					logrus.Warn(lastError.Error())
+					continue
+				}
+				actionItems = append(actionItems, newItems...)
+			}
 		}
-		actionItems = append(actionItems, newItems...)
 	}
 	return actionItems, lastError
 }
 
-func processCheck(ctx context.Context, check CustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
+func processCheck(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
@@ -113,7 +86,7 @@ func processCheck(ctx context.Context, check CustomCheck, checkInstance CustomCh
 	return actionItems, nil
 }
 
-func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance CustomCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
+func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
 	mapping, err := client.RestMapper.RESTMapping(gk)
@@ -135,14 +108,14 @@ func processCheckTarget(ctx context.Context, check CustomCheck, checkInstance Cu
 	return actionItems, nil
 }
 
-func ProcessCheckForItem(ctx context.Context, check CustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string) ([]ActionItem, error) {
-	results, err := runRegoForItem(ctx, check.Spec.Rego, instance.Spec.Parameters, obj)
+func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string) ([]ActionItem, error) {
+	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj)
 	if err != nil {
 		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
 		return nil, err
 	}
 	aiDetails := OutputFormat{}
-	aiDetails.SetDefaults(check.Spec.Output, instance.Spec.Output)
+	aiDetails.SetDefaults(check.GetOutputFormat(), instance.Spec.Output)
 	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, instance.Name, aiDetails)
 	return newItems, err
 }
@@ -180,113 +153,6 @@ func getInsightsChecks() (clusterCheckModel, error) {
 		return jsonResponse, err
 	}
 	return jsonResponse, nil
-}
-
-func refreshLocalChecks(ctx context.Context, thisNamespace string) error {
-	client := kube.GetKubeClient()
-	logrus.Infof("Reconciling checks with Insights backend")
-
-	checkClient := client.DynamicInterface.Resource(checkGvr)
-	instanceClient := client.DynamicInterface.Resource(instanceGvr)
-
-	checkInstances, err := instanceClient.Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	checks, err := checkClient.Namespace(thisNamespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	jsonResponse, err := getInsightsChecks()
-	if err != nil {
-		return err
-	}
-
-	logrus.Infof("Found %d checks in Insights, and %d checks in the cluster", len(jsonResponse.Checks), len(checks.Items))
-	logrus.Infof("Found %d check instances in Insights, and %d check instances in the cluster", len(jsonResponse.Instances), len(checkInstances.Items))
-
-	logrus.Infof("Deleting stale checks from the cluster")
-	for _, check := range checks.Items {
-		found := false
-		for _, supposedCheck := range jsonResponse.Checks {
-			if check.GetName() == supposedCheck.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			err = checkClient.Namespace(check.GetNamespace()).Delete(ctx, check.GetName(), metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-
-		}
-	}
-
-	logrus.Infof("Deleting stale check instances from the cluster")
-	for _, instance := range checkInstances.Items {
-		found := false
-		for _, supposedInstance := range jsonResponse.Instances {
-			if instance.GetName() == supposedInstance.AdditionalData.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			err = instanceClient.Namespace(instance.GetNamespace()).Delete(ctx, instance.GetName(), metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	logrus.Infof("Updating checks in the cluster")
-	for _, supposedCheck := range jsonResponse.Checks {
-		found := false
-		for _, check := range checks.Items {
-			if check.GetName() == supposedCheck.Name {
-				found = true
-				break
-			}
-		}
-		newCheck := supposedCheck.GetUnstructuredObject(thisNamespace)
-		if found {
-			err = checkClient.Namespace(thisNamespace).Delete(ctx, supposedCheck.Name, metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
-		_, err = checkClient.Namespace(thisNamespace).Create(ctx, newCheck, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-
-	}
-
-	logrus.Infof("Updating check instances in the cluster")
-	for _, supposedInstance := range jsonResponse.Instances {
-		found := false
-		for _, instance := range checkInstances.Items {
-			if instance.GetName() == supposedInstance.AdditionalData.Name {
-				found = true
-				break
-			}
-		}
-		newInstance := supposedInstance.GetUnstructuredObject(thisNamespace)
-		if found {
-
-			err = instanceClient.Namespace(thisNamespace).Delete(ctx, supposedInstance.AdditionalData.Name, metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
-		}
-
-		_, err = instanceClient.Namespace(thisNamespace).Create(ctx, newInstance, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func maybeGetStringField(m map[string]interface{}, key string) (*string, error) {
