@@ -68,13 +68,6 @@ func (o *OutputFormat) SetDefaults(others ...OutputFormat) {
 	}
 }
 
-// CustomCheckSpec is the body of a Custom Check object
-type CustomCheckSpec struct {
-	AdditionalKubernetesData []KubeTarget
-	Output                   OutputFormat
-	Rego                     string
-}
-
 type clusterCheckModel struct {
 	Checks    []OPACustomCheck
 	Instances []CheckSetting
