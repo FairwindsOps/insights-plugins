@@ -81,7 +81,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 			}
 		case 2.0:
 			fmt.Println("processing 2.0 check. . .")
-			newItems, err := processCheckV2(ctx, check.GetCustomCheck())
+			newItems, err := processCheckV2(ctx, check)
 			if err != nil {
 				lastError = fmt.Errorf("error while processing check %s: %v", check.Name, err)
 				logrus.Warn(lastError.Error())
@@ -111,7 +111,7 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 	return actionItems, nil
 }
 
-func processCheckV2(ctx context.Context, check CustomCheck) ([]ActionItem, error) {
+func processCheckV2(ctx context.Context, check OPACustomCheck) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 
 	for _, gk := range getGroupKinds(CLIKubeTargets) {
@@ -150,7 +150,7 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 	return actionItems, nil
 }
 
-func processCheckTargetV2(ctx context.Context, check CustomCheck, gk schema.GroupKind) ([]ActionItem, error) {
+func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gk schema.GroupKind) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
 	mapping, err := client.RestMapper.RESTMapping(gk)
@@ -184,14 +184,14 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 	return newItems, err
 }
 
-func ProcessCheckForItemV2(ctx context.Context, check CustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
-	results, err := runRegoForItemV2(ctx, check.Spec.Rego, obj, insightsInfo)
+func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+	results, err := runRegoForItemV2(ctx, check.Rego, obj, insightsInfo)
 	if err != nil {
 		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
 		return nil, err
 	}
 	aiDetails := OutputFormat{}
-	aiDetails.SetDefaults(check.Spec.Output)
+	aiDetails.SetDefaults(check.GetOutputFormat())
 	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, "todo get real check name", aiDetails)
 	return newItems, err
 }
