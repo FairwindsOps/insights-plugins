@@ -612,7 +612,7 @@ func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, flu
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CI) CopyYaml() error {
 	for _, path := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", path, ci.configFolder), "Copying yaml file to config folder")
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBasePath, path), ci.configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}
@@ -655,11 +655,6 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 		return "", nil, errors.New("BRANCH environment variable not set")
 	}
 
-	accessToken := strings.TrimSpace(os.Getenv("ACCESS_TOKEN"))
-	if accessToken == "" {
-		return "", nil, errors.New("ACCESS_TOKEN environment variable not set")
-	}
-
 	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
 		return "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
@@ -673,7 +668,14 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 		return "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
 	}
 
-	_, err = commands.ExecInDir(basePath, exec.Command("git", "clone", "--branch", branch, fmt.Sprintf("https://x-access-token:%s@github.com/%s", accessToken, repoFullName)), "cloning github repository")
+	url := fmt.Sprintf("https://@github.com/%s", repoFullName)
+	accessToken := strings.TrimSpace(os.Getenv("ACCESS_TOKEN"))
+	if accessToken == "" {
+		// access token is required for private repos
+		url = fmt.Sprintf("https://x-access-token:%s@github.com/%s", accessToken, repoFullName)
+	}
+
+	_, err = commands.ExecInDir(basePath, exec.Command("git", "clone", "--branch", branch, url), "cloning github repository")
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to clone repository: %v", err)
 	}
