@@ -670,7 +670,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	url := fmt.Sprintf("https://@github.com/%s", repoFullName)
 	accessToken := strings.TrimSpace(os.Getenv("ACCESS_TOKEN"))
-	if accessToken == "" {
+	if accessToken != "" {
 		// access token is required for private repos
 		url = fmt.Sprintf("https://x-access-token:%s@github.com/%s", accessToken, repoFullName)
 	}
