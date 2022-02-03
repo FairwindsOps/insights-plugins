@@ -50,21 +50,26 @@ type CI struct {
 }
 
 // Create a new CI instance based on flag cloneRepo
-func NewCI(cloneRepo bool) (*CI, error) {
+func NewCI(cloneRepo bool) (*CI, func(), error) {
 	logrus.Infof("cloneRepo: %v", cloneRepo)
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
-		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
+		return nil, func() {}, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
 	repoBasePath, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
-		return nil, fmt.Errorf("could not get configuration: %v", err)
+		return nil, func() {}, fmt.Errorf("could not get configuration: %v", err)
+	}
+
+	cleanUpFn := func() {
+		os.RemoveAll(config.Options.TempFolder)
+		os.RemoveAll(config.Images.FolderName)
 	}
 
 	configFolder := config.Options.TempFolder + "/configuration/"
 	err = os.MkdirAll(configFolder, 0755)
 	if err != nil {
-		return nil, fmt.Errorf("Could not make directory %s: %v", configFolder, err)
+		return nil, cleanUpFn, fmt.Errorf("Could not make directory %s: %v", configFolder, err)
 	}
 
 	ci := CI{
@@ -76,7 +81,7 @@ func NewCI(cloneRepo bool) (*CI, error) {
 
 	logrus.Infof("%+v", ci)
 
-	return &ci, nil
+	return &ci, cleanUpFn, nil
 }
 
 // GetAllResources scans a folder of yaml files and returns all of the images and resources used.

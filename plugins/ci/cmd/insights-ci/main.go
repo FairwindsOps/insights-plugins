@@ -25,7 +25,8 @@ func exitWithError(message string, err error) {
 
 func main() {
 	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
-	ci, err := ci.NewCI(cloneRepo)
+	ci, cleanup, err := ci.NewCI(cloneRepo)
+	defer cleanup()
 	if err != nil {
 		exitWithError(err.Error(), nil)
 	}
