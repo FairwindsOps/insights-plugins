@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.5.1
+## 0.5.2
 * Update dependencies
+
+## 0.5.1
+* Update OPA plugin to support removal of CRD
 
 ## 0.5.0
 * Update Polaris to version 5.0.0

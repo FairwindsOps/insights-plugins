@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.14.1
+## 0.14.2
 * Update dependencies
+
+## 0.14.1
+* Update OPA for removed CRD.
 
 ## 0.14.0
 * Update Polaris to version 5.0.0
