@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.3.2
+* Update dependencies
 ## 0.3.1
 * Fix panic when attempting to log pod termination time from an incorrect pod-spec field (FWI-1313).
 * Failure to fetch an OOM-killed pod because of a `NotFound` error is no longer logged as an error.
