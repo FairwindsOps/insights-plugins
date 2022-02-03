@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.6
+* Update dependencies
+
 ## 0.1.5
 * fixed report name
 ## 0.1.4
