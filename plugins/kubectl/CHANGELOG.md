@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.19.13
+* Update dependencies
 ## 0.19.12
 * Bump alpine to 3.15
 ## 0.19.11
