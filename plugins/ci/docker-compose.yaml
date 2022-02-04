@@ -10,7 +10,7 @@ services:
       - "CLONE_REPO=true"
       - "FAIRWINDS_TOKEN=thisisacitoken"
       - "SCRIPT_VERSION="
-      - "IMAGE_VERSION=build_6444"
+      - "IMAGE_VERSION=0.0.1"
       - "REPOSITORY_NAME=vitorvezani/blog"
       - "BRANCH_NAME=main"
       - "BASE_BRANCH=main"
