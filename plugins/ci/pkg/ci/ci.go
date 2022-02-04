@@ -616,8 +616,8 @@ func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, flu
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CI) CopyYaml() error {
-	for _, path := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, path), ci.configFolder), "Copying yaml file to config folder")
+	for _, yamlPath := range ci.config.Manifests.YamlPaths {
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}

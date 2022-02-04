@@ -42,7 +42,7 @@ func main() {
 	}
 
 	// Scan YAML, find all images/kind/etc
-	manifestImages, resources, err := ci.GetAllResources() // TODO: separate this method into two?
+	manifestImages, resources, err := ci.GetAllResources()
 	if err != nil {
 		exitWithError("Error while extracting images from YAML manifests", err)
 	}
