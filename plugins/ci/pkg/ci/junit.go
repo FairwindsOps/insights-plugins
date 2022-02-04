@@ -9,6 +9,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 	"github.com/jstemmer/go-junit-report/formatter"
+	"github.com/sirupsen/logrus"
 )
 
 // SaveJUnitFile will save the
@@ -40,9 +41,10 @@ func (ci *CI) SaveJUnitFile(results models.ScanResults) error {
 		},
 	}
 
-	err := os.MkdirAll(filepath.Dir(ci.config.Options.JUnitOutput), 0644)
+	jUnitOutputFile := filepath.Join(ci.baseFolder, ci.config.Options.JUnitOutput)
+	err := os.MkdirAll(filepath.Dir(jUnitOutputFile), os.ModePerm)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not create dir: %v", err)
 	}
 
 	xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
@@ -50,10 +52,12 @@ func (ci *CI) SaveJUnitFile(results models.ScanResults) error {
 		return err
 	}
 	xmlBytes = append([]byte(xml.Header), xmlBytes...)
-	err = ioutil.WriteFile(ci.config.Options.JUnitOutput, xmlBytes, 0644)
+	err = ioutil.WriteFile(jUnitOutputFile, xmlBytes, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not save file: %v", err)
 	}
+
+	logrus.Info("JUnit results file saved at ", jUnitOutputFile)
 
 	return nil
 }

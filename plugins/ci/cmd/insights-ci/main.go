@@ -104,7 +104,7 @@ func main() {
 	if ci.JUnitEnabled() {
 		err = ci.SaveJUnitFile(*results)
 		if err != nil {
-			exitWithError("Could not save jUnit results", nil)
+			exitWithError("Could not save jUnit results", err)
 		}
 	}
 

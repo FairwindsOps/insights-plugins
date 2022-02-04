@@ -43,10 +43,11 @@ type gitInfo struct {
 }
 
 type CI struct {
-	token        string
-	repoBasePath string
-	configFolder string
-	config       *models.Configuration
+	token          string
+	baseFolder     string // . or /app/repository
+	repoBaseFolder string // . or /app/repository/{repoName}
+	configFolder   string
+	config         *models.Configuration
 }
 
 // Create a new CI instance based on flag cloneRepo
@@ -56,7 +57,7 @@ func NewCI(cloneRepo bool) (*CI, func(), error) {
 	if token == "" {
 		return nil, func() {}, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
-	repoBasePath, config, err := setupConfiguration(cloneRepo)
+	repoBaseFolder, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
 		return nil, func() {}, fmt.Errorf("could not get configuration: %v", err)
 	}
@@ -73,10 +74,11 @@ func NewCI(cloneRepo bool) (*CI, func(), error) {
 	}
 
 	ci := CI{
-		token:        token,
-		repoBasePath: repoBasePath,
-		configFolder: configFolder,
-		config:       config,
+		token:          token,
+		repoBaseFolder: repoBaseFolder,
+		baseFolder:     filepath.Join(repoBaseFolder, "../"),
+		configFolder:   configFolder,
+		config:         config,
 	}
 
 	logrus.Infof("%+v", ci)
@@ -270,7 +272,7 @@ func (ci *CI) SendResults(reports []models.ReportInfo, resources []models.Resour
 	formFiles := []formFile{{
 		field:    "fairwinds-insights",
 		filename: configFileName,
-		location: filepath.Join(ci.repoBasePath, configFileName),
+		location: filepath.Join(ci.repoBaseFolder, configFileName),
 	}}
 	for _, report := range reports {
 		formFiles = append(formFiles, formFile{
@@ -299,7 +301,7 @@ func (ci *CI) SendResults(reports []models.ReportInfo, resources []models.Resour
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(ci.repoBasePath, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
+	repoDetails, err := getGitInfo(ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
@@ -431,25 +433,23 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
 func (ci *CI) ProcessHelmTemplates() error {
-	helmConfigs := ci.config.Manifests.Helm
-	tempFolder := ci.config.Options.TempFolder
-	for _, helm := range helmConfigs {
+	for _, helm := range ci.config.Manifests.Helm {
 		if helm.IsLocal() && helm.IsRemote() {
 			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
 		}
 		if helm.IsLocal() {
-			err := handleLocalHelmChart(helm, tempFolder, ci.configFolder)
+			err := handleLocalHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
 			if err != nil {
 				return err
 			}
 		} else if helm.IsRemote() {
 			if helm.IsFluxFile() {
-				err := handleFluxHelmChart(helm, tempFolder, ci.configFolder)
+				err := handleFluxHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
 					return err
 				}
 			} else {
-				err := handleRemoteHelmChart(helm, tempFolder, ci.configFolder)
+				err := handleRemoteHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
 					return err
 				}
@@ -545,7 +545,7 @@ func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesF
 	return doHandleLocalHelmChart(helmName, chartDownloadPath, helmValuesFilePath, tempFolder, configFolder)
 }
 
-func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
+func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
 	if helm.Name == "" || helm.Path == "" {
 		return errors.New("Parameters 'name' and 'path' are required in helm definition")
 	}
@@ -554,7 +554,7 @@ func handleLocalHelmChart(helm models.HelmConfig, tempFolder string, configFolde
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm.Name, helm.Path, helmValuesFilePath, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), helmValuesFilePath, tempFolder, configFolder)
 }
 
 func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {
@@ -617,7 +617,7 @@ func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, flu
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CI) CopyYaml() error {
 	for _, path := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBasePath, path), ci.configFolder), "Copying yaml file to config folder")
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, path), ci.configFolder), "Copying yaml file to config folder")
 		if err != nil {
 			return err
 		}
@@ -745,4 +745,9 @@ func (ci *CI) ExitCode() bool {
 // Organization returns the configured organization
 func (ci *CI) Organization() string {
 	return ci.config.Options.Organization
+}
+
+// RepositoryName returns the name of the repository
+func (ci *CI) RepositoryName() string {
+	return ci.config.Options.RepositoryName
 }
