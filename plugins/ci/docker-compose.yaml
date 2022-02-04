@@ -12,7 +12,9 @@ services:
       - "SCRIPT_VERSION="
       - "IMAGE_VERSION=build_6444"
       - "REPOSITORY_NAME=vitorvezani/blog"
-      - "BRANCH=main"
+      - "BRANCH_NAME=main"
       - "ACCESS_TOKEN="
+      - "ORG_NAME=acme-co"
+      - "HOSTNAME=https://be-vv-fwi-1233-cr.k8s.insights.fairwinds.com"
 volumes:
   {}

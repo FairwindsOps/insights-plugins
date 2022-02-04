@@ -653,7 +653,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 		return "", nil, errors.New("REPOSITORY_NAME environment variable not set")
 	}
 
-	branch := strings.TrimSpace(os.Getenv("BRANCH"))
+	branch := strings.TrimSpace(os.Getenv("BRANCH_NAME"))
 	if branch == "" {
 		return "", nil, errors.New("BRANCH environment variable not set")
 	}
@@ -701,9 +701,10 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
 
-	// overriding some configuration variables
-	config.Options.BaseBranch = branch
-	config.Options.RepositoryName = repoFullName
+	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "update-ref", "refs/heads/"+config.Options.BaseBranch, "refs/remotes/origin/"+config.Options.BaseBranch), "updating branch ref")
+	if err != nil {
+		return "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
+	}
 
 	return baseRepoPath, config, nil
 }

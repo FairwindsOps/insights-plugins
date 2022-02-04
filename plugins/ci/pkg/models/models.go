@@ -183,12 +183,32 @@ func (c *Configuration) SetPathDefaults() {
 }
 
 // SetDefaults sets configuration defaults
+//
+// it should follow the order:
+// - file content > env. variables > default
 func (c *Configuration) SetDefaults() {
 	if c.Options.BaseBranch == "" {
 		c.Options.BaseBranch = "master"
 	}
+	if c.Options.Organization == "" {
+		orgName := strings.TrimSpace(os.Getenv("ORG_NAME"))
+		if orgName != "" {
+			c.Options.Organization = orgName
+		}
+	}
+	if c.Options.RepositoryName == "" {
+		repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
+		if repoName != "" {
+			c.Options.RepositoryName = repoName
+		}
+	}
 	if c.Options.Hostname == "" {
-		c.Options.Hostname = "https://insights.fairwinds.com"
+		hostname := strings.TrimSpace(os.Getenv("HOSTNAME"))
+		if hostname != "" {
+			c.Options.Hostname = hostname
+		} else {
+			c.Options.Hostname = "https://insights.fairwinds.com"
+		}
 	}
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"
