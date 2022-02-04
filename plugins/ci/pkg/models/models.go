@@ -188,7 +188,12 @@ func (c *Configuration) SetPathDefaults() {
 // - file content > env. variables > default
 func (c *Configuration) SetDefaults() {
 	if c.Options.BaseBranch == "" {
-		c.Options.BaseBranch = "master"
+		baseBranch := strings.TrimSpace(os.Getenv("BASE_BRANCH"))
+		if baseBranch != "" {
+			c.Options.BaseBranch = baseBranch
+		} else {
+			c.Options.BaseBranch = "master"
+		}
 	}
 	if c.Options.Organization == "" {
 		orgName := strings.TrimSpace(os.Getenv("ORG_NAME"))
