@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.9
+* update base image
+
 ## 0.3.8
 * Update dependencies
 ## 0.3.7
