@@ -20,3 +20,5 @@ tags.sh
 # vendor/
 
 *.swp
+
+*_tmp
