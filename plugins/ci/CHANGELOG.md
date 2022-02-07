@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.15.0
+* Support for external git repository
+
 ## 0.14.2
 * Update dependencies
 

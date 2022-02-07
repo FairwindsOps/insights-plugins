@@ -3,6 +3,8 @@ package models
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -150,18 +152,68 @@ func maybeAddSlash(input string) string {
 }
 
 // SetDefaults sets configuration defaults
-func (c *Configuration) SetDefaults() {
+func (c *Configuration) SetMountedPathDefaults(basePath, repoPath string) error {
+	c.Options.TempFolder = filepath.Join(basePath, "tmp/_insightsTemp")
+	err := os.MkdirAll(c.Options.TempFolder, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("SetMountedPathDefaults: %v", err)
+	}
+	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
+
+	// TODO: images are copied via script insights-ci.sh, what now?
+	c.Images.FolderName = filepath.Join(basePath, "tmp/_insightsTempImages")
+	err = os.MkdirAll(c.Images.FolderName, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("SetMountedPathDefaults: %v", err)
+	}
+	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
+	return nil
+}
+
+// SetDefaults sets configuration defaults
+func (c *Configuration) SetPathDefaults() {
 	if c.Options.TempFolder == "" {
 		c.Options.TempFolder = "/tmp/_insightsTemp/"
 	}
+	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 	if c.Images.FolderName == "" {
 		c.Images.FolderName = "./_insightsTempImages/"
 	}
+	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
+}
+
+// SetDefaults sets configuration defaults
+//
+// it should follow the order:
+// - file content > env. variables > default
+func (c *Configuration) SetDefaults() {
 	if c.Options.BaseBranch == "" {
-		c.Options.BaseBranch = "master"
+		baseBranch := strings.TrimSpace(os.Getenv("BASE_BRANCH"))
+		if baseBranch != "" {
+			c.Options.BaseBranch = baseBranch
+		} else {
+			c.Options.BaseBranch = "master"
+		}
+	}
+	if c.Options.Organization == "" {
+		orgName := strings.TrimSpace(os.Getenv("ORG_NAME"))
+		if orgName != "" {
+			c.Options.Organization = orgName
+		}
+	}
+	if c.Options.RepositoryName == "" {
+		repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
+		if repoName != "" {
+			c.Options.RepositoryName = repoName
+		}
 	}
 	if c.Options.Hostname == "" {
-		c.Options.Hostname = "https://insights.fairwinds.com"
+		hostname := strings.TrimSpace(os.Getenv("HOSTNAME"))
+		if hostname != "" {
+			c.Options.Hostname = hostname
+		} else {
+			c.Options.Hostname = "https://insights.fairwinds.com"
+		}
 	}
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"
@@ -183,8 +235,6 @@ func (c *Configuration) SetDefaults() {
 	if c.Reports.Trivy.SkipManifests == nil {
 		c.Reports.Trivy.SkipManifests = &falsehood
 	}
-	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
-	c.Images.FolderName = maybeAddSlash(c.Images.FolderName)
 }
 
 // CheckForErrors checks to make sure the configuration is valid
