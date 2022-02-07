@@ -1,7 +1,8 @@
 # Changelog
 
-## 1.0.1
+## 1.0.2
 * Errors from the `kubernetes` function now cause rego to fail, and log warnings.
+* Errors processing OPA policies are no longer logged multiple times, and are bundled and returned at the end of the plugin run.
 * Add a `insightsinfo` function that makes Insights information available in policies.
 
 ## 1.0.0

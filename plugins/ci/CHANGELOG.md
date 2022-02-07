@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.14.2
+## 0.15.2
 * Add an `insightsinfo` function to make Insights information available in rego.
 
 ## 0.14.1
