@@ -1,4 +1,6 @@
 # Changelog
+## 0.15.1
+* Run apk update
 
 ## 0.15.0
 * Support for external git repository
