@@ -30,12 +30,14 @@ RUN go build ./cmd/insights-ci
 
 FROM alpine:3.15
 WORKDIR /insights
+
+RUN apk update && apk upgrade
+RUN apk add --no-cache skopeo git libc6-compat
+
 COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/ci/insights-ci /usr/local/bin/insights-ci
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=build-env /usr/local/bin/polaris /usr/local/bin/polaris
 COPY --from=build-env /usr/local/bin/helm /usr/local/bin/helm
 COPY --from=build-env /usr/local/bin/pluto /usr/local/bin/pluto
-
-RUN apk add --no-cache skopeo git libc6-compat
 
 CMD ["insights-ci"]
