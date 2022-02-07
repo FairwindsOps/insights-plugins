@@ -9,7 +9,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 )
 
-func (ci *CI) GetPlutoReport() (models.ReportInfo, error) {
+func (ci *CIScan) GetPlutoReport() (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "pluto",
 		Filename: "pluto.json",
@@ -27,6 +27,6 @@ func (ci *CI) GetPlutoReport() (models.ReportInfo, error) {
 	return report, nil
 }
 
-func (ci *CI) PlutoEnabled() bool {
+func (ci *CIScan) PlutoEnabled() bool {
 	return *ci.config.Reports.Pluto.Enabled
 }

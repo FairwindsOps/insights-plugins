@@ -10,7 +10,7 @@ import (
 
 const workloadsReportVersion = "0.1.0"
 
-func (ci *CI) GetWorkloadReport(resources []models.Resource) (models.ReportInfo, error) {
+func (ci *CIScan) GetWorkloadReport(resources []models.Resource) (models.ReportInfo, error) {
 	workloadsReport := models.ReportInfo{
 		Report:   "scan-workloads",
 		Filename: "scan-workloads.json",

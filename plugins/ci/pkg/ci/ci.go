@@ -42,7 +42,7 @@ type gitInfo struct {
 	repoName      string
 }
 
-type CI struct {
+type CIScan struct {
 	token          string
 	baseFolder     string // . or /app/repository
 	repoBaseFolder string // . or /app/repository/{repoName}
@@ -51,29 +51,27 @@ type CI struct {
 }
 
 // Create a new CI instance based on flag cloneRepo
-func NewCI(cloneRepo bool) (*CI, func(), error) {
+func NewCIScan() (*CIScan, error) {
+	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
 	logrus.Infof("cloneRepo: %v", cloneRepo)
+
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
-		return nil, func() {}, errors.New("FAIRWINDS_TOKEN environment variable not set")
-	}
-	repoBaseFolder, config, err := setupConfiguration(cloneRepo)
-	if err != nil {
-		return nil, func() {}, fmt.Errorf("could not get configuration: %v", err)
+		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
 
-	cleanUpFn := func() {
-		os.RemoveAll(config.Options.TempFolder)
-		os.RemoveAll(config.Images.FolderName)
+	repoBaseFolder, config, err := setupConfiguration(cloneRepo)
+	if err != nil {
+		return nil, fmt.Errorf("could not get configuration: %v", err)
 	}
 
 	configFolder := config.Options.TempFolder + "/configuration/"
 	err = os.MkdirAll(configFolder, 0755)
 	if err != nil {
-		return nil, cleanUpFn, fmt.Errorf("Could not make directory %s: %v", configFolder, err)
+		return nil, fmt.Errorf("Could not make directory %s: %v", configFolder, err)
 	}
 
-	ci := CI{
+	ci := CIScan{
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
 		baseFolder:     filepath.Join(repoBaseFolder, "../"),
@@ -81,11 +79,16 @@ func NewCI(cloneRepo bool) (*CI, func(), error) {
 		config:         config,
 	}
 
-	return &ci, cleanUpFn, nil
+	return &ci, nil
+}
+
+func (ci *CIScan) Close() {
+	os.RemoveAll(ci.config.Options.TempFolder)
+	os.RemoveAll(ci.config.Images.FolderName)
 }
 
 // GetAllResources scans a folder of yaml files and returns all of the images and resources used.
-func (ci *CI) GetAllResources() ([]trivymodels.Image, []models.Resource, error) {
+func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
 	err := filepath.Walk(ci.configFolder, func(path string, info os.FileInfo, err error) error {
@@ -264,7 +267,7 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 }
 
 // SendResults sends the results to Insights
-func (ci *CI) SendResults(reports []models.ReportInfo, resources []models.Resource) (*models.ScanResults, error) {
+func (ci *CIScan) SendResults(reports []models.ReportInfo, resources []models.Resource) (*models.ScanResults, error) {
 	var b bytes.Buffer
 
 	formFiles := []formFile{{
@@ -430,7 +433,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 }
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
-func (ci *CI) ProcessHelmTemplates() error {
+func (ci *CIScan) ProcessHelmTemplates() error {
 	for _, helm := range ci.config.Manifests.Helm {
 		if helm.IsLocal() && helm.IsRemote() {
 			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
@@ -613,7 +616,7 @@ func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, flu
 }
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
-func (ci *CI) CopyYaml() error {
+func (ci *CIScan) CopyYaml() error {
 	for _, yamlPath := range ci.config.Manifests.YamlPaths {
 		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder")
 		if err != nil {
@@ -672,7 +675,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 	}
 
 	url := fmt.Sprintf("https://@github.com/%s", repoFullName)
-	accessToken := strings.TrimSpace(os.Getenv("ACCESS_TOKEN"))
+	accessToken := strings.TrimSpace(os.Getenv("GITHUB_ACCESS_TOKEN"))
 	if accessToken != "" {
 		// access token is required for private repos
 		url = fmt.Sprintf("https://x-access-token:%s@github.com/%s", accessToken, repoFullName)
@@ -731,21 +734,21 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 }
 
 // Hostname return the configured hostname
-func (ci *CI) Hostname() string {
+func (ci *CIScan) Hostname() string {
 	return ci.config.Options.Hostname
 }
 
 // ExitCode return if the exitCode flag is set
-func (ci *CI) ExitCode() bool {
+func (ci *CIScan) ExitCode() bool {
 	return ci.config.Options.SetExitCode
 }
 
 // Organization returns the configured organization
-func (ci *CI) Organization() string {
+func (ci *CIScan) Organization() string {
 	return ci.config.Options.Organization
 }
 
 // RepositoryName returns the name of the repository
-func (ci *CI) RepositoryName() string {
+func (ci *CIScan) RepositoryName() string {
 	return ci.config.Options.RepositoryName
 }

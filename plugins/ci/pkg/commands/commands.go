@@ -13,6 +13,7 @@ func ExecInDir(dir string, cmd *exec.Cmd, message string) (string, error) {
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		// Vitor - remove access token from cmd
 		logrus.Errorf("Error running %s - %s[%v]", cmd, string(output), err)
 	}
 	return string(output), err

@@ -13,7 +13,7 @@ import (
 )
 
 // SaveJUnitFile will save the
-func (ci *CI) SaveJUnitFile(results models.ScanResults) error {
+func (ci *CIScan) SaveJUnitFile(results models.ScanResults) error {
 	cases := make([]formatter.JUnitTestCase, 0)
 
 	for _, actionItem := range results.NewActionItems {
@@ -62,6 +62,6 @@ func (ci *CI) SaveJUnitFile(results models.ScanResults) error {
 	return nil
 }
 
-func (ci *CI) JUnitEnabled() bool {
+func (ci *CIScan) JUnitEnabled() bool {
 	return ci.config.Options.JUnitOutput != ""
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 )
 
-func (ci *CI) GetTrivyReport(manifestImages []trivymodels.Image) (models.ReportInfo, error) {
+func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.ReportInfo, error) {
 	trivyReport := models.ReportInfo{
 		Report:   "trivy",
 		Filename: "trivy.json",
@@ -278,10 +278,10 @@ func getImageSha(path string, configFileName string) (string, error) {
 	return "", nil
 }
 
-func (ci *CI) TrivyEnabled() bool {
+func (ci *CIScan) TrivyEnabled() bool {
 	return *ci.config.Reports.Trivy.Enabled
 }
 
-func (ci *CI) SkipTrivyManifests() bool {
+func (ci *CIScan) SkipTrivyManifests() bool {
 	return *ci.config.Reports.Trivy.SkipManifests
 }

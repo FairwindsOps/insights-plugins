@@ -9,7 +9,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
 )
 
-func (ci *CI) GetPolarisReport() (models.ReportInfo, error) {
+func (ci *CIScan) GetPolarisReport() (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "polaris",
 		Filename: "polaris.json",
@@ -27,6 +27,6 @@ func (ci *CI) GetPolarisReport() (models.ReportInfo, error) {
 	return report, nil
 }
 
-func (ci *CI) PolarisEnabled() bool {
+func (ci *CIScan) PolarisEnabled() bool {
 	return *ci.config.Reports.Polaris.Enabled
 }

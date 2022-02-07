@@ -24,7 +24,7 @@ import (
 const opaVersion = "0.2.8"
 
 // ProcessOPA runs all checks against the provided Custom Check
-func (ci CI) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
+func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "opa",
 		Filename: "opa.json",
@@ -169,6 +169,6 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 	return actionItems, nil
 }
 
-func (ci *CI) OPAEnabled() bool {
+func (ci *CIScan) OPAEnabled() bool {
 	return *ci.config.Reports.OPA.Enabled
 }
