@@ -1,7 +1,15 @@
 # Changelog
-
 ## 0.15.2
 * Add an `insightsinfo` function to make Insights information available in rego.
+
+## 0.15.1
+* Run apk update
+
+## 0.15.0
+* Support for external git repository
+
+## 0.14.2
+* Update dependencies
 
 ## 0.14.1
 * Update OPA for removed CRD.

@@ -3,6 +3,9 @@
 ## 0.5.3
 * Add an `insightsinfo` function to make Insights information available in rego.
 
+## 0.5.2
+* Update dependencies
+
 ## 0.5.1
 * Update OPA plugin to support removal of CRD
 

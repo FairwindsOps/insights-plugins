@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  ci-plugin:
+    build:
+      context: ../
+      dockerfile: ci/Dockerfile
+    volumes:
+      - ./_tmp:/app/repository
+    environment:
+      - "CLONE_REPO=true"
+      - "FAIRWINDS_TOKEN=thisisacitoken"
+      - "SCRIPT_VERSION="
+      - "IMAGE_VERSION=0.0.1"
+      - "REPOSITORY_NAME=vitorvezani/blog"
+      - "BRANCH_NAME=main"
+      - "BASE_BRANCH=main"
+      - "GITHUB_ACCESS_TOKEN="
+      - "ORG_NAME=acme-co"
+      - "HOSTNAME=https://be-vv-fwi-1233-cr.k8s.insights.fairwinds.com"
+volumes:
+  {}

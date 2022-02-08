@@ -1,5 +1,7 @@
 # Changelog
 
+## 2.2.4
+* Update dependencies
 ## 2.2.3
 * Update Go modules
 
