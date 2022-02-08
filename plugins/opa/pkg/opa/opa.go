@@ -86,12 +86,13 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 			newItems, err := processCheckV2(ctx, check)
 			if err != nil {
 				lastError = fmt.Errorf("error while processing check %s: %v", check.Name, err)
-				logrus.Warn(lastError.Error())
+				allErrs = multierror.Append(allErrs, lastError)
 				continue
 			}
 			actionItems = append(actionItems, newItems...)
 		default:
-			logrus.Warnf("CustomCheck %s is an unexpected version %.1f and will not be run", check.Name, check.Version)
+			lastError = fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run", check.Name, check.Version)
+			allErrs = multierror.Append(allErrs, lastError)
 		}
 	}
 	return actionItems, allErrs
