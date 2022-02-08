@@ -1,12 +1,19 @@
 # Changelog
 
+<<<<<<< HEAD
 ## 1.0.3
 * Process v2 CustomChecks, which use a list of Kubernetes APIGroup/Kind passed to the OPA plugin, instead of Insights Instance yaml accompanying the rego policy.
 
 ## 1.0.2
 * Errors from the `kubernetes` function now cause rego to fail, and log warnings.
+* Errors processing OPA policies are no longer logged multiple times, and are bundled and returned at the end of the plugin run.
 * Add a `insightsinfo` function that makes Insights information available in policies.
 
+<<<<<<< HEAD
+=======
+## 1.0.1
+* Update dependencies
+>>>>>>> if/fwi-1304
 ## 1.0.0
 * Remove Opa CRD
 

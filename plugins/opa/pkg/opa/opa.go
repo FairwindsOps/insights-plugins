@@ -15,6 +15,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -61,6 +62,7 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks []OPACustomCheck, thisNamespace string) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var lastError error = nil
+	var allErrs error = nil
 
 	for _, check := range checks {
 		fmt.Printf("Check %s is version %.1f\n", check.Name, check.Version)
@@ -72,7 +74,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 					newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 					if err != nil {
 						lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
-						logrus.Warn(lastError.Error())
+						allErrs = multierror.Append(allErrs, lastError)
 						break // Go back to outer checks loop
 					}
 					actionItems = append(actionItems, newItems...)
@@ -92,7 +94,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 			logrus.Warnf("CustomCheck %s is an unexpected version %.1f and will not be run", check.Name, check.Version)
 		}
 	}
-	return actionItems, nil
+	return actionItems, allErrs
 }
 
 func processCheck(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
@@ -101,8 +103,7 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
 		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
-			logrus.Errorf("Error while processing check %s: %v", checkInstance.Spec.CustomCheckName, err)
-			return nil, err
+			return nil, fmt.Errorf("Error while processing check %s: %v", checkInstance.Spec.CustomCheckName, err)
 		}
 
 		actionItems = append(actionItems, newAI...)
@@ -175,7 +176,6 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gk schema.G
 func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
 	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
-		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
 		return nil, err
 	}
 	aiDetails := OutputFormat{}

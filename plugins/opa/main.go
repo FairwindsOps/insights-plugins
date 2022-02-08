@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/sirupsen/logrus"
 
@@ -36,6 +38,8 @@ func main() {
 		}
 	}
 	if runError != nil {
-		panic(runError)
+		logrus.Error("There were errors while processing OPA checks.")
+		fmt.Fprintln(os.Stderr, runError)
+		os.Exit(1)
 	}
 }
