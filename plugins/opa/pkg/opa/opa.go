@@ -181,7 +181,7 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 	}
 	aiDetails := OutputFormat{}
 	aiDetails.SetDefaults(check.GetOutputFormat(), instance.Spec.Output)
-	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, instance.Name, aiDetails)
+	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, check.Name, aiDetails)
 	return newItems, err
 }
 
@@ -193,7 +193,7 @@ func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[st
 	}
 	aiDetails := OutputFormat{}
 	aiDetails.SetDefaults(check.GetOutputFormat())
-	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, "todo get real check name", aiDetails)
+	newItems, err := processResults(resourceName, resourceKind, resourceNamespace, results, check.Name, aiDetails)
 	return newItems, err
 }
 
