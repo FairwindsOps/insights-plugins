@@ -3,7 +3,7 @@ module github.com/fairwindsops/insights-plugins/opa
 go 1.17
 
 require (
-	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/open-policy-agent/opa v0.37.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
