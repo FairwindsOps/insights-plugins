@@ -15,19 +15,11 @@ import (
 
 const maxLinesForPrint = 8
 
-func exitWithError(message string, err error) {
-	if err != nil {
-		logrus.Fatalf("%s: %s", message, err.Error())
-	} else {
-		logrus.Fatal(message)
-	}
-}
-
 func main() {
 	ciScan, err := ci.NewCIScan()
 	defer ciScan.Close() // TODO: when exitWithError, close is not executed (refactor)
 	if err != nil {
-		exitWithError(err.Error(), nil)
+		exitWithError("Error creating CI Scan main struct", err)
 	}
 
 	err = ciScan.ProcessHelmTemplates()
@@ -140,5 +132,13 @@ func printMultilineString(title, str string) {
 			fmt.Println("    [truncated]")
 			break
 		}
+	}
+}
+
+func exitWithError(message string, err error) {
+	if err != nil {
+		logrus.Fatalf("%s: %s", message, err.Error())
+	} else {
+		logrus.Fatal(message)
 	}
 }

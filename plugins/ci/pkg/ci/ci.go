@@ -60,7 +60,7 @@ func NewCIScan() (*CIScan, error) {
 		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
 
-	repoBaseFolder, config, err := setupConfiguration(cloneRepo)
+	baseFolder, repoBaseFolder, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
 	}
@@ -74,7 +74,7 @@ func NewCIScan() (*CIScan, error) {
 	ci := CIScan{
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
-		baseFolder:     filepath.Join(repoBaseFolder, "../"),
+		baseFolder:     baseFolder,
 		configFolder:   configFolder,
 		config:         config,
 	}
@@ -625,42 +625,42 @@ func (ci *CIScan) CopyYaml() error {
 }
 
 // all modifications to config struct must be done in this context
-func setupConfiguration(cloneRepo bool) (string, *models.Configuration, error) {
+func setupConfiguration(cloneRepo bool) (string, string, *models.Configuration, error) {
 	if cloneRepo {
 		return getConfigurationForClonedRepo()
 	}
 	return getDefaultConfiguration()
 }
 
-func getDefaultConfiguration() (string, *models.Configuration, error) {
+func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 	// i.e.: ./fairwinds-insights.yaml
 	config, err := readConfigurationFromFile("./" + configFileName)
 	if err != nil {
-		return "", nil, err
+		return "", "", nil, err
 	}
 	config.SetDefaults()
 	config.SetPathDefaults()
 
 	err = config.CheckForErrors()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
-	return filepath.Base(""), config, nil
+	return filepath.Base(""), filepath.Base(""), config, nil
 }
 
-func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
+func getConfigurationForClonedRepo() (string, string, *models.Configuration, error) {
 	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	if repoFullName == "" {
-		return "", nil, errors.New("REPOSITORY_NAME environment variable not set")
+		return "", "", nil, errors.New("REPOSITORY_NAME environment variable not set")
 	}
 
 	branch := strings.TrimSpace(os.Getenv("BRANCH_NAME"))
 	if branch == "" {
-		return "", nil, errors.New("BRANCH environment variable not set")
+		return "", "", nil, errors.New("BRANCH environment variable not set")
 	}
 
 	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
-		return "", nil, errors.New("IMAGE_VERSION environment variable not set")
+		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
 	basePath := filepath.Join("/app", "repository")
@@ -669,7 +669,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	err := os.RemoveAll(baseRepoPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
+		return "", "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
 	}
 
 	url := fmt.Sprintf("https://@github.com/%s", repoFullName)
@@ -681,7 +681,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	_, err = commands.ExecInDir(basePath, exec.Command("git", "clone", "--branch", branch, url), "cloning github repository")
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to clone repository: %v", err)
+		return "", "", nil, fmt.Errorf("unable to clone repository: %v", err)
 	}
 
 	// i.e.: /app/repository/blog/fairwinds-insights.yaml
@@ -689,25 +689,25 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	config, err := readConfigurationFromFile(configFilePath)
 	if err != nil {
-		return "", nil, err
+		return "", "", nil, err
 	}
 	config.SetDefaults()
 	err = config.SetMountedPathDefaults(basePath, baseRepoPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
+		return "", "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
 	}
 
 	err = config.CheckForErrors()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
 
 	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "update-ref", "refs/heads/"+config.Options.BaseBranch, "refs/remotes/origin/"+config.Options.BaseBranch), "updating branch ref")
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
+		return "", "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
 	}
 
-	return baseRepoPath, config, nil
+	return filepath.Join(baseRepoPath, "../"), baseRepoPath, config, nil
 }
 
 func readConfigurationFromFile(configFilePath string) (*models.Configuration, error) {
