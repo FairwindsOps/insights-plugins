@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.15.3
+* Adds auto config. file generation by scanning the repository files
+
 ## 0.15.2
 * Fix reading helm `valuesFile` and `fluxFile` when on cloned repo context 
 
