@@ -50,8 +50,7 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 					helmFolders = append(helmFolders, relPath)
 					return filepath.SkipDir
 				}
-
-				logrus.Infof("this is a directory: %s", info.Name())
+				logrus.Debugf("this is a directory: %s", info.Name())
 				return nil
 			}
 
@@ -61,7 +60,7 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 			}
 
 			if !funk.ContainsString(supportedExtentions, fileExtension[1:]) {
-				logrus.Infof("file extention '%s' not supported for file %v", fileExtension, path)
+				logrus.Debugf("file extention '%s' not supported for file %v", fileExtension, path)
 				return nil
 			}
 
@@ -90,9 +89,6 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 		logrus.Error(err)
 	}
 
-	logrus.Info("helmFolders: %v", helmFolders)
-	logrus.Info("k8sManifests: %v", k8sManifests)
-
 	config := models.Configuration{
 		Manifests: models.ManifestConfig{
 			YamlPaths: k8sManifests,
@@ -100,7 +96,6 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 		},
 	}
 
-	logrus.Info("config: %+v", config)
 	return &config, nil
 }
 
@@ -111,28 +106,75 @@ func isHelmBaseFolder(path string) (bool, error) {
 	}
 
 	for _, file := range files {
-		if file.Name() == "Chart.yaml" || file.Name() == "Chart.yml" {
+		if file.Name() == "Chart.yaml" || file.Name() == "Chart.yml" || file.Name() == "Chart.json" {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func toHelmConfigs(baseFolder string, helmFolders []string) []models.HelmConfig {
+func toHelmConfigs(baseFolder string, helmPaths []string) []models.HelmConfig {
 	result := []models.HelmConfig{}
-	for _, v := range helmFolders {
+	for _, path := range helmPaths {
+		name := tryFetchNameFromChartFile(baseFolder, path)
 		hc := models.HelmConfig{
-			Name: v,
-			Path: v,
+			Name: name,
+			Path: path,
 		}
-		possibleValuesFile := filepath.Join(baseFolder, hc.Path, "values.yaml")
-		if _, err := os.Stat(possibleValuesFile); errors.Is(err, os.ErrNotExist) {
+		valuesFilePath := tryDiscoverValuesFile(baseFolder, path)
+		if valuesFilePath != "" {
+			hc.ValuesFile = valuesFilePath
+		} else {
 			// if default values file does not exists, use a empty map as values
 			hc.Values = map[string]interface{}{}
-		} else {
-			hc.ValuesFile = filepath.Join(".", hc.Path, "values.yaml")
 		}
 		result = append(result, hc)
 	}
 	return result
+}
+
+// tries to extract name from Chart.yaml file, return chart (dir name) as fallback
+func tryFetchNameFromChartFile(baseFolder, chart string) string {
+	chartFiles := []string{"Chart.yaml", "Chart.yml", "Chart.json"}
+	for _, f := range chartFiles {
+		file, err := os.Open(filepath.Join(baseFolder, chart, f))
+		if err != nil {
+			logrus.Debugf("Could not open file %s: %v", f, err)
+			continue
+		}
+		content, err := ioutil.ReadAll(file)
+		if err != nil {
+			logrus.Warnf("Could not read %s: %v", f, err)
+			continue
+		}
+
+		var s map[string]interface{}
+		err = yaml.Unmarshal(content, &s)
+		if err != nil {
+			logrus.Warnf("Could not unmarshal %s: %v", string(content), err)
+			continue
+		}
+
+		name, ok := s["name"].(string)
+		if !ok {
+			logrus.Warnf("Could not get name from file %s: %v", string(content), err)
+			continue
+		}
+		return name
+	}
+	return chart
+}
+
+// tries to discover the default values file, returns empty str if not found
+func tryDiscoverValuesFile(baseFolder, path string) string {
+	possibleValuesFiles := []string{"values.yaml", "values.yml", "values.json"}
+	for _, f := range possibleValuesFiles {
+		possibleValuesFile := filepath.Join(baseFolder, path, f)
+		if _, err := os.Stat(possibleValuesFile); errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		relPath, _ := filepath.Rel(baseFolder, possibleValuesFile)
+		return relPath
+	}
+	return ""
 }
