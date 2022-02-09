@@ -17,7 +17,7 @@ const maxLinesForPrint = 8
 
 func main() {
 	ciScan, err := ci.NewCIScan()
-	defer ciScan.Close()
+	defer ciScan.Close() // TODO: when exitWithError, close is not executed (refactor)
 	if err != nil {
 		exitWithError("Error creating CI Scan main struct", err)
 	}

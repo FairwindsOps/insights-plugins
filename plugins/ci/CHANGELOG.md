@@ -1,4 +1,7 @@
 # Changelog
+## 0.15.2
+* Fix reading helm `valuesFile` and `fluxFile` when on cloned repo context 
+
 ## 0.15.1
 * Run apk update
 
