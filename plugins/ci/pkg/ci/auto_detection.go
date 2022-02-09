@@ -86,7 +86,7 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 		})
 
 	if err != nil {
-		logrus.Error(err)
+		return nil, err
 	}
 
 	config := models.Configuration{
@@ -106,8 +106,10 @@ func isHelmBaseFolder(path string) (bool, error) {
 	}
 
 	for _, file := range files {
-		if file.Name() == "Chart.yaml" || file.Name() == "Chart.yml" || file.Name() == "Chart.json" {
-			return true, nil
+		for _, ext := range supportedExtentions {
+			if file.Name() == "Chart."+ext {
+				return true, nil
+			}
 		}
 	}
 	return false, nil
@@ -135,8 +137,8 @@ func toHelmConfigs(baseFolder string, helmPaths []string) []models.HelmConfig {
 
 // tries to extract name from Chart.yaml file, return chart (dir name) as fallback
 func tryFetchNameFromChartFile(baseFolder, chart string) string {
-	chartFiles := []string{"Chart.yaml", "Chart.yml", "Chart.json"}
-	for _, f := range chartFiles {
+	for _, ext := range supportedExtentions {
+		f := "Chart." + ext
 		file, err := os.Open(filepath.Join(baseFolder, chart, f))
 		if err != nil {
 			logrus.Debugf("Could not open file %s: %v", f, err)
@@ -167,8 +169,8 @@ func tryFetchNameFromChartFile(baseFolder, chart string) string {
 
 // tries to discover the default values file, returns empty str if not found
 func tryDiscoverValuesFile(baseFolder, path string) string {
-	possibleValuesFiles := []string{"values.yaml", "values.yml", "values.json"}
-	for _, f := range possibleValuesFiles {
+	for _, ext := range supportedExtentions {
+		f := "values." + ext
 		possibleValuesFile := filepath.Join(baseFolder, path, f)
 		if _, err := os.Stat(possibleValuesFile); errors.Is(err, os.ErrNotExist) {
 			continue
