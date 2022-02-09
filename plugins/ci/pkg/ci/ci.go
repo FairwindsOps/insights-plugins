@@ -644,6 +644,11 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 		if err != nil {
 			return "", "", nil, err
 		}
+
+		err := createFileFromConfig("", configFileName, *config)
+		if err != nil {
+			return "", "", nil, err
+		}
 	}
 	config.SetDefaults()
 	config.SetPathDefaults()
@@ -701,6 +706,11 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 		}
 		logrus.Infof("Could not detect fairwinds-insights.yaml file... auto-detecting...")
 		config, err = configFileAutoDetection(baseRepoPath)
+		if err != nil {
+			return "", "", nil, err
+		}
+
+		err := createFileFromConfig(baseRepoPath, configFileName, *config)
 		if err != nil {
 			return "", "", nil, err
 		}
