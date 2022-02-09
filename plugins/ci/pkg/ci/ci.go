@@ -98,7 +98,7 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 
 		displayFilename, err := filepath.Rel(ci.configFolder, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot be made relative to basepath: %v", err)
 		}
 		var helmName string
 		for _, helm := range ci.config.Manifests.Helm {
@@ -121,7 +121,7 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 
 		file, err := os.Open(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("error opening file %s: %v", path, err)
 		}
 		decoder := yaml.NewDecoder(file)
 		for {
@@ -132,15 +132,14 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 			err = decoder.Decode(&yamlNodeOriginal)
 			if err != nil {
 				if err != io.EOF {
-					return err
+					return fmt.Errorf("error decoding file %s: %v", file.Name(), err)
 				}
 				break
-
 			}
 			yamlNode := map[string]interface{}{}
 			err = yamlNodeOriginal.Decode(&yamlNode)
 			if err != nil {
-				return err
+				return fmt.Errorf("error decoding[2] file %s: %v", file.Name(), err)
 			}
 			kind, ok := yamlNode["kind"].(string)
 			if !ok {
@@ -201,7 +200,6 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 			}
 
 		}
-
 		return nil
 	})
 	return images, resources, err
@@ -555,7 +553,7 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), helmValuesFilePath, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), filepath.Join(baseRepoFolder, helmValuesFilePath), tempFolder, configFolder)
 }
 
 func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {

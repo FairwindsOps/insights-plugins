@@ -25,7 +25,7 @@ func exitWithError(message string, err error) {
 
 func main() {
 	ciScan, err := ci.NewCIScan()
-	defer ciScan.Close()
+	defer ciScan.Close() // TODO: when exitWithError, close is not executed (refactor)
 	if err != nil {
 		exitWithError(err.Error(), nil)
 	}
