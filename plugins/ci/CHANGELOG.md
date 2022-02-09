@@ -1,6 +1,7 @@
 # Changelog
 ## 0.15.2
-* Fix reading helm `valuesFile` and `fluxFile` when on cloned repo context 
+* Fix reading helm `valuesFile` and `fluxFile` when on cloned repo context
+* Fix internal `baseFolder` when not in cloned repo context
 
 ## 0.15.1
 * Run apk update
