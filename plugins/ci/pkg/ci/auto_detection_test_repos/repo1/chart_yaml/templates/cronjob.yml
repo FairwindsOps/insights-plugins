@@ -1,0 +1,58 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ template "helm-release-pruner.fullname" . }}
+  labels:
+    app: {{ template "helm-release-pruner.name" . }}
+    chart: {{ template "helm-release-pruner.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  schedule: {{ .Values.job.schedule | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.job.backoffLimit }}
+      template:
+        metadata:
+          name: {{ template "helm-release-pruner.fullname" . }}
+          labels:
+            app: {{ template "helm-release-pruner.name" . }}
+            release: {{ .Release.Name }}
+        spec:
+          {{- if .Values.job.serviceAccount.create }}
+          serviceAccountName: {{ include "helm-release-pruner.fullname" . }}
+          {{- else }}
+          serviceAccountName: {{ .Values.job.serviceAccount.name }}
+          {{- end }}
+          restartPolicy: {{ .Values.job.restartPolicy }}
+          containers:
+          - name: {{ .Chart.Name }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            command: ["/usr/local/bin/start-up.sh"]
+            volumeMounts:
+            - mountPath: /usr/local/bin/start-up.sh
+              name: config
+              subPath: start-up.sh
+            {{- if .Values.job.debug }}
+            env:
+            - name: DEBUG
+              value: "1"
+            {{- end }}
+            securityContext:
+              readOnlyRootFilesystem: true
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              runAsUser: 10324
+              capabilities:
+                drop:
+                  - ALL
+            resources:
+              {{- toYaml .Values.job.resources | nindent 14 }}
+          volumes:
+          - name: config
+            configMap:
+              name: {{ template "helm-release-pruner.fullname" . }}
+              defaultMode: 0555
