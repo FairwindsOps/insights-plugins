@@ -638,7 +638,14 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 	// i.e.: ./fairwinds-insights.yaml
 	config, err := readConfigurationFromFile("./" + configFileName)
 	if err != nil {
-		return "", "", nil, err
+		if !os.IsNotExist(errors.Unwrap(err)) {
+			return "", "", nil, err
+		}
+		logrus.Infof("Could not detect fairwinds-insights.yaml file... auto-detecting...")
+		config, err = configFileAutoDetection("")
+		if err != nil {
+			return "", "", nil, err
+		}
 	}
 	config.SetDefaults()
 	config.SetPathDefaults()
@@ -691,7 +698,14 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 
 	config, err := readConfigurationFromFile(configFilePath)
 	if err != nil {
-		return "", "", nil, err
+		if !os.IsNotExist(errors.Unwrap(err)) {
+			return "", "", nil, err
+		}
+		logrus.Infof("Could not detect fairwinds-insights.yaml file... auto-detecting...")
+		config, err = configFileAutoDetection(baseRepoPath)
+		if err != nil {
+			return "", "", nil, err
+		}
 	}
 	config.SetDefaults()
 	err = config.SetMountedPathDefaults(basePath, baseRepoPath)
@@ -716,7 +730,7 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 	configHandler, err := os.Open(configFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.New("Please add fairwinds-insights.yaml to the base of your repository.")
+			return nil, fmt.Errorf("Please add fairwinds-insights.yaml to the base of your repository: %w", err)
 		} else {
 			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml: %v", err)
 		}
