@@ -39,10 +39,10 @@ func Exec(command string, args ...string) (string, error) {
 }
 
 func removeToken(s string) string {
-	index := strings.Index(s, "x-access-token") + 15
+	index := strings.Index(s, "x-access-token")
 	index2 := strings.Index(s, "@github.com")
 	if index < 0 || index2 < 0 {
 		return s
 	}
-	return strings.ReplaceAll(s, s[index:index2], "<TOKEN>")
+	return strings.ReplaceAll(s, s[index+15:index2], "<TOKEN>")
 }
