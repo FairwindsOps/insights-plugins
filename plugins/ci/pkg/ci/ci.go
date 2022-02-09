@@ -443,7 +443,7 @@ func (ci *CIScan) ProcessHelmTemplates() error {
 			}
 		} else if helm.IsRemote() {
 			if helm.IsFluxFile() {
-				err := handleFluxHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
+				err := handleFluxHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
 					return err
 				}
@@ -460,12 +460,12 @@ func (ci *CIScan) ProcessHelmTemplates() error {
 	return nil
 }
 
-func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
+func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
 	if helm.Name == "" || helm.Repo == "" {
 		return errors.New("Parameters 'name', 'repo' are required when using fluxFile")
 	}
 
-	fluxFile, err := os.Open(helm.FluxFile)
+	fluxFile, err := os.Open(filepath.Join(baseRepoFolder, helm.FluxFile))
 	if err != nil {
 		return fmt.Errorf("Unable to open file %v: %v", helm.FluxFile, err)
 	}
