@@ -367,7 +367,7 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 			return "", "", nil, err
 		}
 		logrus.Infof("Could not detect fairwinds-insights.yaml file... auto-detecting...")
-		config, err = configFileAutoDetection("")
+		config, err = ConfigFileAutoDetection("")
 		if err != nil {
 			return "", "", nil, err
 		}
@@ -432,7 +432,7 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 			return "", "", nil, err
 		}
 		logrus.Infof("Could not detect fairwinds-insights.yaml file... auto-detecting...")
-		config, err = configFileAutoDetection(baseRepoPath)
+		config, err = ConfigFileAutoDetection(baseRepoPath)
 		if err != nil {
 			return "", "", nil, err
 		}

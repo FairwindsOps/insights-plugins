@@ -10,7 +10,7 @@ import (
 // RunCommand runs a command and prints errors to Stderr
 func TestAutoDetection(t *testing.T) {
 
-	cfg, err := configFileAutoDetection("./testdata/repo1")
+	cfg, err := ConfigFileAutoDetection("./testdata/repo1")
 	assert.NoError(t, err)
 
 	expected := models.Configuration{
