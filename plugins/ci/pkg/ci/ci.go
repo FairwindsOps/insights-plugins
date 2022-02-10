@@ -2,6 +2,7 @@ package ci
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,9 +27,12 @@ import (
 )
 
 const configFileName = "fairwinds-insights.yaml"
+const maxLinesForPrint = 8
 
 var podSpecFields = []string{"jobTemplate", "spec", "template"}
 var containerSpecFields = []string{"containers", "initContainers"}
+
+var ErrExitCode = errors.New("ExitCode is set")
 
 type formFile struct {
 	field    string
@@ -82,8 +86,8 @@ func (ci *CIScan) Close() {
 	os.RemoveAll(ci.config.Images.FolderName)
 }
 
-// GetAllResources scans a folder of yaml files and returns all of the images and resources used.
-func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, error) {
+// getAllResources scans a folder of yaml files and returns all of the images and resources used.
+func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
 	err := filepath.Walk(ci.configFolder, func(path string, info os.FileInfo, err error) error {
@@ -256,8 +260,8 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 	return images
 }
 
-// SendResults sends the results to Insights
-func (ci *CIScan) SendResults(reports []models.ReportInfo, resources []models.Resource) (*models.ScanResults, error) {
+// sendResults sends the results to Insights
+func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults, error) {
 	var b bytes.Buffer
 
 	formFiles := []formFile{{
@@ -478,22 +482,118 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 	return &config, nil
 }
 
-// Hostname return the configured hostname
-func (ci *CIScan) Hostname() string {
-	return ci.config.Options.Hostname
+func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
+	err := ci.ProcessHelmTemplates()
+	if err != nil {
+		return nil, fmt.Errorf("Error while processing helm templates: %v", err)
+	}
+
+	err = ci.CopyYaml()
+	if err != nil {
+		return nil, fmt.Errorf("Error while copying YAML files: %v", err)
+	}
+
+	// Scan YAML, find all images/kind/etc
+	manifestImages, resources, err := ci.getAllResources()
+	if err != nil {
+		return nil, fmt.Errorf("Error while extracting images from YAML manifests: %v", err)
+	}
+
+	var reports []*models.ReportInfo
+
+	// Scan manifests with Polaris
+	if ci.PolarisEnabled() {
+		polarisReport, err := ci.GetPolarisReport()
+		if err != nil {
+			return nil, fmt.Errorf("Error while running Polaris: %v", err)
+		}
+		reports = append(reports, &polarisReport)
+	}
+
+	if ci.TrivyEnabled() {
+		manifestImagesToScan := manifestImages
+		if ci.SkipTrivyManifests() {
+			manifestImagesToScan = []trivymodels.Image{}
+		}
+		trivyReport, err := ci.GetTrivyReport(manifestImagesToScan)
+		if err != nil {
+			return nil, fmt.Errorf("Error while running Trivy: %v", err)
+		}
+		reports = append(reports, &trivyReport)
+	}
+
+	workloadReport, err := ci.GetWorkloadReport(resources)
+	if err != nil {
+		return nil, fmt.Errorf("Error while aggregating workloads: %v", err)
+	}
+	reports = append(reports, &workloadReport)
+
+	if ci.OPAEnabled() {
+		opaReport, err := ci.ProcessOPA(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("Error while running OPA: %v", err)
+		}
+		reports = append(reports, &opaReport)
+	}
+
+	if ci.PlutoEnabled() {
+		plutoReport, err := ci.GetPlutoReport()
+		if err != nil {
+			return nil, fmt.Errorf("Error while running Pluto: %v", err)
+		}
+		reports = append(reports, &plutoReport)
+	}
+
+	return reports, nil
 }
 
-// ExitCode return if the exitCode flag is set
-func (ci *CIScan) ExitCode() bool {
-	return ci.config.Options.SetExitCode
+func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
+	results, err := ci.sendResults(reports)
+	if err != nil {
+		return fmt.Errorf("Error while sending results back to %s: %v", ci.config.Options.Hostname, err)
+	}
+	fmt.Printf("%d new Action Items:\n", len(results.NewActionItems))
+	printActionItems(results.NewActionItems)
+	fmt.Printf("%d fixed Action Items:\n", len(results.FixedActionItems))
+	printActionItems(results.FixedActionItems)
+
+	if ci.JUnitEnabled() {
+		err = ci.SaveJUnitFile(*results)
+		if err != nil {
+			return fmt.Errorf("Could not save jUnit results: %v", err)
+		}
+	}
+	if !results.Pass {
+		fmt.Printf("\n\nFairwinds Insights checks failed:\n%v\n\nVisit %s/orgs/%s/repositories for more information\n\n", err, ci.config.Options.Hostname, ci.config.Options.Organization)
+		if ci.config.Options.SetExitCode {
+			return ErrExitCode
+		}
+	} else {
+		fmt.Println("\n\nFairwinds Insights checks passed.")
+	}
+	return nil
 }
 
-// Organization returns the configured organization
-func (ci *CIScan) Organization() string {
-	return ci.config.Options.Organization
+func printActionItems(ais []models.ActionItem) {
+	for _, ai := range ais {
+		fmt.Println(ai.GetReadableTitle())
+		printMultilineString("Description", ai.Description)
+		printMultilineString("Remediation", ai.Remediation)
+		fmt.Println()
+	}
 }
 
-// RepositoryName returns the name of the repository
-func (ci *CIScan) RepositoryName() string {
-	return ci.config.Options.RepositoryName
+func printMultilineString(title, str string) {
+	fmt.Println("  " + title + ":")
+	if str == "" {
+		str = "Unspecified"
+	}
+	lines := strings.Split(str, "\n")
+	for idx, line := range lines {
+		fmt.Println("    " + line)
+		if idx == maxLinesForPrint {
+			fmt.Println("    [truncated]")
+			break
+		}
+	}
 }
