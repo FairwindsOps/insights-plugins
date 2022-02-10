@@ -27,19 +27,13 @@ import (
 
 const configFileName = "fairwinds-insights.yaml"
 
+var podSpecFields = []string{"jobTemplate", "spec", "template"}
+var containerSpecFields = []string{"containers", "initContainers"}
+
 type formFile struct {
 	field    string
 	filename string
 	location string
-}
-
-type gitInfo struct {
-	origin        string
-	branch        string
-	masterHash    string
-	currentHash   string
-	commitMessage string
-	repoName      string
 }
 
 type CIScan struct {
@@ -82,6 +76,7 @@ func NewCIScan() (*CIScan, error) {
 	return &ci, nil
 }
 
+// Close deletes all temporary folders created.
 func (ci *CIScan) Close() {
 	os.RemoveAll(ci.config.Options.TempFolder)
 	os.RemoveAll(ci.config.Images.FolderName)
@@ -229,9 +224,6 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 	}).([]trivymodels.Image), images
 }
 
-var podSpecFields = []string{"jobTemplate", "spec", "template"}
-var containerSpecFields = []string{"containers", "initContainers"}
-
 // getPodSpec looks inside arbitrary YAML for a PodSpec
 func getPodSpec(yaml map[string]interface{}) interface{} {
 	for _, child := range podSpecFields {
@@ -353,275 +345,6 @@ func (ci *CIScan) SendResults(reports []models.ReportInfo, resources []models.Re
 		return nil, err
 	}
 	return &results, nil
-}
-
-func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
-	var err error
-	masterHash := os.Getenv("MASTER_HASH")
-	if masterHash == "" {
-		masterHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranch), "getting master hash")
-		if err != nil {
-			logrus.Error("Unable to get GIT merge-base")
-			return nil, err
-		}
-	}
-
-	currentHash := os.Getenv("CURRENT_HASH")
-	if currentHash == "" {
-		currentHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "HEAD"), "getting current hash")
-		if err != nil {
-			logrus.Error("Unable to get GIT Hash")
-			return nil, err
-		}
-	}
-
-	commitMessage := os.Getenv("COMMIT_MESSAGE")
-	if commitMessage == "" {
-		commitMessage, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message")
-		if err != nil {
-			logrus.Error("Unable to get GIT Commit message")
-			return nil, err
-		}
-	}
-	if len(commitMessage) > 100 {
-		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
-	}
-	branch := os.Getenv("BRANCH_NAME")
-	if branch == "" {
-		branch, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD"), "getting branch name")
-		if err != nil {
-			logrus.Error("Unable to get GIT Branch Name")
-			return nil, err
-		}
-	}
-	origin := os.Getenv("ORIGIN_URL")
-	if origin == "" {
-		origin, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "remote", "get-url", "origin"), "getting origin url")
-		if err != nil {
-			logrus.Error("Unable to get GIT Origin")
-			return nil, err
-		}
-	}
-
-	if repoName == "" {
-		repoName = origin
-		if strings.Contains(repoName, "@") { // git@github.com URLs are allowed
-			repoNameSplit := strings.Split(repoName, "@")
-			// Take the substring after the last @ to avoid any tokens in an HTTPS URL
-			repoName = repoNameSplit[len(repoNameSplit)-1]
-		} else if strings.Contains(repoName, "//") {
-			repoNameSplit := strings.Split(repoName, "//")
-			repoName = repoNameSplit[len(repoNameSplit)-1]
-		}
-		// Remove "******.com:" prefix and ".git" suffix to get clean $org/$repo structure
-		if strings.Contains(repoName, ":") {
-			repoNameSplit := strings.Split(repoName, ":")
-			repoName = repoNameSplit[len(repoNameSplit)-1]
-		}
-		repoName = strings.TrimSuffix(repoName, ".git")
-	}
-	return &gitInfo{
-		masterHash:    strings.TrimSuffix(masterHash, "\n"),
-		currentHash:   strings.TrimSuffix(currentHash, "\n"),
-		commitMessage: strings.TrimSuffix(commitMessage, "\n"),
-		branch:        strings.TrimSuffix(branch, "\n"),
-		origin:        strings.TrimSuffix(origin, "\n"),
-		repoName:      strings.TrimSuffix(repoName, "\n"),
-	}, nil
-}
-
-// ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
-func (ci *CIScan) ProcessHelmTemplates() error {
-	for _, helm := range ci.config.Manifests.Helm {
-		if helm.IsLocal() && helm.IsRemote() {
-			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
-		}
-		if helm.IsLocal() {
-			err := handleLocalHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
-			if err != nil {
-				return err
-			}
-		} else if helm.IsRemote() {
-			if helm.IsFluxFile() {
-				err := handleFluxHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
-				if err != nil {
-					return err
-				}
-			} else {
-				err := handleRemoteHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			return fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name)
-		}
-	}
-	return nil
-}
-
-func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
-	if helm.Name == "" || helm.Repo == "" {
-		return errors.New("Parameters 'name', 'repo' are required when using fluxFile")
-	}
-
-	fluxFile, err := os.Open(filepath.Join(baseRepoFolder, helm.FluxFile))
-	if err != nil {
-		return fmt.Errorf("Unable to open file %v: %v", helm.FluxFile, err)
-	}
-
-	fluxFileContent, err := ioutil.ReadAll(fluxFile)
-	if err != nil {
-		return fmt.Errorf("Unable to read file %v: %v", helm.FluxFile, err)
-	}
-
-	// Ideally we should use https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io%2fv1
-	// However, the attempt was not possible due to being unable to parse `v1.Duration` successfully
-	type HelmReleaseModel struct {
-		Spec struct {
-			Chart struct {
-				Spec struct {
-					Chart   string `yaml:"chart"`
-					Version string `yaml:"version"`
-				} `yaml:"spec"`
-			} `yaml:"chart"`
-			Values     map[string]interface{} `yaml:"values"`
-			ValuesFrom []interface{}          `yaml:"valuesFrom"`
-		} `yaml:"spec"`
-	}
-
-	var helmRelease HelmReleaseModel
-	err = yaml.Unmarshal(fluxFileContent, &helmRelease)
-	if err != nil {
-		return fmt.Errorf("Unable to unmarshal file %v: %v", helm.FluxFile, err)
-	}
-
-	chartName := helmRelease.Spec.Chart.Spec.Chart
-	if chartName == "" {
-		return fmt.Errorf("Could not find required spec.chart.spec.chart in fluxFile %v", helm.FluxFile)
-	}
-
-	if len(helmRelease.Spec.ValuesFrom) > 0 {
-		logrus.Warnf("fluxFile: %v - spec.valuesFrom not supported, it won't be applied...", helm.FluxFile)
-	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, chartName, helmRelease.Spec.Chart.Spec.Version, helm.ValuesFile, helm.Values, helmRelease.Spec.Values, tempFolder, configFolder)
-}
-
-func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
-	if helm.Name == "" || helm.Chart == "" || helm.Repo == "" {
-		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
-	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, helm.Chart, helm.Version, helm.ValuesFile, helm.Values, nil, tempFolder, configFolder)
-}
-
-func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesFile string, values, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
-	repoName := fmt.Sprintf("%s-%s-repo", helmName, chartName)
-	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
-	if err != nil {
-		return err
-	}
-
-	repoDownloadPath := fmt.Sprintf("%s/downloaded-charts/%s/", tempFolder, repoName)
-	chartDownloadPath := repoDownloadPath + chartName
-
-	chartFullName := fmt.Sprintf("%s/%s", repoName, chartName)
-	params := []string{"fetch", chartFullName, "--untar", "--destination", repoDownloadPath}
-
-	if chartVersion != "" {
-		params = append(params, "--version", chartVersion)
-	} else {
-		logrus.Infof("version for chart %v not found, using latest...", chartFullName)
-	}
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", chartName, repoName))
-	if err != nil {
-		return err
-	}
-
-	helmValuesFilePath, err := resolveHelmValuesPath(valuesFile, values, fluxValues, tempFolder)
-	if err != nil {
-		return err
-	}
-	return doHandleLocalHelmChart(helmName, chartDownloadPath, helmValuesFilePath, tempFolder, configFolder)
-}
-
-func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
-	if helm.Name == "" || helm.Path == "" {
-		return errors.New("Parameters 'name' and 'path' are required in helm definition")
-	}
-
-	helmValuesFilePath, err := resolveHelmValuesPath(helm.ValuesFile, helm.Values, nil, tempFolder)
-	if err != nil {
-		return err
-	}
-	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), filepath.Join(baseRepoFolder, helmValuesFilePath), tempFolder, configFolder)
-}
-
-func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {
-	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
-	if err != nil {
-		return err
-	}
-
-	params := []string{"template", helmName, helmPath, "--output-dir", configFolder + helmName, "-f", helmValuesFilePath}
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helmName)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, fluxValues map[string]interface{}, tempFolder string) (string, error) {
-	hasValuesFile := valuesFile != ""
-	hasValues := len(values) > 0
-	hasFluxValues := len(fluxValues) > 0
-
-	if hasValuesFile || hasValues || hasFluxValues { // has any
-		if !util.ExactlyOneOf(hasValuesFile, hasValues, hasFluxValues) { // if has any, must have exactly one
-			return "", fmt.Errorf("only one of valuesFile, values or <fluxFile>.values can be specified")
-		}
-	}
-
-	if hasValuesFile {
-		return valuesFile, nil
-	}
-
-	if hasValues {
-		yaml, err := yaml.Marshal(values)
-		if err != nil {
-			return "", err
-		}
-		valuesFilePath := tempFolder + "helm-values.yaml"
-		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
-		if err != nil {
-			return "", err
-		}
-		return valuesFilePath, nil
-	}
-
-	if hasFluxValues {
-		yaml, err := yaml.Marshal(fluxValues)
-		if err != nil {
-			return "", err
-		}
-		valuesFilePath := tempFolder + "flux-helm-values.yaml"
-		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
-		if err != nil {
-			return "", err
-		}
-		return valuesFilePath, nil
-	}
-	return "", nil
-}
-
-// CopyYaml adds all Yaml found in a given spot into the manifest folder.
-func (ci *CIScan) CopyYaml() error {
-	for _, yamlPath := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder")
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // all modifications to config struct must be done in this context
