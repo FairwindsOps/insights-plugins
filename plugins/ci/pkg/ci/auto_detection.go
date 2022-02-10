@@ -22,11 +22,12 @@ type KubernetesManifest struct {
 	Kind       string `json:"kind"`
 }
 
-func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error) {
+// ConfigFileAutoDetection reads recursively a path looking for kubernetes manifests and helm charts, returns a fairwinds-insights configuration struct or error
+func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 	k8sManifests := []string{}
 	helmFolders := []string{}
 
-	err := filepath.Walk(baseRepoPath,
+	err := filepath.Walk(basePath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return fmt.Errorf("Could not walk into dir: %v", err)
@@ -43,7 +44,7 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 				}
 
 				if helmFolder {
-					relPath, err := filepath.Rel(baseRepoPath, path)
+					relPath, err := filepath.Rel(basePath, path)
 					if err != nil {
 						return err
 					}
@@ -73,7 +74,7 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 				logrus.Debugf("file %s is NOT a k8s manifest, skipping...", path)
 			}
 
-			relPath, err := filepath.Rel(baseRepoPath, path)
+			relPath, err := filepath.Rel(basePath, path)
 			if err != nil {
 				return err
 			}
@@ -89,7 +90,7 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 	config := models.Configuration{
 		Manifests: models.ManifestConfig{
 			YamlPaths: k8sManifests,
-			Helm:      toHelmConfigs(baseRepoPath, helmFolders),
+			Helm:      toHelmConfigs(basePath, helmFolders),
 		},
 	}
 
