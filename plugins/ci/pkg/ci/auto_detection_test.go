@@ -10,14 +10,13 @@ import (
 // RunCommand runs a command and prints errors to Stderr
 func TestAutoDetection(t *testing.T) {
 
-	cfg, err := configFileAutoDetection("./auto_detection_test_repos/repo1")
+	cfg, err := configFileAutoDetection("./testdata/repo1")
 	assert.NoError(t, err)
 
 	expected := models.Configuration{
 		Manifests: models.ManifestConfig{
 			YamlPaths: []string{
 				"failing.yaml",
-				"nginx-flux-file.yaml", // TODO: not sure if flux files are supposed to be scanned
 				"passing.yaml",
 				"yml/failing_2.yml",
 				"yml/json/failing_3.json",

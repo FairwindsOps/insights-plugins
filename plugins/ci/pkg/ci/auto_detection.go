@@ -19,7 +19,7 @@ var supportedExtentions = []string{"yaml", "yml", "json"}
 
 type KubernetesManifest struct {
 	ApiVersion string `json:"apiVersion"` // Affects YAML field names too.
-	Kind       int    `json:"kind"`
+	Kind       string `json:"kind"`
 }
 
 func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error) {
@@ -64,24 +64,21 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 				return nil
 			}
 
-			file, err := os.Open(path)
-			if err != nil {
-				return fmt.Errorf("Could not open file: %v", err)
-			}
-			content, err := ioutil.ReadAll(file)
-			if err != nil {
-				return fmt.Errorf("Could not read fairwinds-insights.yaml: %v", err)
+			if isFluxManifest(path) {
+				logrus.Debugf("file '%s' is a flux manifest, skipping...", path)
+				return nil
 			}
 
-			var kManifest KubernetesManifest
-			err = yaml.Unmarshal(content, &kManifest)
-			if err != nil {
-				relPath, err := filepath.Rel(baseRepoPath, path)
-				if err != nil {
-					return err
-				}
-				k8sManifests = append(k8sManifests, relPath)
+			if !isKubernetesManifest(path) {
+				logrus.Debugf("file %s is NOT a k8s manifest, skipping...", path)
 			}
+
+			relPath, err := filepath.Rel(baseRepoPath, path)
+			if err != nil {
+				return err
+			}
+			logrus.Debugf("it is a k8s manifest: %s", path)
+			k8sManifests = append(k8sManifests, relPath)
 			return nil
 		})
 
@@ -97,6 +94,39 @@ func configFileAutoDetection(baseRepoPath string) (*models.Configuration, error)
 	}
 
 	return &config, nil
+}
+
+func isFluxManifest(path string) bool {
+	k8sManifest := getPossibleKubernetesManifest(path)
+	if k8sManifest == nil {
+		return false
+	}
+	return strings.Contains(k8sManifest.ApiVersion, "toolkit.fluxcd.io")
+}
+
+func isKubernetesManifest(path string) bool {
+	return getPossibleKubernetesManifest(path) != nil
+}
+
+// getPossibleKubernetesManifest returns a kubernetesManifest from given path, nil if could not be open or parsed
+func getPossibleKubernetesManifest(path string) *KubernetesManifest {
+	file, err := os.Open(path)
+	if err != nil {
+		logrus.Debugf("Could not open file %s", path)
+		return nil
+	}
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		logrus.Debugf("Could not read contents from file %s", file.Name())
+		return nil
+	}
+	var k8sManifest KubernetesManifest
+	err = yaml.Unmarshal(content, &k8sManifest)
+	if err != nil {
+		// not being to unmarshal means it is not a k8s file
+		return nil
+	}
+	return &k8sManifest
 }
 
 func isHelmBaseFolder(path string) (bool, error) {
