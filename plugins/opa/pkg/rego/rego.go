@@ -76,15 +76,13 @@ func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interf
 	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
-		logrus.Errorf("Error while preparing rego query for evaluation: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Error while preparing rego query for evaluation: %v", err)
 	}
 
 	evaluatedInput := rego.EvalInput(obj)
 	rs, err := query.Eval(ctx, evaluatedInput)
 	if err != nil {
-		logrus.Errorf("Error while evaluating query: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Error while evaluating query: %v", err)
 	}
 	return getOutputArray(rs), nil
 }
