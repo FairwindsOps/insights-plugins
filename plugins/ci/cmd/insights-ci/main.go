@@ -17,25 +17,24 @@ const maxLinesForPrint = 8
 
 func main() {
 	ciScan, err := ci.NewCIScan()
-	defer ciScan.Close() // TODO: when exitWithError, close is not executed (refactor)
 	if err != nil {
-		exitWithError("Error creating CI Scan main struct", err)
+		exitWithError(ciScan, "Error creating CI Scan main struct", err)
 	}
 
 	err = ciScan.ProcessHelmTemplates()
 	if err != nil {
-		exitWithError("Error while processing helm templates", err)
+		exitWithError(ciScan, "Error while processing helm templates", err)
 	}
 
 	err = ciScan.CopyYaml()
 	if err != nil {
-		exitWithError("Error while copying YAML files", err)
+		exitWithError(ciScan, "Error while copying YAML files", err)
 	}
 
 	// Scan YAML, find all images/kind/etc
 	manifestImages, resources, err := ciScan.GetAllResources()
 	if err != nil {
-		exitWithError("Error while extracting images from YAML manifests", err)
+		exitWithError(ciScan, "Error while extracting images from YAML manifests", err)
 	}
 
 	var reports []models.ReportInfo
@@ -44,7 +43,7 @@ func main() {
 	if ciScan.PolarisEnabled() {
 		polarisReport, err := ciScan.GetPolarisReport()
 		if err != nil {
-			exitWithError("Error while running Polaris", err)
+			exitWithError(ciScan, "Error while running Polaris", err)
 		}
 		reports = append(reports, polarisReport)
 	}
@@ -56,21 +55,21 @@ func main() {
 		}
 		trivyReport, err := ciScan.GetTrivyReport(manifestImagesToScan)
 		if err != nil {
-			exitWithError("Error while running Trivy", err)
+			exitWithError(ciScan, "Error while running Trivy", err)
 		}
 		reports = append(reports, trivyReport)
 	}
 
 	workloadReport, err := ciScan.GetWorkloadReport(resources)
 	if err != nil {
-		exitWithError("Error while aggregating workloads", err)
+		exitWithError(ciScan, "Error while aggregating workloads", err)
 	}
 	reports = append(reports, workloadReport)
 
 	if ciScan.OPAEnabled() {
 		opaReport, err := ciScan.ProcessOPA(context.Background())
 		if err != nil {
-			exitWithError("Error while running OPA", err)
+			exitWithError(ciScan, "Error while running OPA", err)
 		}
 		reports = append(reports, opaReport)
 	}
@@ -78,14 +77,14 @@ func main() {
 	if ciScan.PlutoEnabled() {
 		plutoReport, err := ciScan.GetPlutoReport()
 		if err != nil {
-			exitWithError("Error while running Pluto", err)
+			exitWithError(ciScan, "Error while running Pluto", err)
 		}
 		reports = append(reports, plutoReport)
 	}
 
 	results, err := ciScan.SendResults(reports, resources)
 	if err != nil {
-		exitWithError("Error while sending results back to "+ciScan.Hostname(), err)
+		exitWithError(ciScan, "Error while sending results back to "+ciScan.Hostname(), err)
 	}
 	fmt.Printf("%d new Action Items:\n", len(results.NewActionItems))
 	printActionItems(results.NewActionItems)
@@ -95,7 +94,7 @@ func main() {
 	if ciScan.JUnitEnabled() {
 		err = ciScan.SaveJUnitFile(*results)
 		if err != nil {
-			exitWithError("Could not save jUnit results", err)
+			exitWithError(ciScan, "Could not save jUnit results", err)
 		}
 	}
 
@@ -109,6 +108,8 @@ func main() {
 	} else {
 		fmt.Println("\n\nFairwinds Insights checks passed.")
 	}
+
+	ciScan.Close()
 }
 
 func printActionItems(ais []models.ActionItem) {
@@ -135,7 +136,10 @@ func printMultilineString(title, str string) {
 	}
 }
 
-func exitWithError(message string, err error) {
+func exitWithError(ciScan *ci.CIScan, message string, err error) {
+	if ciScan != nil {
+		ciScan.Close()
+	}
 	if err != nil {
 		logrus.Fatalf("%s: %s", message, err.Error())
 	} else {
