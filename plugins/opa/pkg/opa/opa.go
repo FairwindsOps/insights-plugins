@@ -15,6 +15,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -52,6 +53,7 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks []OPACustomCheck, thisNamespace string) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var lastError error = nil
+	var allErrs error = nil
 
 	for _, checkInstance := range checkInstances {
 
@@ -60,14 +62,14 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 				newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 				if err != nil {
 					lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
-					logrus.Warn(lastError.Error())
+					allErrs = multierror.Append(allErrs, lastError)
 					continue
 				}
 				actionItems = append(actionItems, newItems...)
 			}
 		}
 	}
-	return actionItems, lastError
+	return actionItems, allErrs
 }
 
 func processCheck(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
@@ -76,8 +78,7 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
 		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
-			logrus.Errorf("Error while processing check %s: %v", checkInstance.Spec.CustomCheckName, err)
-			return nil, err
+			return nil, fmt.Errorf("Error while processing check %s: %v", checkInstance.Spec.CustomCheckName, err)
 		}
 
 		actionItems = append(actionItems, newAI...)
@@ -99,7 +100,7 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 		return nil, err
 	}
 	for _, obj := range list.Items {
-		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace())
+		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
 		if err != nil {
 			return nil, err
 		}
@@ -108,10 +109,9 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 	return actionItems, nil
 }
 
-func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string) ([]ActionItem, error) {
-	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj)
+func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
-		logrus.Errorf("Error while running rego for item %s/%s/%s: %v", resourceKind, resourceNamespace, resourceName, err)
 		return nil, err
 	}
 	aiDetails := OutputFormat{}
@@ -120,9 +120,9 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 	return newItems, err
 }
 
-func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}) ([]interface{}, error) {
+func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
 	client := kube.GetKubeClient()
-	return rego.RunRegoForItem(ctx, body, params, obj, *client)
+	return rego.RunRegoForItem(ctx, body, params, obj, *client, insightsInfo)
 }
 
 func getInsightsChecks() (clusterCheckModel, error) {
