@@ -40,6 +40,13 @@ type KubeTarget struct {
 	Kinds     []string
 }
 
+// KubeResourceTarget is a mapping of Resources and API groups
+type KubeResourceTarget struct {
+	APIGroups   []string
+	APIVersions []string
+	Resources   []string
+}
+
 type OutputFormat struct {
 	Title       *string
 	Severity    *float64
