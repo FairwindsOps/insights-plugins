@@ -1,6 +1,9 @@
 # Changelog
-## 0.15.2
+## 1.1.0
 * Add an `insightsinfo` function to make Insights information available in rego.
+
+## 1.0.0
+* Update plugin version
 
 ## 0.15.1
 * Run apk update
