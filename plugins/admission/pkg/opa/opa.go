@@ -3,6 +3,7 @@ package opa
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
@@ -22,47 +23,56 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 		Version: opaVersion,
 	}
 	actionItems := make([]opa.ActionItem, 0)
-	for _, instanceObject := range configuration.OPA.CustomCheckInstances {
-		instance := opa.CustomCheckInstance{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: instanceObject.AdditionalData.Name,
-			},
-			Spec: opa.CustomCheckInstanceSpec{
-				CustomCheckName: instanceObject.CheckName,
-				Output:          instanceObject.AdditionalData.Output,
-				Parameters:      instanceObject.AdditionalData.Parameters,
-				Targets: funk.Map(instanceObject.Targets, func(s string) opa.KubeTarget {
-					splitValues := strings.Split(s, "/")
-					return opa.KubeTarget{
-						APIGroups: []string{splitValues[0]},
-						Kinds:     []string{splitValues[1]},
+	for _, check := range configuration.OPA.CustomChecks {
+		fmt.Printf("Check %s is version %.1f\n", check.Name, check.Version)
+		switch check.Version {
+		case 1.0:
+			for _, instanceObject := range configuration.OPA.CustomCheckInstances {
+				if instanceObject.CheckName != check.Name {
+					continue
+				}
+				instance := opa.CustomCheckInstance{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: instanceObject.AdditionalData.Name,
+					},
+					Spec: opa.CustomCheckInstanceSpec{
+						CustomCheckName: instanceObject.CheckName,
+						Output:          instanceObject.AdditionalData.Output,
+						Parameters:      instanceObject.AdditionalData.Parameters,
+						Targets: funk.Map(instanceObject.Targets, func(s string) opa.KubeTarget {
+							splitValues := strings.Split(s, "/")
+							return opa.KubeTarget{
+								APIGroups: []string{splitValues[0]},
+								Kinds:     []string{splitValues[1]},
+							}
+						}).([]opa.KubeTarget),
+					},
+				}
+				foundTargetInInstance := false
+				for _, target := range instance.Spec.Targets {
+					if apiGroup == target.APIGroups[0] && resourceKind == target.Kinds[0] {
+						foundTargetInInstance = true
 					}
-				}).([]opa.KubeTarget),
-			},
-		}
-		found := false
-		for _, target := range instance.Spec.Targets {
-			if apiGroup == target.APIGroups[0] && resourceKind == target.Kinds[0] {
-				found = true
+				}
+				if !foundTargetInInstance {
+					continue
+				}
+				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
+				if err != nil {
+					return report, err
+				}
+				actionItems = append(actionItems, newActionItems...)
 			}
-		}
-		if !found {
-			continue
-		}
-		maybeCheckObject := funk.Find(configuration.OPA.CustomChecks, func(c opa.OPACustomCheck) bool {
-			return c.Name == instance.Spec.CustomCheckName
-		})
-		if maybeCheckObject == nil {
-			continue
-		}
-		check := maybeCheckObject.(opa.OPACustomCheck)
-		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
-		if err != nil {
-			return report, err
-		}
-		actionItems = append(actionItems, newActionItems...)
-
-	}
+		case 2.0:
+			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
+			if err != nil {
+				return report, err
+			}
+			actionItems = append(actionItems, newActionItems...)
+		default:
+			return report, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause admission control to be blocked", check.Name, check.Version)
+		} // switch
+	} // iterate checks
 	results := map[string]interface{}{
 		"ActionItems": actionItems,
 	}
