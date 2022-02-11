@@ -1,5 +1,9 @@
 # Changelog
 
+
+## 1.0.0
+* Bump plugin version
+
 ## 0.5.2
 * Update dependencies
 
