@@ -1,7 +1,10 @@
 # Changelog
-## 0.15.2
+## 1.0.1
 * Fix reading helm `valuesFile` and `fluxFile` when on cloned repo context
 * Fix internal `baseFolder` when not in cloned repo context
+
+## 1.0.0
+* Update plugin version
 
 ## 0.15.1
 * Run apk update
