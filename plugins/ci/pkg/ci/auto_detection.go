@@ -163,7 +163,20 @@ func toHelmConfigs(baseFolder string, helmPaths []string) []models.HelmConfig {
 		}
 		result = append(result, hc)
 	}
+	logDuplicatedHelmConfigNames(result)
 	return result
+}
+
+func logDuplicatedHelmConfigNames(arr []models.HelmConfig) {
+	visited := map[string]bool{}
+	for _, hc := range arr {
+		if _, ok := visited[hc.Name]; ok {
+			logrus.Warnf("helm config name '%s' is duplicated", hc.Name)
+		} else {
+			visited[hc.Name] = true
+		}
+	}
+
 }
 
 // tries to extract name from Chart.yaml file, return chart (dir name) as fallback
@@ -210,16 +223,4 @@ func tryDiscoverValuesFile(baseFolder, path string) string {
 		return relPath
 	}
 	return ""
-}
-
-func createFileFromConfig(path, filename string, cfg models.Configuration) error {
-	bytes, err := yaml.Marshal(cfg)
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(path, filename), bytes, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
 }

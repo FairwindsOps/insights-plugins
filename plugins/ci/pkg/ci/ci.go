@@ -597,3 +597,15 @@ func printMultilineString(title, str string) {
 		}
 	}
 }
+
+func createFileFromConfig(path, filename string, cfg models.Configuration) error {
+	bytes, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(path, filename), bytes, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
