@@ -5,7 +5,7 @@ services:
       context: ../
       dockerfile: ci/Dockerfile
     volumes:
-      - ./_tmp:/app/repository
+      - ./.tmp:/app/repository
     environment:
       - "CLONE_REPO=true"
       - "FAIRWINDS_TOKEN=thisisacitoken"

@@ -60,7 +60,7 @@ func NewCIScan() (*CIScan, error) {
 		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
 
-	repoBaseFolder, config, err := setupConfiguration(cloneRepo)
+	baseFolder, repoBaseFolder, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
 	}
@@ -74,7 +74,7 @@ func NewCIScan() (*CIScan, error) {
 	ci := CIScan{
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
-		baseFolder:     filepath.Join(repoBaseFolder, "../"),
+		baseFolder:     baseFolder,
 		configFolder:   configFolder,
 		config:         config,
 	}
@@ -98,7 +98,7 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 
 		displayFilename, err := filepath.Rel(ci.configFolder, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot be made relative to basepath: %v", err)
 		}
 		var helmName string
 		for _, helm := range ci.config.Manifests.Helm {
@@ -121,7 +121,7 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 
 		file, err := os.Open(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("error opening file %s: %v", path, err)
 		}
 		decoder := yaml.NewDecoder(file)
 		for {
@@ -132,15 +132,14 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 			err = decoder.Decode(&yamlNodeOriginal)
 			if err != nil {
 				if err != io.EOF {
-					return err
+					return fmt.Errorf("error decoding file %s: %v", file.Name(), err)
 				}
 				break
-
 			}
 			yamlNode := map[string]interface{}{}
 			err = yamlNodeOriginal.Decode(&yamlNode)
 			if err != nil {
-				return err
+				return fmt.Errorf("error decoding[2] file %s: %v", file.Name(), err)
 			}
 			kind, ok := yamlNode["kind"].(string)
 			if !ok {
@@ -201,7 +200,6 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 			}
 
 		}
-
 		return nil
 	})
 	return images, resources, err
@@ -445,7 +443,7 @@ func (ci *CIScan) ProcessHelmTemplates() error {
 			}
 		} else if helm.IsRemote() {
 			if helm.IsFluxFile() {
-				err := handleFluxHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
+				err := handleFluxHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
 					return err
 				}
@@ -462,12 +460,12 @@ func (ci *CIScan) ProcessHelmTemplates() error {
 	return nil
 }
 
-func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
+func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
 	if helm.Name == "" || helm.Repo == "" {
 		return errors.New("Parameters 'name', 'repo' are required when using fluxFile")
 	}
 
-	fluxFile, err := os.Open(helm.FluxFile)
+	fluxFile, err := os.Open(filepath.Join(baseRepoFolder, helm.FluxFile))
 	if err != nil {
 		return fmt.Errorf("Unable to open file %v: %v", helm.FluxFile, err)
 	}
@@ -555,7 +553,7 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), helmValuesFilePath, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), filepath.Join(baseRepoFolder, helmValuesFilePath), tempFolder, configFolder)
 }
 
 func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {
@@ -627,42 +625,42 @@ func (ci *CIScan) CopyYaml() error {
 }
 
 // all modifications to config struct must be done in this context
-func setupConfiguration(cloneRepo bool) (string, *models.Configuration, error) {
+func setupConfiguration(cloneRepo bool) (string, string, *models.Configuration, error) {
 	if cloneRepo {
 		return getConfigurationForClonedRepo()
 	}
 	return getDefaultConfiguration()
 }
 
-func getDefaultConfiguration() (string, *models.Configuration, error) {
+func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 	// i.e.: ./fairwinds-insights.yaml
 	config, err := readConfigurationFromFile("./" + configFileName)
 	if err != nil {
-		return "", nil, err
+		return "", "", nil, err
 	}
 	config.SetDefaults()
 	config.SetPathDefaults()
 
 	err = config.CheckForErrors()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
-	return filepath.Base(""), config, nil
+	return filepath.Base(""), filepath.Base(""), config, nil
 }
 
-func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
+func getConfigurationForClonedRepo() (string, string, *models.Configuration, error) {
 	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	if repoFullName == "" {
-		return "", nil, errors.New("REPOSITORY_NAME environment variable not set")
+		return "", "", nil, errors.New("REPOSITORY_NAME environment variable not set")
 	}
 
 	branch := strings.TrimSpace(os.Getenv("BRANCH_NAME"))
 	if branch == "" {
-		return "", nil, errors.New("BRANCH environment variable not set")
+		return "", "", nil, errors.New("BRANCH environment variable not set")
 	}
 
 	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
-		return "", nil, errors.New("IMAGE_VERSION environment variable not set")
+		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
 	basePath := filepath.Join("/app", "repository")
@@ -671,7 +669,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	err := os.RemoveAll(baseRepoPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
+		return "", "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
 	}
 
 	url := fmt.Sprintf("https://@github.com/%s", repoFullName)
@@ -683,7 +681,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	_, err = commands.ExecInDir(basePath, exec.Command("git", "clone", "--branch", branch, url), "cloning github repository")
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to clone repository: %v", err)
+		return "", "", nil, fmt.Errorf("unable to clone repository: %v", err)
 	}
 
 	// i.e.: /app/repository/blog/fairwinds-insights.yaml
@@ -691,25 +689,25 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	config, err := readConfigurationFromFile(configFilePath)
 	if err != nil {
-		return "", nil, err
+		return "", "", nil, err
 	}
 	config.SetDefaults()
 	err = config.SetMountedPathDefaults(basePath, baseRepoPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
+		return "", "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
 	}
 
 	err = config.CheckForErrors()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
 
 	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "update-ref", "refs/heads/"+config.Options.BaseBranch, "refs/remotes/origin/"+config.Options.BaseBranch), "updating branch ref")
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
+		return "", "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
 	}
 
-	return baseRepoPath, config, nil
+	return filepath.Join(baseRepoPath, "../"), baseRepoPath, config, nil
 }
 
 func readConfigurationFromFile(configFilePath string) (*models.Configuration, error) {

@@ -21,4 +21,4 @@ tags.sh
 
 *.swp
 
-*_tmp
+*.tmp
