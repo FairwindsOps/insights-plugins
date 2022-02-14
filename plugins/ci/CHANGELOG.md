@@ -1,11 +1,16 @@
 # Changelog
 
-## 0.15.3
+## 0.1.1
 * Adds auto config. file generation by scanning the repository files
 
-## 0.15.2
+## 0.1.1
 * Fix reading helm `valuesFile` and `fluxFile` when on cloned repo context
 * Fix internal `baseFolder` when not in cloned repo context
+## 1.1.0
+* Add an `insightsinfo` function to make Insights information available in rego.
+
+## 1.0.0
+* Update plugin version
 
 ## 0.15.1
 * Run apk update

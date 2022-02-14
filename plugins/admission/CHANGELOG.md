@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+* Add an `insightsinfo` function to make Insights information available in rego.
+
+## 1.0.0
+* Bump plugin version
+
 ## 0.5.2
 * Update dependencies
 
