@@ -45,11 +45,11 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	*/
 	CLIKubeTargets[0].APIGroups[0] = "apps"
 	CLIKubeTargets[0].Resources[0] = "Deployments"
-	CLIKubeTargets[0].Resources[1] = "StatefulSet"
+	CLIKubeTargets[0].Resources[1] = "StatefulSets"
 	CLIKubeTargets[1].APIGroups = make([]string, 1)
 	CLIKubeTargets[1].Resources = make([]string, 1)
 	CLIKubeTargets[1].APIGroups[0] = "batch"
-	CLIKubeTargets[1].Resources[0] = "CronJob"
+	CLIKubeTargets[1].Resources[0] = "CronJobs"
 	fmt.Printf("CLI Kube Targets is: %#v\n", CLIKubeTargets)
 
 	thisNamespace := "insights-agent"
@@ -174,8 +174,10 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.G
 	   	}
 	   	gvr := mapping.Resource
 	*/
-	gvr := gr.WithVersion("")
-
+	gvr, err := client.RestMapper.ResourceFor(gr.WithVersion(""))
+	if err != nil {
+		fmt.Printf("Error getting GVR from a GRV with no version: %v\n", err)
+	}
 	fmt.Printf("The GVR for this check is %+v\n", gvr)
 	list, err := client.DynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
