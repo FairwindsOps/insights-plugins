@@ -1,7 +1,12 @@
 # Changelog
+
+## 1.2.0
+* Adds auto config. file generation by scanning the repository files
+
 ## 1.1.1
 * Fix reading helm `valuesFile` and `fluxFile` when on cloned repo context
 * Fix internal `baseFolder` when not in cloned repo context
+
 ## 1.1.0
 * Add an `insightsinfo` function to make Insights information available in rego.
 

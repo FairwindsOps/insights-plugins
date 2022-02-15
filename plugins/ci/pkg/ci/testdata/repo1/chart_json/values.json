@@ -1,0 +1,35 @@
+{
+  "image": {
+    "repository": "quay.io/fairwinds/helm-release-pruner",
+    "tag": "v3.0.1",
+    "pullPolicy": "Always"
+  },
+  "job": {
+    "backoffLimit": 3,
+    "restartPolicy": "Never",
+    "schedule": "0 */4 * * *",
+    "dryRun": true,
+    "debug": false,
+    "serviceAccount": {
+      "create": true,
+      "name": "ExistingServiceAccountName"
+    },
+    "resources": {
+      "limits": {
+        "cpu": "25m",
+        "memory": "32Mi"
+      },
+      "requests": {
+        "cpu": "25m",
+        "memory": "32M"
+      }
+    }
+  },
+  "pruneProfiles": [],
+  "rbac_manager": {
+    "enabled": false,
+    "namespaceLabel": ""
+  },
+  "fullnameOverride": "",
+  "nameOverride": ""
+}
