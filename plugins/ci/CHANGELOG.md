@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.2
+## 1.2.0
 * Adds auto config. file generation by scanning the repository files
 
 ## 1.1.1
