@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.14
+* Update trivy to 0.23.0
+* Remove root command
+
 ## 0.14.13
 * Update dependencies
 ## 0.14.12
