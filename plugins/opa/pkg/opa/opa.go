@@ -91,7 +91,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 					logrus.Debugf("Found instance %s to match check %s", checkInstance.CheckName, check.Name)
 					newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 					if err != nil {
-						lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
+						lastError = fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, checkInstance.GetCustomCheckInstance().Name, err)
 						allErrs = multierror.Append(allErrs, lastError)
 						break // Go back to outer checks loop
 					}
@@ -104,7 +104,6 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 			if err != nil {
 				lastError = fmt.Errorf("error while processing check %s: %v", check.Name, err)
 				allErrs = multierror.Append(allErrs, lastError)
-				continue
 			}
 			actionItems = append(actionItems, newItems...)
 		default:
@@ -117,32 +116,34 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 
 func processCheck(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
+	var allErrs error = nil
 
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
 		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
-			return nil, fmt.Errorf("Error while processing check %s: %v", checkInstance.Spec.CustomCheckName, err)
+			allErrs = multierror.Append(allErrs, err)
 		}
 
 		actionItems = append(actionItems, newAI...)
 	}
 
-	return actionItems, nil
+	return actionItems, multierror.Prefix(allErrs, " ")
 }
 
 func processCheckV2(ctx context.Context, check OPACustomCheck) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
+	var allErrs error = nil
 
 	for _, gr := range getGroupResources(*CLIKubeTargets) {
 		newAI, err := processCheckTargetV2(ctx, check, gr)
 		if err != nil {
-			return nil, err
+			allErrs = multierror.Append(allErrs, err)
 		}
 
 		actionItems = append(actionItems, newAI...)
 	}
 
-	return actionItems, nil
+	return actionItems, multierror.Prefix(allErrs, " ")
 }
 
 func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
