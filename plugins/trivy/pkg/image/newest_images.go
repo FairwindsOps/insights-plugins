@@ -36,11 +36,12 @@ var specific = []string{
 	"amd64",
 }
 
+// GetNewestVersions returns newest versions and newest version within same major version
 func GetNewestVersions(repo, tag string) ([]string, []string, error) {
 	logrus.Info("Started retrieving newest versions for %v:%v", repo, tag)
 	tags, err := fetchTags(repo, tag)
 	if err != nil {
-		logrus.Error("Error fetching tags for for %v:%v: %v", repo, tag, error)
+		logrus.Error("Error fetching tags for for %v:%v: %v", repo, tag, err)
 		return nil, nil, err
 
 	}
@@ -54,7 +55,6 @@ func fetchTags(imageName, tag string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Create the registry client.
 	r, err := createRegistryClient(context.TODO(), image.Domain)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,6 @@ func fetchTags(imageName, tag string) ([]string, error) {
 }
 
 func createRegistryClient(ctx context.Context, domain string) (*registry.Registry, error) {
-	// Use the auth-url domain if provided.
 	authDomain := authURL
 	if authDomain == "" {
 		authDomain = domain
@@ -76,7 +75,6 @@ func createRegistryClient(ctx context.Context, domain string) (*registry.Registr
 	if err != nil {
 		return nil, err
 	}
-	// Prevent non-ssl unless explicitly forced
 	if !forceNonSSL && strings.HasPrefix(auth.ServerAddress, "http:") {
 		return nil, fmt.Errorf("attempted to use insecure protocol! Use force-non-ssl option to force")
 	}
