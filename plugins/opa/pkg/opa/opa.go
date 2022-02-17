@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +25,7 @@ var (
 	defaultDescription = ""
 	defaultRemediation = ""
 	defaultCategory    = "Security"
-	CLIKubeTargets     []KubeResourceTarget
+	CLIKubeTargets     *[]KubeResourceTarget
 )
 
 var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customcheckinstances"}
@@ -32,9 +33,11 @@ var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Vers
 
 func Run(ctx context.Context) ([]ActionItem, error) {
 	// Temporary until CLI processing happens.
-	CLIKubeTargets = make([]KubeResourceTarget, 2)
-	CLIKubeTargets[0].APIGroups = make([]string, 1)
-	CLIKubeTargets[0].Resources = make([]string, 2)
+	/*
+	   CLIKubeTargets = make([]KubeResourceTarget, 2)
+	   	CLIKubeTargets[0].APIGroups = make([]string, 1)
+	   	CLIKubeTargets[0].Resources = make([]string, 2)
+	*/
 	/*
 	   convertedGK, err := GroupResourceToGroupKind(schema.GroupResource{Group: "apps", Resource: "Deployments"})
 	   	if err != nil {
@@ -43,14 +46,16 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	   	CLIKubeTargets[0].APIGroups[0] = convertedGK.Group
 	   	CLIKubeTargets[0].Kinds[0] = convertedGK.Kind
 	*/
-	CLIKubeTargets[0].APIGroups[0] = "apps"
-	CLIKubeTargets[0].Resources[0] = "Deployments"
-	CLIKubeTargets[0].Resources[1] = "StatefulSets"
-	CLIKubeTargets[1].APIGroups = make([]string, 1)
-	CLIKubeTargets[1].Resources = make([]string, 1)
-	CLIKubeTargets[1].APIGroups[0] = "batch"
-	CLIKubeTargets[1].Resources[0] = "CronJobs"
-	fmt.Printf("CLI Kube Targets is: %#v\n", CLIKubeTargets)
+	/*
+	   CLIKubeTargets[0].APIGroups[0] = "apps"
+	   	CLIKubeTargets[0].Resources[0] = "Deployments"
+	   	CLIKubeTargets[0].Resources[1] = "StatefulSets"
+	   	CLIKubeTargets[1].APIGroups = make([]string, 1)
+	   	CLIKubeTargets[1].Resources = make([]string, 1)
+	   	CLIKubeTargets[1].APIGroups[0] = "batch"
+	   	CLIKubeTargets[1].Resources[0] = "CronJobs"
+	*/
+	// CLIKubeTargets = ProcessCLIKubeResourceTargets(viper.GetStringSlice("target-resource"))
 
 	thisNamespace := "insights-agent"
 	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
@@ -78,12 +83,12 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 	var allErrs error = nil
 
 	for _, check := range checks {
-		fmt.Printf("Check %s is version %.1f\n", check.Name, check.Version)
+		logrus.Debugf("Check %s is version %.1f", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
 			for _, checkInstance := range checkInstances {
 				if check.Name == checkInstance.CheckName {
-					fmt.Printf("PRocessing instance %s to go with check %s\n", checkInstance.CheckName, check.Name)
+					logrus.Debugf("Found instance %s to match check %s", checkInstance.CheckName, check.Name)
 					newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 					if err != nil {
 						lastError = fmt.Errorf("error while processing check instance %s/%s: %v", checkInstance.GetCustomCheckInstance().Namespace, checkInstance.GetCustomCheckInstance().Name, err)
@@ -95,7 +100,6 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 				}
 			}
 		case 2.0:
-			fmt.Println("processing 2.0 check. . .")
 			newItems, err := processCheckV2(ctx, check)
 			if err != nil {
 				lastError = fmt.Errorf("error while processing check %s: %v", check.Name, err)
@@ -129,8 +133,7 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 func processCheckV2(ctx context.Context, check OPACustomCheck) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 
-	for _, gr := range getGroupResources(CLIKubeTargets) {
-		fmt.Printf("About to process target for Gr %s of V2 check\n", gr)
+	for _, gr := range getGroupResources(*CLIKubeTargets) {
 		newAI, err := processCheckTargetV2(ctx, check, gr)
 		if err != nil {
 			return nil, err
@@ -167,22 +170,15 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.GroupResource) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
-	/*
-	   mapping, err := client.RestMapper.RESTMapping(gk)
-	   	if err != nil {
-	   		return actionItems, err
-	   	}
-	   	gvr := mapping.Resource
-	*/
 	gvr, err := client.RestMapper.ResourceFor(gr.WithVersion(""))
 	if err != nil {
-		fmt.Printf("Error getting GVR from a GRV with no version: %v\n", err)
+		return nil, fmt.Errorf("error getting GroupVersionResource from GroupResource %q: %v", gr, err)
 	}
-	fmt.Printf("The GVR for this check is %+v\n", gvr)
 	list, err := client.DynamicInterface.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error listing %q for check %s and target %s: %v", gvr, check.Name, gr, err)
 	}
+	logrus.Debugf("Listed %d %q objects for check %s, target %s", len(list.Items), gvr, check.Name, gr)
 	for _, obj := range list.Items {
 		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
 		if err != nil {
@@ -374,12 +370,22 @@ func getGroupResources(targets []KubeResourceTarget) []schema.GroupResource {
 	return GRs
 }
 
-func GroupResourceToGroupKind(GR schema.GroupResource) (schema.GroupKind, error) {
-	GVR := GR.WithVersion("")
-	client := kube.GetKubeClient()
-	GVK, err := client.RestMapper.KindFor(GVR)
-	if err != nil {
-		return schema.GroupKind{}, err
+// ProcessClIKubeResourceTargets processes command-line flag input and returns
+// a slice of KubeResourceTarget.
+func ProcessCLIKubeResourceTargets(CLIInputs []string) *[]KubeResourceTarget {
+	if CLIInputs == nil {
+		return nil
 	}
-	return GVK.GroupKind(), nil
+	targets := make([]KubeResourceTarget, 0)
+	for _, CLIInput := range CLIInputs {
+		fields := strings.Split(CLIInput, "/")
+		var target KubeResourceTarget
+		target.APIGroups = append(target.APIGroups, strings.Split(fields[0], ",")...)
+		target.Resources = append(target.Resources, strings.Split(fields[1], ",")...)
+		if len(target.APIGroups) > 0 || len(target.Resources) > 0 {
+			targets = append(targets, target)
+		}
+	}
+	logrus.Debugf("Parsed command-line options %q into %d target resources: %#v", CLIInputs, len(targets), targets)
+	return &targets
 }

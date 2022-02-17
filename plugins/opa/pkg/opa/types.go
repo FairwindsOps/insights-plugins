@@ -42,9 +42,8 @@ type KubeTarget struct {
 
 // KubeResourceTarget is a mapping of Resources and API groups
 type KubeResourceTarget struct {
-	APIGroups   []string
-	APIVersions []string
-	Resources   []string
+	APIGroups []string
+	Resources []string
 }
 
 type OutputFormat struct {

@@ -49,8 +49,10 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.opa.yaml)")
-	rootCmd.PersistentFlags().StringSliceP("target-resource", "r", []string{}, "A Kubernetes target specified as APIGroup[,APIGroup...]/Resource[,Resource...]. For example: apps/Deployments,Daemonsets")
-	rootCmd.PersistentFlags().StringSliceP("target-kind", "k", []string{}, "A Kubernetes target specified as APIGroup[,APIGroup...]/Kind[,Kind...]. For example: apps/Deployment,Daemonset")
+	rootCmd.PersistentFlags().BoolP("debug", "D", false, "Enable debug logging.")
+	rootCmd.PersistentFlags().StringArrayP("target-resource", "r", []string{}, "A Kubernetes target specified as APIGroup[,APIGroup...]/Resource[,Resource...]. For example: apps/Deployments,Daemonsets")
+	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	viper.BindPFlag("target-resource", rootCmd.PersistentFlags().Lookup("target-resource"))
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
@@ -88,6 +90,11 @@ type Output struct {
 }
 
 func startOPAReporter() {
+	if viper.GetBool("debug") {
+		logrus.SetLevel(logrus.DebugLevel)
+		logrus.Debugf("Debugging is enabled...")
+	}
+	opa.CLIKubeTargets = opa.ProcessCLIKubeResourceTargets(viper.GetStringSlice("target-resource"))
 	logrus.Info("Starting OPA reporter")
 	ctx := context.Background()
 	actionItems, runError := opa.Run(ctx)
