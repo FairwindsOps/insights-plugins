@@ -37,17 +37,20 @@ var specific = []string{
 }
 
 // GetNewestVersions returns newest versions and newest version within same major version
-func GetNewestVersions(repo, tag string) ([]string, []string, error) {
+func GetNewestVersions(repo, tag string) ([]string, error) {
 	logrus.Info("Started retrieving newest versions for %v:%v", repo, tag)
 	tags, err := fetchTags(repo, tag)
 	if err != nil {
 		logrus.Error("Error fetching tags for for %v:%v: %v", repo, tag, err)
-		return nil, nil, err
+		return nil, err
 
 	}
-	newest, sameMajor := filterAndSort(tags, tag)
+	newest := filterAndSort(tags, tag)
 	logrus.Info("Finished retrieving newest versions for %v:%v", repo, tag)
-	return newest, sameMajor, nil
+	if len(newest) < 2 {
+		return newest, nil
+	}
+	return newest, nil
 }
 
 func fetchTags(imageName, tag string) ([]string, error) {
@@ -88,10 +91,8 @@ func createRegistryClient(ctx context.Context, domain string) (*registry.Registr
 	})
 }
 
-func filterAndSort(tags []string, currentTag string) ([]string, []string) {
+func filterAndSort(tags []string, currentTag string) []string {
 	newest := []string{}
-	sameMajor := []string{}
-	major := strings.Split(currentTag, ".")[0] + "."
 	c := version.NewConstrainGroupFromString(">" + currentTag)
 	filter := ""
 	for _, v := range specific {
@@ -104,10 +105,7 @@ func filterAndSort(tags []string, currentTag string) ([]string, []string) {
 		if c.Match(tag) && (filter == "" || strings.Contains(tag, filter)) {
 			newest = append(newest, tag)
 		}
-		if c.Match(tag) && strings.HasPrefix(tag, major) {
-			sameMajor = append(sameMajor, tag)
-		}
 	}
 	version.Sort(newest)
-	return newest, sameMajor
+	return newest
 }

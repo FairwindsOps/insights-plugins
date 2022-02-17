@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
@@ -100,4 +102,26 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	var imageWithVulns []models.ImageReport
+	for _, report := range allReports {
+		if len(report.Report) > 0 {
+			imageWithVulns = append(imageWithVulns, report)
+		}
+	}
+	newImagesToScan := []models.Image{}
+	for _, img := range imageWithVulns {
+		repo := strings.Split(img.Name, ":")[0]
+		tag := strings.Split(img.Name, ":")[1]
+		versions, err := image.GetNewestVersions(repo, tag)
+		if err != nil {
+			continue
+		}
+		for _, v := range versions {
+			newImagesToScan = append(newImagesToScan, models.Image{
+				PullRef: fmt.Sprintf("%v:%v", repo, v),
+			})
+		}
+	}
+	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans)
+	fmt.Println("New report: ", newReport)
 }
