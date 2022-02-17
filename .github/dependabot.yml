@@ -1,62 +1,24 @@
 version: 2
 updates:
-- package-ecosystem: gomod
-  directory: "/plugins/kube-bench"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: gomod
-  directory: "/plugins/kube-bench-aggregator"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: gomod
-  directory: "/plugins/rbac-reporter"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: gomod
-  directory: "/plugins/trivy"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: gomod
-  directory: "/plugins/workload"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: docker
-  directory: "/plugins/kube-bench"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: docker
-  directory: "/plugins/kube-bench-aggregator"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: docker
-  directory: "/plugins/kubesec"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: docker
-  directory: "/plugins/rbac-reporter"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: docker
-  directory: "/plugins/trivy"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: docker
-  directory: "/plugins/uploader"
-  schedule:
-    interval: weekly
-    time: "11:00"
-- package-ecosystem: docker
-  directory: "/plugins/workload"
-  schedule:
-    interval: weekly
-    time: "11:00"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
