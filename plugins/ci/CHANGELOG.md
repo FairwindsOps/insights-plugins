@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+* Updated trivy version to 0.23.0
+* Drop root command
 ## 1.2.0
 * Adds auto config. file generation by scanning the repository files
 

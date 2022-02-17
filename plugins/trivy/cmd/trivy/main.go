@@ -39,7 +39,7 @@ func main() {
 		}
 	}
 
-	err := util.RunCommand(exec.Command("trivy", "--download-db-only"), "downloading trivy database")
+	err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
 	if err != nil {
 		panic(err)
 	}
