@@ -160,7 +160,6 @@ func (c *Configuration) SetMountedPathDefaults(basePath, repoPath string) error 
 	}
 	c.Options.TempFolder = maybeAddSlash(c.Options.TempFolder)
 
-	// TODO: images are copied via script insights-ci.sh, what now?
 	c.Images.FolderName = filepath.Join(basePath, "tmp/_insightsTempImages")
 	err = os.MkdirAll(c.Images.FolderName, os.ModePerm)
 	if err != nil {

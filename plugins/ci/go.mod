@@ -9,6 +9,7 @@ replace github.com/fairwindsops/insights-plugins/opa => ../opa
 require (
 	github.com/fairwindsops/insights-plugins/opa v0.0.0-20200904180341-40eda9118d57
 	github.com/fairwindsops/insights-plugins/trivy v0.0.0-20200528180806-f7f94de92325
+	github.com/ghodss/yaml v1.0.0
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
@@ -23,7 +24,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

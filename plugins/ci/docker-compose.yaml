@@ -5,7 +5,7 @@ services:
       context: ../
       dockerfile: ci/Dockerfile
     volumes:
-      - ./_tmp:/app/repository
+      - ./.tmp:/app/repository
     environment:
       - "CLONE_REPO=true"
       - "FAIRWINDS_TOKEN=thisisacitoken"
@@ -16,6 +16,6 @@ services:
       - "BASE_BRANCH=main"
       - "GITHUB_ACCESS_TOKEN="
       - "ORG_NAME=acme-co"
-      - "HOSTNAME=https://be-vv-fwi-1233-cr.k8s.insights.fairwinds.com"
+      - "HOSTNAME=https://be-main.k8s.insights.fairwinds.com"
 volumes:
   {}

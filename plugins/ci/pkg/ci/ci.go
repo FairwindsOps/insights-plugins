@@ -2,6 +2,7 @@ package ci
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,20 +27,17 @@ import (
 )
 
 const configFileName = "fairwinds-insights.yaml"
+const maxLinesForPrint = 8
+
+var podSpecFields = []string{"jobTemplate", "spec", "template"}
+var containerSpecFields = []string{"containers", "initContainers"}
+
+var ErrExitCode = errors.New("ExitCode is set")
 
 type formFile struct {
 	field    string
 	filename string
 	location string
-}
-
-type gitInfo struct {
-	origin        string
-	branch        string
-	masterHash    string
-	currentHash   string
-	commitMessage string
-	repoName      string
 }
 
 type CIScan struct {
@@ -60,7 +58,7 @@ func NewCIScan() (*CIScan, error) {
 		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
 
-	repoBaseFolder, config, err := setupConfiguration(cloneRepo)
+	baseFolder, repoBaseFolder, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
 	}
@@ -74,7 +72,7 @@ func NewCIScan() (*CIScan, error) {
 	ci := CIScan{
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
-		baseFolder:     filepath.Join(repoBaseFolder, "../"),
+		baseFolder:     baseFolder,
 		configFolder:   configFolder,
 		config:         config,
 	}
@@ -82,13 +80,14 @@ func NewCIScan() (*CIScan, error) {
 	return &ci, nil
 }
 
+// Close deletes all temporary folders created.
 func (ci *CIScan) Close() {
 	os.RemoveAll(ci.config.Options.TempFolder)
 	os.RemoveAll(ci.config.Images.FolderName)
 }
 
-// GetAllResources scans a folder of yaml files and returns all of the images and resources used.
-func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, error) {
+// getAllResources scans a folder of yaml files and returns all of the images and resources used.
+func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, error) {
 	images := make([]trivymodels.Image, 0)
 	resources := make([]models.Resource, 0)
 	err := filepath.Walk(ci.configFolder, func(path string, info os.FileInfo, err error) error {
@@ -98,7 +97,7 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 
 		displayFilename, err := filepath.Rel(ci.configFolder, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot be made relative to basepath: %v", err)
 		}
 		var helmName string
 		for _, helm := range ci.config.Manifests.Helm {
@@ -121,7 +120,7 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 
 		file, err := os.Open(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("error opening file %s: %v", path, err)
 		}
 		decoder := yaml.NewDecoder(file)
 		for {
@@ -132,15 +131,14 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 			err = decoder.Decode(&yamlNodeOriginal)
 			if err != nil {
 				if err != io.EOF {
-					return err
+					return fmt.Errorf("error decoding file %s: %v", file.Name(), err)
 				}
 				break
-
 			}
 			yamlNode := map[string]interface{}{}
 			err = yamlNodeOriginal.Decode(&yamlNode)
 			if err != nil {
-				return err
+				return fmt.Errorf("error decoding[2] file %s: %v", file.Name(), err)
 			}
 			kind, ok := yamlNode["kind"].(string)
 			if !ok {
@@ -201,7 +199,6 @@ func (ci *CIScan) GetAllResources() ([]trivymodels.Image, []models.Resource, err
 			}
 
 		}
-
 		return nil
 	})
 	return images, resources, err
@@ -230,9 +227,6 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 		}
 	}).([]trivymodels.Image), images
 }
-
-var podSpecFields = []string{"jobTemplate", "spec", "template"}
-var containerSpecFields = []string{"containers", "initContainers"}
 
 // getPodSpec looks inside arbitrary YAML for a PodSpec
 func getPodSpec(yaml map[string]interface{}) interface{} {
@@ -266,8 +260,8 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 	return images
 }
 
-// SendResults sends the results to Insights
-func (ci *CIScan) SendResults(reports []models.ReportInfo, resources []models.Resource) (*models.ScanResults, error) {
+// sendResults sends the results to Insights
+func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults, error) {
 	var b bytes.Buffer
 
 	formFiles := []formFile{{
@@ -357,312 +351,55 @@ func (ci *CIScan) SendResults(reports []models.ReportInfo, resources []models.Re
 	return &results, nil
 }
 
-func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
-	var err error
-	masterHash := os.Getenv("MASTER_HASH")
-	if masterHash == "" {
-		masterHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranch), "getting master hash")
-		if err != nil {
-			logrus.Error("Unable to get GIT merge-base")
-			return nil, err
-		}
-	}
-
-	currentHash := os.Getenv("CURRENT_HASH")
-	if currentHash == "" {
-		currentHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "HEAD"), "getting current hash")
-		if err != nil {
-			logrus.Error("Unable to get GIT Hash")
-			return nil, err
-		}
-	}
-
-	commitMessage := os.Getenv("COMMIT_MESSAGE")
-	if commitMessage == "" {
-		commitMessage, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message")
-		if err != nil {
-			logrus.Error("Unable to get GIT Commit message")
-			return nil, err
-		}
-	}
-	if len(commitMessage) > 100 {
-		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
-	}
-	branch := os.Getenv("BRANCH_NAME")
-	if branch == "" {
-		branch, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD"), "getting branch name")
-		if err != nil {
-			logrus.Error("Unable to get GIT Branch Name")
-			return nil, err
-		}
-	}
-	origin := os.Getenv("ORIGIN_URL")
-	if origin == "" {
-		origin, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "remote", "get-url", "origin"), "getting origin url")
-		if err != nil {
-			logrus.Error("Unable to get GIT Origin")
-			return nil, err
-		}
-	}
-
-	if repoName == "" {
-		repoName = origin
-		if strings.Contains(repoName, "@") { // git@github.com URLs are allowed
-			repoNameSplit := strings.Split(repoName, "@")
-			// Take the substring after the last @ to avoid any tokens in an HTTPS URL
-			repoName = repoNameSplit[len(repoNameSplit)-1]
-		} else if strings.Contains(repoName, "//") {
-			repoNameSplit := strings.Split(repoName, "//")
-			repoName = repoNameSplit[len(repoNameSplit)-1]
-		}
-		// Remove "******.com:" prefix and ".git" suffix to get clean $org/$repo structure
-		if strings.Contains(repoName, ":") {
-			repoNameSplit := strings.Split(repoName, ":")
-			repoName = repoNameSplit[len(repoNameSplit)-1]
-		}
-		repoName = strings.TrimSuffix(repoName, ".git")
-	}
-	return &gitInfo{
-		masterHash:    strings.TrimSuffix(masterHash, "\n"),
-		currentHash:   strings.TrimSuffix(currentHash, "\n"),
-		commitMessage: strings.TrimSuffix(commitMessage, "\n"),
-		branch:        strings.TrimSuffix(branch, "\n"),
-		origin:        strings.TrimSuffix(origin, "\n"),
-		repoName:      strings.TrimSuffix(repoName, "\n"),
-	}, nil
-}
-
-// ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
-func (ci *CIScan) ProcessHelmTemplates() error {
-	for _, helm := range ci.config.Manifests.Helm {
-		if helm.IsLocal() && helm.IsRemote() {
-			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
-		}
-		if helm.IsLocal() {
-			err := handleLocalHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
-			if err != nil {
-				return err
-			}
-		} else if helm.IsRemote() {
-			if helm.IsFluxFile() {
-				err := handleFluxHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
-				if err != nil {
-					return err
-				}
-			} else {
-				err := handleRemoteHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			return fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name)
-		}
-	}
-	return nil
-}
-
-func handleFluxHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
-	if helm.Name == "" || helm.Repo == "" {
-		return errors.New("Parameters 'name', 'repo' are required when using fluxFile")
-	}
-
-	fluxFile, err := os.Open(helm.FluxFile)
-	if err != nil {
-		return fmt.Errorf("Unable to open file %v: %v", helm.FluxFile, err)
-	}
-
-	fluxFileContent, err := ioutil.ReadAll(fluxFile)
-	if err != nil {
-		return fmt.Errorf("Unable to read file %v: %v", helm.FluxFile, err)
-	}
-
-	// Ideally we should use https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io%2fv1
-	// However, the attempt was not possible due to being unable to parse `v1.Duration` successfully
-	type HelmReleaseModel struct {
-		Spec struct {
-			Chart struct {
-				Spec struct {
-					Chart   string `yaml:"chart"`
-					Version string `yaml:"version"`
-				} `yaml:"spec"`
-			} `yaml:"chart"`
-			Values     map[string]interface{} `yaml:"values"`
-			ValuesFrom []interface{}          `yaml:"valuesFrom"`
-		} `yaml:"spec"`
-	}
-
-	var helmRelease HelmReleaseModel
-	err = yaml.Unmarshal(fluxFileContent, &helmRelease)
-	if err != nil {
-		return fmt.Errorf("Unable to unmarshal file %v: %v", helm.FluxFile, err)
-	}
-
-	chartName := helmRelease.Spec.Chart.Spec.Chart
-	if chartName == "" {
-		return fmt.Errorf("Could not find required spec.chart.spec.chart in fluxFile %v", helm.FluxFile)
-	}
-
-	if len(helmRelease.Spec.ValuesFrom) > 0 {
-		logrus.Warnf("fluxFile: %v - spec.valuesFrom not supported, it won't be applied...", helm.FluxFile)
-	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, chartName, helmRelease.Spec.Chart.Spec.Version, helm.ValuesFile, helm.Values, helmRelease.Spec.Values, tempFolder, configFolder)
-}
-
-func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
-	if helm.Name == "" || helm.Chart == "" || helm.Repo == "" {
-		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
-	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, helm.Chart, helm.Version, helm.ValuesFile, helm.Values, nil, tempFolder, configFolder)
-}
-
-func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesFile string, values, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
-	repoName := fmt.Sprintf("%s-%s-repo", helmName, chartName)
-	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
-	if err != nil {
-		return err
-	}
-
-	repoDownloadPath := fmt.Sprintf("%s/downloaded-charts/%s/", tempFolder, repoName)
-	chartDownloadPath := repoDownloadPath + chartName
-
-	chartFullName := fmt.Sprintf("%s/%s", repoName, chartName)
-	params := []string{"fetch", chartFullName, "--untar", "--destination", repoDownloadPath}
-
-	if chartVersion != "" {
-		params = append(params, "--version", chartVersion)
-	} else {
-		logrus.Infof("version for chart %v not found, using latest...", chartFullName)
-	}
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", chartName, repoName))
-	if err != nil {
-		return err
-	}
-
-	helmValuesFilePath, err := resolveHelmValuesPath(valuesFile, values, fluxValues, tempFolder)
-	if err != nil {
-		return err
-	}
-	return doHandleLocalHelmChart(helmName, chartDownloadPath, helmValuesFilePath, tempFolder, configFolder)
-}
-
-func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
-	if helm.Name == "" || helm.Path == "" {
-		return errors.New("Parameters 'name' and 'path' are required in helm definition")
-	}
-
-	helmValuesFilePath, err := resolveHelmValuesPath(helm.ValuesFile, helm.Values, nil, tempFolder)
-	if err != nil {
-		return err
-	}
-	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), helmValuesFilePath, tempFolder, configFolder)
-}
-
-func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {
-	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
-	if err != nil {
-		return err
-	}
-
-	params := []string{"template", helmName, helmPath, "--output-dir", configFolder + helmName, "-f", helmValuesFilePath}
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helmName)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, fluxValues map[string]interface{}, tempFolder string) (string, error) {
-	hasValuesFile := valuesFile != ""
-	hasValues := len(values) > 0
-	hasFluxValues := len(fluxValues) > 0
-
-	if hasValuesFile || hasValues || hasFluxValues { // has any
-		if !util.ExactlyOneOf(hasValuesFile, hasValues, hasFluxValues) { // if has any, must have exactly one
-			return "", fmt.Errorf("only one of valuesFile, values or <fluxFile>.values can be specified")
-		}
-	}
-
-	if hasValuesFile {
-		return valuesFile, nil
-	}
-
-	if hasValues {
-		yaml, err := yaml.Marshal(values)
-		if err != nil {
-			return "", err
-		}
-		valuesFilePath := tempFolder + "helm-values.yaml"
-		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
-		if err != nil {
-			return "", err
-		}
-		return valuesFilePath, nil
-	}
-
-	if hasFluxValues {
-		yaml, err := yaml.Marshal(fluxValues)
-		if err != nil {
-			return "", err
-		}
-		valuesFilePath := tempFolder + "flux-helm-values.yaml"
-		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
-		if err != nil {
-			return "", err
-		}
-		return valuesFilePath, nil
-	}
-	return "", nil
-}
-
-// CopyYaml adds all Yaml found in a given spot into the manifest folder.
-func (ci *CIScan) CopyYaml() error {
-	for _, yamlPath := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder")
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // all modifications to config struct must be done in this context
-func setupConfiguration(cloneRepo bool) (string, *models.Configuration, error) {
+func setupConfiguration(cloneRepo bool) (string, string, *models.Configuration, error) {
 	if cloneRepo {
 		return getConfigurationForClonedRepo()
 	}
 	return getDefaultConfiguration()
 }
 
-func getDefaultConfiguration() (string, *models.Configuration, error) {
+func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 	// i.e.: ./fairwinds-insights.yaml
 	config, err := readConfigurationFromFile("./" + configFileName)
 	if err != nil {
-		return "", nil, err
+		if !os.IsNotExist(errors.Unwrap(err)) {
+			return "", "", nil, err
+		}
+		logrus.Infof("Could not detect fairwinds-insights.yaml file... auto-detecting...")
+		config, err = ConfigFileAutoDetection("")
+		if err != nil {
+			return "", "", nil, err
+		}
+
+		err := createFileFromConfig("", configFileName, *config)
+		if err != nil {
+			return "", "", nil, err
+		}
 	}
 	config.SetDefaults()
 	config.SetPathDefaults()
 
 	err = config.CheckForErrors()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
-	return filepath.Base(""), config, nil
+	return filepath.Base(""), filepath.Base(""), config, nil
 }
 
-func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
+func getConfigurationForClonedRepo() (string, string, *models.Configuration, error) {
 	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	if repoFullName == "" {
-		return "", nil, errors.New("REPOSITORY_NAME environment variable not set")
+		return "", "", nil, errors.New("REPOSITORY_NAME environment variable not set")
 	}
 
 	branch := strings.TrimSpace(os.Getenv("BRANCH_NAME"))
 	if branch == "" {
-		return "", nil, errors.New("BRANCH environment variable not set")
+		return "", "", nil, errors.New("BRANCH environment variable not set")
 	}
 
 	if strings.TrimSpace(os.Getenv("IMAGE_VERSION")) == "" {
-		return "", nil, errors.New("IMAGE_VERSION environment variable not set")
+		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
 	basePath := filepath.Join("/app", "repository")
@@ -671,7 +408,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	err := os.RemoveAll(baseRepoPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
+		return "", "", nil, fmt.Errorf("unable to delete existing directory: %v", err)
 	}
 
 	url := fmt.Sprintf("https://@github.com/%s", repoFullName)
@@ -683,7 +420,7 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	_, err = commands.ExecInDir(basePath, exec.Command("git", "clone", "--branch", branch, url), "cloning github repository")
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to clone repository: %v", err)
+		return "", "", nil, fmt.Errorf("unable to clone repository: %v", err)
 	}
 
 	// i.e.: /app/repository/blog/fairwinds-insights.yaml
@@ -691,32 +428,44 @@ func getConfigurationForClonedRepo() (string, *models.Configuration, error) {
 
 	config, err := readConfigurationFromFile(configFilePath)
 	if err != nil {
-		return "", nil, err
+		if !os.IsNotExist(errors.Unwrap(err)) {
+			return "", "", nil, err
+		}
+		logrus.Infof("Could not detect fairwinds-insights.yaml file... auto-detecting...")
+		config, err = ConfigFileAutoDetection(baseRepoPath)
+		if err != nil {
+			return "", "", nil, err
+		}
+
+		err := createFileFromConfig(baseRepoPath, configFileName, *config)
+		if err != nil {
+			return "", "", nil, err
+		}
 	}
 	config.SetDefaults()
 	err = config.SetMountedPathDefaults(basePath, baseRepoPath)
 	if err != nil {
-		return "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
+		return "", "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
 	}
 
 	err = config.CheckForErrors()
 	if err != nil {
-		return "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
+		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
 
 	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "update-ref", "refs/heads/"+config.Options.BaseBranch, "refs/remotes/origin/"+config.Options.BaseBranch), "updating branch ref")
 	if err != nil {
-		return "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
+		return "", "", nil, fmt.Errorf("unable to update ref for branch %s: %v", config.Options.BaseBranch, err)
 	}
 
-	return baseRepoPath, config, nil
+	return filepath.Join(baseRepoPath, "../"), baseRepoPath, config, nil
 }
 
 func readConfigurationFromFile(configFilePath string) (*models.Configuration, error) {
 	configHandler, err := os.Open(configFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, errors.New("Please add fairwinds-insights.yaml to the base of your repository.")
+			return nil, fmt.Errorf("Please add fairwinds-insights.yaml to the base of your repository: %w", err)
 		} else {
 			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml: %v", err)
 		}
@@ -733,22 +482,130 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 	return &config, nil
 }
 
-// Hostname return the configured hostname
-func (ci *CIScan) Hostname() string {
-	return ci.config.Options.Hostname
+func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
+	err := ci.ProcessHelmTemplates()
+	if err != nil {
+		return nil, fmt.Errorf("Error while processing helm templates: %v", err)
+	}
+
+	err = ci.CopyYaml()
+	if err != nil {
+		return nil, fmt.Errorf("Error while copying YAML files: %v", err)
+	}
+
+	// Scan YAML, find all images/kind/etc
+	manifestImages, resources, err := ci.getAllResources()
+	if err != nil {
+		return nil, fmt.Errorf("Error while extracting images from YAML manifests: %v", err)
+	}
+
+	var reports []*models.ReportInfo
+
+	// Scan manifests with Polaris
+	if ci.PolarisEnabled() {
+		polarisReport, err := ci.GetPolarisReport()
+		if err != nil {
+			return nil, fmt.Errorf("Error while running Polaris: %v", err)
+		}
+		reports = append(reports, &polarisReport)
+	}
+
+	if ci.TrivyEnabled() {
+		manifestImagesToScan := manifestImages
+		if ci.SkipTrivyManifests() {
+			manifestImagesToScan = []trivymodels.Image{}
+		}
+		trivyReport, err := ci.GetTrivyReport(manifestImagesToScan)
+		if err != nil {
+			return nil, fmt.Errorf("Error while running Trivy: %v", err)
+		}
+		reports = append(reports, &trivyReport)
+	}
+
+	workloadReport, err := ci.GetWorkloadReport(resources)
+	if err != nil {
+		return nil, fmt.Errorf("Error while aggregating workloads: %v", err)
+	}
+	reports = append(reports, &workloadReport)
+
+	if ci.OPAEnabled() {
+		opaReport, err := ci.ProcessOPA(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("Error while running OPA: %v", err)
+		}
+		reports = append(reports, &opaReport)
+	}
+
+	if ci.PlutoEnabled() {
+		plutoReport, err := ci.GetPlutoReport()
+		if err != nil {
+			return nil, fmt.Errorf("Error while running Pluto: %v", err)
+		}
+		reports = append(reports, &plutoReport)
+	}
+
+	return reports, nil
 }
 
-// ExitCode return if the exitCode flag is set
-func (ci *CIScan) ExitCode() bool {
-	return ci.config.Options.SetExitCode
+func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
+	results, err := ci.sendResults(reports)
+	if err != nil {
+		return fmt.Errorf("Error while sending results back to %s: %v", ci.config.Options.Hostname, err)
+	}
+	fmt.Printf("%d new Action Items:\n", len(results.NewActionItems))
+	printActionItems(results.NewActionItems)
+	fmt.Printf("%d fixed Action Items:\n", len(results.FixedActionItems))
+	printActionItems(results.FixedActionItems)
+
+	if ci.JUnitEnabled() {
+		err = ci.SaveJUnitFile(*results)
+		if err != nil {
+			return fmt.Errorf("Could not save jUnit results: %v", err)
+		}
+	}
+	if !results.Pass {
+		fmt.Printf("\n\nFairwinds Insights checks failed:\n%v\n\nVisit %s/orgs/%s/repositories for more information\n\n", err, ci.config.Options.Hostname, ci.config.Options.Organization)
+		if ci.config.Options.SetExitCode {
+			return ErrExitCode
+		}
+	} else {
+		fmt.Println("\n\nFairwinds Insights checks passed.")
+	}
+	return nil
 }
 
-// Organization returns the configured organization
-func (ci *CIScan) Organization() string {
-	return ci.config.Options.Organization
+func printActionItems(ais []models.ActionItem) {
+	for _, ai := range ais {
+		fmt.Println(ai.GetReadableTitle())
+		printMultilineString("Description", ai.Description)
+		printMultilineString("Remediation", ai.Remediation)
+		fmt.Println()
+	}
 }
 
-// RepositoryName returns the name of the repository
-func (ci *CIScan) RepositoryName() string {
-	return ci.config.Options.RepositoryName
+func printMultilineString(title, str string) {
+	fmt.Println("  " + title + ":")
+	if str == "" {
+		str = "Unspecified"
+	}
+	lines := strings.Split(str, "\n")
+	for idx, line := range lines {
+		fmt.Println("    " + line)
+		if idx == maxLinesForPrint {
+			fmt.Println("    [truncated]")
+			break
+		}
+	}
+}
+
+func createFileFromConfig(path, filename string, cfg models.Configuration) error {
+	bytes, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(path, filename), bytes, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
