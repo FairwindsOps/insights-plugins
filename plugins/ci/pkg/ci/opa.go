@@ -15,7 +15,6 @@ import (
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
@@ -146,27 +145,35 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 
 func processObject(ctx context.Context, obj map[string]interface{}, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck) ([]opa.ActionItem, error) {
 	actionItems := make([]opa.ActionItem, 0)
-
-	for _, instanceObject := range instances {
-		instance := instanceObject.GetCustomCheckInstance()
-		found := instance.MatchesTarget(apiGroup, resourceKind)
-		if !found {
-			continue
-		}
-		maybeCheckObject := funk.Find(checks, func(c opa.OPACustomCheck) bool {
-			return c.Name == instance.Spec.CustomCheckName
-		})
-		if maybeCheckObject == nil {
-			continue
-		}
-		check := maybeCheckObject.(opa.OPACustomCheck)
-		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
-		if err != nil {
-			return actionItems, err
-		}
-		actionItems = append(actionItems, newActionItems...)
-
-	}
+	for _, check := range checks {
+		fmt.Printf("Check %s is version %.1f\n", check.Name, check.Version)
+		switch check.Version {
+		case 1.0:
+			for _, instanceObject := range instances {
+				instance := instanceObject.GetCustomCheckInstance()
+				if instanceObject.CheckName != check.Name {
+					continue
+				}
+				foundTargetInInstance := instance.MatchesTarget(apiGroup, resourceKind)
+				if !foundTargetInInstance {
+					continue
+				}
+				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
+				if err != nil {
+					return actionItems, err
+				}
+				actionItems = append(actionItems, newActionItems...)
+			}
+		case 2.0:
+			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
+			if err != nil {
+				return actionItems, err
+			}
+			actionItems = append(actionItems, newActionItems...)
+		default:
+			return actionItems, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause CI to be blocked", check.Name, check.Version)
+		} // Switch
+	} // iterate checks
 	return actionItems, nil
 }
 
