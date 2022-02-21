@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1
+
+* The cluster name is now correctly available via the `insightsinfo("cluster")` rego function.
+* Process v2 CustomChecks, which use a list of Kubernetes APIGroup/Kind passed to the OPA plugin, instead of Insights Instance yaml accompanying the rego policy.
+
 ## 1.1.0
 * Add an `insightsinfo` function to make Insights information available in rego.
 
