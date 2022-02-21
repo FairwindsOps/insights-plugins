@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/hashicorp/go-multierror"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -23,6 +26,7 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 		Version: opaVersion,
 	}
 	actionItems := make([]opa.ActionItem, 0)
+	var allErrs error = nil
 	cluster := os.Getenv("FAIRWINDS_CLUSTER")
 	for _, check := range configuration.OPA.CustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
@@ -32,7 +36,7 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 				if instanceObject.CheckName != check.Name {
 					continue
 				}
-				logrus.Debugf("Found instance %s to match check %s", instanceObject.CheckName, check.Name)
+				logrus.Debugf("Found instance %s to match check %s", instanceObject.AdditionalData.Name, check.Name)
 				instance := opa.CustomCheckInstance{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: instanceObject.AdditionalData.Name,
@@ -59,20 +63,20 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 				if !foundTargetInInstance {
 					continue
 				}
-				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController", "Cluster": cluster})
+				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: cluster})
 				if err != nil {
-					return report, err
+					allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, instanceObject.AdditionalData.Name, err))
 				}
 				actionItems = append(actionItems, newActionItems...)
 			}
 		case 2.0:
 			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: cluster})
 			if err != nil {
-				return report, err
+				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, err))
 			}
 			actionItems = append(actionItems, newActionItems...)
 		default:
-			return report, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause admission control to be blocked", check.Name, check.Version)
+			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause admission control to be blocked", check.Name, check.Version))
 		} // switch
 	} // iterate checks
 	results := map[string]interface{}{
@@ -83,5 +87,5 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 		return report, err
 	}
 	report.Contents = bytes
-	return report, nil
+	return report, allErrs
 }

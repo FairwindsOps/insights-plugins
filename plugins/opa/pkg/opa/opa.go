@@ -88,7 +88,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 		case 1.0:
 			for _, checkInstance := range checkInstances {
 				if check.Name == checkInstance.CheckName {
-					logrus.Debugf("Found instance %s to match check %s", checkInstance.CheckName, check.Name)
+					logrus.Debugf("Found instance %s to match check %s", checkInstance.AdditionalData.Name, check.Name)
 					newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 					if err != nil {
 						lastError = fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, checkInstance.GetCustomCheckInstance().Name, err)
