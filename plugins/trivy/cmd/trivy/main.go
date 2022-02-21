@@ -104,7 +104,7 @@ func main() {
 	for _, img := range imageWithVulns {
 		repo := strings.Split(img.Name, ":")[0]
 		tag := strings.Split(img.Name, ":")[1]
-		versions, err := image.GetNewestVersions(repo, tag)
+		versions, err := image.GetNewestVersions(ctx, repo, tag)
 		logrus.Info("Newest versions: ", versions)
 		if err != nil {
 			logrus.Warn("Error getting newest: ", err)
@@ -112,6 +112,8 @@ func main() {
 		}
 		for _, v := range versions {
 			newImagesToScan = append(newImagesToScan, models.Image{
+				ID:                 fmt.Sprintf("%v:%v", repo, v),
+				Name:               fmt.Sprintf("%v:%v", repo, v),
 				PullRef:            fmt.Sprintf("%v:%v", repo, v),
 				RecommendationOnly: true,
 			})

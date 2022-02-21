@@ -2,12 +2,11 @@ package image
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/genuinetools/reg/registry"
-	"github.com/genuinetools/reg/repoutils"
 	version "github.com/mcuadros/go-version"
 	"github.com/sirupsen/logrus"
 )
@@ -37,9 +36,9 @@ var specific = []string{
 }
 
 // GetNewestVersions returns newest versions and newest version within same major version
-func GetNewestVersions(repo, tag string) ([]string, error) {
+func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) {
 	logrus.Info("Started retrieving newest versions for ", repo, tag)
-	tags, err := fetchTags(repo, tag)
+	tags, err := fetchTags(ctx, repo, tag)
 	if err != nil {
 		logrus.Error("Error fetching tags for ", repo, tag, err)
 		return nil, err
@@ -53,16 +52,16 @@ func GetNewestVersions(repo, tag string) ([]string, error) {
 	return newest[len(newest)-2:], nil
 }
 
-func fetchTags(imageName, tag string) ([]string, error) {
+func fetchTags(ctx context.Context, imageName, tag string) ([]string, error) {
 	image, err := registry.ParseImage(imageName)
 	if err != nil {
 		return nil, err
 	}
-	r, err := createRegistryClient(context.TODO(), image.Domain)
+	r, err := createRegistryClient(ctx, image.Domain)
 	if err != nil {
 		return nil, err
 	}
-	tags, err := r.Tags(context.TODO(), image.Path)
+	tags, err := r.Tags(ctx, image.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -74,14 +73,7 @@ func createRegistryClient(ctx context.Context, domain string) (*registry.Registr
 	if authDomain == "" {
 		authDomain = domain
 	}
-	auth, err := repoutils.GetAuthConfig(username, password, authDomain)
-	if err != nil {
-		return nil, err
-	}
-	if !forceNonSSL && strings.HasPrefix(auth.ServerAddress, "http:") {
-		return nil, fmt.Errorf("attempted to use insecure protocol! Use force-non-ssl option to force")
-	}
-	return registry.New(ctx, auth, registry.Opt{
+	return registry.New(ctx, types.AuthConfig{}, registry.Opt{
 		Domain:   domain,
 		Insecure: insecure,
 		Debug:    debug,
