@@ -23,14 +23,16 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 		Version: opaVersion,
 	}
 	actionItems := make([]opa.ActionItem, 0)
+	cluster := os.Getenv("FAIRWINDS_CLUSTER")
 	for _, check := range configuration.OPA.CustomChecks {
-		fmt.Printf("Check %s is version %.1f\n", check.Name, check.Version)
+		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
 			for _, instanceObject := range configuration.OPA.CustomCheckInstances {
 				if instanceObject.CheckName != check.Name {
 					continue
 				}
+				logrus.Debugf("Found instance %s to match check %s", instanceObject.CheckName, check.Name)
 				instance := opa.CustomCheckInstance{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: instanceObject.AdditionalData.Name,
@@ -57,14 +59,14 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 				if !foundTargetInInstance {
 					continue
 				}
-				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
+				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController", "Cluster": cluster})
 				if err != nil {
 					return report, err
 				}
 				actionItems = append(actionItems, newActionItems...)
 			}
 		case 2.0:
-			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController"})
+			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: cluster})
 			if err != nil {
 				return report, err
 			}
