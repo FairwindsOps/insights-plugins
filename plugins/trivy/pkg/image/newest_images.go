@@ -38,19 +38,19 @@ var specific = []string{
 
 // GetNewestVersions returns newest versions and newest version within same major version
 func GetNewestVersions(repo, tag string) ([]string, error) {
-	logrus.Info("Started retrieving newest versions for %v:%v", repo, tag)
+	logrus.Info("Started retrieving newest versions for ", repo, tag)
 	tags, err := fetchTags(repo, tag)
 	if err != nil {
-		logrus.Error("Error fetching tags for for %v:%v: %v", repo, tag, err)
+		logrus.Error("Error fetching tags for ", repo, tag, err)
 		return nil, err
 
 	}
 	newest := filterAndSort(tags, tag)
-	logrus.Info("Finished retrieving newest versions for %v:%v", repo, tag)
-	if len(newest) < 2 {
+	logrus.Info("Finished retrieving newest versions for ", repo, tag)
+	if len(newest) <= 2 {
 		return newest, nil
 	}
-	return newest, nil
+	return newest[len(newest)-2:], nil
 }
 
 func fetchTags(imageName, tag string) ([]string, error) {

@@ -14,6 +14,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 var maxConcurrentScans = 5
@@ -92,16 +93,7 @@ func main() {
 		imagesToScan = imagesToScan[:numberToScan]
 	}
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans)
-	finalReport := image.Minimize(allReports, lastReport)
 
-	data, err := json.Marshal(finalReport)
-	if err != nil {
-		panic(err)
-	}
-	err = ioutil.WriteFile(outputFile, data, 0644)
-	if err != nil {
-		panic(err)
-	}
 	var imageWithVulns []models.ImageReport
 	for _, report := range allReports {
 		if len(report.Report) > 0 {
@@ -113,15 +105,28 @@ func main() {
 		repo := strings.Split(img.Name, ":")[0]
 		tag := strings.Split(img.Name, ":")[1]
 		versions, err := image.GetNewestVersions(repo, tag)
+		logrus.Info("Newest versions: ", versions)
 		if err != nil {
+			logrus.Warn("Error getting newest: ", err)
 			continue
 		}
 		for _, v := range versions {
 			newImagesToScan = append(newImagesToScan, models.Image{
-				PullRef: fmt.Sprintf("%v:%v", repo, v),
+				PullRef:            fmt.Sprintf("%v:%v", repo, v),
+				RecommendationOnly: true,
 			})
 		}
 	}
 	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans)
-	fmt.Println("New report: ", newReport)
+	aggregated := append(allReports, newReport...)
+	finalReport := image.Minimize(aggregated, lastReport)
+	data, err := json.Marshal(finalReport)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(outputFile, data, 0644)
+	if err != nil {
+		panic(err)
+	}
+
 }

@@ -89,14 +89,15 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	allReports := make([]models.ImageReport, len(images))
 	for idx, image := range images {
 		allReports[idx] = models.ImageReport{
-			Name:           image.Name,
-			ID:             image.ID,
-			PullRef:        image.PullRef,
-			OwnerKind:      image.Owner.Kind,
-			OwnerName:      image.Owner.Name,
-			OwnerContainer: &images[idx].Owner.Container,
-			Namespace:      image.Owner.Namespace,
-			Report:         reportByRef[image.PullRef],
+			Name:               image.Name,
+			ID:                 image.ID,
+			PullRef:            image.PullRef,
+			OwnerKind:          image.Owner.Kind,
+			OwnerName:          image.Owner.Name,
+			OwnerContainer:     &images[idx].Owner.Container,
+			Namespace:          image.Owner.Namespace,
+			Report:             reportByRef[image.PullRef],
+			RecommendationOnly: image.RecommendationOnly,
 		}
 
 	}
