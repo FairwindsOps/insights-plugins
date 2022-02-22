@@ -144,8 +144,12 @@ func getNewestVersionsToScan(ctx context.Context, imageWithVulns []models.ImageR
 }
 
 func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, img models.ImageReport) {
-	repo := strings.Split(img.Name, ":")[0]
-	tag := strings.Split(img.Name, ":")[1]
+  parts := strings.Split(img.Name, ":")
+  if len(parts) != 2 {
+    return
+  }
+  repo := parts[0]
+  tag := parts[1]
 	versions, err := image.GetNewestVersions(ctx, repo, tag)
 	if err != nil {
 		versionsChan <- newestVersions{
