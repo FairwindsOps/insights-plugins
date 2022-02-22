@@ -34,7 +34,8 @@ func TestProcessOPA(t *testing.T) {
 		},
 	}
 	check := opa.OPACustomCheck{
-		Name: "check1",
+		Name:    "check1",
+		Version: 1.0,
 		Rego: `
 package fairwinds
 labelrequired[results] {
