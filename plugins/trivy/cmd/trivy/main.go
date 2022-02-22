@@ -124,21 +124,7 @@ func main() {
 func getNewestVersionsToScan(ctx context.Context, imageWithVulns []models.ImageReport) []models.Image {
 	versionsChan := make(chan newestVersions, len(imageWithVulns))
 	for _, i := range imageWithVulns {
-		go func(ctx context.Context, img models.ImageReport) {
-			repo := strings.Split(img.Name, ":")[0]
-			tag := strings.Split(img.Name, ":")[1]
-			versions, err := image.GetNewestVersions(ctx, repo, tag)
-			if err != nil {
-				versionsChan <- newestVersions{
-					err: err,
-				}
-				return
-			}
-			versionsChan <- newestVersions{
-				repo:     repo,
-				versions: versions,
-			}
-		}(ctx, i)
+		go getNewestVersions(versionsChan, ctx, i)
 	}
 	newImagesToScan := []models.Image{}
 	for i := 0; i < len(imageWithVulns); i++ {
@@ -155,4 +141,20 @@ func getNewestVersionsToScan(ctx context.Context, imageWithVulns []models.ImageR
 		}
 	}
 	return newImagesToScan
+}
+
+func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, img models.ImageReport) {
+	repo := strings.Split(img.Name, ":")[0]
+	tag := strings.Split(img.Name, ":")[1]
+	versions, err := image.GetNewestVersions(ctx, repo, tag)
+	if err != nil {
+		versionsChan <- newestVersions{
+			err: err,
+		}
+		return
+	}
+	versionsChan <- newestVersions{
+		repo:     repo,
+		versions: versions,
+	}
 }

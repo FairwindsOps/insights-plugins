@@ -3,26 +3,11 @@ package image
 import (
 	"context"
 	"strings"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/genuinetools/reg/registry"
 	version "github.com/mcuadros/go-version"
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	insecure    bool
-	forceNonSSL bool
-	skipPing    bool
-
-	timeout time.Duration
-
-	authURL  string
-	username string
-	password string
-
-	debug bool
 )
 
 var specific = []string{
@@ -69,17 +54,12 @@ func fetchTags(ctx context.Context, imageName, tag string) ([]string, error) {
 }
 
 func createRegistryClient(ctx context.Context, domain string) (*registry.Registry, error) {
-	authDomain := authURL
-	if authDomain == "" {
-		authDomain = domain
-	}
 	return registry.New(ctx, types.AuthConfig{}, registry.Opt{
 		Domain:   domain,
-		Insecure: insecure,
-		Debug:    debug,
-		SkipPing: skipPing,
-		NonSSL:   forceNonSSL,
-		Timeout:  timeout,
+		Insecure: false,
+		Debug:    false,
+		SkipPing: false,
+		NonSSL:   false,
 	})
 }
 
