@@ -37,15 +37,15 @@ var specific = []string{
 
 // GetNewestVersions returns newest versions and newest version within same major version
 func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) {
-	logrus.Info("Started retrieving newest versions for ", repo, tag)
+	logrus.Info("Started retrieving newest versions for ", repo, ":", tag)
 	tags, err := fetchTags(ctx, repo, tag)
 	if err != nil {
-		logrus.Error("Error fetching tags for ", repo, tag, err)
+		logrus.Error("Error fetching tags for ", repo, ":", tag, err)
 		return nil, err
 
 	}
 	newest := filterAndSort(tags, tag)
-	logrus.Info("Finished retrieving newest versions for ", repo, tag)
+	logrus.Info("Finished retrieving newest versions for ", repo, ":", tag)
 	if len(newest) <= 2 {
 		return newest, nil
 	}

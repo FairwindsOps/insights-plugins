@@ -22,6 +22,12 @@ var numberToScan = 10
 
 const outputFile = image.TempDir + "/final-report.json"
 
+type newestVersions struct {
+	repo     string
+	versions []string
+	err      error
+}
+
 func main() {
 
 	concurrencyStr := os.Getenv("MAX_CONCURRENT_SCANS")
@@ -100,25 +106,7 @@ func main() {
 			imageWithVulns = append(imageWithVulns, report)
 		}
 	}
-	newImagesToScan := []models.Image{}
-	for _, img := range imageWithVulns {
-		repo := strings.Split(img.Name, ":")[0]
-		tag := strings.Split(img.Name, ":")[1]
-		versions, err := image.GetNewestVersions(ctx, repo, tag)
-		logrus.Info("Newest versions: ", versions)
-		if err != nil {
-			logrus.Warn("Error getting newest: ", err)
-			continue
-		}
-		for _, v := range versions {
-			newImagesToScan = append(newImagesToScan, models.Image{
-				ID:                 fmt.Sprintf("%v:%v", repo, v),
-				Name:               fmt.Sprintf("%v:%v", repo, v),
-				PullRef:            fmt.Sprintf("%v:%v", repo, v),
-				RecommendationOnly: true,
-			})
-		}
-	}
+	newImagesToScan := getNewestVersionsToScan(ctx, imageWithVulns)
 	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans)
 	aggregated := append(allReports, newReport...)
 	finalReport := image.Minimize(aggregated, lastReport)
@@ -130,5 +118,41 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	logrus.Info("Finished writing file ", outputFile)
+}
 
+func getNewestVersionsToScan(ctx context.Context, imageWithVulns []models.ImageReport) []models.Image {
+	versionsChan := make(chan newestVersions, len(imageWithVulns))
+	for _, i := range imageWithVulns {
+		go func(ctx context.Context, img models.ImageReport) {
+			repo := strings.Split(img.Name, ":")[0]
+			tag := strings.Split(img.Name, ":")[1]
+			versions, err := image.GetNewestVersions(ctx, repo, tag)
+			if err != nil {
+				versionsChan <- newestVersions{
+					err: err,
+				}
+				return
+			}
+			versionsChan <- newestVersions{
+				repo:     repo,
+				versions: versions,
+			}
+		}(ctx, i)
+	}
+	newImagesToScan := []models.Image{}
+	for i := 0; i < len(imageWithVulns); i++ {
+		vc := <-versionsChan
+		if vc.err == nil {
+			for _, v := range vc.versions {
+				newImagesToScan = append(newImagesToScan, models.Image{
+					ID:                 fmt.Sprintf("%v:%v", vc.repo, v),
+					Name:               fmt.Sprintf("%v:%v", vc.repo, v),
+					PullRef:            fmt.Sprintf("%v:%v", vc.repo, v),
+					RecommendationOnly: true,
+				})
+			}
+		}
+	}
+	return newImagesToScan
 }
