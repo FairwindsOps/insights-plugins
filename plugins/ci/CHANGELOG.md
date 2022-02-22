@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3
+
+* Process v2 CustomChecks, which no longer have an Instance accompanying the rego policy.
+
 ## 1.2.2
 * Fix trivy command parameters on 0.23.0
 
