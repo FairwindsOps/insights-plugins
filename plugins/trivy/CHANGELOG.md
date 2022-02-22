@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.15.1
+* Fix trivy command parameters for 0.23.0
+
 ## 0.15.0
 * Update trivy to 0.23.0
 * Remove root command
