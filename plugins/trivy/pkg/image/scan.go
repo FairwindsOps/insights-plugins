@@ -59,7 +59,7 @@ func GetLastReport() models.MinimizedReport {
 // ScanImages will download the set of images given and scan them with Trivy.
 func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
-	reportByRef := map[string][]models.VulnerabilityList{}
+	reportByRef := map[string]*models.TrivyResults{}
 	for _, image := range images {
 		reportByRef[image.PullRef] = nil
 	}
@@ -71,7 +71,8 @@ func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageRep
 			defer func() { <-semaphore }()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
-				reportByRef[pullRef], err = downloadAndScanPullRef(pullRef)
+				r, err := downloadAndScanPullRef(pullRef)
+				reportByRef[pullRef] = r
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
 				}
@@ -85,18 +86,18 @@ func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageRep
 }
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
-func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string][]models.VulnerabilityList) []models.ImageReport {
+func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults) []models.ImageReport {
 	allReports := make([]models.ImageReport, len(images))
 	for idx, image := range images {
 		allReports[idx] = models.ImageReport{
 			Name:               image.Name,
-			ID:                 image.ID,
+			ID:                 reportByRef[image.PullRef].Metadata.ImageID,
 			PullRef:            image.PullRef,
 			OwnerKind:          image.Owner.Kind,
 			OwnerName:          image.Owner.Name,
 			OwnerContainer:     &images[idx].Owner.Container,
 			Namespace:          image.Owner.Namespace,
-			Report:             reportByRef[image.PullRef],
+			Report:             reportByRef[image.PullRef].Results,
 			RecommendationOnly: image.RecommendationOnly,
 		}
 
@@ -105,7 +106,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 }
 
 // ScanImageFile will scan a single file with Trivy and return the results.
-func ScanImageFile(imagePath string, imageID string, tempDir string) ([]models.VulnerabilityList, error) {
+func ScanImageFile(imagePath string, imageID string, tempDir string) (*models.TrivyResults, error) {
 	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
 	err := util.RunCommand(exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imageID)
 	if err != nil {
@@ -128,10 +129,10 @@ func ScanImageFile(imagePath string, imageID string, tempDir string) ([]models.V
 		return nil, err
 	}
 
-	return report.Results, nil
+	return &report, nil
 }
 
-func downloadAndScanPullRef(pullRef string) ([]models.VulnerabilityList, error) {
+func downloadAndScanPullRef(pullRef string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 
 	imageDir := TempDir

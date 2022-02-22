@@ -33,7 +33,12 @@ type ImageReport struct {
 }
 
 type TrivyResults struct {
-	Results []VulnerabilityList
+	Metadata TrivyMetadata
+	Results  []VulnerabilityList
+}
+
+type TrivyMetadata struct {
+	ImageID string
 }
 
 // VulnerabilityList is the results from Trivy
