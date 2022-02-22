@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.3
+* Updated libs
+
 ## 1.2.2
 * Fix trivy command parameters on 0.23.0
 
