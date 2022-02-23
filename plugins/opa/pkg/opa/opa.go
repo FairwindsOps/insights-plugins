@@ -32,31 +32,6 @@ var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", V
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func Run(ctx context.Context) ([]ActionItem, error) {
-	// Temporary until CLI processing happens.
-	/*
-	   CLIKubeTargets = make([]KubeResourceTarget, 2)
-	   	CLIKubeTargets[0].APIGroups = make([]string, 1)
-	   	CLIKubeTargets[0].Resources = make([]string, 2)
-	*/
-	/*
-	   convertedGK, err := GroupResourceToGroupKind(schema.GroupResource{Group: "apps", Resource: "Deployments"})
-	   	if err != nil {
-	   		fmt.Printf("Error converting GR to GK: %v\n", err)
-	   	}
-	   	CLIKubeTargets[0].APIGroups[0] = convertedGK.Group
-	   	CLIKubeTargets[0].Kinds[0] = convertedGK.Kind
-	*/
-	/*
-	   CLIKubeTargets[0].APIGroups[0] = "apps"
-	   	CLIKubeTargets[0].Resources[0] = "Deployments"
-	   	CLIKubeTargets[0].Resources[1] = "StatefulSets"
-	   	CLIKubeTargets[1].APIGroups = make([]string, 1)
-	   	CLIKubeTargets[1].Resources = make([]string, 1)
-	   	CLIKubeTargets[1].APIGroups[0] = "batch"
-	   	CLIKubeTargets[1].Resources[0] = "CronJobs"
-	*/
-	// CLIKubeTargets = ProcessCLIKubeResourceTargets(viper.GetStringSlice("target-resource"))
-
 	thisNamespace := "insights-agent"
 	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err == nil { //Ignore errors because that means this isn't running in a container
@@ -77,9 +52,10 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	return ais, nil
 }
 
+// processAllChecks runs the supplied slices of OPACustomCheck and
+// CheckSetting and returns a slice of action items.
 func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks []OPACustomCheck, thisNamespace string) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
-	var lastError error = nil
 	var allErrs error = nil
 
 	for _, check := range checks {
@@ -91,61 +67,59 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 					logrus.Debugf("Found instance %s to match check %s", checkInstance.AdditionalData.Name, check.Name)
 					newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 					if err != nil {
-						lastError = fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, checkInstance.GetCustomCheckInstance().Name, err)
-						allErrs = multierror.Append(allErrs, lastError)
-						break // Go back to outer checks loop
+						allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, checkInstance.GetCustomCheckInstance().Name, err))
+						break
 					}
 					actionItems = append(actionItems, newItems...)
-					break // Go back to outer checks loop
+					break
 				}
 			}
 		case 2.0:
 			newItems, err := processCheckV2(ctx, check)
 			if err != nil {
-				lastError = fmt.Errorf("error while processing check %s: %v", check.Name, err)
-				allErrs = multierror.Append(allErrs, lastError)
+				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, err))
 			}
 			actionItems = append(actionItems, newItems...)
 		default:
-			lastError = fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run", check.Name, check.Version)
-			allErrs = multierror.Append(allErrs, lastError)
+			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run", check.Name, check.Version))
 		}
 	}
 	return actionItems, allErrs
 }
 
+// processCheck accepts a OPACustomCheck and CheckInstance, returning both
+// action items and errors accumulated while processing the check.
 func processCheck(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var allErrs error = nil
-
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
 		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, err)
 		}
-
 		actionItems = append(actionItems, newAI...)
 	}
-
 	return actionItems, multierror.Prefix(allErrs, " ")
 }
 
+// processCheckV2 accepts a OPACustomCheck, returning both action items and
+// errors accumulated while processing the check.
 func processCheckV2(ctx context.Context, check OPACustomCheck) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var allErrs error = nil
-
 	for _, gr := range getGroupResources(*CLIKubeTargets) {
 		newAI, err := processCheckTargetV2(ctx, check, gr)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, err)
 		}
-
 		actionItems = append(actionItems, newAI...)
 	}
-
 	return actionItems, multierror.Prefix(allErrs, " ")
 }
 
+// processCheckTarget runs the specified OPACustomCheck and CheckInstance
+// against all in-cluster objects of the specified schema.GroupKind, returning
+// any action items.
 func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance, gk schema.GroupKind) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
@@ -168,10 +142,12 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 	return actionItems, nil
 }
 
+// processCheckTarget runs the specified OPACustomCheck against all in-cluster
+// objects of the specified schema.GroupResource, returning any action items.
 func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.GroupResource) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
-	gvr, err := client.RestMapper.ResourceFor(gr.WithVersion(""))
+	gvr, err := client.RestMapper.ResourceFor(gr.WithVersion("")) // The empty APIVersion causes RESTMapper to provide one.
 	if err != nil {
 		return nil, fmt.Errorf("error getting GroupVersionResource from GroupResource %q: %v", gr, err)
 	}
@@ -190,6 +166,8 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.G
 	return actionItems, nil
 }
 
+// ProcessCheckForItem is a runRegoForItem() wrapper that uses the specified
+// Kubernetes Kind/Namespace/Name to construct an action item.
 func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
 	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
@@ -201,6 +179,8 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 	return newItems, err
 }
 
+// ProcessCheckForItemV2 is a runRegoForItemV2() wrapper that uses the specified
+// Kubernetes Kind/Namespace/Name to construct an action item.
 func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
 	results, err := runRegoForItemV2(ctx, check.Rego, obj, insightsInfo)
 	if err != nil {
@@ -212,11 +192,18 @@ func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[st
 	return newItems, err
 }
 
+// runRegoForItem accepts rego, Insights parameters, a Kube object, and
+// InsightsInfo, running the rego policy with the Kubernetes object as input.
+// The Insights Parameters and Insights Info struct are also made available to
+// the executing rego policy (the latter via a function).
 func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
 	client := kube.GetKubeClient()
 	return rego.RunRegoForItem(ctx, body, params, obj, *client, insightsInfo)
 }
 
+// runRegoForItemV2 accepts rego, a Kube object, and InsightsInfo, running the
+// rego policy with the Kubernetes object as input.  The Insights Info struct
+// is also made available to the executing rego policy via a function.
 func runRegoForItemV2(ctx context.Context, body string, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
 	client := kube.GetKubeClient()
 	return rego.RunRegoForItemV2(ctx, body, obj, *client, insightsInfo)
@@ -304,6 +291,8 @@ func getDetailsFromMap(m map[string]interface{}) (OutputFormat, error) {
 	return output, nil
 }
 
+// processResults converts the provided rego results (output) and other
+// metadata into action items.
 func processResults(resourceName, resourceKind, resourceNamespace string, results []interface{}, name string, details OutputFormat) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	for _, output := range results {
@@ -347,6 +336,9 @@ func processResults(resourceName, resourceKind, resourceNamespace string, result
 	return actionItems, nil
 }
 
+// getGroupKinds accepts a slice of KubeKindTarget, returning all combinations
+// of the contained Kubernetes APIGroups and Kinds as a slice of
+// schema.GroupResource.
 func getGroupKinds(targets []KubeTarget) []schema.GroupKind {
 	kinds := make([]schema.GroupKind, 0)
 	for _, target := range targets {
@@ -359,6 +351,9 @@ func getGroupKinds(targets []KubeTarget) []schema.GroupKind {
 	return kinds
 }
 
+// getGroupResources accepts a slice of KubeResourceTarget, returning all
+// combinations of the contained Kubernetes APIGroups and Resources as a slice
+// of schema.GroupResource.
 func getGroupResources(targets []KubeResourceTarget) []schema.GroupResource {
 	GRs := make([]schema.GroupResource, 0)
 	for _, target := range targets {

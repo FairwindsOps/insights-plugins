@@ -77,8 +77,8 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 			actionItems = append(actionItems, newActionItems...)
 		default:
 			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause admission control to be blocked", check.Name, check.Version))
-		} // switch
-	} // iterate checks
+		}
+	}
 	results := map[string]interface{}{
 		"ActionItems": actionItems,
 	}

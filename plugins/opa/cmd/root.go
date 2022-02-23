@@ -50,12 +50,9 @@ func init() {
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.opa.yaml)")
 	rootCmd.PersistentFlags().BoolP("debug", "D", false, "Enable debug logging.")
-	rootCmd.PersistentFlags().StringArrayP("target-resource", "r", []string{}, "A Kubernetes target specified as APIGroup[,APIGroup...]/Resource[,Resource...]. For example: apps/Deployments,Daemonsets")
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	rootCmd.PersistentFlags().StringArrayP("target-resource", "r", []string{}, "A Kubernetes target specified as APIGroup[,APIGroup...]/Resource[,Resource...]. For example: apps/Deployments,Daemonsets")
 	viper.BindPFlag("target-resource", rootCmd.PersistentFlags().Lookup("target-resource"))
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -73,9 +70,7 @@ func initConfig() {
 		viper.SetConfigType("yaml")
 		viper.SetConfigName(".opa")
 	}
-
 	viper.AutomaticEnv() // read in environment variables that match
-
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())

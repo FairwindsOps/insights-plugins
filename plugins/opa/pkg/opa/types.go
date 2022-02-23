@@ -40,7 +40,9 @@ type KubeTarget struct {
 	Kinds     []string
 }
 
-// KubeResourceTarget is a mapping of Resources and API groups
+// KubeResourceTarget is a combination of Resources and API groups, the
+// cartesian product (all possible combinations) of which will be fetched from
+// Kubernetes when applying V2 OPACustomChecks.
 type KubeResourceTarget struct {
 	APIGroups []string
 	Resources []string
