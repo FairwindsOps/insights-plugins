@@ -4,7 +4,7 @@
 
 * The cluster name is now correctly available via the `insightsinfo("cluster")` rego function.
 * Processing of checks will now continue when there has been a failure, to collect and output all failure conditions. Multiple errors may be reflected in both admission webhook output and in plugin log output.
-* Process v2 CustomChecks, which use a list of Kubernetes APIGroup/Kind passed to the OPA plugin, instead of Insights Instance yaml accompanying the rego policy.
+* Process v2 CustomChecks, which lack the Insights Instance yaml accompanying the rego policy.
 
 ## 1.1.0
 * Add an `insightsinfo` function to make Insights information available in rego.
