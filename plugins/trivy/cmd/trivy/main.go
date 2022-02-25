@@ -3,21 +3,30 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
+	"github.com/sirupsen/logrus"
 )
 
 var maxConcurrentScans = 5
 var numberToScan = 10
 
 const outputFile = image.TempDir + "/final-report.json"
+
+type newestVersions struct {
+	repo     string
+	versions []string
+	err      error
+}
 
 func main() {
 
@@ -90,8 +99,17 @@ func main() {
 		imagesToScan = imagesToScan[:numberToScan]
 	}
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans)
-	finalReport := image.Minimize(allReports, lastReport)
 
+	var imageWithVulns []models.ImageReport
+	for _, report := range allReports {
+		if len(report.Report) > 0 {
+			imageWithVulns = append(imageWithVulns, report)
+		}
+	}
+	newImagesToScan := getNewestVersionsToScan(ctx, imageWithVulns)
+	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans)
+	aggregated := append(allReports, newReport...)
+	finalReport := image.Minimize(aggregated, lastReport)
 	data, err := json.Marshal(finalReport)
 	if err != nil {
 		panic(err)
@@ -99,5 +117,48 @@ func main() {
 	err = ioutil.WriteFile(outputFile, data, 0644)
 	if err != nil {
 		panic(err)
+	}
+	logrus.Info("Finished writing file ", outputFile)
+}
+
+func getNewestVersionsToScan(ctx context.Context, imageWithVulns []models.ImageReport) []models.Image {
+	versionsChan := make(chan newestVersions, len(imageWithVulns))
+	for _, i := range imageWithVulns {
+		go getNewestVersions(versionsChan, ctx, i)
+	}
+	newImagesToScan := []models.Image{}
+	for i := 0; i < len(imageWithVulns); i++ {
+		vc := <-versionsChan
+		if vc.err == nil {
+			for _, v := range vc.versions {
+				newImagesToScan = append(newImagesToScan, models.Image{
+					ID:                 fmt.Sprintf("%v:%v", vc.repo, v),
+					Name:               fmt.Sprintf("%v:%v", vc.repo, v),
+					PullRef:            fmt.Sprintf("%v:%v", vc.repo, v),
+					RecommendationOnly: true,
+				})
+			}
+		}
+	}
+	return newImagesToScan
+}
+
+func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, img models.ImageReport) {
+  parts := strings.Split(img.Name, ":")
+  if len(parts) != 2 {
+    return
+  }
+  repo := parts[0]
+  tag := parts[1]
+	versions, err := image.GetNewestVersions(ctx, repo, tag)
+	if err != nil {
+		versionsChan <- newestVersions{
+			err: err,
+		}
+		return
+	}
+	versionsChan <- newestVersions{
+		repo:     repo,
+		versions: versions,
 	}
 }
