@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.16.0
+* Searching and scanning images recommendation
+
 ## 0.15.1
 * Fix trivy command parameters for 0.23.0
 

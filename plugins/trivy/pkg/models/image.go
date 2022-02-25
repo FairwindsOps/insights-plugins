@@ -4,10 +4,11 @@ import "time"
 
 // Image represents a single container image to scan.
 type Image struct {
-	Name    string
-	ID      string
-	PullRef string
-	Owner   Resource
+	Name               string
+	ID                 string
+	PullRef            string
+	Owner              Resource
+	RecommendationOnly bool
 }
 
 // Resource represents a Kubernetes resource
@@ -20,18 +21,24 @@ type Resource struct {
 
 // ImageReport represents the results for a single resource.
 type ImageReport struct {
-	Name           string
-	ID             string
-	PullRef        string
-	OwnerKind      string
-	OwnerName      string
-	OwnerContainer *string
-	Namespace      string
-	Report         []VulnerabilityList
+	Name               string
+	ID                 string
+	PullRef            string
+	OwnerKind          string
+	OwnerName          string
+	OwnerContainer     *string
+	Namespace          string
+	Report             []VulnerabilityList
+	RecommendationOnly bool
 }
 
 type TrivyResults struct {
-	Results []VulnerabilityList
+	Metadata TrivyMetadata
+	Results  []VulnerabilityList
+}
+
+type TrivyMetadata struct {
+	ImageID string
 }
 
 // VulnerabilityList is the results from Trivy
@@ -60,14 +67,15 @@ type MinimizedReport struct {
 
 // ImageDetailsWithRefs is the results of a scan for a resource with the vulnerabilities replaced with references.
 type ImageDetailsWithRefs struct {
-	ID             string
-	Name           string
-	OwnerName      string
-	OwnerKind      string
-	OwnerContainer *string
-	Namespace      string
-	LastScan       *time.Time
-	Report         []VulnerabilityRefList
+	ID                 string
+	Name               string
+	OwnerName          string
+	OwnerKind          string
+	OwnerContainer     *string
+	Namespace          string
+	LastScan           *time.Time
+	Report             []VulnerabilityRefList
+	RecommendationOnly bool
 }
 
 // VulnerabilityRefList is a list of vulnerability references.
