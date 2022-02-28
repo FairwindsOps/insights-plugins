@@ -12,11 +12,10 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
-
-	opa "github.com/fairwindsops/insights-plugins/opa/pkg/opa"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	opa "github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 )
 
 var cfgFile string
