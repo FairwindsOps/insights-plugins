@@ -157,7 +157,7 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 	if err != nil {
 		return nil, "", err
 	}
-	reportByRef := map[string][]trivymodels.VulnerabilityList{}
+	reportByRef := map[string]*trivymodels.TrivyResults{}
 	for _, currentImage := range images {
 		_, ok := reportByRef[currentImage.PullRef]
 		if ok {
