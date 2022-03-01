@@ -7,8 +7,6 @@ replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
 replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
-	github.com/fairwindsops/insights-plugins/opa v0.0.0-20200904180341-40eda9118d57
-	github.com/fairwindsops/insights-plugins/trivy v0.0.0-20200528180806-f7f94de92325
 	github.com/ghodss/yaml v1.0.0
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/sirupsen/logrus v1.8.1
@@ -28,6 +26,8 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20220225202718-864183516b6d // indirect
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20220225202718-864183516b6d // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/genuinetools/reg v0.16.1 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
