@@ -2,9 +2,9 @@ module github.com/fairwindsops/insights-plugins/plugins/ci
 
 go 1.17
 
-replace github.com/fairwindsops/insights-plugins/trivy => ../trivy
+replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
 
-replace github.com/fairwindsops/insights-plugins/opa => ../opa
+replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
 	github.com/fairwindsops/insights-plugins/opa v0.0.0-20200904180341-40eda9118d57
