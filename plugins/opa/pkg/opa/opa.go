@@ -13,8 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
-	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 	"github.com/hashicorp/go-multierror"
 )
 
