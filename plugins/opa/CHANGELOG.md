@@ -3,6 +3,7 @@
 ## 2.0.0
 
 * Processing of checks is no longer interrupted by a failure to list objects for one of the checks Kube targets. The remaining targets will be checked, and errors reflected in the plugin log.
+  * Only 3 errors are logged per check, to avoid overwhelming logs. Enable OPA plugin debug logging to log errors involving all objects.
 * Process v2 CustomChecks, which use a list of Kubernetes APIGroup/Kind passed to the OPA plugin, instead of Insights Instance yaml accompanying the rego policy.
 * Add command-line options to specify Kubernetes resource targets for V2 custom checks, and to enable debug logging.
 * Use the CustomCheck name as the `EventType`, instead of the Check Instance name.

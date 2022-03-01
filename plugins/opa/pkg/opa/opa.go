@@ -91,7 +91,8 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 // action items and errors accumulated while processing the check.
 func processCheck(ctx context.Context, check OPACustomCheck, checkInstance CustomCheckInstance) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
-	var allErrs error = nil
+	var allErrs *multierror.Error = new(multierror.Error)
+	allErrs.ErrorFormat = multierrorListFormatLimiterFunc
 	for _, gk := range getGroupKinds(checkInstance.Spec.Targets) {
 		newAI, err := processCheckTarget(ctx, check, checkInstance, gk)
 		if err != nil {
@@ -106,7 +107,8 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 // errors accumulated while processing the check.
 func processCheckV2(ctx context.Context, check OPACustomCheck) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
-	var allErrs error = nil
+	var allErrs *multierror.Error = new(multierror.Error)
+	allErrs.ErrorFormat = multierrorListFormatLimiterFunc
 	for _, gr := range getGroupResources(*CLIKubeTargets) {
 		newAI, err := processCheckTargetV2(ctx, check, gr)
 		if err != nil {
@@ -384,4 +386,32 @@ func ProcessCLIKubeResourceTargets(CLIInputs []string) *[]KubeResourceTarget {
 	}
 	logrus.Debugf("Parsed command-line options %q into %d target resources: %#v", CLIInputs, len(targets), targets)
 	return &targets
+}
+
+const maxMultiErrorsToShow = 3
+
+// multierrorListFormatLimiterFunc is a github.com/hashicorp/go-multierror
+// formatter that limits the number of errors output, to the `maxMultiErrorsToShow`
+// constant.
+// If debug logging is enabled, errors will NOT be limited.
+// This helps provide a sampling of errors while avoiding unbounded output of errors in logs.
+// This is based on the default multierror `ListFormatFunc()`.
+// Ref: https://pkg.go.dev/github.com/hashicorp/go-multierror#ErrorFormatFunc
+func multierrorListFormatLimiterFunc(es []error) string {
+	if len(es) == 1 {
+		return fmt.Sprintf("1 error occurred:\n\t* %s\n\n", es[0])
+	}
+	var extraHeader string
+	var numToShow int = len(es)
+	if len(es) > maxMultiErrorsToShow && logrus.GetLevel() != logrus.DebugLevel {
+		numToShow = maxMultiErrorsToShow
+		extraHeader = fmt.Sprintf(" (only %d are shown for brevity)", numToShow)
+	}
+	points := make([]string, numToShow)
+	for i := 0; i < numToShow; i++ {
+		points[i] = fmt.Sprintf("* %s", es[i])
+	}
+	return fmt.Sprintf(
+		"%d errors occurred%s:\n\t%s\n\n",
+		len(es), extraHeader, strings.Join(points, "\n\t"))
 }
