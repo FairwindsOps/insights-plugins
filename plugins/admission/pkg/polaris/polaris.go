@@ -8,7 +8,7 @@ import (
 	fwkube "github.com/fairwindsops/polaris/pkg/kube"
 	"github.com/fairwindsops/polaris/pkg/validator"
 
-	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 // GetPolarisReport returns the polaris report for the provided manifest.

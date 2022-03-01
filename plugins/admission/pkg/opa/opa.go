@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
-	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 const opaVersion = "0.2.8"
