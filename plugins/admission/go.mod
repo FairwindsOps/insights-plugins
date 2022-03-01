@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/admission
+module github.com/fairwindsops/insights-plugins/plugins/admission
 
 go 1.17
 

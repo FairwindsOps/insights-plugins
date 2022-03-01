@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/ci
+module github.com/fairwindsops/insights-plugins/plugins/ci
 
 go 1.17
 

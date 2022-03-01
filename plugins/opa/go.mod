@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/opa
+module github.com/fairwindsops/insights-plugins/plugins/opa
 
 go 1.17
 
