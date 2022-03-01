@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/ci"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/ci"
 	"github.com/sirupsen/logrus"
 )
 

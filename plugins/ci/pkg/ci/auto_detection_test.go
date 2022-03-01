@@ -3,7 +3,7 @@ package ci
 import (
 	"testing"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 	"github.com/stretchr/testify/assert"
 )
 

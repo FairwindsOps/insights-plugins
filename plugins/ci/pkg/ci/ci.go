@@ -16,14 +16,14 @@ import (
 	"strconv"
 	"strings"
 
-	trivymodels "github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	trivymodels "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 )
 
 const configFileName = "fairwinds-insights.yaml"
