@@ -6,7 +6,7 @@ package image
 import (
 	"time"
 
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/thoas/go-funk"
 )
 
