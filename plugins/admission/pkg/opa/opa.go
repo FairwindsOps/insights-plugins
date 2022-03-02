@@ -17,7 +17,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
 )
 
-const opaVersion = "0.2.8"
+const opaVersion = "2.0.0"
 
 // ProcessOPA runs all CustomChecks against the provided Kubernetes object.
 func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, configuration models.Configuration) (models.ReportInfo, error) {
