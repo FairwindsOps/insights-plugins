@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+* Fix go.mod `module`, and `import`s, to use plugins sub-directory.
+
 ## 1.2.0
 
 * The cluster name is now correctly available via the `insightsinfo("cluster")` rego function.

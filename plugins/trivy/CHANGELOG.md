@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.16.1
+* Fix go.mod `module`, and `import`s, to use plugins sub-directory.
+
 ## 0.16.0
 * Searching and scanning images recommendation
 
