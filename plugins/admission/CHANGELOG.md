@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.1
+## 1.2.0
 
 * The cluster name is now correctly available via the `insightsinfo("cluster")` rego function.
 * Processing of checks will now continue when there has been a failure, to collect and output all failure conditions. Multiple errors may be reflected in both admission webhook output and in plugin log output.

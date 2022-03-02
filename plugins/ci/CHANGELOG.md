@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.4
+## 1.3.0
 
 * Process v2 CustomChecks, which no longer have an Instance accompanying the rego policy.
 * Debug output can be enabled by setting the `LOGRUS_LEVEL` environment variable to `debug`.
