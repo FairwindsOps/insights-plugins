@@ -40,6 +40,14 @@ type KubeTarget struct {
 	Kinds     []string
 }
 
+// KubeResourceTarget is a combination of Resources and API groups, the
+// cartesian product (all possible combinations) of which will be fetched from
+// Kubernetes when applying V2 OPACustomChecks.
+type KubeResourceTarget struct {
+	APIGroups []string
+	Resources []string
+}
+
 type OutputFormat struct {
 	Title       *string
 	Severity    *float64
@@ -75,6 +83,7 @@ type clusterCheckModel struct {
 
 type OPACustomCheck struct {
 	Name                     string
+	Version                  float32
 	Rego                     string
 	Title                    *string
 	Severity                 *float64

@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	setLogLevel()
 	ciScan, err := ci.NewCIScan()
 	if err != nil {
 		exitWithError(ciScan, "Error creating CI Scan main struct", err)
@@ -26,6 +27,18 @@ func main() {
 		exitWithError(ciScan, "Error sending results to insights", err)
 	}
 	ciScan.Close()
+}
+
+func setLogLevel() {
+	if os.Getenv("LOGRUS_LEVEL") != "" {
+		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+		if err != nil {
+			panic(err)
+		}
+		logrus.SetLevel(lvl)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
 }
 
 func exitWithError(ciScan *ci.CIScan, message string, err error) {

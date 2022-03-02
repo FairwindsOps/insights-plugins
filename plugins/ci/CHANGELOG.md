@@ -1,6 +1,13 @@
 # Changelog
 
+## 1.3.0
+
+* Process v2 CustomChecks, which no longer have an Instance accompanying the rego policy.
+* Debug output can be enabled by setting the `LOGRUS_LEVEL` environment variable to `debug`.
+* Processing of checks will now continue when there has been a failure, to collect and output all failure conditions. Multiple errors may be reflected in plugin output.
+
 ## 1.2.3
+
 * Updated libs
 
 ## 1.2.2

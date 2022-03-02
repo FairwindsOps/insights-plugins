@@ -1,3 +1,7 @@
+/*
+Copyright © 2022 FairwindsOps Inc
+
+*/
 package main
 
 import (
@@ -20,26 +24,5 @@ type Output struct {
 }
 
 func main() {
-	logrus.Info("Starting OPA reporter")
-	ctx := context.Background()
-	actionItems, runError := opa.Run(ctx)
-	if actionItems != nil {
-		logrus.Infof("Finished processing OPA checks, found %d Action Items", len(actionItems))
-
-		output := Output{ActionItems: actionItems}
-		value, err := json.Marshal(output)
-		if err != nil {
-			panic(err)
-		}
-
-		err = ioutil.WriteFile(outputFile, value, 0644)
-		if err != nil {
-			panic(err)
-		}
-	}
-	if runError != nil {
-		logrus.Error("There were errors while processing OPA checks.")
-		fmt.Fprintln(os.Stderr, runError)
-		os.Exit(1)
-	}
+	cmd.Execute()
 }
