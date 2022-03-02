@@ -14,8 +14,8 @@ import (
 	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
 
 	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
@@ -146,28 +146,39 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 
 func processObject(ctx context.Context, obj map[string]interface{}, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck) ([]opa.ActionItem, error) {
 	actionItems := make([]opa.ActionItem, 0)
-
-	for _, instanceObject := range instances {
-		instance := instanceObject.GetCustomCheckInstance()
-		found := instance.MatchesTarget(apiGroup, resourceKind)
-		if !found {
-			continue
+	var allErrs error = nil
+	for _, check := range checks {
+		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
+		switch check.Version {
+		case 1.0:
+			for _, instanceObject := range instances {
+				if instanceObject.CheckName != check.Name {
+					continue
+				}
+				logrus.Debugf("Found instance %s to match check %s", instanceObject.AdditionalData.Name, check.Name)
+				instance := instanceObject.GetCustomCheckInstance()
+				foundTargetInInstance := instance.MatchesTarget(apiGroup, resourceKind)
+				if !foundTargetInInstance {
+					logrus.Debugf("No Kubernetes target matches for APIGroup %s and resource %s in check %s / instance %s targets: %v\n", apiGroup, resourceKind, check.Name, instanceObject.AdditionalData.Name, instance.Spec.Targets)
+					continue
+				}
+				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
+				if err != nil {
+					allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, instanceObject.AdditionalData.Name, err))
+				}
+				actionItems = append(actionItems, newActionItems...)
+			}
+		case 2.0:
+			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
+			if err != nil {
+				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, err))
+			}
+			actionItems = append(actionItems, newActionItems...)
+		default:
+			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause CI to be blocked", check.Name, check.Version))
 		}
-		maybeCheckObject := funk.Find(checks, func(c opa.OPACustomCheck) bool {
-			return c.Name == instance.Spec.CustomCheckName
-		})
-		if maybeCheckObject == nil {
-			continue
-		}
-		check := maybeCheckObject.(opa.OPACustomCheck)
-		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
-		if err != nil {
-			return actionItems, err
-		}
-		actionItems = append(actionItems, newActionItems...)
-
 	}
-	return actionItems, nil
+	return actionItems, allErrs
 }
 
 func (ci *CIScan) OPAEnabled() bool {
