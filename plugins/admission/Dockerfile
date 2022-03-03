@@ -1,5 +1,5 @@
 FROM golang:1.17 as build-env
-WORKDIR /go/src/github.com/fairwindsops/insights-plugins/
+WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/
 
 
 ENV GO111MODULE=on
@@ -10,7 +10,7 @@ ENV GOFLAGS=-mod=mod
 
 COPY opa opa
 
-WORKDIR /go/src/github.com/fairwindsops/insights-plugins/admission
+WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/admission
 
 COPY ./admission/go.* ./
 RUN go mod download
@@ -24,6 +24,6 @@ RUN go build ./cmd/admission
 
 FROM alpine:3.15
 WORKDIR /insights
-COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/admission/admission /usr/local/bin/insights-admission
+COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/plugins/admission/admission /usr/local/bin/insights-admission
 
 CMD ["insights-admission"]

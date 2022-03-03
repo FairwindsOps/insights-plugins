@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"regexp"
 
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 

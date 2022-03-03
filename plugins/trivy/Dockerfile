@@ -1,5 +1,5 @@
 FROM golang:1.17 as build-env
-WORKDIR /go/src/github.com/fairwindsops/insights-plugins/trivy/
+WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/trivy/
 
 
 ENV GO111MODULE=on
@@ -22,7 +22,7 @@ RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.23.0/triv
 
 FROM alpine:3.15
 WORKDIR /trivy
-COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/trivy/scan ./scan
+COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/plugins/trivy/scan ./scan
 COPY --from=build-env /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
 

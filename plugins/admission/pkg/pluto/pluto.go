@@ -5,7 +5,7 @@ import (
 
 	"github.com/fairwindsops/pluto/v3/pkg/api"
 
-	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 const plutoVersion = "3.4.1"

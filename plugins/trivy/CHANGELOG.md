@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.16.1
+## 0.16.2
 * Add `--ignore-unfixed` flag to the env variable
+
+## 0.16.1
+* Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
 ## 0.16.0
 * Searching and scanning images recommendation

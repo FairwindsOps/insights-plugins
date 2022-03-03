@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 )
 
 func (ci *CIScan) GetPlutoReport() (models.ReportInfo, error) {

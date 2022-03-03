@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
-	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 // TestProcessOPA runs all checks against the provided Custom Check
@@ -34,7 +34,8 @@ func TestProcessOPA(t *testing.T) {
 		},
 	}
 	check := opa.OPACustomCheck{
-		Name: "check1",
+		Name:    "check1",
+		Version: 1.0,
 		Rego: `
 package fairwinds
 labelrequired[results] {
@@ -73,4 +74,31 @@ labelrequired[results] {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(reportObject["ActionItems"].([]interface{})))
 
+	check = opa.OPACustomCheck{
+		Name:    "check2",
+		Version: 2.0,
+		Rego: `
+package fairwinds
+labelrequired[results] {
+  provided := {label | input.metadata.labels[label]}
+  required := {label | label := "hr"}
+  missing := required - provided
+  count(missing) > 0
+  description := sprintf("Label %v is missing", [missing])
+  severity := 0.1 * count(missing)
+  results := {
+    "description": description,
+    "severity": severity,
+  }
+}
+		`,
+	}
+	checks = append(checks, check)
+	config.OPA.CustomChecks = checks
+	report, err = ProcessOPA(context.TODO(), object, "test", "", "Pod", "test", config)
+	assert.NoError(t, err)
+	assert.Equal(t, "opa", report.Report)
+	err = json.Unmarshal(report.Contents, &reportObject)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(reportObject["ActionItems"].([]interface{})))
 }

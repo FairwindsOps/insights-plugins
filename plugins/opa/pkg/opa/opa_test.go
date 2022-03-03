@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
-	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 )
 
 var fakeObj = unstructured.Unstructured{
