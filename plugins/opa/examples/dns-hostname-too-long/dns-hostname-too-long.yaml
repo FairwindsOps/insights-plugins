@@ -1,0 +1,5 @@
+targets:
+  - apiGroups:
+      - networking.k8s.io
+    kinds:
+      - Ingress

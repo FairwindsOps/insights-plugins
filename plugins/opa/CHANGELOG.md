@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.2
+* Adding an OPA policy to catch DNS hostnames longer than 63 characters.
+
 ## 2.0.1
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
