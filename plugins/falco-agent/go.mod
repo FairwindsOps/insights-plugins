@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/falco-agent
+module github.com/fairwindsops/insights-plugins/plugins/falco-agent
 
 go 1.17
 

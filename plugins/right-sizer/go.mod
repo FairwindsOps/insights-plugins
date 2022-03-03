@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/right-sizer
+module github.com/fairwindsops/insights-plugins/plugins/right-sizer
 
 go 1.17
 

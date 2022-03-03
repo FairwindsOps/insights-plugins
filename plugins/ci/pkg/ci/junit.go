@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 	"github.com/jstemmer/go-junit-report/formatter"
 	"github.com/sirupsen/logrus"
 )

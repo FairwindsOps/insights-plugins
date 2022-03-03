@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/trivy
+module github.com/fairwindsops/insights-plugins/plugins/trivy
 
 go 1.17
 

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
 )
 

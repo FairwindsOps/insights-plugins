@@ -11,15 +11,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
-	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
-	"github.com/fairwindsops/insights-plugins/opa/pkg/rego"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 )
 
 const opaVersion = "0.2.8"

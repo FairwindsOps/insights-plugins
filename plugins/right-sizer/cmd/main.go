@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/fairwindsops/insights-plugins/right-sizer/src/controller"
-	"github.com/fairwindsops/insights-plugins/right-sizer/src/report"
-	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
+	"github.com/fairwindsops/insights-plugins/plugins/right-sizer/src/controller"
+	"github.com/fairwindsops/insights-plugins/plugins/right-sizer/src/report"
+	"github.com/fairwindsops/insights-plugins/plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

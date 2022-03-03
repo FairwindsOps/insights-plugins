@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 
-	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 var organization string

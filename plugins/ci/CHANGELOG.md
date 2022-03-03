@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.1
+* Fix go.mod `module`, and `import`s, to use plugins sub-directory.
+
 ## 1.3.0
 
 * Process v2 CustomChecks, which no longer have an Instance accompanying the rego policy.
