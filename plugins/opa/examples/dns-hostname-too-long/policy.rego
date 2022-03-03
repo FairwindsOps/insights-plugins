@@ -12,7 +12,7 @@ hostNameError[actionItem] {
     "title": "Ingress hostname too long",
     "description": "The ingress object has a hostname that is greater than 63 characters. RFC3280 says the maximum length of the common name should not exceed 64 characters.",
     "remediation": "Reduce the length of the hostname in the ingress object.",
-    "category": "Security",
-    "severity": 0.99,
+    "category": "Reliability",
+    "severity": 0.5,
   }
 }
