@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.16.1
+* Add `--ignore-unfixed` flag to the env variable
+
 ## 0.16.0
 * Searching and scanning images recommendation
 

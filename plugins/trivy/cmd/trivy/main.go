@@ -19,6 +19,7 @@ import (
 
 var maxConcurrentScans = 5
 var numberToScan = 10
+var extraFlags string
 
 const outputFile = image.TempDir + "/final-report.json"
 
@@ -45,6 +46,17 @@ func main() {
 		numberToScan, err = strconv.Atoi(numberToScanStr)
 		if err != nil {
 			panic(err)
+		}
+	}
+
+	ignoreUnfixedStr := os.Getenv("IGNORE_UNFIXED")
+	if ignoreUnfixedStr != "" {
+		ignoreUnfixedBool, err := strconv.ParseBool(ignoreUnfixedStr)
+		if err != nil {
+			panic(err)
+		}
+		if ignoreUnfixedBool {
+			extraFlags += "--ignore-unfixed"
 		}
 	}
 
@@ -98,7 +110,7 @@ func main() {
 	if len(imagesToScan) > numberToScan {
 		imagesToScan = imagesToScan[:numberToScan]
 	}
-	allReports := image.ScanImages(imagesToScan, maxConcurrentScans)
+	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags)
 
 	var imageWithVulns []models.ImageReport
 	for _, report := range allReports {
@@ -107,7 +119,7 @@ func main() {
 		}
 	}
 	newImagesToScan := getNewestVersionsToScan(ctx, imageWithVulns)
-	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans)
+	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans, extraFlags)
 	aggregated := append(allReports, newReport...)
 	finalReport := image.Minimize(aggregated, lastReport)
 	data, err := json.Marshal(finalReport)
@@ -144,12 +156,12 @@ func getNewestVersionsToScan(ctx context.Context, imageWithVulns []models.ImageR
 }
 
 func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, img models.ImageReport) {
-  parts := strings.Split(img.Name, ":")
-  if len(parts) != 2 {
-    return
-  }
-  repo := parts[0]
-  tag := parts[1]
+	parts := strings.Split(img.Name, ":")
+	if len(parts) != 2 {
+		return
+	}
+	repo := parts[0]
+	tag := parts[1]
 	versions, err := image.GetNewestVersions(ctx, repo, tag)
 	if err != nil {
 		versionsChan <- newestVersions{
