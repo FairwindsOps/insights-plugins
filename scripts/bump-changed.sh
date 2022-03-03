@@ -24,7 +24,7 @@ for d in ./plugins/*/ ; do
     echo -e "# Changelog" > /tmp/CHANGELOG.md
     echo -e "\n## $version" >> /tmp/CHANGELOG.md
     echo -e "* $message" >> /tmp/CHANGELOG.md
-    tail $d/CHANGELOG.md -n +2 >> /tmp/CHANGELOG.md
+    tail -n+2 $d/CHANGELOG.md >> /tmp/CHANGELOG.md
     mv /tmp/CHANGELOG.md $d/CHANGELOG.md
 done
 
