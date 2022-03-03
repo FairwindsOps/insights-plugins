@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1
+
+* Adding an OPA policy to catch DNS hostnames longer than 63 characters.
+
 ## 2.0.0
 
 * Processing of checks is no longer interrupted by a failure to list objects for one of the checks Kube targets. The remaining targets will be checked, and errors reflected in the plugin log.
