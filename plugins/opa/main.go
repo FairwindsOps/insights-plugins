@@ -5,14 +5,7 @@ Copyright © 2022 FairwindsOps Inc
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"os"
-
-	"github.com/sirupsen/logrus"
-
+	"github.com/fairwindsops/insights-plugins/plugins/opa/cmd"
 	opa "github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 )
 
