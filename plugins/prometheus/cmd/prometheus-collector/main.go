@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/fairwindsops/insights-plugins/prometheus/pkg/data"
+	"github.com/fairwindsops/insights-plugins/plugins/prometheus/pkg/data"
 )
 
 const outputFile = "/output/resource-metrics.json"

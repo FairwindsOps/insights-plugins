@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/kube-bench-aggregator
+module github.com/fairwindsops/insights-plugins/plugins/kube-bench-aggregator
 
 go 1.17
 

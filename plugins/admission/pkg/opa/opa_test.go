@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/fairwindsops/insights-plugins/opa/pkg/kube"
-	"github.com/fairwindsops/insights-plugins/opa/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 // TestProcessOPA runs all checks against the provided Custom Check
