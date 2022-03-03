@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fairwindsops/insights-plugins/right-sizer/src/report"
-	"github.com/fairwindsops/insights-plugins/right-sizer/src/util"
+	"github.com/fairwindsops/insights-plugins/plugins/right-sizer/src/report"
+	"github.com/fairwindsops/insights-plugins/plugins/right-sizer/src/util"
 	"github.com/golang/glog"
 	core "k8s.io/api/core/v1"
 

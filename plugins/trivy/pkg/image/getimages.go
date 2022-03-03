@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 )
 
 // GetImages returns the images in the current cluster.

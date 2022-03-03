@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 )
 
 const workloadsReportVersion = "0.1.0"

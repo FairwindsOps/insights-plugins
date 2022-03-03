@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
-	"github.com/fairwindsops/insights-plugins/falco-agent/pkg/data"
+	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/data"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"

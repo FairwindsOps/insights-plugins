@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/image"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/trivy/pkg/util"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.1
+* Fix go.mod `module`, and `import`s, to use plugins sub-directory.
+
 ## 2.0.0
 
 * Processing of checks is no longer interrupted by a failure to list objects for one of the checks Kube targets. The remaining targets will be checked, and errors reflected in the plugin log.

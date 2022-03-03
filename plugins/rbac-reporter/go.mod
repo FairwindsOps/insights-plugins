@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/rbac-reporter
+module github.com/fairwindsops/insights-plugins/plugins/rbac-reporter
 
 go 1.17
 

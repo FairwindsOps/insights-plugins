@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	opa "github.com/fairwindsops/insights-plugins/opa/pkg/opa"
+	opa "github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 )
 
 var cfgFile string
