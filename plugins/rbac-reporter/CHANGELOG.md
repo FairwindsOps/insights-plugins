@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.11
+* Fix go.mod `module`, and `import`s, to use plugins sub-directory.
+
 ## 1.2.10
 * Update dependencies
 ## 1.2.9

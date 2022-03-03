@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/models"
-	"github.com/fairwindsops/insights-plugins/ci/pkg/util"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 )

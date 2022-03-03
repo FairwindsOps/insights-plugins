@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.10
+* Fix go.mod `module`, and `import`s, to use plugins sub-directory.
+
 ## 0.3.9
 * update base image
 

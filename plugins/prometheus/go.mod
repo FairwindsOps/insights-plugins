@@ -1,4 +1,4 @@
-module github.com/fairwindsops/insights-plugins/prometheus
+module github.com/fairwindsops/insights-plugins/plugins/prometheus
 
 go 1.17
 

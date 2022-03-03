@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/fairwindsops/insights-plugins/ci/pkg/commands"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
 	"github.com/sirupsen/logrus"
 )
 

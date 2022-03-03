@@ -19,8 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	fadmission "github.com/fairwindsops/insights-plugins/admission/pkg/admission"
-	"github.com/fairwindsops/insights-plugins/admission/pkg/models"
+	fadmission "github.com/fairwindsops/insights-plugins/plugins/admission/pkg/admission"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 func exitWithError(message string, err error) {
