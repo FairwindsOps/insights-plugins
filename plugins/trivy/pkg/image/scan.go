@@ -57,7 +57,7 @@ func GetLastReport() models.MinimizedReport {
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
-func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageReport {
+func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
 	reportByRef := map[string]*models.TrivyResults{}
 	for _, image := range images {
@@ -71,7 +71,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int) []models.ImageRep
 			defer func() { <-semaphore }()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
-				r, err := downloadAndScanPullRef(pullRef)
+				r, err := downloadAndScanPullRef(pullRef, extraFlags)
 				reportByRef[pullRef] = r
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
@@ -106,9 +106,13 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 }
 
 // ScanImageFile will scan a single file with Trivy and return the results.
-func ScanImageFile(imagePath string, imageID string, tempDir string) (*models.TrivyResults, error) {
+func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*models.TrivyResults, error) {
 	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
-	err := util.RunCommand(exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imageID)
+	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath)
+	if extraFlags != "" {
+		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
+	}
+	err := util.RunCommand(cmd, "scanning "+imageID)
 	if err != nil {
 		logrus.Errorf("Error scanning %s at %s: %v", imageID, imagePath, err)
 		return nil, err
@@ -132,7 +136,7 @@ func ScanImageFile(imagePath string, imageID string, tempDir string) (*models.Tr
 	return &report, nil
 }
 
-func downloadAndScanPullRef(pullRef string) (*models.TrivyResults, error) {
+func downloadAndScanPullRef(pullRef, extraFlags string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 
 	imageDir := TempDir
@@ -146,5 +150,5 @@ func downloadAndScanPullRef(pullRef string) (*models.TrivyResults, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ScanImageFile(imageDir+imageID, imageID, TempDir)
+	return ScanImageFile(imageDir+imageID, imageID, TempDir, extraFlags)
 }

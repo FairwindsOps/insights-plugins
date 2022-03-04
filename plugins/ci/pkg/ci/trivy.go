@@ -164,7 +164,7 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 			continue
 		}
 		logrus.Infof("Scanning %s from file %s", currentImage.Name, currentImage.PullRef)
-		results, err := image.ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder)
+		results, err := image.ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder, "")
 		if err != nil {
 			return nil, "", err
 		}
