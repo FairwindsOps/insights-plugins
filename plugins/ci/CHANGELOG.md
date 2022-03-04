@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.2
+* Fix trivy `image.ScanImageFile` arguments
+
 ## 1.3.1
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
