@@ -108,7 +108,11 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 // ScanImageFile will scan a single file with Trivy and return the results.
 func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*models.TrivyResults, error) {
 	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
-	err := util.RunCommand(exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath), "scanning "+imageID)
+	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath)
+	if extraFlags != "" {
+		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
+	}
+	err := util.RunCommand(cmd, "scanning "+imageID)
 	if err != nil {
 		logrus.Errorf("Error scanning %s at %s: %v", imageID, imagePath, err)
 		return nil, err
