@@ -19,7 +19,7 @@ import (
 
 var maxConcurrentScans = 5
 var numberToScan = 10
-var extraFlags string
+var extraFlags = ""
 
 const outputFile = image.TempDir + "/final-report.json"
 
