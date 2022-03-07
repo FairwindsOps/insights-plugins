@@ -67,7 +67,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 					logrus.Debugf("Found instance %s to match check %s", checkInstance.AdditionalData.Name, check.Name)
 					newItems, err := processCheck(ctx, check, checkInstance.GetCustomCheckInstance())
 					if err != nil {
-						allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, checkInstance.GetCustomCheckInstance().Name, err))
+						allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, checkInstance.GetCustomCheckInstance().Name, multierror.Prefix(err, " ")))
 						break
 					}
 					actionItems = append(actionItems, newItems...)
@@ -77,7 +77,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 		case 2.0:
 			newItems, err := processCheckV2(ctx, check)
 			if err != nil {
-				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, err))
+				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, multierror.Prefix(err, " ")))
 			}
 			actionItems = append(actionItems, newItems...)
 		default:
@@ -100,7 +100,7 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 		}
 		actionItems = append(actionItems, newAI...)
 	}
-	return actionItems, multierror.Prefix(allErrs, " ")
+	return actionItems, allErrs.ErrorOrNil()
 }
 
 // processCheckV2 accepts a OPACustomCheck, returning both action items and
@@ -116,7 +116,7 @@ func processCheckV2(ctx context.Context, check OPACustomCheck) ([]ActionItem, er
 		}
 		actionItems = append(actionItems, newAI...)
 	}
-	return actionItems, multierror.Prefix(allErrs, " ")
+	return actionItems, allErrs.ErrorOrNil()
 }
 
 // processCheckTarget runs the specified OPACustomCheck and CheckInstance

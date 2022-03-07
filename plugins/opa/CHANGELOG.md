@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.3
+* Fix checks always logging an error indicating "0 errors occurred."
+
 ## 2.0.2
 * Adding an OPA policy to catch DNS hostnames longer than 63 characters.
 
