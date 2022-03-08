@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.16.3
+* Fix trivy nil bug
 ## 0.16.2
 * Add `--ignore-unfixed` flag to the env variable
 
