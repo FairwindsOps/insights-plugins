@@ -87,20 +87,22 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
 func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults) []models.ImageReport {
-	allReports := make([]models.ImageReport, len(images))
-	for idx, image := range images {
-		allReports[idx] = models.ImageReport{
+	allReports := []models.ImageReport{}
+	for _, image := range images {
+		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
+			continue
+		}
+		allReports = append(allReports, models.ImageReport{
 			Name:               image.Name,
 			ID:                 fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID),
 			PullRef:            image.PullRef,
 			OwnerKind:          image.Owner.Kind,
 			OwnerName:          image.Owner.Name,
-			OwnerContainer:     &images[idx].Owner.Container,
+			OwnerContainer:     &image.Owner.Container,
 			Namespace:          image.Owner.Namespace,
 			Report:             reportByRef[image.PullRef].Results,
 			RecommendationOnly: image.RecommendationOnly,
-		}
-
+		})
 	}
 	return allReports
 }
