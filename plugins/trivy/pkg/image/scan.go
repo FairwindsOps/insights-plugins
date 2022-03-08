@@ -89,7 +89,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults) []models.ImageReport {
 	allReports := []models.ImageReport{}
 	for _, image := range images {
-		if _, ok := reportByRef[image.PullRef]; !ok {
+		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
 			continue
 		}
 		allReports = append(allReports, models.ImageReport{
