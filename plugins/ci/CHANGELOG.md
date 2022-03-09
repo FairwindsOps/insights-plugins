@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.3
+* Fix go.mod.
+
 ## 1.3.2
 * Fix trivy `image.ScanImageFile` arguments
 

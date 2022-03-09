@@ -7,7 +7,10 @@ replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
 replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20220225202718-864183516b6d
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20220225202718-864183516b6d
 	github.com/ghodss/yaml v1.0.0
+	github.com/hashicorp/go-multierror v1.1.0
 	github.com/jstemmer/go-junit-report v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
@@ -20,14 +23,14 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/docker/cli v0.0.0-20190913211141-95327f4e6241 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v20.10.12+incompatible // indirect
+	github.com/docker/docker-credential-helpers v0.6.3 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20220225202718-864183516b6d // indirect
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20220225202718-864183516b6d // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/genuinetools/reg v0.16.1 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
@@ -40,7 +43,6 @@ require (
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
