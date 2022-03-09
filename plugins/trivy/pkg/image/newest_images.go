@@ -6,6 +6,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/genuinetools/reg/registry"
+	"github.com/genuinetools/reg/repoutils"
 	version "github.com/mcuadros/go-version"
 	"github.com/sirupsen/logrus"
 )
@@ -54,7 +55,11 @@ func fetchTags(ctx context.Context, imageName, tag string) ([]string, error) {
 }
 
 func createRegistryClient(ctx context.Context, domain string) (*registry.Registry, error) {
-	return registry.New(ctx, types.AuthConfig{}, registry.Opt{
+	auth := types.AuthConfig{}
+	if domain == "docker.io" {
+		auth.ServerAddress = repoutils.DefaultDockerRegistry
+	}
+	return registry.New(ctx, auth, registry.Opt{
 		Domain:   domain,
 		Insecure: false,
 		Debug:    false,
