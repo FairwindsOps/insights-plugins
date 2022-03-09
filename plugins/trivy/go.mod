@@ -3,6 +3,7 @@ module github.com/fairwindsops/insights-plugins/plugins/trivy
 go 1.17
 
 require (
+	github.com/docker/docker v20.10.12+incompatible
 	github.com/genuinetools/reg v0.16.1
 	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2
 	github.com/sirupsen/logrus v1.8.1
@@ -18,7 +19,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v0.0.0-20190913211141-95327f4e6241 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v20.10.12+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.3 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
