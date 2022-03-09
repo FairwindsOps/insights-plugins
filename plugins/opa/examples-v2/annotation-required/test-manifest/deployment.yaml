@@ -4,7 +4,7 @@ metadata:
   name: policy-test
   namespace: default
   annotations:
-    # THis policy requires the below annotation.
+    # This policy requires the below annotation.
     # It being commented out should fail the policy.
     #meta.helm.sh/release-name: release
   labels:
