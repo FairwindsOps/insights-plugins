@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.4
+* Add V2 varients of example CustomCheck policies.
+
 ## 2.0.3
 * Fix checks always logging an error indicating "0 errors occurred."
 
