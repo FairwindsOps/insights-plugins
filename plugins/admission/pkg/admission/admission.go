@@ -22,18 +22,16 @@ var (
 	organization string
 	hostname     string
 	cluster      string
+	// This version.txt file is a hard link to the file two directories above.
 	//go:embed version.txt
-	content embed.FS
-	version string = "1.0.0"
+	version string
 )
 
 func init() {
 	organization = os.Getenv("FAIRWINDS_ORGANIZATION")
 	hostname = os.Getenv("FAIRWINDS_HOSTNAME")
 	cluster = os.Getenv("FAIRWINDS_CLUSTER")
-	data, _ := content.ReadFile("version.txt")
-	version = string(data)
-
+	version = strings.TrimSpace(version)
 }
 
 // SendResults sends the results to Insights
