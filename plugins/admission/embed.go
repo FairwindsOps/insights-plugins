@@ -1,6 +1,6 @@
-// admissionversion is imported by other packages of this plugin, to determin
+// version is imported by other packages of this plugin, to determin
 // the plugin version, which is obtained from the version.txt file.
-package admissionversion
+package version
 
 import (
 	_ "embed"
