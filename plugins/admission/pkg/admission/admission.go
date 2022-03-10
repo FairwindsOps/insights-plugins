@@ -22,7 +22,7 @@ var (
 	organization string
 	hostname     string
 	cluster      string
-	// This version.txt file is a hard link to the file two directories above.
+	// This version.txt file gets copied in via CI and the Dockerfile.
 	//go:embed version.txt
 	version string
 )
