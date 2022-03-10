@@ -2,7 +2,6 @@ package admission
 
 import (
 	"bytes"
-	"embed"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
