@@ -1,0 +1,177 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/Insights",
+    "definitions": {
+        "Insights": {
+            "title": "Insights",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "images": {
+                    "$ref": "#/definitions/Images"
+                },
+                "manifests": {
+                    "$ref": "#/definitions/Manifests"
+                },
+                "options": {
+                    "$ref": "#/definitions/Options"
+                },
+                "reports": {
+                    "$ref": "#/definitions/Reports"
+                }
+            }
+        },
+        "Images": {
+            "title": "Images",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "folder": {
+                    "type": "string"
+                },
+                "docker": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "Manifests": {
+            "title": "Manifests",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "yaml": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "helm": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Helm"
+                    }
+                }
+            }
+        },
+        "Helm": {
+            "title": "Helm",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "repo": {
+                    "type": "string"
+                },
+                "chart": {
+                    "type": "string"
+                },
+                "fluxFile": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "valuesFile": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "title": "Values"
+                }
+            }
+        },
+        "Options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "setExitCode": {
+                    "type": "boolean"
+                },
+                "baseBranch": {
+                    "type": "string"
+                },
+                "newActionItemThreshold": {
+                    "type": "integer"
+                },
+                "severityThreshold": {
+                    "type": "string"
+                },
+                "tempFolder": {
+                    "type": "string"
+                },
+                "hostname": {
+                    "type": "string"
+                },
+                "organization": {
+                    "type": "string"
+                },
+                "junitOutput": {
+                    "type": "string"
+                },
+                "repositoryName": {
+                    "type": "string"
+                }
+            },
+            "title": "Options"
+        },
+        "Reports": {
+            "title": "Reports",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "polaris": {
+                    "title": "Polaris Plugin",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "pluto": {
+                    "title": "Pluto Plugin",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "trivy": {
+                    "title": "Trivy Plugin",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "skipManifests": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "opa": {
+                    "title": "OPA Plugin",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
