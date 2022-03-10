@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 
 	opa "github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
+	opaversion "github.com/fairwindsops/insights-plugins/plugins/opa/version"
 )
 
 var cfgFile string
@@ -89,7 +90,7 @@ func startOPAReporter() {
 		logrus.Debugf("Debugging is enabled...")
 	}
 	opa.CLIKubeTargets = opa.ProcessCLIKubeResourceTargets(viper.GetStringSlice("target-resource"))
-	logrus.Info("Starting OPA reporter")
+	logrus.Infof("Starting OPA reporter %s", opaversion.String())
 	ctx := context.Background()
 	actionItems, runError := opa.Run(ctx)
 	if actionItems != nil {
