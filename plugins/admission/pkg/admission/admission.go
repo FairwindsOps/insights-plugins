@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 
+	"github.com/fairwindsops/insights-plugins/plugins/admission/admissionversion"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
@@ -57,7 +58,7 @@ func SendResults(reports []models.ReportInfo, token string) (passed bool, warnin
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+token)
-
+	req.Header.Set("X-Fairwinds-Admission-Version", admissionversion.String())
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)
 	}

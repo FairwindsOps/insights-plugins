@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.2
+* Send the plugin version to the Insights API, from the version.txt file
+
 ## 1.2.1
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
