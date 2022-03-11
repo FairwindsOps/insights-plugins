@@ -1,13 +1,15 @@
 set -eo pipefail
 
-if [ -x "$(command -v sudo)" ]; then
-  sudo apt-get update
-  sudo apt-get install apt-transport-https ca-certificates libssl-dev -y
-  sudo update-ca-certificates
-else
-  apt-get update
-  apt-get install apt-transport-https ca-certificates libssl-dev -y
-  update-ca-certificates
+if [ -x "$(command -v apt-get)" ]; then
+  if [ -x "$(command -v sudo)" ]; then
+    sudo apt-get update
+    sudo apt-get install apt-transport-https ca-certificates libssl-dev -y
+    sudo update-ca-certificates
+  else
+    apt-get update
+    apt-get install apt-transport-https ca-certificates libssl-dev -y
+    update-ca-certificates
+  fi
 fi
 echo 'export GO111MODULE=on' >> ${BASH_ENV}
 echo 'export CI_SHA1=$CIRCLE_SHA1' >> ${BASH_ENV}
