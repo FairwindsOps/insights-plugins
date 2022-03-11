@@ -9,7 +9,7 @@ commands:
     description: Sets environment variables for this job.
     steps:
     - run: ./.circleci/scripts/env.sh
-    - run: ./.circleci/scripts/set_tags.sh
+    - run: ./.circleci/set_tags.sh
 
   docker_build:
     description: Build docker Images
