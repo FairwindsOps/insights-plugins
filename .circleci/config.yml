@@ -9,6 +9,10 @@ commands:
     description: Sets environment variables for this job.
     steps:
     - run: ./.circleci/scripts/env.sh
+
+  set_tags:
+    description: Figures out which plugins have been changed etc
+    steps:
     - run: ./.circleci/set_tags.sh
 
   docker_build:
@@ -17,6 +21,7 @@ commands:
     - checkout
     - setup_remote_docker
     - set_environment_variables
+    - set_tags
     - run:
         name: Build Plugin Docker Images
         command: |
@@ -116,6 +121,7 @@ jobs:
     steps:
       - checkout
       - set_environment_variables
+      - set_tags
       - run: go get -u golang.org/x/lint/golint
       - run: |
           for plugin in "${GO_PKGS[@]}"; do
@@ -140,6 +146,7 @@ jobs:
     steps:
       - checkout
       - set_environment_variables
+      - set_tags
       - check_version_changed
 
   scan_for_vulnerabilities:
