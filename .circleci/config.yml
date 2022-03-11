@@ -161,21 +161,22 @@ jobs:
       - slack/notify:
           event: always
           # branch_pattern: main
-          custom: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": ":panic: One or more images in insights-plugins has a vulnerability!",
-                      "emoji": true
-                    }
-                  ]
-                }
-              ]
-            }
+          template: basic_fail_1
+          #custom: |
+          #  {
+          #    "blocks": [
+          #      {
+          #        "type": "section",
+          #        "fields": [
+          #          {
+          #            "type": "mrkdwn",
+          #            "text": ":panic: One or more images in insights-plugins has a vulnerability!",
+          #            "emoji": true
+          #          }
+          #        ]
+          #      }
+          #    ]
+          #  }
 
 workflows:
   version: 2
