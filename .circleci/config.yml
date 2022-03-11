@@ -152,10 +152,11 @@ jobs:
   scan_for_vulnerabilities:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
-      - image: aquasec/trivy:0.24.2
+      - image: circleci/golang:1.12
     steps:
       - checkout
       - set_environment_variables
+      - run: ./.circleci/scripts/install-trivy.sh
       - run: ./scripts/scan-all.sh
       - slack/notify:
           event: fail

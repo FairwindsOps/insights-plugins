@@ -1,3 +1,4 @@
+#! /bin/bash
 set -eo pipefail
 
 have_vulns=()
