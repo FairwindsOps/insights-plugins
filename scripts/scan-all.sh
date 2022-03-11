@@ -25,6 +25,10 @@ for d in ./plugins/*/ ; do
     set -e
 done
 
+if [[ -n $BASH_ENV ]]; then
+  echo "export VULNERABLE_IMAGES=(${have_vulns[@]})" >> ${BASH_ENV}
+fi
+
 if (( ${#have_vulns[@]} != 0 )); then
     echo "The following images have vulnerabilities:"
     for image in "${have_vulns[@]}"; do
@@ -32,4 +36,3 @@ if (( ${#have_vulns[@]} != 0 )); then
     done
     exit 1
 fi
-
