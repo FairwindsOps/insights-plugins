@@ -153,6 +153,16 @@ jobs:
       - set_environment_variables
       - check_version_changed
 
+  scan_for_vulnerabilities:
+    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
+    docker:
+      - image: aquasec/trivy:0.24.2
+    steps:
+      - checkout
+      - set_environment_variables
+      - run: ./scripts/scan-all.sh
+
+
 workflows:
   version: 2
   release:
@@ -179,3 +189,14 @@ workflows:
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
           store-artifacts: /workspace/output
+      - scan_for_vulnerabilities
+  check_vulnerabilities:
+    jobs:
+      - scan_for_vulnerabilities
+    triggers:
+      - schedule:
+          cron: "0 * * * *"
+          filters:
+            branches:
+              only:
+                - main
