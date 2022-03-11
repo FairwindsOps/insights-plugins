@@ -203,6 +203,8 @@ workflows:
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
           store-artifacts: /workspace/output
+  scan:
+    jobs:
       - scan_for_vulnerabilities
   check_vulnerabilities:
     jobs:
