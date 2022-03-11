@@ -155,6 +155,7 @@ jobs:
     steps:
       - checkout
       - set_environment_variables
+      - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
       - run: ./scripts/scan-all.sh
       - slack/notify:
