@@ -151,8 +151,7 @@ jobs:
 
   scan_for_vulnerabilities:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
-    docker:
-      - image: circleci/golang:1.12
+    executor: ci-images
     steps:
       - checkout
       - set_environment_variables
