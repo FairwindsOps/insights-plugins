@@ -4,7 +4,8 @@ set -eo pipefail
 have_vulns=()
 
 for d in ./plugins/*/ ; do
-    if [[ $d == "_template" ]]; then
+    echo $d
+    if [[ $d == *"_template"* ]]; then
       continue
     fi
     if [[ ! -f $d/build.config ]]; then
@@ -17,11 +18,11 @@ for d in ./plugins/*/ ; do
     docker pull $name
 
     set +e
-    trivy -i --exit-code 123 $name
-    set -e
+    trivy i --exit-code 123 $name
     if [[ $? -eq 123 ]]; then
       have_vulns+=($name)
     fi
+    set -e
 done
 
 if (( ${#have_vulns[@]} != 0 )); then
