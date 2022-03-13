@@ -2,8 +2,6 @@ module github.com/fairwindsops/insights-plugins/plugins/opa
 
 go 1.17
 
-replace github.com/fairwindsops/insights-plugins/plugins/opa/version => ./
-
 require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/open-policy-agent/opa v0.37.0
@@ -23,7 +21,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
-	github.com/fairwindsops/insights-plugins/plugins/opa/version v0.0.0-00010101000000-000000000000 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
