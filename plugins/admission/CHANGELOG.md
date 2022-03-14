@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.2.2
-* Send the plugin version to the Insights API, from the version.txt file
+* Add a `version` package to reflect the plugin version in reports, and send the current plugin version to the API.
 
 ## 1.2.1
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
