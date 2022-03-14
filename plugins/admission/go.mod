@@ -2,9 +2,9 @@ module github.com/fairwindsops/insights-plugins/plugins/admission
 
 go 1.17
 
-replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
+replace github.com/fairwindsops/insights-plugins/plugins/admission => ./
 
-replace github.com/fairwindsops/insights-plugins/plugins/admission/version => ./
+replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
 	github.com/fairwindsops/pluto/v3 v3.5.4
@@ -29,7 +29,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
-	github.com/fairwindsops/insights-plugins/plugins/admission/version v0.0.0-00010101000000-000000000000 // indirect
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20220302200648-3d4762d614b3 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
