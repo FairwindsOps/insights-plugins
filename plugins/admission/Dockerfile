@@ -13,11 +13,11 @@ COPY opa opa
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/admission
 
 COPY ./admission/go.* ./
+RUN go mod download
 COPY ./admission/version.txt .
 COPY ./admission/embed.go .
 COPY ./admission/pkg pkg
 COPY ./admission/cmd cmd
-RUN go mod download
 
 RUN go get -u github.com/gobuffalo/packr/v2/packr2
 
