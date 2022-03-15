@@ -159,6 +159,12 @@ jobs:
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
       - run: ./scripts/scan-all.sh
+      - run:
+          if [["$CCI_STATUS" == "pass" ]; then
+            echo 'export SLACK_TEMPLATE=$(envsubst < ./.circleci/slack/pass.json)' >> $BASH_ENV
+          else
+            echo 'export SLACK_TEMPLATE=$(envsubst < ./.circleci/slack/fail.json)' >> $BASH_ENV
+          fi
       - slack/notify:
           event: always
           template: SLACK_FAIL

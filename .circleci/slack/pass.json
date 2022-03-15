@@ -5,7 +5,7 @@
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "The tests have passed"
+                "text": "The tests have passed. Channel is $SLACK_DEFAULT_CHANNEL."
             }
         }
     ]

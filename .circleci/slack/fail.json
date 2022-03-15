@@ -1,11 +1,11 @@
 {
-    "text": "Text here for desktop notification",
+    "text": "One or more images in insights-plugins have vulnerabilities",
     "blocks": [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "The tests have failed"
+                "text": "One or more images in insights-plugins have vulnerabilities! $VULNERABLE_IMAGES"
             }
         }
     ]
