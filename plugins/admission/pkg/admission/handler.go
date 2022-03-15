@@ -15,10 +15,55 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/polaris"
 )
 
+// webhookFailurePolicy stores the states of a Kubernetes
+// ValidatingWebhookConfiguration webhook failurePolicy.
+type webhookFailurePolicy int
+
+// webhookFailurePolicy* constants represent possible values for a Kubernetes
+// ValidatingWebhookConfiguration webhook failurePolicy.
+const (
+	webhookFailurePolicyIgnore = iota
+	webhookFailurePolicyFail   = iota
+)
+
+func (w webhookFailurePolicy) String() string {
+	var result string
+	switch w {
+	case webhookFailurePolicyIgnore:
+		result = "Ignore"
+	case webhookFailurePolicyFail:
+		result = "Fail"
+	default:
+		result = "unknown"
+	}
+	return result
+}
+
 // Validator is the entry point for the admission webhook.
 type Validator struct {
-	decoder *admission.Decoder
-	config  *models.Configuration
+	decoder              *admission.Decoder
+	config               *models.Configuration
+	webhookFailurePolicy webhookFailurePolicy
+}
+
+// SetWebhookFailurePolicy parses a string into one of the
+// webhookFailurePolicy* constants and sets the webhookFailurePolicy field of
+// the Validator struct. SetWebhookFailurePolicy returns true if the string is
+// parsed successfully.
+func (v *Validator) SetWebhookFailurePolicy(s string) bool {
+	switch strings.ToLower(s) {
+	case "":
+		v.webhookFailurePolicy = 0 // set empty string to the default iota
+	case "ignore":
+		v.webhookFailurePolicy = webhookFailurePolicyIgnore
+	case "fail":
+		v.webhookFailurePolicy = webhookFailurePolicyFail
+	default:
+		logrus.Infof("unknown webhook failure policy %q", s)
+		return false
+	}
+	logrus.Infof("using webhook failure policy %q", v.webhookFailurePolicy)
+	return true
 }
 
 // InjectDecoder injects the decoder.
@@ -74,7 +119,13 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
-		return admission.Errored(http.StatusBadRequest, err)
+		if v.webhookFailurePolicy != webhookFailurePolicyIgnore {
+			logrus.Infoln("Failing validation request due to errors, as failurePolicy is not set to ignore")
+			return admission.Errored(http.StatusBadRequest, err)
+		} else if v.webhookFailurePolicy == webhookFailurePolicyIgnore {
+			allowed = true
+			logrus.Infof("allowing request despite errors, as webhook failurePolicy is set to %s", v.webhookFailurePolicy)
+		}
 	}
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
 	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
