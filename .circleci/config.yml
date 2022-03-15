@@ -154,27 +154,14 @@ jobs:
     executor: ci-images
     steps:
       - checkout
+      - run: exit 1
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
       - run: ./scripts/scan-all.sh
       - slack/notify:
           event: always
-          custom: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "plain_text",
-                      "text": "*This is a text notification*",
-                      "emoji": true
-                    }
-                  ]
-                }
-              ]
-            }
+          template: SLACK_FAIL
 
 workflows:
   version: 2

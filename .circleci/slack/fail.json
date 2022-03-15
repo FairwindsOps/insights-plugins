@@ -1,0 +1,12 @@
+{
+    "text": "Text here for desktop notification",
+    "blocks": [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "The tests have failed"
+            }
+        }
+    ]
+}
