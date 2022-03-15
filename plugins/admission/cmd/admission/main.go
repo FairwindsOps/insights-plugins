@@ -139,6 +139,12 @@ func main() {
 
 	setLogLevel()
 
+	webhookFailurePolicyString := os.Getenv("WEBHOOK_FAILURE_POLICY")
+	ok := handler.SetWebhookFailurePolicy(webhookFailurePolicyString)
+	if !ok {
+		panic(fmt.Sprintf("cannot parse invalid webhook failure policy %q", webhookFailurePolicyString))
+	}
+
 	err = mgr.AddReadyzCheck("readyz", healthz.Ping)
 	if err != nil {
 		exitWithError("Unable to add readyz check", err)

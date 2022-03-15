@@ -3,6 +3,9 @@
 ## 1.3.0
 * Add a `version` package to reflect the plugin version in reports, and send the current plugin version to the API.
 
+## 1.2.2
+* No longer deny admission requests if errors are returned by plugins and the Kubernetes webhook failure policy is set to `Ignore`. The failure policy is passed via the `WEBHOOK_FAILURE_POLICY` environment variable.
+
 ## 1.2.1
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
