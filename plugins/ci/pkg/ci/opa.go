@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	opaversion "github.com/fairwindsops/insights-plugins/plugins/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
@@ -22,14 +23,12 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 )
 
-const opaVersion = "0.2.8"
-
 // ProcessOPA runs all checks against the provided Custom Check
 func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "opa",
 		Filename: "opa.json",
-		Version:  opaVersion,
+		Version:  opaversion.String(),
 	}
 
 	instances, checks, err := refreshChecks(*ci.config)
