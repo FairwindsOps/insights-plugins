@@ -127,11 +127,17 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	return allReports
 }
 
+<<<<<<< HEAD
 // ScanImage will scan a single image with Trivy and return the results.
 func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
 	args := []string{"-d", "image", "--skip-update", "-f", "json", "-o", reportFile}
+=======
+// ScanImageFile will scan a single file with Trivy and return the results.
+func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*models.TrivyResults, error) {
+	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
+	args := []string{"-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath}
 	if extraFlags != "" {
 		args = append(args, extraFlags)
 	}
