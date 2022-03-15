@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  slack: circleci/slack@4.8.3
+  slack: circleci/slack@4.8
   rok8s-scripts: fairwinds/rok8s-scripts@11.11.5
 
 commands:
@@ -173,6 +173,21 @@ jobs:
                     }
                 ]
             }
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+                "text": "All images in insights-plugins are clean",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":tada: All images in insights-plugins are clean!"
+                        }
+                    }
+                ]
+            }
 
 workflows:
   version: 2
@@ -200,9 +215,6 @@ workflows:
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
           store-artifacts: /workspace/output
-  scan:
-    jobs:
-      - scan_for_vulnerabilities
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities
