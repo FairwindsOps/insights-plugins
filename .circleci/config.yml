@@ -154,8 +154,8 @@ jobs:
     executor: ci-images
     steps:
       - checkout
-      - run: exit 1
       - set_environment_variables
+      - run: exit 1
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
       - run: ./scripts/scan-all.sh
