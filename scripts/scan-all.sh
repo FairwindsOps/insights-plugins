@@ -25,6 +25,7 @@ for d in ./plugins/*/ ; do
     set -e
 done
 
+echo "bash env is $BASH_ENV"
 if [[ -n $BASH_ENV ]]; then
   echo "export VULNERABLE_IMAGES=(${have_vulns[@]})" >> ${BASH_ENV}
 fi
