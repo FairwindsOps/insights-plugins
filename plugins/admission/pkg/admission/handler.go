@@ -124,7 +124,7 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 			return admission.Errored(http.StatusBadRequest, err)
 		} else if v.webhookFailurePolicy == webhookFailurePolicyIgnore {
 			allowed = true
-			logrus.Infof("allowing request despite errors, as webhook failurePolicy is set to %s", v.webhookFailurePolicy)
+			logrus.Warningf("allowing request despite errors, as webhook failurePolicy is set to %s", v.webhookFailurePolicy)
 		}
 	}
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
