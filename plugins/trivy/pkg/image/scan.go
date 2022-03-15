@@ -156,6 +156,7 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	args = append(args, pullRef)
 	cmd := exec.Command("trivy", args...)
 	err := util.RunCommand(cmd, "scanning "+pullRef)
+
 	if err != nil {
 		logrus.Errorf("Error scanning %s: %v", pullRef, err)
 		return nil, err
