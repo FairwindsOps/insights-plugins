@@ -131,10 +131,30 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
-	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, pullRef)
+	args := []string{"-d", "image", "--skip-update", "-f", "json", "-o", reportFile}
 	if extraFlags != "" {
-		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, pullRef)
+		args = append(args, extraFlags)
 	}
+	if os.Getenv("OFFLINE") != "" {
+		args = append(args, "--offline-scan")
+	}
+
+	if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
+		replacements := strings.Split(refReplacements, ";")
+		for _, replacement := range replacements {
+			parts := strings.Split(replacement, ",")
+			if len(parts) != 2 {
+				logrus.Errorf("PULL_REF_REPLACEMENTS is badly formatted, can't interpret %s", replacement)
+				continue
+			}
+			pullRef = strings.ReplaceAll(pullRef, parts[0], parts[1])
+			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
+		}
+	}
+	logrus.Infof("Pulling %s", pullRef)
+
+	args = append(args, pullRef)
+	cmd := exec.Command("trivy", args...)
 	err := util.RunCommand(cmd, "scanning "+pullRef)
 	if err != nil {
 		logrus.Errorf("Error scanning %s: %v", pullRef, err)
