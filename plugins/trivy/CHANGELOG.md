@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.19.0
+* Support offline scanning
+
 ## 0.18.5
 * Image recommendation cleanup bug fix
 
