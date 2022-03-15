@@ -160,23 +160,21 @@ jobs:
       - run: ./scripts/scan-all.sh
       - slack/notify:
           event: always
-          # branch_pattern: main
-          template: basic_fail_1
-          #custom: |
-          #  {
-          #    "blocks": [
-          #      {
-          #        "type": "section",
-          #        "fields": [
-          #          {
-          #            "type": "mrkdwn",
-          #            "text": ":panic: One or more images in insights-plugins has a vulnerability!",
-          #            "emoji": true
-          #          }
-          #        ]
-          #      }
-          #    ]
-          #  }
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "plain_text",
+                      "text": "*This is a text notification*",
+                      "emoji": true
+                    }
+                  ]
+                }
+              ]
+            }
 
 workflows:
   version: 2
