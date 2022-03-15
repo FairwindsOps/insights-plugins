@@ -26,14 +26,14 @@ for d in ./plugins/*/ ; do
 done
 
 if [[ -n $BASH_ENV ]]; then
-  echo "export VULNERABLE_IMAGES=''" >> ${BASH_ENV}
+  echo "export VULNERABLE_IMAGES_LIST=''" >> ${BASH_ENV}
 fi
 
 if (( ${#have_vulns[@]} != 0 )); then
     echo "The following images have vulnerabilities:"
     for image in "${have_vulns[@]}"; do
       if [[ -n $BASH_ENV ]]; then
-        echo "VULNERABLE_IMAGES+='* ${image}\n'">> ${BASH_ENV}
+        echo "VULNERABLE_IMAGES_LIST+='- ${image}\n'">> ${BASH_ENV}
       fi
       echo $image
     done

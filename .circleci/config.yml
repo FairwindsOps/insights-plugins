@@ -168,7 +168,7 @@ jobs:
                         "type": "section",
                         "text": {
                             "type": "mrkdwn",
-                            "text": "One or more images in insights-plugins have vulnerabilities!\n\n$VULNERABLE_IMAGES"
+                            "text": "One or more images in insights-plugins have vulnerabilities!\n\n$VULNERABLE_IMAGES_LIST"
                         }
                     }
                 ]
