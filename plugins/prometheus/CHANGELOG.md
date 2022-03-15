@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.5.0
+* rename output file from `resource-metrics.json` to `prometheus-metrics.json`
 ## 0.4.14
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
