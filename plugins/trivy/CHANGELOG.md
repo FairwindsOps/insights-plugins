@@ -1,4 +1,6 @@
 # Changelog
+## 0.17.1
+* Offline support
 
 ## 0.19.0
 * Support offline scanning
