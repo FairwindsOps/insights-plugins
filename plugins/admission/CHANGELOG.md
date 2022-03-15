@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.2
+## 1.3.0
 * Add a `version` package to reflect the plugin version in reports, and send the current plugin version to the API.
 
 ## 1.2.1
