@@ -13,6 +13,6 @@ for d in ./plugins/*/ ; do
     name="quay.io/$REPOSITORY_NAME:$version"
     echo "scanning $name"
     docker pull $name
-    trivy $name
+    trivy i $name
 done
 

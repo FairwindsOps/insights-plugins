@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.0
+* Update Trivy to 0.24
+
 ## 1.3.3
 * Fix go.mod.
 
