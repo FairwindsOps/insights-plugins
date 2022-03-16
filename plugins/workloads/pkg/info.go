@@ -6,6 +6,7 @@ import (
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,17 +52,18 @@ type ResourcesInfo struct {
 
 // NodeSummary gives highlevel overview of node informations
 type NodeSummary struct {
-	Name              string
-	Labels            map[string]string
-	Annotations       map[string]string
-	CreationTimestamp time.Time
-	Capacity          corev1.ResourceList
-	Allocatable       corev1.ResourceList
-	AllocatedLimits   corev1.ResourceList
-	AllocatedRequests corev1.ResourceList
-	Utilization       NodeUtilization
-	KubeletVersion    string
-	KubeProxyVersion  string
+	Name               string
+	Labels             map[string]string
+	Annotations        map[string]string
+	CreationTimestamp  time.Time
+	Capacity           corev1.ResourceList
+	Allocatable        corev1.ResourceList
+	AllocatedLimits    corev1.ResourceList
+	AllocatedRequests  corev1.ResourceList
+	Utilization        NodeUtilization
+	KubeletVersion     string
+	KubeProxyVersion   string
+	IsControlPlaneNode bool
 }
 
 // ClusterWorkloadReport contains k8s workload resources report structure
@@ -165,14 +167,15 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 
 	for _, item := range nodes.Items {
 		node := NodeSummary{
-			Name:              item.GetName(),
-			Labels:            item.GetLabels(),
-			Annotations:       item.GetAnnotations(),
-			CreationTimestamp: item.GetCreationTimestamp().UTC(),
-			Capacity:          item.Status.Capacity,
-			Allocatable:       item.Status.Allocatable,
-			KubeletVersion:    item.Status.NodeInfo.KubeletVersion,
-			KubeProxyVersion:  item.Status.NodeInfo.KubeProxyVersion,
+			Name:               item.GetName(),
+			Labels:             item.GetLabels(),
+			Annotations:        item.GetAnnotations(),
+			CreationTimestamp:  item.GetCreationTimestamp().UTC(),
+			Capacity:           item.Status.Capacity,
+			Allocatable:        item.Status.Allocatable,
+			KubeletVersion:     item.Status.NodeInfo.KubeletVersion,
+			KubeProxyVersion:   item.Status.NodeInfo.KubeProxyVersion,
+			IsControlPlaneNode: checkIfNodeIsControlPlane(item.GetLabels()),
 		}
 		allocated, utilization, err := GetNodeAllocatedResource(ctx, kube, item)
 		if err != nil {
@@ -202,4 +205,8 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		Controllers:   interfaces,
 	}
 	return &clusterWorkloadReport, nil
+}
+
+func checkIfNodeIsControlPlane(labels map[string]string) bool {
+	return funk.Contains(labels, "node-role.kubernetes.io/control-plane") || funk.Contains(labels, "node-role.kubernetes.io/master")
 }
