@@ -2,6 +2,8 @@ module github.com/fairwindsops/insights-plugins/plugins/opa
 
 go 1.17
 
+replace github.com/fairwindsops/insights-plugins/plugins/opa => ./
+
 require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/open-policy-agent/opa v0.37.0
