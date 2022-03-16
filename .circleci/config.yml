@@ -220,7 +220,7 @@ workflows:
       - scan_for_vulnerabilities
     triggers:
       - schedule:
-          cron: "0 */6 * * *"
+          cron: "0 12 * * *"
           filters:
             branches:
               only:
