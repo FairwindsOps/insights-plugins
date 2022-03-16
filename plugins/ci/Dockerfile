@@ -5,7 +5,7 @@ ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
-ENV trivyVersion=0.23.0
+ENV trivyVersion=0.24.2
 ENV polarisVersion=5.0.0
 ENV plutoVersion=5.3.2
 
