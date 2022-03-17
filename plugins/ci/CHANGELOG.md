@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.1
+* Obtain the OPA version from its Go package when submitting an OPA report (commit cd93f76).
+
 ## 1.4.0
 * Update Trivy to 0.24
 
