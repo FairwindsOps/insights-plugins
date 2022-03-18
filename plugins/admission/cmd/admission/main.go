@@ -19,8 +19,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	admissionversion "github.com/fairwindsops/insights-plugins/plugins/admission"
 	fadmission "github.com/fairwindsops/insights-plugins/plugins/admission/pkg/admission"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
+	opaversion "github.com/fairwindsops/insights-plugins/plugins/opa"
 )
 
 func exitWithError(message string, err error) {
@@ -137,6 +139,12 @@ func main() {
 
 	setLogLevel()
 
+	webhookFailurePolicyString := os.Getenv("WEBHOOK_FAILURE_POLICY")
+	ok := handler.SetWebhookFailurePolicy(webhookFailurePolicyString)
+	if !ok {
+		panic(fmt.Sprintf("cannot parse invalid webhook failure policy %q", webhookFailurePolicyString))
+	}
+
 	err = mgr.AddReadyzCheck("readyz", healthz.Ping)
 	if err != nil {
 		exitWithError("Unable to add readyz check", err)
@@ -157,7 +165,7 @@ func main() {
 
 	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &handler})
 
-	logrus.Info("Starting webhook manager")
+	logrus.Infof("Starting webhook manager %s (OPA %s)", admissionversion.String(), opaversion.String())
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		logrus.Errorf("Error starting manager: %v", err)
 		os.Exit(1)

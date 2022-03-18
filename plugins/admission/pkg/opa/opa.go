@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	opaversion "github.com/fairwindsops/insights-plugins/plugins/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 	"github.com/hashicorp/go-multierror"
@@ -17,13 +18,11 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
-const opaVersion = "2.0.0"
-
 // ProcessOPA runs all CustomChecks against the provided Kubernetes object.
 func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, configuration models.Configuration) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:  "opa",
-		Version: opaVersion,
+		Version: opaversion.String(),
 	}
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil

@@ -1,6 +1,12 @@
 # Changelog
 
 ## 1.0.0
+* fix filename
+
+## 0.1.8
+* update base image
+
+## 0.1.7
 * update base image
 
 ## 0.1.6

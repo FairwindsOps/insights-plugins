@@ -2,9 +2,13 @@ module github.com/fairwindsops/insights-plugins/plugins/admission
 
 go 1.17
 
+replace github.com/fairwindsops/insights-plugins/plugins/admission => ./
+
 replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
+	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
+	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v3 v3.5.4
 	github.com/fairwindsops/polaris v0.0.0-20220127212040-2aedaa9ba4a0
 	github.com/sirupsen/logrus v1.8.1

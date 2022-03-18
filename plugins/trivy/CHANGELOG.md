@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.17.0
+Update Trivy to 0.24
+
 ## 0.16.4
 * Getting image tags bug fix
 
