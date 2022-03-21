@@ -127,17 +127,11 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	return allReports
 }
 
-<<<<<<< HEAD
 // ScanImage will scan a single image with Trivy and return the results.
 func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
 	args := []string{"-d", "image", "--skip-update", "-f", "json", "-o", reportFile}
-=======
-// ScanImageFile will scan a single file with Trivy and return the results.
-func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*models.TrivyResults, error) {
-	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
-	args := []string{"-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath}
 	if extraFlags != "" {
 		args = append(args, extraFlags)
 	}
@@ -191,4 +185,32 @@ func GetShaFromID(id string) string {
 		return strings.Split(id, "@")[1]
 	}
 	return id
+}
+
+func downloadAndScanPullRef(pullRef, extraFlags string) (*models.TrivyResults, error) {
+	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
+
+	imageDir := TempDir
+	imageMessage := fmt.Sprintf("image %s", pullRef)
+
+	if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
+		replacements := strings.Split(refReplacements, ";")
+		for _, replacement := range replacements {
+			parts := strings.Split(replacement, ",")
+			if len(parts) != 2 {
+				logrus.Errorf("PULL_REF_REPLACEMENTS is badly formatted, can't interpret %s", replacement)
+				continue
+			}
+			pullRef = strings.ReplaceAll(pullRef, parts[0], parts[1])
+		}
+	}
+
+	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:"+imageDir+imageID), "pulling "+imageMessage)
+	defer func() {
+		logrus.Info("removing " + imageID)
+		os.Remove(imageDir + imageID)
+	}()
+	if err != nil {
+		return nil, err
+	}
 }
