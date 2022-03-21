@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.6
+* Add a `version` package to reflect the plugin version in reports.
+
 ## 2.0.4
 * Add V2 varients of example CustomCheck policies.
 

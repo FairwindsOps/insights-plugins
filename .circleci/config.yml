@@ -1,26 +1,19 @@
 version: 2.1
 
 orbs:
-  slack: circleci/slack@4.4
+  slack: circleci/slack@4.8
   rok8s-scripts: fairwinds/rok8s-scripts@11.11.5
 
 commands:
   set_environment_variables:
     description: Sets environment variables for this job.
     steps:
-    - run:
-        name: Set Environment Variables
-        command: |
-          sudo apt-get update && sudo apt-get install apt-transport-https ca-certificates -y
-          sudo update-ca-certificates
-          echo 'export GO111MODULE=on' >> ${BASH_ENV}
-          echo 'export CI_SHA1=$CIRCLE_SHA1' >> ${BASH_ENV}
-          echo 'export CI_BRANCH=$(echo "${CIRCLE_BRANCH:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')' >> ${BASH_ENV}
-          echo 'export CI_BUILD_NUM=$CIRCLE_BUILD_NUM' >> ${BASH_ENV}
-          echo 'export CI_TAG=$(echo "${CIRCLE_TAG:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')' >> ${BASH_ENV}
-          echo 'export AWS_DEFAULT_REGION=us-east-1' >> ${BASH_ENV}
-          echo 'export GOPROXY=https://proxy.golang.org' >> ${BASH_ENV}
-          ./.circleci/set_tags.sh
+    - run: ./.circleci/scripts/env.sh
+
+  set_tags:
+    description: Figures out which plugins have been changed etc
+    steps:
+    - run: ./.circleci/set_tags.sh
 
   docker_build:
     description: Build docker Images
@@ -28,6 +21,7 @@ commands:
     - checkout
     - setup_remote_docker
     - set_environment_variables
+    - set_tags
     - run:
         name: Build Plugin Docker Images
         command: |
@@ -127,6 +121,7 @@ jobs:
     steps:
       - checkout
       - set_environment_variables
+      - set_tags
       - run: go get -u golang.org/x/lint/golint
       - run: |
           for plugin in "${GO_PKGS[@]}"; do
@@ -151,7 +146,48 @@ jobs:
     steps:
       - checkout
       - set_environment_variables
+      - set_tags
       - check_version_changed
+
+  scan_for_vulnerabilities:
+    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
+    executor: ci-images
+    steps:
+      - checkout
+      - set_environment_variables
+      - setup_remote_docker
+      - run: ./.circleci/scripts/install-trivy.sh
+      - run: ./scripts/scan-all.sh
+      - slack/notify:
+          event: fail
+          custom: |
+            {
+                "text": "One or more images in insights-plugins have vulnerabilities",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "One or more images in insights-plugins have vulnerabilities!\n\n$VULNERABLE_IMAGES_LIST"
+                        }
+                    }
+                ]
+            }
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+                "text": "All images in insights-plugins are clean",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":tada: All images in insights-plugins are clean!"
+                        }
+                    }
+                ]
+            }
 
 workflows:
   version: 2
@@ -179,3 +215,13 @@ workflows:
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
           store-artifacts: /workspace/output
+  check_vulnerabilities:
+    jobs:
+      - scan_for_vulnerabilities
+    triggers:
+      - schedule:
+          cron: "0 12 * * *"
+          filters:
+            branches:
+              only:
+                - main
