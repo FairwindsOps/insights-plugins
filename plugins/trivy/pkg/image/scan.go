@@ -202,8 +202,10 @@ func downloadAndScanPullRef(pullRef, extraFlags string) (*models.TrivyResults, e
 				continue
 			}
 			pullRef = strings.ReplaceAll(pullRef, parts[0], parts[1])
+			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
 		}
 	}
+	logrus.Infof("Pulling %s", pullRef)
 
 	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:"+imageDir+imageID), "pulling "+imageMessage)
 	defer func() {
