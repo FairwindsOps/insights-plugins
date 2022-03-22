@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.11
+* Update alpine to remove CVE
+
 ## 0.2.10
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
