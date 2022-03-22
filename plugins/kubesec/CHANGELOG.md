@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.13
+* Update alpine to remove CVE
+
 
 ## 1.3.12
 * Update dependencies
