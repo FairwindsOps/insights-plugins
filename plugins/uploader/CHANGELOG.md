@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.3.10
+* Update alpine to remove CVE
 ## 0.3.9
 * Update dependencies
 
