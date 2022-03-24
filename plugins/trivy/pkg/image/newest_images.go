@@ -79,8 +79,13 @@ func filterAndSort(tags []string, currentTag string) []string {
 		}
 	}
 	for _, tag := range tags {
-		if c.Match(tag) && (filter == "" || strings.Contains(tag, filter)) {
+		if c.Match(tag) && filter != "" && strings.Contains(tag, filter) {
 			newest = append(newest, tag)
+		} else if c.Match(tag) && filter == "" {
+			if !strings.Contains(tag, filter) {
+				newest = append(newest, tag)
+			}
+
 		}
 	}
 	version.Sort(newest)
