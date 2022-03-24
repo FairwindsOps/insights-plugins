@@ -85,11 +85,6 @@ func main() {
 			if len(strings.Split(image.ID, "@")) > 1 {
 				imageSha = strings.Split(image.ID, "@")[1]
 			}
-			if report.Name == image.Name {
-				fmt.Println("Name========", report.Name)
-				fmt.Println("reportSha========", reportSha)
-				fmt.Println("ImageSHA========", imageSha)
-			}
 			if report.Name == image.Name && reportSha == imageSha {
 				fmt.Println("FOUND========", report.Name)
 				found = true
@@ -97,7 +92,6 @@ func main() {
 			}
 		}
 		if !found {
-			fmt.Println("Adding image, ", image.Name)
 			imagesToScan = append(imagesToScan, image)
 		}
 	}
@@ -133,7 +127,6 @@ func main() {
 	if len(imagesToScan) > numberToScan {
 		imagesToScan = imagesToScan[:numberToScan]
 	}
-	fmt.Println("Images to scan----", imagesToScan)
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags)
 
 	var imageWithVulns []models.ImageReport
