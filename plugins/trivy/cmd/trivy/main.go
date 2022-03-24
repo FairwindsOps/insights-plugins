@@ -38,10 +38,9 @@ func main() {
 		panic(err)
 	}
 	imagesToScan := getImagesToScan(images, lastReport.Images)
+	logrus.Infof("All images from cluster: %v", images)
+	logrus.Infof("Images to be scanned: %v", imagesToScan)
 	lastReport.Images = getImagesToKeep(images, lastReport, imagesToScan)
-	if len(imagesToScan) > numberToScan {
-		imagesToScan = imagesToScan[:numberToScan]
-	}
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags)
 	newImagesToScan := getNewestVersionsToScan(ctx, allReports)
 	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans, extraFlags)
@@ -129,6 +128,9 @@ func getImagesToScan(images []models.Image, lastReportImages []models.ImageDetai
 		if !found {
 			imagesToScan = append(imagesToScan, image)
 		}
+	}
+	if len(imagesToScan) > numberToScan {
+		imagesToScan = imagesToScan[:numberToScan]
 	}
 	return imagesToScan
 }

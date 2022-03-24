@@ -1,8 +1,10 @@
 # Changelog
 
-
 ## 1.5.0
 * Trivy no longer downloads images
+
+## 1.4.2
+* Update alpine to remove CVE
 
 ## 1.4.1
 * Obtain the OPA version from its Go package when submitting an OPA report (commit cd93f76).
