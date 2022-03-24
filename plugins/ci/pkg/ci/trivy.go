@@ -163,7 +163,7 @@ func scanImagesWithTrivy(images []trivymodels.Image) ([]byte, string, error) {
 		if ok {
 			continue
 		}
-		logrus.Infof("Scanning %s ", currentImage.Name, currentImage.PullRef)
+		logrus.Infof("Scanning %s with pullRref %s", currentImage.Name, currentImage.PullRef)
 		results, err := image.ScanImage("", currentImage.PullRef)
 		if err != nil {
 			return nil, "", err
