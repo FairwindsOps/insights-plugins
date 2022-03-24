@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.17.1
+* Update alpine to remove CVE
+
 ## 0.17.0
 Update Trivy to 0.24
 

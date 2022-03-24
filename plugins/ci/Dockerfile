@@ -28,7 +28,7 @@ COPY ci/pkg pkg
 COPY ci/cmd cmd
 RUN go build ./cmd/insights-ci
 
-FROM alpine:3.15
+FROM alpine:20220316
 WORKDIR /insights
 
 RUN apk update && apk upgrade

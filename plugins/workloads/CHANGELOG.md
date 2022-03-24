@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.7
+* Update alpine to remove CVE
+
+## 2.2.6
+* Add boolean `IsControlPlaneNode` to determine control-plane node vs worker node
 ## 2.2.5
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 

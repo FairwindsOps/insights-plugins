@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.7
+* Update alpine to remove CVE
+
 ## 2.0.6
 * Add a `version` package to reflect the plugin version in reports.
 
