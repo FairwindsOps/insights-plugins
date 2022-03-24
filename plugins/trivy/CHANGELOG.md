@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.0
+* Rolling images bug fix
+
 ## 0.17.1
 * Update alpine to remove CVE
 
