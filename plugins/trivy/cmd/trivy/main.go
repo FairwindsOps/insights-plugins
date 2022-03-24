@@ -116,13 +116,8 @@ func main() {
 			if len(strings.Split(image.ID, "@")) > 1 {
 				imageSha = strings.Split(image.ID, "@")[1]
 			}
-			if report.Name == image.Name {
-				fmt.Println("Other ssssssss========", reportSha)
-				fmt.Println("Other wwwwwwww========", imageSha)
-			}
 			if report.Name == image.Name && reportSha == imageSha {
 				if len(imagesToScan) < numberToScan {
-					fmt.Println("Adding image 2, ", image.Name)
 					imagesToScan = append(imagesToScan, image)
 					break
 				}
