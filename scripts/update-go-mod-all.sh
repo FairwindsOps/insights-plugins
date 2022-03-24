@@ -11,7 +11,7 @@ for d in ./plugins/*/ ; do
         mv go.mod old-go.mod
         rm -f go.mod
         rm -f go.sum
-        go mod init github.com/fairwindsops/insights-plugins/$name
+        go mod init github.com/fairwindsops/insights-plugins/plugins/$name
         if cat old-go.mod | grep replace; then
           cat old-go.mod | grep replace >> go.mod
         fi
