@@ -73,6 +73,9 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 				var err error
 				r, err := downloadAndScanPullRef(pullRef, extraFlags)
 				reportByRef[pullRef] = r
+				if r != nil {
+					fmt.Println("xxxxxxxzz=======", r.Metadata)
+				}
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
 				}
@@ -92,9 +95,14 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
 			continue
 		}
+		id := fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
+		if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
+			id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
+			fmt.Println("Adding ID from RepoDigests....", id)
+		}
 		allReports = append(allReports, models.ImageReport{
 			Name:               image.Name,
-			ID:                 fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID),
+			ID:                 id,
 			PullRef:            image.PullRef,
 			OwnerKind:          image.Owner.Kind,
 			OwnerName:          image.Owner.Name,
@@ -108,19 +116,24 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 }
 
 // ScanImageFile will scan a single file with Trivy and return the results.
-func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*models.TrivyResults, error) {
+func ScanImageFile(imagePath, imageID, tempDir, extraFlags, pullRef string) (*models.TrivyResults, error) {
 	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
-	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath)
+	//cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath)
+	cmd := exec.Command("trivy", "-d", "image", "-f", "json", "-o", reportFile, pullRef)
 	if extraFlags != "" {
-		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
+		//cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
+		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, pullRef)
 	}
+	fmt.Println("-----------------------------------------------")
+	fmt.Println(cmd)
+	fmt.Println("-----------------------------------------------")
 	err := util.RunCommand(cmd, "scanning "+imageID)
 	if err != nil {
 		logrus.Errorf("Error scanning %s at %s: %v", imageID, imagePath, err)
 		return nil, err
 	}
 	defer func() {
-		os.Remove(reportFile)
+		//os.Remove(reportFile)
 	}()
 
 	report := models.TrivyResults{}
@@ -142,15 +155,17 @@ func downloadAndScanPullRef(pullRef, extraFlags string) (*models.TrivyResults, e
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 
 	imageDir := TempDir
-	imageMessage := fmt.Sprintf("image %s", pullRef)
+	/*
+		imageMessage := fmt.Sprintf("image %s", pullRef)
 
-	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:"+imageDir+imageID), "pulling "+imageMessage)
-	defer func() {
-		logrus.Info("removing " + imageID)
-		os.Remove(imageDir + imageID)
-	}()
-	if err != nil {
-		return nil, err
-	}
-	return ScanImageFile(imageDir+imageID, imageID, TempDir, extraFlags)
+		err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:"+imageDir+imageID), "pulling "+imageMessage)
+		defer func() {
+			logrus.Info("removing " + imageID)
+			//os.Remove(imageDir + imageID)
+		}()
+		if err != nil {
+			return nil, err
+		}
+	*/
+	return ScanImageFile(imageDir+imageID, imageID, TempDir, extraFlags, pullRef)
 }

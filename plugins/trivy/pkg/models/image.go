@@ -38,7 +38,8 @@ type TrivyResults struct {
 }
 
 type TrivyMetadata struct {
-	ImageID string
+	ImageID     string
+	RepoDigests []string
 }
 
 // VulnerabilityList is the results from Trivy

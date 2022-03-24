@@ -17,8 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var maxConcurrentScans = 5
-var numberToScan = 10
+var maxConcurrentScans = 2
+var numberToScan = 4
 var extraFlags = ""
 
 const outputFile = image.TempDir + "/final-report.json"
@@ -77,12 +77,27 @@ func main() {
 		found := false
 
 		for _, report := range lastReport.Images {
-			if report.Name == image.Name && report.ID == image.ID {
+			reportSha := report.ID
+			imageSha := image.ID
+			if len(strings.Split(report.ID, "@")) > 1 {
+				reportSha = strings.Split(report.ID, "@")[1]
+			}
+			if len(strings.Split(image.ID, "@")) > 1 {
+				imageSha = strings.Split(image.ID, "@")[1]
+			}
+			if report.Name == image.Name {
+				fmt.Println("Name========", report.Name)
+				fmt.Println("reportSha========", reportSha)
+				fmt.Println("ImageSHA========", imageSha)
+			}
+			if report.Name == image.Name && reportSha == imageSha {
+				fmt.Println("FOUND========", report.Name)
 				found = true
 				break
 			}
 		}
 		if !found {
+			fmt.Println("Adding image, ", image.Name)
 			imagesToScan = append(imagesToScan, image)
 		}
 	}
@@ -93,8 +108,21 @@ func main() {
 	for _, report := range lastReport.Images {
 		keep := false
 		for _, image := range images {
-			if report.Name == image.Name && report.ID == image.ID {
+			reportSha := report.ID
+			imageSha := image.ID
+			if len(strings.Split(report.ID, "@")) > 1 {
+				reportSha = strings.Split(report.ID, "@")[1]
+			}
+			if len(strings.Split(image.ID, "@")) > 1 {
+				imageSha = strings.Split(image.ID, "@")[1]
+			}
+			if report.Name == image.Name {
+				fmt.Println("Other ssssssss========", reportSha)
+				fmt.Println("Other wwwwwwww========", imageSha)
+			}
+			if report.Name == image.Name && reportSha == imageSha {
 				if len(imagesToScan) < numberToScan {
+					fmt.Println("Adding image 2, ", image.Name)
 					imagesToScan = append(imagesToScan, image)
 					break
 				}
@@ -110,6 +138,7 @@ func main() {
 	if len(imagesToScan) > numberToScan {
 		imagesToScan = imagesToScan[:numberToScan]
 	}
+	fmt.Println("Images to scan----", imagesToScan)
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags)
 
 	var imageWithVulns []models.ImageReport
