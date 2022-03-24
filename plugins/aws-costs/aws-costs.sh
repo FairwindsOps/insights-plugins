@@ -109,6 +109,6 @@ fi
 done
 
 aws athena get-query-results --query-execution-id $executionId > /output/awscosts-tmp.json
-mv /output/awscosts-tmp.json /output/awscosts.json
+mv /output/awscosts-tmp.json /output/aws-costs.json
 
-echo "Saved aws costs file in /output/awscosts.json"
+echo "Saved aws costs file in /output/aws-costs.json"
