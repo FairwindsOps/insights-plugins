@@ -116,7 +116,7 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 		return trivyReport, err
 	}
 	// Scan Images with Trivy
-	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)
+	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages)
 	if err != nil {
 		return trivyReport, err
 	}
@@ -152,7 +152,7 @@ func walkImages(config *models.Configuration, cb imageCallback) error {
 }
 
 // scanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
-func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) ([]byte, string, error) {
+func scanImagesWithTrivy(images []trivymodels.Image) ([]byte, string, error) {
 	_, err := commands.ExecWithMessage(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
 	if err != nil {
 		return nil, "", err
@@ -163,8 +163,8 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		if ok {
 			continue
 		}
-		logrus.Infof("Scanning %s from file %s", currentImage.Name, currentImage.PullRef)
-		results, err := image.ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder, "")
+		logrus.Infof("Scanning %s ", currentImage.Name, currentImage.PullRef)
+		results, err := image.ScanImage("", currentImage.PullRef)
 		if err != nil {
 			return nil, "", err
 		}
