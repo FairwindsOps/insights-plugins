@@ -90,6 +90,17 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	allReports := []models.ImageReport{}
 	for _, image := range images {
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
+			id := fmt.Sprintf("%s@%s", image.Name, image.ID)
+			allReports = append(allReports, models.ImageReport{
+				Name:               image.Name,
+				ID:                 id,
+				PullRef:            image.PullRef,
+				OwnerKind:          image.Owner.Kind,
+				OwnerName:          image.Owner.Name,
+				OwnerContainer:     &image.Owner.Container,
+				Namespace:          image.Owner.Namespace,
+				RecommendationOnly: image.RecommendationOnly,
+			})
 			continue
 		}
 		id := fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
