@@ -154,7 +154,7 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 				break
 			}
 		}
-		if keep {
+		if keep || report.RecommendationOnly {
 			imagesToKeep = append(imagesToKeep, report)
 		}
 	}

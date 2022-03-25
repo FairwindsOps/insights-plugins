@@ -20,6 +20,7 @@ var specific = []string{
 	"ubuntu",
 	"amd64",
 	"alpine",
+	"bullseye",
 }
 
 // GetNewestVersions returns newest versions and newest version within same major version
