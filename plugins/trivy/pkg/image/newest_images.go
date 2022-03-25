@@ -12,12 +12,14 @@ import (
 )
 
 var specific = []string{
-	"centos",
+	"centos-7",
+	"debian-8",
+	"debian-9",
+	"debian-10",
 	"ol-7",
 	"ubuntu",
 	"amd64",
 	"alpine",
-	"debian",
 }
 
 // GetNewestVersions returns newest versions and newest version within same major version
