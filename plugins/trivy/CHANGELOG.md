@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.1
+* Trivy Logs improvement
+
 ## 0.18.0
 * Rolling images bug fix
 
