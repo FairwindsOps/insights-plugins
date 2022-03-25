@@ -46,7 +46,6 @@ func main() {
 	for _, i := range imagesToScan {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
-	//getRecommendationImagesToKeep
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags)
 	recommendationsToScan := getNewestVersionsToScan(ctx, allReports)
 	newReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags)
