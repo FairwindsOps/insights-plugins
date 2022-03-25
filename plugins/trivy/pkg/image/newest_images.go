@@ -12,13 +12,12 @@ import (
 )
 
 var specific = []string{
-	"centos-7",
-	"debian-8",
-	"debian-9",
-	"debian-10",
+	"centos",
 	"ol-7",
 	"ubuntu",
 	"amd64",
+	"alpine",
+	"debian",
 }
 
 // GetNewestVersions returns newest versions and newest version within same major version
@@ -72,10 +71,10 @@ func filterAndSort(tags []string, currentTag string) []string {
 	newest := []string{}
 	c := version.NewConstrainGroupFromString(">" + currentTag)
 	currentTagSpecificToken := getSpecificToken(currentTag)
-	for _, tag := range tags {
-		targetTagSpecificToken := getSpecificToken(currentTag)
-		if c.Match(tag) && currentTagSpecificToken == targetTagSpecificToken {
-			newest = append(newest, tag)
+	for _, targetTag := range tags {
+		targetTagSpecificToken := getSpecificToken(targetTag)
+		if c.Match(targetTag) && currentTagSpecificToken == targetTagSpecificToken {
+			newest = append(newest, targetTag)
 		}
 	}
 	version.Sort(newest)
