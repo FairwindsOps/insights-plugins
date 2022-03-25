@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.0
+* Trivy no longer downloads images
+
 ## 1.4.2
 * Update alpine to remove CVE
 
