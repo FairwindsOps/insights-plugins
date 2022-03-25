@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.2
+* Cleanning up image recommnendations
+
 ## 0.18.1
 * Trivy Logs improvement
 
