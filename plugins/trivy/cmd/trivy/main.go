@@ -154,6 +154,7 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 			if _, found := newRecommendations[reportSha]; !found {
 				imagesToKeep = append(imagesToKeep, report)
 			}
+			continue
 		}
 		keep := false
 		for _, image := range images {
