@@ -71,7 +71,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 			defer func() { <-semaphore }()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
-				r, err := downloadAndScanPullRef(pullRef, extraFlags)
+				r, err := ScanImage(extraFlags, pullRef)
 				reportByRef[pullRef] = r
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
@@ -90,11 +90,26 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	allReports := []models.ImageReport{}
 	for _, image := range images {
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
+			id := fmt.Sprintf("%s@%s", image.Name, image.ID)
+			allReports = append(allReports, models.ImageReport{
+				Name:               image.Name,
+				ID:                 id,
+				PullRef:            image.PullRef,
+				OwnerKind:          image.Owner.Kind,
+				OwnerName:          image.Owner.Name,
+				OwnerContainer:     &image.Owner.Container,
+				Namespace:          image.Owner.Namespace,
+				RecommendationOnly: image.RecommendationOnly,
+			})
 			continue
+		}
+		id := fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
+		if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
+			id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
 		}
 		allReports = append(allReports, models.ImageReport{
 			Name:               image.Name,
-			ID:                 fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID),
+			ID:                 id,
 			PullRef:            image.PullRef,
 			OwnerKind:          image.Owner.Kind,
 			OwnerName:          image.Owner.Name,
@@ -107,16 +122,17 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	return allReports
 }
 
-// ScanImageFile will scan a single file with Trivy and return the results.
-func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*models.TrivyResults, error) {
-	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
-	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath)
+// ScanImage will scan a single image with Trivy and return the results.
+func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
+	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
+	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
+	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, pullRef)
 	if extraFlags != "" {
-		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
+		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, pullRef)
 	}
-	err := util.RunCommand(cmd, "scanning "+imageID)
+	err := util.RunCommand(cmd, "scanning "+pullRef)
 	if err != nil {
-		logrus.Errorf("Error scanning %s at %s: %v", imageID, imagePath, err)
+		logrus.Errorf("Error scanning %s: %v", pullRef, err)
 		return nil, err
 	}
 	defer func() {
@@ -136,21 +152,4 @@ func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*models.Triv
 	}
 
 	return &report, nil
-}
-
-func downloadAndScanPullRef(pullRef, extraFlags string) (*models.TrivyResults, error) {
-	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
-
-	imageDir := TempDir
-	imageMessage := fmt.Sprintf("image %s", pullRef)
-
-	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:"+imageDir+imageID), "pulling "+imageMessage)
-	defer func() {
-		logrus.Info("removing " + imageID)
-		os.Remove(imageDir + imageID)
-	}()
-	if err != nil {
-		return nil, err
-	}
-	return ScanImageFile(imageDir+imageID, imageID, TempDir, extraFlags)
 }

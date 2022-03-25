@@ -19,6 +19,8 @@ var specific = []string{
 	"ol-7",
 	"ubuntu",
 	"amd64",
+	"alpine",
+	"bullseye",
 }
 
 // GetNewestVersions returns newest versions and newest version within same major version
@@ -71,18 +73,22 @@ func createRegistryClient(ctx context.Context, domain string) (*registry.Registr
 func filterAndSort(tags []string, currentTag string) []string {
 	newest := []string{}
 	c := version.NewConstrainGroupFromString(">" + currentTag)
-	filter := ""
-	for _, v := range specific {
-		if strings.Contains(currentTag, v) {
-			filter = v
-			break
-		}
-	}
-	for _, tag := range tags {
-		if c.Match(tag) && (filter == "" || strings.Contains(tag, filter)) {
-			newest = append(newest, tag)
+	currentTagSpecificToken := getSpecificToken(currentTag)
+	for _, targetTag := range tags {
+		targetTagSpecificToken := getSpecificToken(targetTag)
+		if c.Match(targetTag) && currentTagSpecificToken == targetTagSpecificToken {
+			newest = append(newest, targetTag)
 		}
 	}
 	version.Sort(newest)
 	return newest
+}
+
+func getSpecificToken(tag string) string {
+	for _, v := range specific {
+		if strings.Contains(tag, v) {
+			return v
+		}
+	}
+	return ""
 }
