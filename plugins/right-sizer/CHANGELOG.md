@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.4
+* Update vulnerable packages
+
 ## 0.3.3
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
