@@ -165,22 +165,22 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 					imagesToKeep = append(imagesToKeep, report)
 				}
 			}
-			continue
-		}
-		keep := false
-		for _, image := range images {
-			imageSha := getShaFromID(image.ID)
-			if report.Name == image.Name && reportSha == imageSha {
-				if len(imagesToScan) < numberToScan {
-					imagesToScan = append(imagesToScan, image)
+		} else {
+			keep := false
+			for _, image := range images {
+				imageSha := getShaFromID(image.ID)
+				if report.Name == image.Name && reportSha == imageSha {
+					if len(imagesToScan) < numberToScan {
+						imagesToScan = append(imagesToScan, image)
+						break
+					}
+					keep = true
 					break
 				}
-				keep = true
-				break
 			}
-		}
-		if keep {
-			imagesToKeep = append(imagesToKeep, report)
+			if keep {
+				imagesToKeep = append(imagesToKeep, report)
+			}
 		}
 	}
 	return imagesToKeep
