@@ -92,3 +92,10 @@ func getSpecificToken(tag string) string {
 	}
 	return ""
 }
+
+func GetRecommendationKey(repoName, specific string) string {
+	if specific == "" {
+		return repoName
+	}
+	return repoName + "/" + specific
+}
