@@ -182,16 +182,12 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 			imagesToKeep = append(imagesToKeep, report)
 		}
 	}
-	for _, x := range imagesToKeep {
-		fmt.Println("zzzzzz========", x.Name)
-	}
 	return imagesToKeep
 }
 
 func convertRecommendationsToMap(list []models.Image) map[string]bool {
 	m := map[string]bool{}
 	for _, img := range list {
-		fmt.Println("Recommending................................", img.Name)
 		sha := getShaFromID(img.ID)
 		m[sha] = true
 	}
