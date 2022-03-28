@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.2
+* Update vulnerable packages
+
 ## 1.3.1
 * Update alpine to remove CVE
 

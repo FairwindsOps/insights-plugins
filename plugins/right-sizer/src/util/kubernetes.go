@@ -117,7 +117,7 @@ func FindPodSpecInUnstructured(podController *unstructured.Unstructured) (podSpe
 			// There was an error converting to a structured pod type.
 			// THis is not a hard failure because there may be other matches in
 			// searchFields.
-			glog.V(5).Info("soft failure converting podSpec interface to a structured pod: found %d containers, error = %v, pod spec interface is: %v", len(podSpec.Containers), err, podSpecAsInterface)
+			glog.V(5).Infof("soft failure converting podSpec interface to a structured pod: found %d containers, error = %v, pod spec interface is: %v", len(podSpec.Containers), err, podSpecAsInterface)
 		}
 	}
 	// By this point, no pod spec was matched in the Unstructured resource, or
