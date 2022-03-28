@@ -128,7 +128,6 @@ func getImagesToScan(images []models.Image, lastReportImages []models.ImageDetai
 	imagesToScan := make([]models.Image, 0)
 	for _, image := range images {
 		found := false
-
 		for _, report := range lastReportImages {
 			reportSha := getShaFromID(report.ID)
 			imageSha := getShaFromID(image.ID)
