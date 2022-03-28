@@ -29,6 +29,12 @@ type newestVersions struct {
 	err      error
 }
 
+/*
+ * Downloads the latest trivy report containing  all cluster scans and recommendation
+ * Reads all images from the cluster and scan few of them
+ * Uploads another report with the images scanned and not scanned from the latest report
+ * Images or images recommendations that no longer belongs to that cluster are filtered out
+ */
 func main() {
 	setEnv()
 	lastReport := image.GetLastReport()
