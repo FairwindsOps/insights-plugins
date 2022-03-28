@@ -158,11 +158,14 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 		// We must keep images recommendations for those still in the cluster but not scanned at this time
 		if report.RecommendationOnly {
 			parts := strings.Split(report.Name, ":")
-			// Add old recommendations only if we have the images they are for still running in the cluster
-			if _, found := clusterImagesMap[parts[0]]; found {
-				// Add old recommendations only if we have not scanned for new recommendations
-				if _, found := newRecommendations[reportSha]; !found {
-					imagesToKeep = append(imagesToKeep, report)
+			if len(parts) == 2 {
+				key := image.GetRecommendationKey(parts[0], parts[1])
+				// Add old recommendations only if we have the images they are for still running in the cluster
+				if _, found := clusterImagesMap[key]; found {
+					// Add old recommendations only if we have not scanned for new recommendations
+					if _, found := newRecommendations[reportSha]; !found {
+						imagesToKeep = append(imagesToKeep, report)
+					}
 				}
 			}
 		} else {
