@@ -29,6 +29,12 @@ type newestVersions struct {
 	err      error
 }
 
+/*
+ * Downloads the latest trivy report containing  all cluster scans and recommendation
+ * Reads all images from the cluster and scan few of them
+ * Uploads another report with the images scanned and not scanned from the latest report
+ * Images or images recommendations that no longer belongs to that cluster are filtered out
+ */
 func main() {
 	setEnv()
 	lastReport := image.GetLastReport()
@@ -46,10 +52,10 @@ func main() {
 	for _, i := range imagesToScan {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
-	lastReport.Images = getImagesToKeep(images, lastReport, imagesToScan)
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags)
-	newImagesToScan := getNewestVersionsToScan(ctx, allReports)
-	newReport := image.ScanImages(newImagesToScan, maxConcurrentScans, extraFlags)
+	recommendationsToScan := getNewestVersionsToScan(ctx, allReports)
+	newReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags)
+	lastReport.Images = getImagesToKeep(images, lastReport, imagesToScan, recommendationsToScan)
 	aggregated := append(allReports, newReport...)
 	finalReport := image.Minimize(aggregated, lastReport)
 	data, err := json.Marshal(finalReport)
@@ -122,7 +128,6 @@ func getImagesToScan(images []models.Image, lastReportImages []models.ImageDetai
 	imagesToScan := make([]models.Image, 0)
 	for _, image := range images {
 		found := false
-
 		for _, report := range lastReportImages {
 			reportSha := getShaFromID(report.ID)
 			imageSha := getShaFromID(image.ID)
@@ -141,30 +146,62 @@ func getImagesToScan(images []models.Image, lastReportImages []models.ImageDetai
 	return imagesToScan
 }
 
-func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image) []models.ImageDetailsWithRefs {
+func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image, recommendationsToScan []models.Image) []models.ImageDetailsWithRefs {
 	imagesToKeep := make([]models.ImageDetailsWithRefs, 0)
 	sort.Slice(lastReport.Images, func(a, b int) bool {
 		return lastReport.Images[a].LastScan == nil || lastReport.Images[b].LastScan != nil && lastReport.Images[a].LastScan.Before(*lastReport.Images[b].LastScan)
 	})
+	newRecommendations := convertRecommendationsToMap(recommendationsToScan)
+	clusterImagesMap := imagesRepositoryMap(images)
 	for _, report := range lastReport.Images {
-		keep := false
-		for _, image := range images {
-			reportSha := getShaFromID(report.ID)
-			imageSha := getShaFromID(image.ID)
-			if report.Name == image.Name && reportSha == imageSha {
-				if len(imagesToScan) < numberToScan {
-					imagesToScan = append(imagesToScan, image)
+		reportSha := getShaFromID(report.ID)
+		// We must keep images recommendations for those still in the cluster but not scanned at this time
+		if report.RecommendationOnly {
+			parts := strings.Split(report.Name, ":")
+			// Add old recommendations only if we have the images they are for still running in the cluster
+			if _, found := clusterImagesMap[parts[0]]; found {
+				// Add old recommendations only if we have not scanned for new recommendations
+				if _, found := newRecommendations[reportSha]; !found {
+					imagesToKeep = append(imagesToKeep, report)
+				}
+			}
+		} else {
+			keep := false
+			for _, image := range images {
+				imageSha := getShaFromID(image.ID)
+				if report.Name == image.Name && reportSha == imageSha {
+					if len(imagesToScan) < numberToScan {
+						imagesToScan = append(imagesToScan, image)
+						break
+					}
+					keep = true
 					break
 				}
-				keep = true
-				break
 			}
-		}
-		if keep || report.RecommendationOnly {
-			imagesToKeep = append(imagesToKeep, report)
+			if keep {
+				imagesToKeep = append(imagesToKeep, report)
+			}
 		}
 	}
 	return imagesToKeep
+}
+
+func convertRecommendationsToMap(list []models.Image) map[string]bool {
+	m := map[string]bool{}
+	for _, img := range list {
+		sha := getShaFromID(img.ID)
+		m[sha] = true
+	}
+	return m
+}
+
+func imagesRepositoryMap(list []models.Image) map[string]bool {
+	m := map[string]bool{}
+	for _, img := range list {
+		parts := strings.Split(img.Name, ":")
+		m[parts[0]] = true
+	}
+	return m
 }
 
 func setEnv() {
