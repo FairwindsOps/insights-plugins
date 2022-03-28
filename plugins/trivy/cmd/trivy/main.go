@@ -159,7 +159,7 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 		if report.RecommendationOnly {
 			parts := strings.Split(report.Name, ":")
 			if len(parts) == 2 {
-				key := image.GetRecommendationKey(parts[0], parts[1])
+				key := image.GetRecommendationKey(parts[0], image.GetSpecificToken(parts[1]))
 				// Add old recommendations only if we have the images they are for still running in the cluster
 				if _, found := clusterImagesMap[key]; found {
 					// Add old recommendations only if we have not scanned for new recommendations
@@ -203,7 +203,7 @@ func imagesRepositoryMap(list []models.Image) map[string]bool {
 	for _, img := range list {
 		parts := strings.Split(img.Name, ":")
 		if len(parts) == 2 {
-			key := image.GetRecommendationKey(parts[0], parts[1])
+			key := image.GetRecommendationKey(parts[0], image.GetSpecificToken(parts[1]))
 			m[key] = true
 		}
 	}

@@ -63,7 +63,6 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 	for _, image := range images {
 		reportByRef[image.PullRef] = nil
 	}
-
 	semaphore := make(chan bool, maxConcurrentScans)
 	for pullRef := range reportByRef {
 		semaphore <- true

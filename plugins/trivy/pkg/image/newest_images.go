@@ -73,9 +73,9 @@ func createRegistryClient(ctx context.Context, domain string) (*registry.Registr
 func filterAndSort(tags []string, currentTag string) []string {
 	newest := []string{}
 	c := version.NewConstrainGroupFromString(">" + currentTag)
-	currentTagSpecificToken := getSpecificToken(currentTag)
+	currentTagSpecificToken := GetSpecificToken(currentTag)
 	for _, targetTag := range tags {
-		targetTagSpecificToken := getSpecificToken(targetTag)
+		targetTagSpecificToken := GetSpecificToken(targetTag)
 		if c.Match(targetTag) && currentTagSpecificToken == targetTagSpecificToken {
 			newest = append(newest, targetTag)
 		}
@@ -84,7 +84,7 @@ func filterAndSort(tags []string, currentTag string) []string {
 	return newest
 }
 
-func getSpecificToken(tag string) string {
+func GetSpecificToken(tag string) string {
 	for _, v := range specific {
 		if strings.Contains(tag, v) {
 			return v
