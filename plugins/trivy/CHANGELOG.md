@@ -1,5 +1,8 @@
 # Changelog
 
+
+## 0.18.4
+* Image recommendation cleanup bug fix
 ## 0.18.3
 * Fixing cleanning up image recommnendations for specific tags
 
