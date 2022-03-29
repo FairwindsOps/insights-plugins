@@ -34,10 +34,10 @@ func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) 
 	}
 	newest := filterAndSort(tags, tag)
 	logrus.Info("Finished retrieving newest versions for ", repo, ":", tag)
-	if len(newest) <= 2 {
+	if len(newest) <= 1 {
 		return newest, nil
 	}
-	return newest[len(newest)-2:], nil
+	return newest[len(newest)-1:], nil
 }
 
 func fetchTags(ctx context.Context, imageName, tag string) ([]string, error) {
