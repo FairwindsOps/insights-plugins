@@ -169,7 +169,6 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 				}
 			}
 		} else {
-			keep := false
 			for _, image := range images {
 				imageSha := getShaFromID(image.ID)
 				if report.Name == image.Name && reportSha == imageSha {
@@ -177,11 +176,9 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 						imagesToScan = append(imagesToScan, image)
 						break
 					}
-					keep = true
-					break
-				}
-				if keep {
+				} else {
 					imagesToKeep = append(imagesToKeep, report)
+					break
 				}
 			}
 		}
