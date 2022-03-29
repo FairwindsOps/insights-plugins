@@ -159,7 +159,7 @@ func getUnscannedImagesToScan(images []models.Image, lastReportImages []models.I
 
 func getClusterImagesToKeep(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image) []models.ImageDetailsWithRefs {
 	imagesToKeep := make([]models.ImageDetailsWithRefs, 0)
-	scanned := convertImagesToMap(images)
+	scanned := convertImagesToMap(imagesToScan)
 	for _, report := range lastReport.Images {
 		reportSha := getShaFromID(report.ID)
 		if !report.RecommendationOnly {
