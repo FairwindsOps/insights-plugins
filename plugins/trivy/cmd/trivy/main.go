@@ -180,9 +180,9 @@ func getImagesToKeep(images []models.Image, lastReport models.MinimizedReport, i
 					keep = true
 					break
 				}
-			}
-			if keep {
-				imagesToKeep = append(imagesToKeep, report)
+				if keep {
+					imagesToKeep = append(imagesToKeep, report)
+				}
 			}
 		}
 	}
