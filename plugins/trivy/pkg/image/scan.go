@@ -87,7 +87,8 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
 func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults) []models.ImageReport {
 	allReports := []models.ImageReport{}
-	for _, image := range images {
+	for _, i := range images {
+		image := i
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
 			id := fmt.Sprintf("%s@%s", image.Name, image.ID)
 			allReports = append(allReports, models.ImageReport{
