@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
@@ -90,10 +91,9 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	for _, i := range images {
 		image := i
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
-			id := fmt.Sprintf("%s@%s", image.Name, image.ID)
 			allReports = append(allReports, models.ImageReport{
 				Name:               image.Name,
-				ID:                 id,
+				ID:                 fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID)),
 				PullRef:            image.PullRef,
 				OwnerKind:          image.Owner.Kind,
 				OwnerName:          image.Owner.Name,
@@ -103,13 +103,9 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 			})
 			continue
 		}
-		id := fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
-		if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
-			id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
-		}
 		allReports = append(allReports, models.ImageReport{
 			Name:               image.Name,
-			ID:                 id,
+			ID:                 fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID)),
 			PullRef:            image.PullRef,
 			OwnerKind:          image.Owner.Kind,
 			OwnerName:          image.Owner.Name,
@@ -152,4 +148,11 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	}
 
 	return &report, nil
+}
+
+func GetShaFromID(id string) string {
+	if len(strings.Split(id, "@")) > 1 {
+		return strings.Split(id, "@")[1]
+	}
+	return id
 }
