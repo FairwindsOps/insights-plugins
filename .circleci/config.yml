@@ -157,7 +157,7 @@ jobs:
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
-      - run: ./scripts/scan-all.sh || $NO_FAIL
+      - run: ./scripts/scan-all.sh
       - slack/notify:
           event: fail
           custom: |
@@ -215,14 +215,10 @@ workflows:
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
           store-artifacts: /workspace/output
-      - scan_for_vulnerabilities:
-          environment:
-            NO_FAIL: "true"
+      - scan_for_vulnerabilities
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities
-          environment:
-            NO_FAIL: "false"
     triggers:
       - schedule:
           cron: "0 12 * * *"
