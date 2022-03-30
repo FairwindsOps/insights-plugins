@@ -54,9 +54,9 @@ func main() {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
 	clusterImagesToKeep := getClusterImagesToKeep(images, lastReport, imagesToScan)
-	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags)
+	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
 	recommendationsToScan := getNewestVersionsToScan(ctx, allReports, imagesToScan)
-	recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags)
+	recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
 	recommendationsToKeep := getRecommendationImagesToKeep(images, lastReport, recommendationsToScan)
 	lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
 	aggregated := append(allReports, recommendationReport...)

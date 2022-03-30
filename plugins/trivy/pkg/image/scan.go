@@ -58,7 +58,7 @@ func GetLastReport() models.MinimizedReport {
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
-func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string) []models.ImageReport {
+func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string, ignoreErrors bool) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
 	reportByRef := map[string]*models.TrivyResults{}
 	for _, image := range images {
@@ -72,7 +72,9 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
 				r, err := ScanImage(extraFlags, pullRef)
-				reportByRef[pullRef] = r
+				if err == nil || !ignoreErrors {
+					reportByRef[pullRef] = r
+				}
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
 				}
