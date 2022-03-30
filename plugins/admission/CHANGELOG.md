@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.3
+* Update vulnerable packages
+
 ## 1.3.2
 * Update vulnerable packages
 
