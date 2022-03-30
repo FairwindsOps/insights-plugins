@@ -72,9 +72,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
 				r, err := ScanImage(extraFlags, pullRef)
-				if r != nil || !ignoreErrors {
-					reportByRef[pullRef] = r
-				}
+				reportByRef[pullRef] = r
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
 				}
@@ -84,25 +82,27 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 	for i := 0; i < cap(semaphore); i++ {
 		semaphore <- true
 	}
-	return ConvertTrivyResultsToImageReport(images, reportByRef)
+	return ConvertTrivyResultsToImageReport(images, reportByRef, ignoreErrors)
 }
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
-func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults) []models.ImageReport {
+func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
 	allReports := []models.ImageReport{}
 	for _, i := range images {
 		image := i
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
-			allReports = append(allReports, models.ImageReport{
-				Name:               image.Name,
-				ID:                 fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID)),
-				PullRef:            image.PullRef,
-				OwnerKind:          image.Owner.Kind,
-				OwnerName:          image.Owner.Name,
-				OwnerContainer:     &image.Owner.Container,
-				Namespace:          image.Owner.Namespace,
-				RecommendationOnly: image.RecommendationOnly,
-			})
+			if !ignoreErrors {
+				allReports = append(allReports, models.ImageReport{
+					Name:               image.Name,
+					ID:                 fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID)),
+					PullRef:            image.PullRef,
+					OwnerKind:          image.Owner.Kind,
+					OwnerName:          image.Owner.Name,
+					OwnerContainer:     &image.Owner.Container,
+					Namespace:          image.Owner.Namespace,
+					RecommendationOnly: image.RecommendationOnly,
+				})
+			}
 			continue
 		}
 		allReports = append(allReports, models.ImageReport{
