@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.4
+* Update vulnerable packages
+
 ## 0.18.3
 * Fixing cleanning up image recommnendations for specific tags
 
