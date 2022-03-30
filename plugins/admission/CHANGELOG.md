@@ -2,6 +2,7 @@
 
 ## 1.3.3
 * Trivy bug fix
+
 ## 1.3.2
 * Update vulnerable packages
 
