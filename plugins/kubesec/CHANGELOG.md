@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.14
+* Update vulnerable packages
+
 ## 1.3.13
 * Update alpine to remove CVE
 

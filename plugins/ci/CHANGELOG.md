@@ -1,7 +1,11 @@
 # Changelog
 
-## 1.5.1
+## 1.5.2
 * Image scannning update
+
+## 1.5.1
+* Update vulnerable packages
+
 ## 1.5.0
 * Trivy no longer downloads images
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.12
+* Update vulnerable packages
+
 ## 0.2.11
 * Update alpine to remove CVE
 

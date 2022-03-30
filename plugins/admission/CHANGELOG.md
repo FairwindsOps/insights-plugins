@@ -1,7 +1,10 @@
 # Changelog
 
-## 1.3.3
+## 1.3.4
 * Trivy bug fix
+
+## 1.3.3
+* Update vulnerable packages
 
 ## 1.3.2
 * Update vulnerable packages
