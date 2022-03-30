@@ -91,12 +91,6 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 	for _, i := range images {
 		image := i
 		id := fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID))
-		if !strings.Contains(id, "@sha256:") {
-			id = fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
-			if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
-				id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
-			}
-		}
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
 			if !ignoreErrors {
 				allReports = append(allReports, models.ImageReport{
@@ -111,6 +105,12 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 				})
 			}
 			continue
+		}
+		if !strings.Contains(id, "sha256:") {
+			id = fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
+			if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
+				id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
+			}
 		}
 		allReports = append(allReports, models.ImageReport{
 			Name:               image.Name,
