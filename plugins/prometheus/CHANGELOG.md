@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.1
+* Update vulnerable packages
+
 ## 1.0.0
 * rename output file from `resource-metrics.json` to `prometheus-metrics.json`
 
