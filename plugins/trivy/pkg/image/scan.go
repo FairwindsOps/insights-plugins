@@ -72,7 +72,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
 				r, err := ScanImage(extraFlags, pullRef)
-				if err == nil || !ignoreErrors {
+				if r != nil || !ignoreErrors {
 					reportByRef[pullRef] = r
 				}
 				if err == nil || err.Error() == util.UnknownOSMessage {
