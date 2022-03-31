@@ -186,33 +186,3 @@ func GetShaFromID(id string) string {
 	}
 	return id
 }
-
-func downloadAndScanPullRef(pullRef, extraFlags string) (*models.TrivyResults, error) {
-	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
-
-	imageDir := TempDir
-	imageMessage := fmt.Sprintf("image %s", pullRef)
-
-	if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
-		replacements := strings.Split(refReplacements, ";")
-		for _, replacement := range replacements {
-			parts := strings.Split(replacement, ",")
-			if len(parts) != 2 {
-				logrus.Errorf("PULL_REF_REPLACEMENTS is badly formatted, can't interpret %s", replacement)
-				continue
-			}
-			pullRef = strings.ReplaceAll(pullRef, parts[0], parts[1])
-			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
-		}
-	}
-	logrus.Infof("Pulling %s", pullRef)
-
-	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:"+imageDir+imageID), "pulling "+imageMessage)
-	defer func() {
-		logrus.Info("removing " + imageID)
-		os.Remove(imageDir + imageID)
-	}()
-	if err != nil {
-		return nil, err
-	}
-}
