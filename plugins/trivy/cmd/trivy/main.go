@@ -269,9 +269,12 @@ func setEnv() {
 		}
 	}
 
-	err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
-	if err != nil {
-		panic(err)
+	if os.Getenv("OFFLINE") == "" {
+		err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+		if err != nil {
+			panic(err)
+		}
 	}
+
 	util.CheckEnvironmentVariables()
 }
