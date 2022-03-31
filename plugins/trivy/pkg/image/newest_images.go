@@ -23,6 +23,8 @@ var specific = []string{
 	"bullseye",
 }
 
+const MaxNewestVersionsToScan = 1
+
 // GetNewestVersions returns newest versions and newest version within same major version
 func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) {
 	logrus.Info("Started retrieving newest versions for ", repo, ":", tag)
@@ -34,10 +36,10 @@ func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) 
 	}
 	newest := filterAndSort(tags, tag)
 	logrus.Info("Finished retrieving newest versions for ", repo, ":", tag)
-	if len(newest) <= 2 {
+	if len(newest) <= MaxNewestVersionsToScan {
 		return newest, nil
 	}
-	return newest[len(newest)-2:], nil
+	return newest[len(newest)-MaxNewestVersionsToScan:], nil
 }
 
 func fetchTags(ctx context.Context, imageName, tag string) ([]string, error) {
@@ -73,9 +75,9 @@ func createRegistryClient(ctx context.Context, domain string) (*registry.Registr
 func filterAndSort(tags []string, currentTag string) []string {
 	newest := []string{}
 	c := version.NewConstrainGroupFromString(">" + currentTag)
-	currentTagSpecificToken := getSpecificToken(currentTag)
+	currentTagSpecificToken := GetSpecificToken(currentTag)
 	for _, targetTag := range tags {
-		targetTagSpecificToken := getSpecificToken(targetTag)
+		targetTagSpecificToken := GetSpecificToken(targetTag)
 		if c.Match(targetTag) && currentTagSpecificToken == targetTagSpecificToken {
 			newest = append(newest, targetTag)
 		}
@@ -84,7 +86,7 @@ func filterAndSort(tags []string, currentTag string) []string {
 	return newest
 }
 
-func getSpecificToken(tag string) string {
+func GetSpecificToken(tag string) string {
 	for _, v := range specific {
 		if strings.Contains(tag, v) {
 			return v
