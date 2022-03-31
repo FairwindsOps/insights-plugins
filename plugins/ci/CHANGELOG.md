@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.2
+* Image scannning update
+
 ## 1.5.1
 * Update vulnerable packages
 

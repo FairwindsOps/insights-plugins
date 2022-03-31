@@ -171,7 +171,7 @@ func scanImagesWithTrivy(images []trivymodels.Image) ([]byte, string, error) {
 		reportByRef[currentImage.PullRef] = results
 	}
 
-	allReports := image.ConvertTrivyResultsToImageReport(images, reportByRef)
+	allReports := image.ConvertTrivyResultsToImageReport(images, reportByRef, false)
 	// Collate results
 	results := image.Minimize(allReports, trivymodels.MinimizedReport{Images: make([]trivymodels.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]trivymodels.VulnerabilityDetails{}})
 	trivyResults, err := json.Marshal(results)

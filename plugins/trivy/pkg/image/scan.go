@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
@@ -57,13 +58,12 @@ func GetLastReport() models.MinimizedReport {
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
-func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string) []models.ImageReport {
+func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string, ignoreErrors bool) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
 	reportByRef := map[string]*models.TrivyResults{}
 	for _, image := range images {
 		reportByRef[image.PullRef] = nil
 	}
-
 	semaphore := make(chan bool, maxConcurrentScans)
 	for pullRef := range reportByRef {
 		semaphore <- true
@@ -82,30 +82,35 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 	for i := 0; i < cap(semaphore); i++ {
 		semaphore <- true
 	}
-	return ConvertTrivyResultsToImageReport(images, reportByRef)
+	return ConvertTrivyResultsToImageReport(images, reportByRef, ignoreErrors)
 }
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
-func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults) []models.ImageReport {
+func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
 	allReports := []models.ImageReport{}
-	for _, image := range images {
+	for _, i := range images {
+		image := i
+		id := fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID))
 		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
-			id := fmt.Sprintf("%s@%s", image.Name, image.ID)
-			allReports = append(allReports, models.ImageReport{
-				Name:               image.Name,
-				ID:                 id,
-				PullRef:            image.PullRef,
-				OwnerKind:          image.Owner.Kind,
-				OwnerName:          image.Owner.Name,
-				OwnerContainer:     &image.Owner.Container,
-				Namespace:          image.Owner.Namespace,
-				RecommendationOnly: image.RecommendationOnly,
-			})
+			if !ignoreErrors {
+				allReports = append(allReports, models.ImageReport{
+					Name:               image.Name,
+					ID:                 id,
+					PullRef:            image.PullRef,
+					OwnerKind:          image.Owner.Kind,
+					OwnerName:          image.Owner.Name,
+					OwnerContainer:     &image.Owner.Container,
+					Namespace:          image.Owner.Namespace,
+					RecommendationOnly: image.RecommendationOnly,
+				})
+			}
 			continue
 		}
-		id := fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
-		if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
-			id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
+		if !strings.Contains(id, "sha256:") {
+			id = fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
+			if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
+				id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
+			}
 		}
 		allReports = append(allReports, models.ImageReport{
 			Name:               image.Name,
@@ -152,4 +157,11 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	}
 
 	return &report, nil
+}
+
+func GetShaFromID(id string) string {
+	if len(strings.Split(id, "@")) > 1 {
+		return strings.Split(id, "@")[1]
+	}
+	return id
 }
