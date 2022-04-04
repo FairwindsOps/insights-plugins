@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.2.13
+* Update kube-bench to 0.6.7
 ## 0.2.12
 * Update vulnerable packages
 
