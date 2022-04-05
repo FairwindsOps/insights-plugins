@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.5
+* Image recommendation cleanup bug fix
+
 ## 0.18.4
 * Update vulnerable packages
 
