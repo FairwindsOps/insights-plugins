@@ -215,6 +215,10 @@ workflows:
           pre_script: e2e/pre.sh
           script: e2e/ci.sh
           store-artifacts: /workspace/output
+      - scan_for_vulnerabilities:
+          filters:
+            branches:
+              only: main
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities
