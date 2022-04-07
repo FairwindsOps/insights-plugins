@@ -218,7 +218,7 @@ workflows:
       - scan_for_vulnerabilities:
           filters:
             branches:
-              include: main
+              only: main
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities
