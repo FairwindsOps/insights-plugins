@@ -29,7 +29,5 @@ COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
 ENV HOME=/
 RUN mkdir $HOME/.docker
 
-RUN apk add --no-cache skopeo
-
 COPY report.sh ./
 CMD ./report.sh
