@@ -216,6 +216,8 @@ workflows:
           script: e2e/ci.sh
           store-artifacts: /workspace/output
       - scan_for_vulnerabilities:
+          requires:
+            - build_and_push_plugins
           filters:
             branches:
               only: main
