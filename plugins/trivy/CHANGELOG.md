@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.6
+* Update packages
+
 ## 0.18.5
 * Image recommendation cleanup bug fix
 
