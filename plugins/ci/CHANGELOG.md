@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.3
+* Update packages
+
 ## 1.5.2
 * Image scannning update
 
