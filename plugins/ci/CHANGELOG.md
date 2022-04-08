@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.4
+* Revert trivy version
+
 ## 1.5.3
 * Update packages
 

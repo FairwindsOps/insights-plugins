@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.7
+* Revert trivy version
+
 ## 0.18.6
 * Update packages
 
