@@ -58,7 +58,11 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 		logrus.Infof("Downloading missing image %s", manifestImages[idx].Name)
 		dockerURL := "docker://" + manifestImages[idx].Name
 		archiveName := "docker-archive:" + ci.config.Images.FolderName + strconv.Itoa(idx)
-		_, err := commands.ExecWithMessage(exec.Command("skopeo", "copy", dockerURL, archiveName), "pulling "+manifestImages[idx].Name)
+		cmd := exec.Command("skopeo", "copy", dockerURL, archiveName)
+		if os.Getenv("SKOPEO_ARGS") != "" {
+			cmd = exec.Command("skopeo", "copy", os.Getenv("SKOPEO_ARGS"), dockerURL, archiveName)
+		}
+		_, err := commands.ExecWithMessage(cmd, "pulling "+manifestImages[idx].Name)
 		if err != nil {
 			return trivyReport, err
 		}
