@@ -60,7 +60,10 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 		archiveName := "docker-archive:" + ci.config.Images.FolderName + strconv.Itoa(idx)
 		cmd := exec.Command("skopeo", "copy", dockerURL, archiveName)
 		if os.Getenv("SKOPEO_ARGS") != "" {
-			cmd = exec.Command("skopeo", "copy", os.Getenv("SKOPEO_ARGS"), dockerURL, archiveName)
+			args := []string{"copy"}
+			args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
+			args = append(args, dockerURL, archiveName)
+			cmd = exec.Command("skopeo", args...)
 		}
 		_, err := commands.ExecWithMessage(cmd, "pulling "+manifestImages[idx].Name)
 		if err != nil {
