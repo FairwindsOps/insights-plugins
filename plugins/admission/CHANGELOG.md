@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.4.0
+* Enable Pluto to in admission controller
 ## 1.3.4
 * Trivy bug fix
 
