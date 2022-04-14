@@ -71,7 +71,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 			defer func() { <-semaphore }()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
-				r, err := ScanImage(extraFlags, pullRef)
+				r, err := ScanImage(TempDir, extraFlags, pullRef)
 				reportByRef[pullRef] = r
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
@@ -128,9 +128,9 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 }
 
 // ScanImage will scan a single image with Trivy and return the results.
-func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
+func ScanImage(basePath, extraFlags, pullRef string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
-	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
+	reportFile := basePath + "/trivy-report-" + imageID + ".json"
 	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, pullRef)
 	if extraFlags != "" {
 		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, pullRef)

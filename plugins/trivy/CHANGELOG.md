@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.8
+* Expose basePath for running externally
+
 ## 0.18.7
 * Revert trivy version
 

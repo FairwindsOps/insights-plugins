@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.5
+* Pass the temp folder to trivy report
+
 ## 1.5.4
 * Revert trivy version
 
