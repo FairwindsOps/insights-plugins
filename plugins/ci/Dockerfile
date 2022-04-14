@@ -33,6 +33,7 @@ WORKDIR /insights
 
 RUN apk update && apk upgrade
 RUN apk add --no-cache skopeo git libc6-compat
+RUN mkdir -p /output/tmp
 
 COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/plugins/ci/insights-ci /usr/local/bin/insights-ci
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy

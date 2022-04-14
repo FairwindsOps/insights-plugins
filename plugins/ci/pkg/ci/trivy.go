@@ -14,6 +14,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
 	trivymodels "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
@@ -116,7 +117,7 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 		return trivyReport, err
 	}
 	// Scan Images with Trivy
-	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages)
+	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)
 	if err != nil {
 		return trivyReport, err
 	}
@@ -152,7 +153,7 @@ func walkImages(config *models.Configuration, cb imageCallback) error {
 }
 
 // scanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
-func scanImagesWithTrivy(images []trivymodels.Image) ([]byte, string, error) {
+func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) ([]byte, string, error) {
 	_, err := commands.ExecWithMessage(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
 	if err != nil {
 		return nil, "", err
@@ -163,8 +164,8 @@ func scanImagesWithTrivy(images []trivymodels.Image) ([]byte, string, error) {
 		if ok {
 			continue
 		}
-		logrus.Infof("Scanning %s with pullRref %s", currentImage.Name, currentImage.PullRef)
-		results, err := image.ScanImage("", currentImage.PullRef)
+		logrus.Infof("Scanning %s from file %s", currentImage.Name, currentImage.PullRef)
+		results, err := ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder, "")
 		if err != nil {
 			return nil, "", err
 		}
@@ -284,4 +285,35 @@ func (ci *CIScan) TrivyEnabled() bool {
 
 func (ci *CIScan) SkipTrivyManifests() bool {
 	return *ci.config.Reports.Trivy.SkipManifests
+}
+
+// ScanImageFile will scan a single file with Trivy and return the results.
+func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels.TrivyResults, error) {
+	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
+	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath)
+	if extraFlags != "" {
+		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
+	}
+	err := util.RunCommand(cmd, "scanning "+imageID)
+	if err != nil {
+		logrus.Errorf("Error scanning %s at %s: %v", imageID, imagePath, err)
+		return nil, err
+	}
+	defer func() {
+		os.Remove(reportFile)
+	}()
+
+	report := trivymodels.TrivyResults{}
+	data, err := ioutil.ReadFile(reportFile)
+	if err != nil {
+		logrus.Errorf("Error reading report %s: %s", imageID, err)
+		return nil, err
+	}
+	err = json.Unmarshal(data, &report)
+	if err != nil {
+		logrus.Errorf("Error decoding report %s: %s", imageID, err)
+		return nil, err
+	}
+
+	return &report, nil
 }
