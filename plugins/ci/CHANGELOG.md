@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.5
+* Fix trivy scan output location
+
 ## 1.5.4
 * Revert trivy version
 
