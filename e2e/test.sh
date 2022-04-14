@@ -75,6 +75,7 @@ source ./tags.sh
 # TODO: add some OPA checks
 
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
+  --version "1.17.*" \
   --namespace insights-agent \
   -f e2e/values.yaml \
   --set insights.host="$insightsHost" \
