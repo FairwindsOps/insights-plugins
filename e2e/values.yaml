@@ -2,14 +2,7 @@ insights:
   organization: ci-co
   cluster: k8test
 
-kubesec:
-  enabled: true
-  resources:
-    requests:
-      memory: 64Mi
-      cpu: 1m
-
-kubebench:
+kube-bench:
   enabled: true
   resources:
     requests:
@@ -23,7 +16,7 @@ opa:
       memory: 64Mi
       cpu: 1m
 
-rbacreporter:
+rbac-reporter:
   enabled: true
   resources:
     requests:
@@ -65,10 +58,10 @@ workloads:
       memory: 64Mi
       cpu: 1m
 
-kubehunter:
+kube-hunter:
   enabled: false
 
-rightsizer:
+right-sizer:
   enabled: true 
   updateMemoryLimits:
     enabled: true
