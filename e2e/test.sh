@@ -75,18 +75,16 @@ source ./tags.sh
 # TODO: add some OPA checks
 
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
-  --version "1.17.*" \
   --namespace insights-agent \
   -f e2e/values.yaml \
   --set insights.host="$insightsHost" \
   --set insights.base64token="$(echo -n "Erehwon" | base64)" \
   --set workloads.image.tag="$workloads_tag" \
-  --set rbacreporter.image.tag="$rbacreporter_tag" \
-  --set kubesec.image.tag="$kubesec_tag" \
-  --set kubebench.image.tag="$kubebench_tag" \
+  --set rbac-reporter.image.tag="$rbacreporter_tag" \
+  --set kube-bench.image.tag="$kubebench_tag" \
   --set trivy.image.tag="$trivy_tag" \
   --set opa.image.tag="$opa_tag" \
-  --set rightsizer.image.tag="$rightsizer_tag" \
+  --set right-sizer.image.tag="$rightsizer_tag" \
   --set uploader.image.tag="$uploader_tag"
 
 sleep 5
@@ -112,7 +110,6 @@ kubectl wait --for=condition=complete job/kube-bench --timeout=120s --namespace 
 kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insights-agent
 # TODO: enable OPA
 # kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
-kubectl wait --for=condition=complete job/kubesec --timeout=480s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
 
@@ -124,8 +121,6 @@ echo "Testing rbac-reporter"
 jsonschema -i output/rbac-reporter.json plugins/rbac-reporter/results.schema || (cat output/rbac-reporter.json && exit 1)
 echo "Testing Workloads"
 jsonschema -i output/workloads.json plugins/workloads/results.schema || (cat output/workloads.json && exit 1)
-echo "Testing Kubesec"
-jsonschema -i output/kubesec.json plugins/kubesec/results.schema || (cat output/kubesec.json && exit 1)
 # The second right-sizer OOM-kill is triggered this late, to capitolize
 # on the time it takes for other CronJob checks to complete.
 # This allows the test workload to settle; avoid CrashLoopBackOff.
