@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.6
+* Add option to add more skopeo arguments through `SKOPEO_ARGS` environment variable
+
 ## 1.5.5
 * Fix trivy scan output location
 
