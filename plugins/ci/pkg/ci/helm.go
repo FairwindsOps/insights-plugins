@@ -88,19 +88,19 @@ func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder stri
 	if len(helmRelease.Spec.ValuesFrom) > 0 {
 		logrus.Warnf("fluxFile: %v - spec.valuesFrom not supported, it won't be applied...", helm.FluxFile)
 	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, chartName, helmRelease.Spec.Chart.Spec.Version, helm.ValuesFile, helm.ValuesFiles, helm.Values, helmRelease.Spec.Values, tempFolder, configFolder)
+	return doHandleRemoteHelmChart(helm, chartName, helmRelease.Spec.Chart.Spec.Version, helmRelease.Spec.Values, tempFolder, configFolder)
 }
 
 func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
 	if helm.Name == "" || helm.Chart == "" || helm.Repo == "" {
 		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
 	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, helm.Chart, helm.Version, helm.ValuesFile, helm.ValuesFiles, helm.Values, nil, tempFolder, configFolder)
+	return doHandleRemoteHelmChart(helm, helm.Chart, helm.Version, nil, tempFolder, configFolder)
 }
 
-func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesFile string, valuesFiles []string, values, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
-	repoName := fmt.Sprintf("%s-%s-repo", helmName, chartName)
-	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
+func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion string, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
+	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, chartName)
+	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
 	if err != nil {
 		return err
 	}
@@ -121,11 +121,11 @@ func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesF
 		return err
 	}
 
-	helmValuesFileArgs, err := resolveHelmValuesToArgs(valuesFile, valuesFiles, values, fluxValues, tempFolder)
+	helmValuesFiles, err := processHelmValues(helm, fluxValues, tempFolder)
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helmName, chartDownloadPath, helmValuesFileArgs, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, chartDownloadPath, helmValuesFiles, tempFolder, configFolder)
 }
 
 func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
@@ -133,36 +133,38 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 		return errors.New("Parameters 'name' and 'path' are required in helm definition")
 	}
 
-	helmValuesFileArgs, err := resolveHelmValuesToArgs(helm.ValuesFile, helm.ValuesFiles, helm.Values, nil, tempFolder)
+	helmValuesFiles, err := processHelmValues(helm, nil, tempFolder)
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), helmValuesFileArgs, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, baseRepoFolder, helmValuesFiles, tempFolder, configFolder)
 }
 
-func doHandleLocalHelmChart(helmName, helmPath string, helmValuesFileArgs []string, tempFolder, configFolder string) error {
-	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
+func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
+	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
 		return err
 	}
 
-	params := append([]string{"template", helmName, helmPath, "--output-dir", configFolder + helmName}, helmValuesFileArgs...)
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helmName)
+	helmValuesFileArgs := make([]string, len(helmValuesFiles)*2)
+	for i, vf := range helmValuesFiles {
+		helmValuesFileArgs[i] = "-f"
+		helmValuesFileArgs[i+1] = filepath.Join(helmPath, vf)
+	}
+	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
+	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// resolveHelmValuesToArgs returns Helm CLI arguments of the form ["-f",
-// "file1.yaml, ...] for Helm to process values from values files and the
-// `values` keys specified in fairwinds-insights.yaml. The literal values are
-// written to a file and specified last in the `-f ...` Helm arguments to
-// ensure those files are applied last.
-func resolveHelmValuesToArgs(valuesFile string, valuesFiles []string, values map[string]interface{}, fluxValues map[string]interface{}, tempFolder string) (helmArgs []string, err error) {
-	hasValuesFile := valuesFile != ""
-	hasValuesFiles := len(valuesFiles) > 0
-	hasValues := len(values) > 0
+// processHelmValues returns a slice of HElm values files after processing values and values-files from a models.HelmConfig and the
+// fluxValues parameter. Any Helm values are written to a file.
+func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}, tempFolder string) (valuesFileNames []string, err error) {
+	hasValuesFile := helm.ValuesFile != ""
+	hasValuesFiles := len(helm.ValuesFiles) > 0
+	hasValues := len(helm.Values) > 0
 	hasFluxValues := len(fluxValues) > 0
 
 	if hasFluxValues {
@@ -175,18 +177,18 @@ func resolveHelmValuesToArgs(valuesFile string, valuesFiles []string, values map
 		if err != nil {
 			return nil, err
 		}
-		helmArgs = append(helmArgs, "-f", fluxValuesFilePath)
+		valuesFileNames = append(valuesFileNames, fluxValuesFilePath)
 	}
 	if hasValuesFile {
-		helmArgs = append(helmArgs, "-f", filepath.Join(baseRepoFolder, valuesFile))
+		valuesFileNames = append(valuesFileNames, helm.ValuesFile)
 	}
 	if hasValuesFiles {
-		for _, i := range valuesFiles {
-			helmArgs = append(helmArgs, "-f", filepath.Join(baseRepoFolder, i))
+		for _, i := range helm.ValuesFiles {
+			valuesFileNames = append(valuesFileNames, i)
 		}
 	}
 	if hasValues {
-		yaml, err := yaml.Marshal(values)
+		yaml, err := yaml.Marshal(helm.Values)
 		if err != nil {
 			return nil, err
 		}
@@ -195,9 +197,9 @@ func resolveHelmValuesToArgs(valuesFile string, valuesFiles []string, values map
 		if err != nil {
 			return nil, err
 		}
-		helmArgs = append(helmArgs, "-f", inlineValuesFilePath)
+		valuesFileNames = append(valuesFileNames, inlineValuesFilePath)
 	}
-	return helmArgs, nil
+	return valuesFileNames, nil
 }
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
