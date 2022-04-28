@@ -38,6 +38,7 @@ func (ci *CIScan) ProcessHelmTemplates() error {
 				}
 			}
 		} else {
+			logrus.Debugf("cannot determine the type of helm config for: %#v\n", helm)
 			return fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name)
 		}
 	}
@@ -137,7 +138,7 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm, baseRepoFolder, helmValuesFiles, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, filepath.Join(baseRepoFolder, helm.Path), helmValuesFiles, tempFolder, configFolder)
 }
 
 func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
@@ -146,10 +147,9 @@ func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesF
 		return err
 	}
 
-	helmValuesFileArgs := make([]string, len(helmValuesFiles)*2)
-	for i, vf := range helmValuesFiles {
-		helmValuesFileArgs[i] = "-f"
-		helmValuesFileArgs[i+1] = filepath.Join(helmPath, vf)
+	var helmValuesFileArgs []string
+	for _, vf := range helmValuesFiles {
+		helmValuesFileArgs = append(helmValuesFileArgs, "-f", vf)
 	}
 	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
 	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
@@ -183,6 +183,9 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		valuesFileNames = append(valuesFileNames, helm.ValuesFile)
 	}
 	if hasValuesFiles {
+		if hasValuesFile {
+			logrus.Warnf("Both ValuesFile and ValuesFiles are present in Helm configuration %q, it is recommended to list all values files in the ValuesFiles list", helm.Name)
+		}
 		for _, i := range helm.ValuesFiles {
 			valuesFileNames = append(valuesFileNames, i)
 		}
@@ -192,13 +195,14 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		if err != nil {
 			return nil, err
 		}
-		inlineValuesFilePath := tempFolder + "helm-values.yaml"
+		inlineValuesFilePath := tempFolder + "fairwinds-insights-helm-values.yaml"
 		err = ioutil.WriteFile(inlineValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err
 		}
 		valuesFileNames = append(valuesFileNames, inlineValuesFilePath)
 	}
+	logrus.Debugf("returning processed Helm values and values-files as these Helm values file names: %v for Helm configuration: %#v\n", valuesFileNames, helm)
 	return valuesFileNames, nil
 }
 
