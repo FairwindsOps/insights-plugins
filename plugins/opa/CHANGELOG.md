@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.10
+* update versions
+
 ## 2.0.9
 * Update vulnerable packages
 
