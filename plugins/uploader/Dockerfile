@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:20220328
 WORKDIR /usr/local/bin
 RUN apk --no-cache add ca-certificates curl
 
