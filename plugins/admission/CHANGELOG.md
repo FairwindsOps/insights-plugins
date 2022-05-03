@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.6
+* update versions
+
 ## 1.3.5
 * update versions
 
