@@ -113,14 +113,10 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 				id = trivyResult.Metadata.RepoDigests[0]
 			}
 		}
-		var osArch string
-		if trivyResult.ImageConfig.OS != "" && trivyResult.ImageConfig.Architecture != "" {
-			osArch = fmt.Sprintf("%s/%s", trivyResult.ImageConfig.OS, trivyResult.ImageConfig.Architecture)
-		}
 		allReports = append(allReports, models.ImageReport{
 			ID:                 id,
 			Name:               image.Name,
-			OSArch:             osArch,
+			OSArch:             getOsArch(trivyResult.Metadata.ImageConfig),
 			PullRef:            image.PullRef,
 			OwnerKind:          image.Owner.Kind,
 			OwnerName:          image.Owner.Name,
@@ -131,6 +127,13 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 		})
 	}
 	return allReports
+}
+
+func getOsArch(imageCfg models.TrivyImageConfig) string {
+	if imageCfg.OS == "" || imageCfg.Architecture == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/%s", imageCfg.OS, imageCfg.Architecture)
 }
 
 // ScanImage will scan a single image with Trivy and return the results.

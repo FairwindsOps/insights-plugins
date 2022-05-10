@@ -34,14 +34,14 @@ type ImageReport struct {
 }
 
 type TrivyResults struct {
-	Metadata    TrivyMetadata
-	Results     []VulnerabilityList
-	ImageConfig TrivyImageConfig
+	Metadata TrivyMetadata
+	Results  []VulnerabilityList
 }
 
 type TrivyMetadata struct {
 	ImageID     string
 	RepoDigests []string
+	ImageConfig TrivyImageConfig
 }
 
 type TrivyImageConfig struct {
