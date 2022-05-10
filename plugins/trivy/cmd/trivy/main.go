@@ -79,7 +79,7 @@ func getNewestVersionsToScan(ctx context.Context, allReports []models.ImageRepor
 		for _, report := range allReports {
 			reportSha := image.GetShaFromID(report.ID)
 			if report.Name == img.Name && reportSha == imageSha {
-				if len(report.Report) > 0 {
+				if len(report.Reports) > 0 {
 					imageWithVulns = append(imageWithVulns, report)
 				}
 			}

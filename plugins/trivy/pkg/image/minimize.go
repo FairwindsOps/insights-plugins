@@ -34,7 +34,7 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 			LastScan:           &timestamp,
 			RecommendationOnly: imageDetails.RecommendationOnly,
 		}
-		for _, vulnList := range imageDetails.Report {
+		for _, vulnList := range imageDetails.Reports {
 			vulnRefList := models.VulnerabilityRefList{
 				Target: vulnList.Target,
 			}

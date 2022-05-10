@@ -21,25 +21,32 @@ type Resource struct {
 
 // ImageReport represents the results for a single resource.
 type ImageReport struct {
-	Name               string
 	ID                 string
+	Name               string
+	OSArch             string
 	PullRef            string
 	OwnerKind          string
 	OwnerName          string
 	OwnerContainer     *string
 	Namespace          string
-	Report             []VulnerabilityList
+	Reports            []VulnerabilityList `json:"Report"`
 	RecommendationOnly bool
 }
 
 type TrivyResults struct {
-	Metadata TrivyMetadata
-	Results  []VulnerabilityList
+	Metadata    TrivyMetadata
+	Results     []VulnerabilityList
+	ImageConfig TrivyImageConfig
 }
 
 type TrivyMetadata struct {
 	ImageID     string
 	RepoDigests []string
+}
+
+type TrivyImageConfig struct {
+	Architecture string `json:"architecture"`
+	OS           string `json:"os"`
 }
 
 // VulnerabilityList is the results from Trivy

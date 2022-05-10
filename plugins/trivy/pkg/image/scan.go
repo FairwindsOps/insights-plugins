@@ -86,12 +86,12 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 }
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
-func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
+func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
 	allReports := []models.ImageReport{}
 	for _, i := range images {
 		image := i
 		id := fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID))
-		if t, ok := reportByRef[image.PullRef]; !ok || t == nil {
+		if t, ok := reportResultByRef[image.PullRef]; !ok || t == nil {
 			if !ignoreErrors {
 				allReports = append(allReports, models.ImageReport{
 					Name:               image.Name,
@@ -106,21 +106,27 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportByRef map[str
 			}
 			continue
 		}
+		trivyResult := reportResultByRef[image.PullRef]
 		if !strings.Contains(id, "sha256:") {
-			id = fmt.Sprintf("%s@%s", image.Name, reportByRef[image.PullRef].Metadata.ImageID)
-			if len(reportByRef[image.PullRef].Metadata.RepoDigests) > 0 {
-				id = reportByRef[image.PullRef].Metadata.RepoDigests[0]
+			id = fmt.Sprintf("%s@%s", image.Name, trivyResult.Metadata.ImageID)
+			if len(trivyResult.Metadata.RepoDigests) > 0 {
+				id = trivyResult.Metadata.RepoDigests[0]
 			}
 		}
+		var osArch string
+		if trivyResult.ImageConfig.OS != "" && trivyResult.ImageConfig.Architecture != "" {
+			osArch = fmt.Sprintf("%s/%s", trivyResult.ImageConfig.OS, trivyResult.ImageConfig.Architecture)
+		}
 		allReports = append(allReports, models.ImageReport{
-			Name:               image.Name,
 			ID:                 id,
+			Name:               image.Name,
+			OSArch:             osArch,
 			PullRef:            image.PullRef,
 			OwnerKind:          image.Owner.Kind,
 			OwnerName:          image.Owner.Name,
 			OwnerContainer:     &image.Owner.Container,
 			Namespace:          image.Owner.Namespace,
-			Report:             reportByRef[image.PullRef].Results,
+			Reports:            trivyResult.Results,
 			RecommendationOnly: image.RecommendationOnly,
 		})
 	}
