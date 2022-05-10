@@ -77,6 +77,7 @@ type MinimizedReport struct {
 type ImageDetailsWithRefs struct {
 	ID                 string
 	Name               string
+	OSArch             string
 	OwnerName          string
 	OwnerKind          string
 	OwnerContainer     *string

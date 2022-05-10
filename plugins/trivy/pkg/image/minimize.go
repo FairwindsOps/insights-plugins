@@ -26,6 +26,7 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 		imageDetailsWithRefs := models.ImageDetailsWithRefs{
 			ID:                 imageDetails.ID,
 			Name:               imageDetails.Name,
+			OSArch:             imageDetails.OSArch,
 			OwnerName:          imageDetails.OwnerName,
 			OwnerKind:          imageDetails.OwnerKind,
 			OwnerContainer:     imageDetails.OwnerContainer,
