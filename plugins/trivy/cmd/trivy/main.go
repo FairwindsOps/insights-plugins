@@ -51,19 +51,19 @@ func main() {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
 	imagesToScan := getUnscannedImagesToScan(images, lastReport.Images)
-	imagesToScan = getImagesToRescan(images, lastReport, imagesToScan)
+	imagesToScan = getImagesToRescan(images, *lastReport, imagesToScan)
 	logrus.Infof("Listing images to be scanned:")
 	for _, i := range imagesToScan {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
-	clusterImagesToKeep := getClusterImagesToKeep(images, lastReport, imagesToScan)
+	clusterImagesToKeep := getClusterImagesToKeep(images, *lastReport, imagesToScan)
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
 	recommendationsToScan := getNewestVersionsToScan(ctx, allReports, imagesToScan)
 	recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
-	recommendationsToKeep := getRecommendationImagesToKeep(images, lastReport, recommendationsToScan)
+	recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
 	lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
 	aggregated := append(allReports, recommendationReport...)
-	minimizedReport := image.Minimize(aggregated, lastReport)
+	minimizedReport := image.Minimize(aggregated, *lastReport)
 	data, err := json.Marshal(minimizedReport)
 	if err != nil {
 		logrus.Fatalf("could not marshal report: %v", err)
