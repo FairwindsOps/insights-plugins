@@ -37,7 +37,10 @@ type newestVersions struct {
  */
 func main() {
 	setEnv()
-	lastReport := image.GetLastReport()
+	lastReport, err := image.GetLastReport()
+	if err != nil {
+		logrus.Fatal(err)
+	}
 	ctx := context.Background()
 	images, err := image.GetImages(ctx)
 	if err != nil {

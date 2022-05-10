@@ -22,39 +22,37 @@ const retryCount = 3
 var nonWordRegexp = regexp.MustCompile("\\W+")
 
 // GetLastReport returns the last report for Trivy from Fairwinds Insights
-func GetLastReport() models.MinimizedReport {
+func GetLastReport() (*models.MinimizedReport, error) {
 	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") + "/data/trivy/latest.json"
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+os.Getenv("FAIRWINDS_TOKEN"))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 404 {
-		return models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}}
+		return &models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}}, nil
 	}
 	if resp.StatusCode != 200 {
-		panic(fmt.Sprintf("Bad Status code on get last report: %d", resp.StatusCode))
+		return nil, fmt.Errorf("Bad Status code on get last report: %d", resp.StatusCode)
 	}
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	var jsonResp models.MinimizedReport
 	err = json.Unmarshal(responseBody, &jsonResp)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	return jsonResp
-
+	return &jsonResp, nil
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
