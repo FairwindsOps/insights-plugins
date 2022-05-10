@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.18.9
+* Add os/architecture information to trivy report
+
 ## 0.18.8
 * update versions
 
