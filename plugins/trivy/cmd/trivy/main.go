@@ -41,20 +41,18 @@ func main() {
 	ctx := context.Background()
 	images, err := image.GetImages(ctx)
 	if err != nil {
-		panic(err)
+		logrus.Fatal(err)
 	}
 	logrus.Infof("Listing images from cluster:")
 	for _, i := range images {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
-	logrus.Info("----------")
 	imagesToScan := getUnscannedImagesToScan(images, lastReport.Images)
 	imagesToScan = getImagesToRescan(images, lastReport, imagesToScan)
 	logrus.Infof("Listing images to be scanned:")
 	for _, i := range imagesToScan {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
-	logrus.Info("----------")
 	clusterImagesToKeep := getClusterImagesToKeep(images, lastReport, imagesToScan)
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
 	recommendationsToScan := getNewestVersionsToScan(ctx, allReports, imagesToScan)
@@ -62,14 +60,14 @@ func main() {
 	recommendationsToKeep := getRecommendationImagesToKeep(images, lastReport, recommendationsToScan)
 	lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
 	aggregated := append(allReports, recommendationReport...)
-	finalReport := image.Minimize(aggregated, lastReport)
-	data, err := json.Marshal(finalReport)
+	minimizedReport := image.Minimize(aggregated, lastReport)
+	data, err := json.Marshal(minimizedReport)
 	if err != nil {
-		panic(err)
+		logrus.Fatalf("could not marshal report: %v", err)
 	}
 	err = ioutil.WriteFile(outputFile, data, 0644)
 	if err != nil {
-		panic(err)
+		logrus.Fatalf("could not write to output file: %v", err)
 	}
 	logrus.Info("Finished writing file ", outputFile)
 }
@@ -275,5 +273,9 @@ func setEnv() {
 	if err != nil {
 		panic(err)
 	}
-	util.CheckEnvironmentVariables()
+
+	err = util.CheckEnvironmentVariables()
+	if err != nil {
+		panic(err)
+	}
 }
