@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -20,35 +21,29 @@ import (
 func GetImages(ctx context.Context) ([]models.Image, error) {
 	kubeConf, configError := ctrl.GetConfig()
 	if configError != nil {
-		logrus.Errorf("Error fetching KubeConfig: %v", configError)
-		return nil, configError
+		return nil, fmt.Errorf("Error fetching KubeConfig: %v", configError)
 	}
 
 	api, err := kubernetes.NewForConfig(kubeConf)
 	if err != nil {
-		logrus.Errorf("Error creating Kubernetes client: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Error creating Kubernetes client: %v", err)
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(kubeConf)
 	if err != nil {
-		logrus.Errorf("Error creating Dynamic client: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Error creating Dynamic client: %v", err)
 	}
 
 	resources, err := restmapper.GetAPIGroupResources(api.Discovery())
 	if err != nil {
-		logrus.Errorf("Error getting API Group resources: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Error getting API Group resources: %v", err)
 	}
 	restMapper := restmapper.NewDiscoveryRESTMapper(resources)
 
 	listOpts := metav1.ListOptions{}
 	pods, err := api.CoreV1().Pods("").List(ctx, listOpts)
-
 	if err != nil {
-		logrus.Errorf("Error fetching Kubernetes pods: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Error fetching Kubernetes pods: %v", err)
 	}
 
 	// TODO: we're deduping by owner, which works in most cases, but might cause us
