@@ -11,10 +11,11 @@ import (
 
 const UnknownOSMessage = "Unknown OS"
 
-func CheckEnvironmentVariables() {
+func CheckEnvironmentVariables() error {
 	if os.Getenv("FAIRWINDS_INSIGHTS_HOST") == "" || os.Getenv("FAIRWINDS_ORG") == "" || os.Getenv("FAIRWINDS_CLUSTER") == "" || os.Getenv("FAIRWINDS_TOKEN") == "" {
-		panic("Proper environment variables not set.")
+		return errors.New("Proper environment variables not set.")
 	}
+	return nil
 }
 
 func RunCommand(cmd *exec.Cmd, message string) error {

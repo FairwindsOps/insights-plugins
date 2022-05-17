@@ -15,11 +15,13 @@
                 "required": [
                     "ID",
                     "Name",
+                    "OSArch",
                     "OwnerName",
                     "OwnerKind",
                     "Namespace",
                     "LastScan",
-                    "Report"
+                    "Report",
+                    "RecommendationOnly"
                 ],
                 "properties": {
                     "ID": {
@@ -30,12 +32,20 @@
                         "$id": "#/properties/Images/items/properties/Name",
                         "type": "string"
                     },
+                    "OSArch": {
+                        "$id": "#/properties/Images/items/properties/OSArch",
+                        "type": "string"
+                    },
                     "OwnerName": {
                         "$id": "#/properties/Images/items/properties/OwnerName",
                         "type": "string"
                     },
                     "OwnerKind": {
                         "$id": "#/properties/Images/items/properties/OwnerKind",
+                        "type": "string"
+                    },
+                    "OwnerContainer": {
+                        "$id": "#/properties/Images/items/properties/OwnerContainer",
                         "type": "string"
                     },
                     "Namespace": {
@@ -95,6 +105,10 @@
                                 }
                             }
                         }
+                    },
+                    "RecommendationOnly": {
+                        "$id": "#/properties/Images/items/properties/RecommendationOnly",
+                        "type": "boolean"
                     }
                 }
             }
