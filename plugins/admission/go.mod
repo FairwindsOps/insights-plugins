@@ -10,17 +10,19 @@ require (
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v3 v3.5.4
-	github.com/fairwindsops/polaris v0.0.0-20220127212040-2aedaa9ba4a0
+	github.com/fairwindsops/polaris v0.0.0-20220512134546-92f0b6e551df
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.0
-	github.com/thoas/go-funk v0.9.1
-	k8s.io/apimachinery v0.23.3
-	sigs.k8s.io/controller-runtime v0.11.0
+	github.com/stretchr/testify v1.7.1
+	github.com/thoas/go-funk v0.9.2
+	k8s.io/apimachinery v0.23.6
+	sigs.k8s.io/controller-runtime v0.11.2
 )
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20220302200648-3d4762d614b3
 	github.com/hashicorp/go-multierror v1.1.0
+	gomodules.xyz/jsonpatch/v2 v2.2.0
+	k8s.io/api v0.23.6
 )
 
 require (
@@ -36,15 +38,16 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/gobuffalo/here v0.6.0 // indirect
-	github.com/gobuffalo/logger v1.0.3 // indirect
-	github.com/gobuffalo/packd v1.0.0 // indirect
-	github.com/gobuffalo/packr/v2 v2.8.1 // indirect
+	github.com/gobuffalo/logger v1.0.6 // indirect
+	github.com/gobuffalo/packd v1.0.1 // indirect
+	github.com/gobuffalo/packr/v2 v2.8.3 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -73,7 +76,7 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/qri-io/jsonpointer v0.1.0 // indirect
+	github.com/qri-io/jsonpointer v0.1.1 // indirect
 	github.com/qri-io/jsonschema v0.1.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -85,19 +88,17 @@ require (
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
-	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.23.3 // indirect
-	k8s.io/apiextensions-apiserver v0.23.0 // indirect
-	k8s.io/client-go v0.23.3 // indirect
-	k8s.io/component-base v0.23.0 // indirect
+	k8s.io/apiextensions-apiserver v0.23.5 // indirect
+	k8s.io/client-go v0.23.6 // indirect
+	k8s.io/component-base v0.23.5 // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect

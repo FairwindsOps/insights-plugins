@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.4.0
+* Added polaris mutation option
 ## 1.3.6
 * update versions
 
