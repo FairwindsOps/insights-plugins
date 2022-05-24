@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.1
+* Bump alpine to 3.16
+
 ## 1.6.0
 * Add `ValuesFiles` to fairwinds-insights.yaml, allowing specification of multiple Helm values files.
 * Allow both Helm values files and inline fairwinds-insights.yaml values to be used. The inline values override those from values files.
