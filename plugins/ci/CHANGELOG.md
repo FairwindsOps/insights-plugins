@@ -1,11 +1,15 @@
 # Changelog
 
+## 1.6.2
+* Fix auto-detection on resolving non-kubernetes manifests.
+
 ## 1.6.1
 * Bump alpine to 3.16
 
 ## 1.6.0
 * Add `ValuesFiles` to fairwinds-insights.yaml, allowing specification of multiple Helm values files.
 * Allow both Helm values files and inline fairwinds-insights.yaml values to be used. The inline values override those from values files.
+
 ## 1.5.8
 * update versions
 
@@ -52,13 +56,11 @@
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
 ## 1.3.0
-
 * Process v2 CustomChecks, which no longer have an Instance accompanying the rego policy.
 * Debug output can be enabled by setting the `LOGRUS_LEVEL` environment variable to `debug`.
 * Processing of checks will now continue when there has been a failure, to collect and output all failure conditions. Multiple errors may be reflected in plugin output.
 
 ## 1.2.3
-
 * Updated libs
 
 ## 1.2.2
@@ -67,6 +69,7 @@
 ## 1.2.1
 * Updated trivy version to 0.23.0
 * Drop root command
+
 ## 1.2.0
 * Adds auto config. file generation by scanning the repository files
 
@@ -110,6 +113,7 @@
 
 ## 0.13.3
 * Fix panic for missing sha in the image
+
 ## 0.13.2
 * Bump alpine to 3.15
 
@@ -124,10 +128,13 @@
 
 ## 0.12.0
 * Add helm `fluxFile` and `version` support
+
 ## 0.11.0
 * Add helm remote chart functionality
+
 ## 0.10.13
 * Bump dependencies and rebuild
+
 ## 0.10.12
 * Handle type conversion errors for resource metadata
 
@@ -139,8 +146,10 @@
 
 ## 0.10.9
 * update trivy version
+
 ## 0.10.8
 * update Go modules
+
 ## 0.10.7
 * Improve error messages 
 * Add missing error checks
@@ -173,11 +182,9 @@
 * Bump Alpine to 3.14
 
 ## 0.9.0
-
 * Added configuration options to disable individual reports
 
 ## 0.8.5
-
 * Fix `Options.TempFolder`  default destination
 
 ## 0.8.4
@@ -187,19 +194,15 @@
 * Fix workload names
 
 ## 0.8.2
-
 * Fix helm file name by replacing the release-name prefix.
 
 ## 0.8.1
-
 * Dedupe Trivy scans
 
 ## 0.8.0
-
 * Improved logging and output
 
 ## 0.7.2
-
 * Respect mainline branch specified in config.
 
 ## 0.7.1
