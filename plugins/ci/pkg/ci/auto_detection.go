@@ -15,11 +15,11 @@ import (
 	"github.com/ghodss/yaml" // supports both yaml and json
 )
 
-var supportedExtentions = []string{"yaml", "yml", "json"}
+var supportedExtensions = []string{"yaml", "yml", "json"}
 
 type KubernetesManifest struct {
-	ApiVersion string `json:"apiVersion"` // Affects YAML field names too.
-	Kind       string `json:"kind"`
+	ApiVersion *string `json:"apiVersion"` // Affects YAML field names too.
+	Kind       *string `json:"kind"`
 }
 
 // ConfigFileAutoDetection reads recursively a path looking for kubernetes manifests and helm charts, returns a fairwinds-insights configuration struct or error
@@ -60,8 +60,8 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 				return nil
 			}
 
-			if !funk.ContainsString(supportedExtentions, fileExtension[1:]) {
-				logrus.Debugf("file extention '%s' not supported for file %v", fileExtension, path)
+			if !funk.ContainsString(supportedExtensions, fileExtension[1:]) {
+				logrus.Debugf("file extension '%s' not supported for file %v", fileExtension, path)
 				return nil
 			}
 
@@ -72,6 +72,7 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 
 			if !isKubernetesManifest(path) {
 				logrus.Debugf("file %s is NOT a k8s manifest, skipping...", path)
+				return nil
 			}
 
 			relPath, err := filepath.Rel(basePath, path)
@@ -102,7 +103,7 @@ func isFluxManifest(path string) bool {
 	if k8sManifest == nil {
 		return false
 	}
-	return strings.Contains(k8sManifest.ApiVersion, "toolkit.fluxcd.io")
+	return strings.Contains(*k8sManifest.ApiVersion, "toolkit.fluxcd.io")
 }
 
 func isKubernetesManifest(path string) bool {
@@ -127,6 +128,10 @@ func getPossibleKubernetesManifest(path string) *KubernetesManifest {
 		// not being to unmarshal means it is not a k8s file
 		return nil
 	}
+	if k8sManifest.ApiVersion == nil || k8sManifest.Kind == nil {
+		// not having either apiVersion nor kind means it is not a k8s file
+		return nil
+	}
 	return &k8sManifest
 }
 
@@ -137,7 +142,7 @@ func isHelmBaseFolder(path string) (bool, error) {
 	}
 
 	for _, file := range files {
-		for _, ext := range supportedExtentions {
+		for _, ext := range supportedExtensions {
 			if file.Name() == "Chart."+ext {
 				return true, nil
 			}
@@ -181,7 +186,7 @@ func logDuplicatedHelmConfigNames(arr []models.HelmConfig) {
 
 // tries to extract name from Chart.yaml file, return chart (dir name) as fallback
 func tryFetchNameFromChartFile(baseFolder, chart string) string {
-	for _, ext := range supportedExtentions {
+	for _, ext := range supportedExtensions {
 		f := "Chart." + ext
 		file, err := os.Open(filepath.Join(baseFolder, chart, f))
 		if err != nil {
@@ -213,7 +218,7 @@ func tryFetchNameFromChartFile(baseFolder, chart string) string {
 
 // tries to discover the default values file, returns empty str if not found
 func tryDiscoverValuesFile(baseFolder, path string) string {
-	for _, ext := range supportedExtentions {
+	for _, ext := range supportedExtensions {
 		f := "values." + ext
 		possibleValuesFile := filepath.Join(baseFolder, path, f)
 		if _, err := os.Stat(possibleValuesFile); errors.Is(err, os.ErrNotExist) {
