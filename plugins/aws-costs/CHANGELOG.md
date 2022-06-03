@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.4
+* Get and output the full query-execution from Athena when a query does not succeed.
+
 ## 1.0.3
 * update versions
 

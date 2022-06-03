@@ -2,6 +2,10 @@
 
 ## 1.4.0
 * Added polaris mutation option
+
+## 1.3.7
+* Bump alpine to 3.16
+
 ## 1.3.6
 * update versions
 
