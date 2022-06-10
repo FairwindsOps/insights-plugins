@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.6.3
+## 1.7.0
 * updated CI NewActionItemThreshold default to -1
 ## 1.6.2
 * Fix auto-detection on resolving non-kubernetes manifests.
