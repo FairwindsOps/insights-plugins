@@ -218,6 +218,9 @@ func (c *Configuration) SetDefaults() {
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"
 	}
+	if c.Options.NewActionItemThreshold == 0 {
+		c.Options.NewActionItemThreshold = -1
+	}
 	truth := true
 	falsehood := false
 	if c.Reports.Pluto.Enabled == nil {
