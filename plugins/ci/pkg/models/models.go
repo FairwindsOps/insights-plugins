@@ -44,14 +44,15 @@ type ManifestConfig struct {
 
 // HelmConfig is the configuration for helm.
 type HelmConfig struct {
-	Name       string                 `yaml:"name"`
-	Path       string                 `yaml:"path"`
-	Repo       string                 `yaml:"repo"`
-	Chart      string                 `yaml:"chart"`
-	FluxFile   string                 `yaml:"fluxFile"`
-	Version    string                 `yaml:"version"`
-	ValuesFile string                 `yaml:"valuesFile"`
-	Values     map[string]interface{} `yaml:"values"`
+	Name        string                 `yaml:"name"`
+	Path        string                 `yaml:"path"`
+	Repo        string                 `yaml:"repo"`
+	Chart       string                 `yaml:"chart"`
+	FluxFile    string                 `yaml:"fluxFile"`
+	Version     string                 `yaml:"version"`
+	ValuesFile  string                 `yaml:"valuesFile"` // Deprecated
+	ValuesFiles []string               `yaml:"valuesFiles"`
+	Values      map[string]interface{} `yaml:"values"`
 }
 
 func (hc *HelmConfig) IsRemote() bool {
@@ -216,6 +217,9 @@ func (c *Configuration) SetDefaults() {
 	}
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"
+	}
+	if c.Options.NewActionItemThreshold == 0 {
+		c.Options.NewActionItemThreshold = -1
 	}
 	truth := true
 	falsehood := false

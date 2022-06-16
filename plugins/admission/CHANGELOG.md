@@ -1,7 +1,16 @@
 # Changelog
 
+## 1.5.0
+* Update admission controller to support Pluto
+
 ## 1.4.0
-* Enable Pluto to in admission controller
+* Added polaris mutation option
+
+## 1.3.7
+* Bump alpine to 3.16
+
+## 1.3.6
+* update versions
 
 ## 1.3.5
 * update versions

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.10
+* Bump alpine to 3.16
+
+## 0.1.9
+* update versions
+
 ## 0.1.8
 * Update vulnerable packages
 

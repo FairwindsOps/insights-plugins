@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.19.1
+* Bump alpine to 3.16
+
+## 0.19.0
+* Add os/architecture information to trivy report
+
+## 0.18.8
+* update versions
+
 ## 0.18.7
 * Revert trivy version
 
