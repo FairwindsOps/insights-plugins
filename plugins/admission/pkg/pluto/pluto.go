@@ -68,8 +68,6 @@ func ProcessPluto(input []byte) (models.ReportInfo, error) {
 	if err != nil {
 		return report, err
 	}
-	// This will become debug.
-	logrus.Infof("Pluto report: %s\n", string(report.Contents))
 	return report, nil
 }
 
