@@ -31,7 +31,7 @@ func ProcessPluto(input []byte) (models.ReportInfo, error) {
 	userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
 	userTargetVersions, err := parsePlutoTargetVersions(userTargetVersionsStr)
 	if err != nil {
-		logrus.Errorf("unable to parse pluto target versions %q: %w", userTargetVersionsStr, err)
+		logrus.Errorf("unable to parse pluto target versions %q: %v", userTargetVersionsStr, err)
 		return report, err
 	}
 	if userTargetVersions != nil {
