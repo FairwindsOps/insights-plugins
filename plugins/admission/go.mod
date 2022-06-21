@@ -12,7 +12,7 @@ require (
 	github.com/fairwindsops/pluto/v3 v3.5.4
 	github.com/fairwindsops/polaris v0.0.0-20220615122833-e896eec89f45
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.7.2
 	github.com/thoas/go-funk v0.9.2
 	k8s.io/apimachinery v0.24.2
 	sigs.k8s.io/controller-runtime v0.12.1
