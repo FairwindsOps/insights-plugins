@@ -9,10 +9,10 @@ replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 require (
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.8.1-0.20220622141141-70577de20900
+	github.com/fairwindsops/pluto/v5 v5.9.0
 	github.com/fairwindsops/polaris v0.0.0-20220512134546-92f0b6e551df
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.4
 	github.com/thoas/go-funk v0.9.2
 	k8s.io/apimachinery v0.24.2
 	sigs.k8s.io/controller-runtime v0.12.1
