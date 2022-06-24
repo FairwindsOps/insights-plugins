@@ -16,7 +16,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
-const plutoVersion = "5.8.0"
+const plutoVersion = "5.9.0"
 
 // ProcessPluto processes an object with Pluto.
 func ProcessPluto(input []byte) (models.ReportInfo, error) {
@@ -63,7 +63,6 @@ func ProcessPluto(input []byte) (models.ReportInfo, error) {
 	if err != nil {
 		return report, err
 	}
-	_ = apiInstance.DisplayOutput()
 	report.Contents, err = json.Marshal(apiInstance)
 	if err != nil {
 		return report, err
