@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1
+* Testing CI
+
 ## 1.5.0
 * Update admission controller to support Pluto
 

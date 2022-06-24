@@ -1,4 +1,5 @@
 FROM golang:1.17 as build-env
+# A comment to make this plugin look updated
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/
 
 
