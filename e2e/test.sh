@@ -107,7 +107,7 @@ kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s --namespace insights-agent
-kubectl wait --for=condition=complete job/opa --timeout=120s --namespace insights-agent
+kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
 kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insights-agent
 kubectl wait --for=condition=complete job/prometheus-metrics --timeout=480s --namespace insights-agent
 
@@ -121,6 +121,8 @@ echo "Testing rbac-reporter"
 jsonschema -i output/rbac-reporter.json plugins/rbac-reporter/results.schema || (cat output/rbac-reporter.json && exit 1)
 echo "Testing Workloads"
 jsonschema -i output/workloads.json plugins/workloads/results.schema || (cat output/workloads.json && exit 1)
+echo "Testing Prometheus"
+jsonschema -i output/prometheus-metrics.json plugins/prometheus/results.schema || (cat output/prometheus-metrics.json && exit 1)
 # The second right-sizer OOM-kill is triggered this late, to capitolize
 # on the time it takes for other CronJob checks to complete.
 # This allows the test workload to settle; avoid CrashLoopBackOff.
