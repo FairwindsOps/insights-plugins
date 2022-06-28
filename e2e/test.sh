@@ -72,12 +72,37 @@ kubectl create namespace insights-agent
 cat ./tags.sh
 source ./tags.sh
 
+# Install metrics-server as it is needed by prometheus
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm upgrade --install metrics-server bitnami/metrics-server --version=5.11.8 -n metrics-server --create-namespace \
+  --set apiService.create=true \
+  --set extraArgs.kubelet-insecure-tls=true \
+  --set extraArgs.kubelet-preferred-address-types=InternalIP
+
+# Retrieve API token for k8test Cluster
+apiToken="testadmintoken"
+clusterApiToken="$(curl "$insightsHost/v0/organizations/ci-co/clusters/k8test?showToken=true" -H "Authorization: Bearer $apiToken" --no-progress-meter | jq -r '.AuthToken' | tr -d '\n' | base64)"
+
+# Create a custom policy
+curl -f "$insightsHost/v0/organizations/ci-co/opa/customChecks/label-required" -H "Authorization: Bearer $apiToken" -H "Content-Type: application/x-yaml" --data-binary @e2e/opa/label-required.yaml -X PUT --no-progress-meter
+curl -f "$insightsHost/v0/organizations/ci-co/opa/customChecks/label-required/instances/app-label" -H "Authorization: Bearer $apiToken" -H "Content-Type: application/x-yaml" --data-binary @e2e/opa/app-label.yaml -X PUT --no-progress-meter
+
+# Disable the Automation Rule 'ignore-system-namespaces` because it causes flakiness when it runs
+# Some Action Items get resolved as "Will Not Fix"
+curl --request PATCH "$insightsHost/v0/organizations/ci-co/rules/3/toggle" -H "Authorization: Bearer $apiToken" -H 'content-type:application/json' --no-progress-meter
+
+
+# Delete all jobs to start fresh if this is re-run
+kubectl delete jobs --all -n insights-agent
+
 
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --namespace insights-agent \
   -f e2e/values.yaml \
   --set insights.host="$insightsHost" \
-  --set insights.base64token="$(echo -n "Erehwon" | base64)" \
+  --set insights.organization="ci-co" \
+  --set insights.cluster="k8test" \
+  --set insights.base64token="${clusterApiToken//[$'\t\r\n ']}"
   --set workloads.image.tag="$workloads_tag" \
   --set rbac-reporter.image.tag="$rbacreporter_tag" \
   --set kube-bench.image.tag="$kubebench_tag" \
@@ -101,6 +126,18 @@ rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-si
 if [ ${rightsizer_workload_restarts} -ne 1 ] ; then
   echo "Got \"${rightsizer_workload_restarts}\" restarts (should be 1) after the first trigger of an OOM-kill."
   false # Fail the test.
+fi
+
+
+# There is a timing issue with the `prometheus-metrics` pod. Sometimes the scheduled `prometheus-metrics` job kicks off causing issues
+# This is a temporary workaround until we fix the root issue
+# If a prometheus-metrics pod has an error, delete it here
+metrics_pod=$(kubectl get pods --namespace insights-agent | grep prometheus-metrics | grep Error || true)
+if [[ ! -z $metrics_pod ]]; then
+  metrics_pod_name=$(echo $metrics_pod | cut -d' ' -f1)
+  echo "The pod $metrics_pod_name has an error. We will delete it as it is a known issue"
+  kubectl delete "pod/$metrics_pod_name" -n insights-agent
+  sleep 20
 fi
 
 kubectl get all --namespace insights-agent

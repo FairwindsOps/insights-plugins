@@ -1,0 +1,9 @@
+targets:
+- apiGroups: ["apps"]
+  kinds: ["Deployment"]
+parameters:
+  labels: ["application"]
+output:
+  title: "Deployment Label is missing"
+  severity: 0.9
+  remediation: "Add the label to your deployment"
