@@ -4,13 +4,15 @@ insights:
 
 kube-bench:
   enabled: true
+  schedule: "0 0 1 1 0"
   resources:
     requests:
       memory: 64Mi
       cpu: 1m
 
-opa:
+pluto:
   enabled: true
+  schedule: "0 0 1 1 0"
   resources:
     requests:
       memory: 64Mi
@@ -18,25 +20,28 @@ opa:
 
 rbac-reporter:
   enabled: true
+  schedule: "0 0 1 1 0"
   resources:
     requests:
       memory: 64Mi
       cpu: 1m
+
 trivy:
   enabled: true
-  resources:
-    requests:
-      memory: 64Mi
-      cpu: 1m
+  schedule: "0 0 1 1 0"
   namespaceBlacklist:
   - kube-system
   - default
   - insights-agent
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
 
 uploader:
   resources:
     requests:
-      memory: 64Mi
+      memory: 16Mi
       cpu: 1m
 
 goldilocks:
@@ -52,7 +57,7 @@ nova:
   enabled: false
 
 workloads:
-  enabled: true
+  schedule: "0 0 1 1 0"
   resources:
     requests:
       memory: 64Mi
@@ -70,3 +75,20 @@ right-sizer:
     max: 2.0
   extraArgs:
   - "-v4"
+
+opa:
+  enabled: true
+  schedule: "0 0 1 1 0"
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+
+prometheus-metrics:
+  enabled: true
+  schedule: "0 0 1 1 0"
+  installPrometheusServer: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m

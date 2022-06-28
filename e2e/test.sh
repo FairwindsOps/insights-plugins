@@ -72,7 +72,6 @@ kubectl create namespace insights-agent
 cat ./tags.sh
 source ./tags.sh
 
-# TODO: add some OPA checks
 
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --namespace insights-agent \
@@ -85,7 +84,8 @@ helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --set trivy.image.tag="$trivy_tag" \
   --set opa.image.tag="$opa_tag" \
   --set right-sizer.image.tag="$rightsizer_tag" \
-  --set uploader.image.tag="$uploader_tag"
+  --set uploader.image.tag="$uploader_tag" \
+  --set prometheus-metrics.image.tag="$prometheus_tag"
 
 sleep 5
 
@@ -107,9 +107,9 @@ kubectl get all --namespace insights-agent
 kubectl wait --for=condition=complete job/workloads --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/rbac-reporter --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s --namespace insights-agent
+kubectl wait --for=condition=complete job/opa --timeout=120s --namespace insights-agent
 kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insights-agent
-# TODO: enable OPA
-# kubectl wait --for=condition=complete job/opa --timeout=480s --namespace insights-agent
+kubectl wait --for=condition=complete job/prometheus-metrics --timeout=480s --namespace insights-agent
 
 kubectl get jobs --namespace insights-agent
 
