@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1
+* Fix admission-controller bug where Pluto deprecation/removal were not being populated.
+
 ## 1.5.0
 * Update admission controller to support Pluto
 
