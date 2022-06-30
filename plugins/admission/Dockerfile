@@ -1,3 +1,6 @@
+# syntax = docker/dockerfile:1.3
+# Minimally dockerfile:2.1 is required by RUN --mount=type=cache
+# Ref: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md
 FROM golang:1.17 as build-env
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/
 
@@ -13,17 +16,17 @@ COPY opa opa
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/admission
 
 COPY ./admission/go.* ./
-RUN go mod download
+RUN --mount=type=cache,target=/root/.cache/go-build go mod download
 
-RUN go get -u github.com/gobuffalo/packr/v2/packr2
+RUN --mount=type=cache,target=/root/.cache/go-build go get -u github.com/gobuffalo/packr/v2/packr2
 
 COPY ./admission/version.txt .
 COPY ./admission/embed.go .
 COPY ./admission/pkg pkg
 COPY ./admission/cmd cmd
 
-RUN packr2 build /go/pkg/mod/github.com/fairwindsops/polaris*/main.go
-RUN go build ./cmd/admission
+RUN --mount=type=cache,target=/root/.cache/go-build packr2 build /go/pkg/mod/github.com/fairwindsops/polaris*/main.go
+RUN --mount=type=cache,target=/root/.cache/go-build go build ./cmd/admission
 
 FROM alpine:3.16
 WORKDIR /insights

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1
+* Improve Docker image rebuilding by using mount-cache.
+
 ## 1.5.0
 * Update admission controller to support Pluto
 
