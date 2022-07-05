@@ -1,3 +1,4 @@
+# This manifest is used to test the accompanying OPA policy.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,11 +20,8 @@ spec:
       - image: nginx
         imagePullPolicy: Always
         name: nginx
-        readinessProbe:
-          httpGet:
-            # This external host being set should fail the policy.
-            host: localhost
-            path: /
-            port: 8080
-            scheme: HTTP
+  strategy:
+    rollingUpdate:
+      # This will cause the policy to succeed.
+      maxUnavailable: 25%
 

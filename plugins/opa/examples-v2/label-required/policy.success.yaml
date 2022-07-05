@@ -1,13 +1,11 @@
+# This manifest is used to test the accompanying OPA policy.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: policy-test
   namespace: default
-  annotations:
-    # This policy requires the below annotation.
-    # It being commented out should fail the policy.
-    #meta.helm.sh/release-name: release
   labels:
+    # This label will cause the policy to succeed.
     app: myapp
 spec:
   replicas: 1
@@ -16,8 +14,6 @@ spec:
       app: myapp
   template:
     metadata:
-      annotations:
-        certmanager.k8s.io/issuer: hello
       labels:
         app: myapp
     spec:

@@ -1,8 +1,12 @@
+# This manifest is used to test the accompanying OPA policy.`
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: policy-test
   namespace: default
+  annotations:
+    # Lack of this annotation will cause the policy to fail.
+    #meta.helm.sh/release-name: release
   labels:
     app: myapp
 spec:
@@ -12,6 +16,8 @@ spec:
       app: myapp
   template:
     metadata:
+      annotations:
+        certmanager.k8s.io/issuer: hello
       labels:
         app: myapp
     spec:
@@ -19,11 +25,3 @@ spec:
       - image: nginx
         imagePullPolicy: Always
         name: nginx
-        securityContext:
-          capabilities:
-            drop:
-            # This being commented out should fail the policy.
-            #- NET_RAW
-            # This next line is here so there is something in the list when the above line is commented.
-            - SYS_CHROOT
-
