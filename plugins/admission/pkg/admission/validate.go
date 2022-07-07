@@ -170,7 +170,13 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 
 	if configurationObject.Reports.Pluto {
 		logrus.Info("Running Pluto")
-		plutoReport, err := pluto.ProcessPluto(input)
+		userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
+		userTargetVersions, err := pluto.ParsePlutoTargetVersions(userTargetVersionsStr)
+		if err != nil {
+			logrus.Errorf("unable to parse pluto target versions %q: %v", userTargetVersionsStr, err)
+			return false, nil, nil, err
+		}
+		plutoReport, err := pluto.ProcessPluto(input, userTargetVersions)
 		if err != nil {
 			return false, nil, nil, err
 		}
