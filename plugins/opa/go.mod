@@ -6,11 +6,11 @@ replace github.com/fairwindsops/insights-plugins/plugins/opa => ./
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/open-policy-agent/opa v0.41.0
+	github.com/open-policy-agent/opa v0.42.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.8.0
 	github.com/thoas/go-funk v0.9.2
 	k8s.io/apimachinery v0.24.2
 	k8s.io/client-go v0.24.2
