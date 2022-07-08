@@ -74,6 +74,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	logrus.Infof("Origin: %s", origin)
 
 	if repoName == "" {
+		logrus.Infof("No repositoryName set, defaulting to origin.")
 		repoName = origin
 		if strings.Contains(repoName, "@") { // git@github.com URLs are allowed
 			repoNameSplit := strings.Split(repoName, "@")
