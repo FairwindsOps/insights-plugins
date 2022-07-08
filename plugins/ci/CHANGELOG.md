@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.2
+* Add debug output
+
 ## 2.0.1
 * update versions
 
