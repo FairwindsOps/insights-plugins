@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/rogpeppe/go-internal/semver"
@@ -18,20 +17,16 @@ import (
 
 const plutoVersion = "5.9.0"
 
-// ProcessPluto processes an object with Pluto.
-func ProcessPluto(input []byte) (models.ReportInfo, error) {
+// ProcessPluto processes an object with Pluto, using the user-specified Pluto
+// target-versions to determine API deprecations and removals.
+// An example of userTargetVersions is: map[string]string{"k8s": "1.21.0"}
+func ProcessPluto(input []byte, userTargetVersions map[string]string) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:  "pluto",
 		Version: plutoVersion,
 	}
 	deprecatedVersionList, targetVersions, err := api.GetDefaultVersionList(plutoversionsfile.Content())
 	if err != nil {
-		return report, err
-	}
-	userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
-	userTargetVersions, err := parsePlutoTargetVersions(userTargetVersionsStr)
-	if err != nil {
-		logrus.Errorf("unable to parse pluto target versions %q: %v", userTargetVersionsStr, err)
 		return report, err
 	}
 	if userTargetVersions != nil {
@@ -63,6 +58,7 @@ func ProcessPluto(input []byte) (models.ReportInfo, error) {
 	if err != nil {
 		return report, err
 	}
+	apiInstance.FilterOutput() // Populates deprecated and removed
 	report.Contents, err = json.Marshal(apiInstance)
 	if err != nil {
 		return report, err
@@ -70,10 +66,10 @@ func ProcessPluto(input []byte) (models.ReportInfo, error) {
 	return report, nil
 }
 
-// parsePlutoTargetVersions converts a string of the form
+// ParsePlutoTargetVersions converts a string of the form
 // key=value[,key=value...] into a map[string]string, validating that the
 // values are a valid semver version.
-func parsePlutoTargetVersions(vs string) (vm map[string]string, err error) {
+func ParsePlutoTargetVersions(vs string) (vm map[string]string, err error) {
 	if vs == "" {
 		return nil, nil
 	}
@@ -105,11 +101,10 @@ func parsePlutoTargetVersions(vs string) (vm map[string]string, err error) {
 	for k, v := range vm {
 		if !semver.IsValid(v) {
 			invalidTargetVersions = append(invalidTargetVersions, k)
-			logrus.Errorf("Invalid version %q for target %s, please use a valid semver version with a leading 'v'", v, k)
 		}
 	}
 	if len(invalidTargetVersions) > 0 {
-		return nil, fmt.Errorf("specified target versions are not valid semver with a leading 'v' for: %#v", invalidTargetVersions)
+		return nil, fmt.Errorf("specified target versions for %v do not have valid semver with a leading 'v':  %#v", invalidTargetVersions, vs)
 	}
 	return vm, nil
 }
