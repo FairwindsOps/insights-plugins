@@ -2,7 +2,7 @@
 
 The files in this directory are example Custom Checks to be used with Fairwinds Insights.
 
-Most of these policies have configurable variables at the top of each rule, to help customize policy behavior such as Kubernetes Kinds to which the policy should apply, or Kubernetes Namespaces which should be excempt from the policy.
+Most of these policies have configurable variables at the top of each rule, to help customize policy behavior such as Kubernetes Kinds to which the policy should apply, or Kubernetes Namespaces which should be exempt from the policy.
 
 These policies can be installed into Fairwinds Insights using one of the following options:
 
@@ -15,4 +15,9 @@ These policies can be installed into Fairwinds Insights using one of the followi
 
 ## Testing Policies
 
-Each policy contains a `test-manifest` sub-directory with Kubernetes manifests to help test and demonstrate what the policy should match.
+Most policy sub-directories contain Kubernetes manifests that validate the success and failure of that policy in our CI process.
+
+* `policy.success.yaml` - A Kubernetes manifest that will cause the policy to succeed (not generate an action item).
+* `policy.failure.yaml` - A Kubernetes manifest that will cause the policy to fail (generate one action item).
+
+When creating a new OPA policy, please try to include these above files, and include comments to highlight the line in each file which causes the policy to succeed or fail.
