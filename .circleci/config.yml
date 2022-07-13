@@ -193,12 +193,57 @@ jobs:
                 ]
             }
 
+  validate_modified_opa_policies:
+    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
+    executor: ci-images
+    steps:
+      - checkout
+      - set_environment_variables
+      - setup_remote_docker
+      - run: ./.circleci/scripts/install-insights-cli.sh
+      - run: ./scripts/validate-modified-opa-policies.sh
+      - slack/notify:
+          event: fail
+          custom: |
+            {
+                "text": "One or more modified OPA policies in insights-plugins has failed validation",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "One or more modified OPA policies in insights-plugins has failed validation!\n\n$FAILED_OPA_POLICIES_MARKDOWN"
+                        }
+                    }
+                ]
+            }
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+                "text": "All modified OPA policies in insights-plugins have passed validation",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":tada: All modified OPA policies in insights-plugins have passed validation!"
+                        }
+                    }
+                ]
+            }
+
 workflows:
   version: 2
   release:
     jobs:
       - test
       - check_version_changed
+      - validate_modified_opa_policies:
+          name: Validate Modified OPA Policies
+          requires:
+            - test
+            - check_version_changed
       - build_plugins:
           filters:
             branches:

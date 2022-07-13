@@ -27,6 +27,7 @@ checkCronjob[actionItem] {
         "description": "Liveness probes that send requests to arbitrary destinations can lead to blind SSRF. [Read more](https://github.com/kubernetes/kubernetes/issues/99425)",
         "remediation": "Please do not set `httpGet.host` in a pod liveness or readiness probe",
         "category": "Security",
+        "severity": 0.9,
     }
 }
 
@@ -42,6 +43,7 @@ checkDeploymentLike[actionItem] {
         "description": "Liveness probes that send requests to arbitrary destinations can lead to blind SSRF. [Read more](https://github.com/kubernetes/kubernetes/issues/99425)",
         "remediation": "Please do not set `httpGet.host` in a pod liveness or readiness probe",
         "category": "Security",
+        "severity": 0.9,
     }
 }
 
@@ -58,5 +60,6 @@ checkPod[actionItem] {
         "description": "Liveness probes that send requests to arbitrary destinations can lead to blind SSRF. [Read more](https://github.com/kubernetes/kubernetes/issues/99425)",
         "remediation": "Please do not set `httpGet.host` in a pod liveness or readiness probe",
         "category": "Security",
+        "severity": 0.9,
     }
 }
