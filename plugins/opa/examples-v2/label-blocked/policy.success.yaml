@@ -6,7 +6,7 @@ metadata:
   namespace: default
   labels:
     app: myapp
-     # Lack of this label will cause the policy to fail.
+     # Lack of the below label will cause the policy to succeed.
     #foo: xyz
 spec:
   replicas: 1

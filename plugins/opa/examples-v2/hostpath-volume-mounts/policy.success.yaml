@@ -1,6 +1,4 @@
 # This manifest is used to test the accompanying OPA policy.`
-# Applying this in your cluster could create a security vulnerability!
-# This deployment is for policy testing/validation only!
 apiVersion: apps/v1
 kind: Deployment
 metadata:

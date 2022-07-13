@@ -15,7 +15,6 @@ latestReplicaDateStale(replicaSets, elem) {
     owner.uid == elem.metadata.uid
     rs.status.replicas > 0
     comparisonDate := time.add_date(time.now_ns(), 0, 0, 0 - staleDays)
-print(comparisonDate)
     time.parse_rfc3339_ns(rs.metadata.creationTimestamp) < comparisonDate
 }
 freshDeployment[actionItem] {
