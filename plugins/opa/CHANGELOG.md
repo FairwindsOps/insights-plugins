@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.13
+* Validate modified OPA policies in CI.
+
 ## 2.0.12
 * update versions
 
