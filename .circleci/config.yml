@@ -45,25 +45,6 @@ commands:
             docker-push -f ./plugins/$plugin/build.config
           done
 
-  insights_test:
-    description: Fairwinds Insights CI integration
-    steps:
-    - run:
-        name: Run Insights CI script
-        command: |
-          if [ ${#CHANGED[@]} -gt 0 ]; then
-            echo "images:" >> fairwinds-insights.yaml
-            echo "  docker:" >> fairwinds-insights.yaml
-            for plugin in "${CHANGED[@]}"; do
-              source ./plugins/$plugin/build.config
-              echo "  - quay.io/$REPOSITORY_NAME:latest" >> fairwinds-insights.yaml
-            done
-            cat fairwinds-insights.yaml
-            curl -L https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
-            chmod +x ci-script.sh
-            ./ci-script.sh
-          fi
-
   check_version_changed:
     description: Check that version.txt changed if folder changed
     steps:
@@ -101,7 +82,6 @@ jobs:
     executor: ci-images
     steps:
       - docker_build
-      - insights_test
       - slack/notify:
           event: fail
           branch_pattern: main
@@ -111,7 +91,6 @@ jobs:
     executor: ci-images-large
     steps:
       - docker_build
-      - insights_test
       - docker_push_plugins
       - slack/notify:
           event: fail
