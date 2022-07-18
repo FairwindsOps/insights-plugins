@@ -12,7 +12,7 @@ require (
 	github.com/fairwindsops/pluto/v5 v5.9.1-0.20220629194848-a932cda953da
 	github.com/fairwindsops/polaris v0.0.0-20220512134546-92f0b6e551df
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.4
+	github.com/stretchr/testify v1.8.0
 	github.com/thoas/go-funk v0.9.2
 	k8s.io/apimachinery v0.24.2
 	sigs.k8s.io/controller-runtime v0.12.2
@@ -78,7 +78,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/open-policy-agent/opa v0.41.0 // indirect
+	github.com/open-policy-agent/opa v0.42.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.12.2 // indirect

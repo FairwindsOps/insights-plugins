@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.19.3
+* Update alpine to remove CVE
+
 ## 0.19.2
 * update versions
 
