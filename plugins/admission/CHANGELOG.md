@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.3
+* Update alpine to remove CVE
+
 ## 1.5.2
 * Fix admission-controller bug where Pluto deprecation/removal were not being populated.
 
