@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.14
+* Update alpine to remove CVE
+
 ## 2.0.13
 * Validate modified OPA policies in CI.
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.6
+* Update alpine to remove CVE
+
 ## 1.0.5
 * update versions
 

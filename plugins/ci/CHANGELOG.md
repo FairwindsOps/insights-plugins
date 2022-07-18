@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.3
+* Update alpine to remove CVE
+
 ## 2.0.2
 * Add debug info
 

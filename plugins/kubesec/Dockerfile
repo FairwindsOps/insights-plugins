@@ -1,4 +1,4 @@
-FROM alpine:3.16
+FROM alpine:20220715
 
 RUN echo "TODO: this line just removes a cached layer"
 # Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
@@ -10,7 +10,7 @@ RUN pip3 install yq
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
 ENV GOPATH=/home/ubuntu/go/
-RUN curl -L "https://github.com/controlplaneio/kubesec/releases/download/v2.11.4/kubesec_linux_amd64.tar.gz" > kubesec.tar.gz && tar -xvf kubesec.tar.gz && mv kubesec /usr/bin/ && rm kubesec.tar.gz
+RUN curl -L "https://github.com/controlplaneio/kubesec/releases/download/v2.11.5/kubesec_linux_amd64.tar.gz" > kubesec.tar.gz && tar -xvf kubesec.tar.gz && mv kubesec /usr/bin/ && rm kubesec.tar.gz
 
 COPY . .
 
