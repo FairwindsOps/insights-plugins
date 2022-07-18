@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.16
+* update alpine
+
 ## 1.2.15
 * Bump alpine to 3.16
 

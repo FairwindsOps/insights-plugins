@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.19.3
+* update alpine
+
 ## 0.19.2
 * update versions
 
