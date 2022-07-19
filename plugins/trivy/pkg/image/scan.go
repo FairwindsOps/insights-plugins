@@ -158,7 +158,6 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
 		}
 	}
-	logrus.Infof("Pulling %s", pullRef)
 
 	args = append(args, pullRef)
 	cmd := exec.Command("trivy", args...)
