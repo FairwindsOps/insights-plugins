@@ -21,6 +21,22 @@ const retryCount = 3
 
 var nonWordRegexp = regexp.MustCompile("\\W+")
 
+var registryPassword = os.Getenv("REGISTRY_PASSWORD")
+var registryUser = os.Getenv("REGISTRY_USER")
+var registryCertDir = os.Getenv("REGISTRY_CERT_DIR")
+
+func init() {
+	passwordFile := os.Getenv("REGISTRY_PASSWORD_FILE")
+	if passwordFile != "" {
+		logrus.Infof("Reading registry password from %s", passwordFile)
+	    content, err := os.ReadFile(passwordFile)
+		if err != nil {
+			panic(err)
+		}
+		registryPassword = string(content)
+	}
+}
+
 // GetLastReport returns the last report for Trivy from Fairwinds Insights
 func GetLastReport() (*models.MinimizedReport, error) {
 	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") + "/data/trivy/latest.json"
@@ -208,6 +224,16 @@ func downloadPullRef(pullRef string) (string, error) {
 	dest := TempDir + imageID
 	imageMessage := fmt.Sprintf("image %s", pullRef)
 
-	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:" + dest), "pulling "+imageMessage)
+	args := []string{"copy"}
+
+	if registryUser != "" || registryPasword != "" {
+		args = append(args, "--src-creds", registryUser + ":" + registryPassword)
+	}
+	if registryCertDir != "" {
+		args = append(args, "--src-cert-dir", registryCertDir)
+	}
+
+	args = append(args, "docker://"+pullRef, "docker-archive:" + dest)
+	err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
 	return dest, err
 }
