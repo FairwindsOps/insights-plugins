@@ -226,7 +226,7 @@ func downloadPullRef(pullRef string) (string, error) {
 
 	args := []string{"copy"}
 
-	if registryUser != "" || registryPasword != "" {
+	if registryUser != "" || registryPassword != "" {
 		args = append(args, "--src-creds", registryUser + ":" + registryPassword)
 	}
 	if registryCertDir != "" {
