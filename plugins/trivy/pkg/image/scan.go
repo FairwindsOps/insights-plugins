@@ -158,8 +158,17 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
 		}
 	}
-
-	args = append(args, pullRef)
+	
+	logrus.Infof("Downloading image %s", pullRef)
+	dest, err := downloadPullRef(pullRef)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		logrus.Info("removing " + imageID)
+		os.Remove(imageDir + imageID)
+	}()
+	args = append(args, "--input", pullRef)
 	cmd := exec.Command("trivy", args...)
 	err := util.RunCommand(cmd, "scanning "+pullRef)
 
@@ -191,4 +200,17 @@ func GetShaFromID(id string) string {
 		return strings.Split(id, "@")[1]
 	}
 	return id
+}
+
+func downloadPullRef(pullRef string) (string, error) {
+	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
+	dest := TempDir + imageID
+	imageMessage := fmt.Sprintf("image %s", pullRef)
+
+	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:" + dest), "pulling "+imageMessage)
+
+	if err != nil {
+		return nil, err
+	}
+	return dest, nil
 }
