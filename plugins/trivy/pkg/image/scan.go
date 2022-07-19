@@ -160,16 +160,16 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	}
 	
 	logrus.Infof("Downloading image %s", pullRef)
-	dest, err := downloadPullRef(pullRef)
+	imageFile, err := downloadPullRef(pullRef)
 	if err != nil {
 		logrus.Errorf("Error while downloading image: %v", err)
 		return nil, err
 	}
 	defer func() {
-		logrus.Info("removing " + imageID)
-		os.Remove(imageDir + imageID)
+		logrus.Infof("removing image file %s", imageFile)
+		os.Remove(imageFile)
 	}()
-	args = append(args, "--input", pullRef)
+	args = append(args, "--input", imageFile)
 	cmd := exec.Command("trivy", args...)
 	err := util.RunCommand(cmd, "scanning "+pullRef)
 
