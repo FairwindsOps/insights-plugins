@@ -279,7 +279,7 @@ func setEnv() {
 		}
 	}
 
-	err = util.CheckEnvironmentVariables()
+	err := util.CheckEnvironmentVariables()
 	if err != nil {
 		panic(err)
 	}
