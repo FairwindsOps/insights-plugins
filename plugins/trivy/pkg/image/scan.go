@@ -171,7 +171,7 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	}()
 	args = append(args, "--input", imageFile)
 	cmd := exec.Command("trivy", args...)
-	err := util.RunCommand(cmd, "scanning "+pullRef)
+	err = util.RunCommand(cmd, "scanning "+pullRef)
 
 	if err != nil {
 		logrus.Errorf("Error scanning %s: %v", pullRef, err)
@@ -209,9 +209,5 @@ func downloadPullRef(pullRef string) (string, error) {
 	imageMessage := fmt.Sprintf("image %s", pullRef)
 
 	err := util.RunCommand(exec.Command("skopeo", "copy", "docker://"+pullRef, "docker-archive:" + dest), "pulling "+imageMessage)
-
-	if err != nil {
-		return nil, err
-	}
-	return dest, nil
+	return dest, err
 }
