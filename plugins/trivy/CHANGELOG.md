@@ -2,9 +2,6 @@
 ## 0.20.0
 * Offline support
 
-## 0.19.0
-* Support offline scanning
-
 ## 0.19.3
 * Update alpine to remove CVE
 
