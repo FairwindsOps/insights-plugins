@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.5.3
+* Update alpine to remove CVE
+
+## 1.5.2
+* Fix admission-controller bug where Pluto deprecation/removal were not being populated.
+
+## 1.5.1
+* Improve Docker image rebuilding by using mount-cache.
+
+## 1.5.0
+* Update admission controller to support Pluto
+
+## 1.4.1
+* update versions
+
+## 1.4.0
+* Added polaris mutation option
+
+## 1.3.7
+* Bump alpine to 3.16
+
+## 1.3.6
+* update versions
+
+## 1.3.5
+* update versions
+
 ## 1.3.4
 * Trivy bug fix
 

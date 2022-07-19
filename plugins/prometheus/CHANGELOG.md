@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.4
+* Update alpine to remove CVE
+
+## 1.0.3
+* Bump alpine to 3.16
+
+## 1.0.2
+* update versions
+
 ## 1.0.1
 * Update vulnerable packages
 

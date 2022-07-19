@@ -10,7 +10,6 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
-	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
 )
@@ -39,6 +38,7 @@ func (ci *CIScan) ProcessHelmTemplates() error {
 				}
 			}
 		} else {
+			logrus.Debugf("cannot determine the type of helm config for: %#v\n", helm)
 			return fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name)
 		}
 	}
@@ -89,19 +89,19 @@ func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder stri
 	if len(helmRelease.Spec.ValuesFrom) > 0 {
 		logrus.Warnf("fluxFile: %v - spec.valuesFrom not supported, it won't be applied...", helm.FluxFile)
 	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, chartName, helmRelease.Spec.Chart.Spec.Version, helm.ValuesFile, helm.Values, helmRelease.Spec.Values, tempFolder, configFolder)
+	return doHandleRemoteHelmChart(helm, chartName, helmRelease.Spec.Chart.Spec.Version, helmRelease.Spec.Values, tempFolder, configFolder)
 }
 
 func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFolder string) error {
 	if helm.Name == "" || helm.Chart == "" || helm.Repo == "" {
 		return errors.New("Parameters 'name', 'repo' and 'chart' are required in helm definition")
 	}
-	return doHandleRemoteHelmChart(helm.Name, helm.Repo, helm.Chart, helm.Version, helm.ValuesFile, helm.Values, nil, tempFolder, configFolder)
+	return doHandleRemoteHelmChart(helm, helm.Chart, helm.Version, nil, tempFolder, configFolder)
 }
 
-func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesFile string, values, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
-	repoName := fmt.Sprintf("%s-%s-repo", helmName, chartName)
-	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, repoURL), "Adding chart repository: "+repoName)
+func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion string, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
+	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, chartName)
+	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
 	if err != nil {
 		return err
 	}
@@ -122,11 +122,11 @@ func doHandleRemoteHelmChart(helmName, repoURL, chartName, chartVersion, valuesF
 		return err
 	}
 
-	helmValuesFilePath, err := resolveHelmValuesPath(valuesFile, values, fluxValues, tempFolder)
+	helmValuesFiles, err := processHelmValues(helm, fluxValues, tempFolder)
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helmName, chartDownloadPath, helmValuesFilePath, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, chartDownloadPath, helmValuesFiles, tempFolder, configFolder)
 }
 
 func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
@@ -134,74 +134,82 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 		return errors.New("Parameters 'name' and 'path' are required in helm definition")
 	}
 
-	helmValuesFilePath, err := resolveHelmValuesPath(helm.ValuesFile, helm.Values, nil, tempFolder)
+	helmValuesFiles, err := processHelmValues(helm, nil, tempFolder)
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm.Name, filepath.Join(baseRepoFolder, helm.Path), filepath.Join(baseRepoFolder, helmValuesFilePath), tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, filepath.Join(baseRepoFolder, helm.Path), helmValuesFiles, tempFolder, configFolder)
 }
 
-func doHandleLocalHelmChart(helmName, helmPath, helmValuesFilePath, tempFolder, configFolder string) error {
-	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helmName)
+func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
+	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
 		return err
 	}
 
-	params := []string{"template", helmName, helmPath, "--output-dir", configFolder + helmName, "-f", helmValuesFilePath}
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helmName)
+	var helmValuesFileArgs []string
+	for _, vf := range helmValuesFiles {
+		helmValuesFileArgs = append(helmValuesFileArgs, "-f", vf)
+	}
+	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
+	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func resolveHelmValuesPath(valuesFile string, values map[string]interface{}, fluxValues map[string]interface{}, tempFolder string) (string, error) {
-	hasValuesFile := valuesFile != ""
-	hasValues := len(values) > 0
+// processHelmValues returns a slice of HElm values files after processing values and values-files from a models.HelmConfig and the
+// fluxValues parameter. Any Helm values are written to a file.
+func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}, tempFolder string) (valuesFileNames []string, err error) {
+	hasValuesFile := helm.ValuesFile != ""
+	hasValuesFiles := len(helm.ValuesFiles) > 0
+	hasValues := len(helm.Values) > 0
 	hasFluxValues := len(fluxValues) > 0
-
-	if hasValuesFile || hasValues || hasFluxValues { // has any
-		if !util.ExactlyOneOf(hasValuesFile, hasValues, hasFluxValues) { // if has any, must have exactly one
-			return "", fmt.Errorf("only one of valuesFile, values or <fluxFile>.values can be specified")
-		}
-	}
-
-	if hasValuesFile {
-		return valuesFile, nil
-	}
-
-	if hasValues {
-		yaml, err := yaml.Marshal(values)
-		if err != nil {
-			return "", err
-		}
-		valuesFilePath := tempFolder + "helm-values.yaml"
-		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
-		if err != nil {
-			return "", err
-		}
-		return valuesFilePath, nil
-	}
 
 	if hasFluxValues {
 		yaml, err := yaml.Marshal(fluxValues)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		valuesFilePath := tempFolder + "flux-helm-values.yaml"
-		err = ioutil.WriteFile(valuesFilePath, yaml, 0644)
+		fluxValuesFilePath := tempFolder + "flux-helm-values.yaml"
+		err = ioutil.WriteFile(fluxValuesFilePath, yaml, 0644)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return valuesFilePath, nil
+		valuesFileNames = append(valuesFileNames, fluxValuesFilePath)
 	}
-	return "", nil
+	if hasValuesFile {
+		valuesFileNames = append(valuesFileNames, helm.ValuesFile)
+	}
+	if hasValuesFiles {
+		if hasValuesFile {
+			logrus.Warnf("Both ValuesFile and ValuesFiles are present in Helm configuration %q, it is recommended to list all values files in the ValuesFiles list", helm.Name)
+		}
+		for _, i := range helm.ValuesFiles {
+			valuesFileNames = append(valuesFileNames, i)
+		}
+	}
+	if hasValues {
+		yaml, err := yaml.Marshal(helm.Values)
+		if err != nil {
+			return nil, err
+		}
+		inlineValuesFilePath := tempFolder + "fairwinds-insights-helm-values.yaml"
+		err = ioutil.WriteFile(inlineValuesFilePath, yaml, 0644)
+		if err != nil {
+			return nil, err
+		}
+		valuesFileNames = append(valuesFileNames, inlineValuesFilePath)
+	}
+	logrus.Debugf("returning processed Helm values and values-files as these Helm values file names: %v for Helm configuration: %#v\n", valuesFileNames, helm)
+	return valuesFileNames, nil
 }
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CIScan) CopyYaml() error {
 	for _, yamlPath := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder")
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: " + yamlPath)
 		if err != nil {
 			return err
 		}

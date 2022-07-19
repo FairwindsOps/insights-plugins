@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.17
+* Update alpine to remove CVE
+
+## 0.2.16
+* Bump alpine to 3.16
+
+## 0.2.15
+* update versions
+
+## 0.2.14
+* update versions
+
+## 0.2.13
+* Update kube-bench to 0.6.7
 ## 0.2.12
 * Update vulnerable packages
 

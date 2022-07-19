@@ -102,6 +102,8 @@ do
     echo "Athena query Finished"
     if [ $status != "SUCCEEDED" ]; then
     echo "Athena failed to execute query with status=$status"
+    echo "Displaying full query-execution output:"
+    aws athena get-query-execution --query-execution-id $executionId --output json
     exit 3
   fi
   break

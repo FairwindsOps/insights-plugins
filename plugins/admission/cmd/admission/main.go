@@ -34,7 +34,7 @@ func exitWithError(message string, err error) {
 }
 
 var handler fadmission.Validator
-
+var mutatorHandler fadmission.Mutator
 var organization string
 var hostname string
 var cluster string
@@ -74,6 +74,7 @@ func refreshConfig() error {
 		tempConfig.Polaris = &polarisConfig
 	}
 	handler.InjectConfig(tempConfig)
+	mutatorHandler.InjectConfig(tempConfig)
 	return nil
 }
 
@@ -164,6 +165,7 @@ func main() {
 	server.KeyName = "tls.key"
 
 	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &handler})
+	mgr.GetWebhookServer().Register("/mutate", &webhook.Admission{Handler: &mutatorHandler})
 
 	logrus.Infof("Starting webhook manager %s (OPA %s)", admissionversion.String(), opaversion.String())
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {

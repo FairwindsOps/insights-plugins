@@ -12,6 +12,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/opa"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/pluto"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/polaris"
 )
 
@@ -167,7 +168,21 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 		reports = append(reports, opaReport)
 	}
 
-	// TODO add Pluto report
+	if configurationObject.Reports.Pluto {
+		logrus.Info("Running Pluto")
+		userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
+		userTargetVersions, err := pluto.ParsePlutoTargetVersions(userTargetVersionsStr)
+		if err != nil {
+			logrus.Errorf("unable to parse pluto target versions %q: %v", userTargetVersionsStr, err)
+			return false, nil, nil, err
+		}
+		plutoReport, err := pluto.ProcessPluto(input, userTargetVersions)
+		if err != nil {
+			return false, nil, nil, err
+		}
+		reports = append(reports, plutoReport)
+	}
+
 	results, warnings, errors, err := SendResults(reports, token)
 	if err != nil {
 		return false, nil, nil, err

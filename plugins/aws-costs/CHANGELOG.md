@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.6
+* Update alpine to remove CVE
+
+## 1.0.5
+* update versions
+
+## 1.0.4
+* Get and output the full query-execution from Athena when a query does not succeed.
+
+## 1.0.3
+* update versions
+
+## 1.0.2
+* Update packages
+
 ## 1.0.1
 * Update vulnerable packages
 

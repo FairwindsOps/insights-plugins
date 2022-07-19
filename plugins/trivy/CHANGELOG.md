@@ -1,9 +1,30 @@
 # Changelog
-## 0.17.1
+## 0.20.0
 * Offline support
 
 ## 0.19.0
 * Support offline scanning
+
+## 0.19.3
+* Update alpine to remove CVE
+
+## 0.19.2
+* update versions
+
+## 0.19.1
+* Bump alpine to 3.16
+
+## 0.19.0
+* Add os/architecture information to trivy report
+
+## 0.18.8
+* update versions
+
+## 0.18.7
+* Revert trivy version
+
+## 0.18.6
+* Update packages
 
 ## 0.18.5
 * Image recommendation cleanup bug fix

@@ -1,4 +1,4 @@
-FROM alpine:3.15
+FROM alpine:20220715
 
 RUN apk update
 RUN apk add curl

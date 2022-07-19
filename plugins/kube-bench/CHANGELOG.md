@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.14
+* Update alpine to remove CVE
+
+## 0.3.13
+* update versions
+
+## 0.3.12
+* update versions
+
+## 0.3.11
+* Update kube-bench to 0.6.7
+
 ## 0.3.10
 * Fix go.mod `module`, and `import`s, to use plugins sub-directory.
 
