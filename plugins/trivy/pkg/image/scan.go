@@ -162,6 +162,7 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	logrus.Infof("Downloading image %s", pullRef)
 	dest, err := downloadPullRef(pullRef)
 	if err != nil {
+		logrus.Errorf("Error while downloading image: %v", err)
 		return nil, err
 	}
 	defer func() {
