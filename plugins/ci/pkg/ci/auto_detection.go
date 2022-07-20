@@ -106,7 +106,7 @@ func isFluxManifest(path string) bool {
 		return false
 	}
 	for _, manifest := range k8sManifests {
-		if !manifest.ApiVersion != nil && strings.Contains(*manifest.ApiVersion, "toolkit.fluxcd.io") {
+		if manifest.ApiVersion != nil && strings.Contains(*manifest.ApiVersion, "toolkit.fluxcd.io") {
 			return false
 		}
 	}
