@@ -6,6 +6,7 @@ for d in ./plugins/*/ ; do
     echo -e "\n\n\n\n$d"
     if [[ $SKIP == *"$d"* ]]; then
       echo "skipping!"
+      continue
     fi
     cd $d
     name=$(echo $d | sed 's/\.\/plugins\///' | sed 's/\///')
