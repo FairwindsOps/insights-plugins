@@ -133,7 +133,7 @@ func getPossibleKubernetesManifests(path string) []KubernetesManifest {
 	manifests := []KubernetesManifest{}
 	for _, spec := range specs {
 		var k8sManifest KubernetesManifest
-		err = yaml.Unmarshal(content, &k8sManifest)
+		err = yaml.Unmarshal([]byte(spec), &k8sManifest)
 		if err != nil {
 			// not being to unmarshal means it is not a k8s file
 			continue
