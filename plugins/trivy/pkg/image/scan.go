@@ -208,6 +208,8 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		logrus.Errorf("Error decoding report %s: %s", imageID, err)
 		return nil, err
 	}
+	
+	logrus.Infof("Successfully scanned %s", imageID)
 
 	return &report, nil
 }
