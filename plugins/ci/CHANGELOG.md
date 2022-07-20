@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.4
+* Fix auto-detection for YAML files containing multiple specs separated by `---`
+
 ## 2.0.3
 * Update alpine to remove CVE
 
