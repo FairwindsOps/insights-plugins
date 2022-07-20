@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.19
+* move to official alpine tag
+
 ## 1.3.18
 * Update alpine to remove CVE
 

@@ -28,7 +28,7 @@ COPY ./admission/cmd cmd
 RUN --mount=type=cache,target=/root/.cache/go-build packr2 build /go/pkg/mod/github.com/fairwindsops/polaris*/main.go
 RUN --mount=type=cache,target=/root/.cache/go-build go build ./cmd/admission
 
-FROM alpine:20220715
+FROM alpine:3.16.1
 WORKDIR /insights
 COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/plugins/admission/admission /usr/local/bin/insights-admission
 

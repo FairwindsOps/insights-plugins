@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.19.4
+* move to official alpine tag
+
 ## 0.19.3
 * Update alpine to remove CVE
 
