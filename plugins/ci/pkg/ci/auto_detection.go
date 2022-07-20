@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
@@ -105,7 +106,7 @@ func isFluxManifest(path string) bool {
 		return false
 	}
 	for _, manifest := range k8sManifests {
-		if !strings.Contains(*k8sManifest.ApiVersion, "toolkit.fluxcd.io") {
+		if !strings.Contains(manifest.ApiVersion, "toolkit.fluxcd.io") {
 			return false
 		}
 	}
@@ -116,8 +117,8 @@ func isKubernetesManifest(path string) bool {
 	return len(getPossibleKubernetesManifest(path)) > 0
 }
 
-// getPossibleKubernetesManifest returns a kubernetesManifest from given path, nil if could not be open or parsed
-func getPossibleKubernetesManifest(path string) *KubernetesManifest {
+// getPossibleKubernetesManifests returns a kubernetesManifest from given path, nil if could not be open or parsed
+func getPossibleKubernetesManifests(path string) []KubernetesManifest {
 	file, err := os.Open(path)
 	if err != nil {
 		logrus.Debugf("Could not open file %s", path)
@@ -128,7 +129,7 @@ func getPossibleKubernetesManifest(path string) *KubernetesManifest {
 		logrus.Debugf("Could not read contents from file %s", file.Name())
 		return nil
 	}
-	specs := regexp.MustCompile("[\r\n]-+[\r\n]").Split(string(contents), -1)
+	specs := regexp.MustCompile("[\r\n]-+[\r\n]").Split(string(content), -1)
 	manifests := []KubernetesManifest{}
 	for _, spec := range specs {
 		var k8sManifest KubernetesManifest
