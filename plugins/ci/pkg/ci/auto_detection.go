@@ -106,7 +106,7 @@ func isFluxManifest(path string) bool {
 		return false
 	}
 	for _, manifest := range k8sManifests {
-		if !strings.Contains(manifest.ApiVersion, "toolkit.fluxcd.io") {
+		if !manifest.ApiVersion != nil && strings.Contains(*manifest.ApiVersion, "toolkit.fluxcd.io") {
 			return false
 		}
 	}
@@ -114,7 +114,7 @@ func isFluxManifest(path string) bool {
 }
 
 func isKubernetesManifest(path string) bool {
-	return len(getPossibleKubernetesManifest(path)) > 0
+	return len(getPossibleKubernetesManifests(path)) > 0
 }
 
 // getPossibleKubernetesManifests returns a kubernetesManifest from given path, nil if could not be open or parsed
