@@ -57,17 +57,27 @@ func main() {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
 	clusterImagesToKeep := getClusterImagesToKeep(images, *lastReport, imagesToScan)
+	logrus.Infof("Starting image scans")
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
-	recommendationsToScan := getNewestVersionsToScan(ctx, allReports, imagesToScan)
-	recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
-	recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
-	lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
-	aggregated := append(allReports, recommendationReport...)
+	lastReport.Images = clusterImagesToKeep
+	aggregated := allReports
+	if os.Getenv("NO_RECOMMENDATIONS") == "" {
+		logrus.Infof("Scanning recommendations")
+		recommendationsToScan := getNewestVersionsToScan(ctx, allReports, imagesToScan)
+		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
+		recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
+		logrus.Infof("Dones scanning recommendations")
+		recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
+		lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
+		aggregated = append(allReports, recommendationReport...)
+	}
+	logrus.Infof("Done with all scans, minimizing report")
 	minimizedReport := image.Minimize(aggregated, *lastReport)
 	data, err := json.Marshal(minimizedReport)
 	if err != nil {
 		logrus.Fatalf("could not marshal report: %v", err)
 	}
+	logrus.Infof("Writing to file %s", outputFile)
 	err = ioutil.WriteFile(outputFile, data, 0644)
 	if err != nil {
 		logrus.Fatalf("could not write to output file: %v", err)
