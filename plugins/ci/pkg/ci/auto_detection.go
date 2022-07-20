@@ -29,6 +29,7 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 
 	err := filepath.Walk(basePath,
 		func(path string, info os.FileInfo, err error) error {
+			logrus.Infof("Looking at path %s", path)
 			if err != nil {
 				return fmt.Errorf("Could not walk into dir: %v", err)
 			}
@@ -44,6 +45,7 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 				}
 
 				if helmFolder {
+					logrus.Infof("Found Helm chart at %s", path)
 					relPath, err := filepath.Rel(basePath, path)
 					if err != nil {
 						return err
@@ -51,7 +53,6 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 					helmFolders = append(helmFolders, relPath)
 					return filepath.SkipDir
 				}
-				logrus.Debugf("this is a directory: %s", info.Name())
 				return nil
 			}
 
@@ -61,17 +62,17 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 			}
 
 			if !funk.ContainsString(supportedExtensions, fileExtension[1:]) {
-				logrus.Debugf("file extension '%s' not supported for file %v", fileExtension, path)
+				logrus.Debugf("File extension '%s' not supported for file %v", fileExtension, path)
 				return nil
 			}
 
 			if isFluxManifest(path) {
-				logrus.Debugf("file '%s' is a flux manifest, skipping...", path)
+				logrus.Debugf("File '%s' is a flux manifest, skipping...", path)
 				return nil
 			}
 
 			if !isKubernetesManifest(path) {
-				logrus.Debugf("file %s is NOT a k8s manifest, skipping...", path)
+				logrus.Debugf("File %s is not a k8s manifest, skipping...", path)
 				return nil
 			}
 
@@ -79,7 +80,7 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 			if err != nil {
 				return err
 			}
-			logrus.Debugf("it is a k8s manifest: %s", path)
+			logrus.Debugf("Found k8s manifest at %s", path)
 			k8sManifests = append(k8sManifests, relPath)
 			return nil
 		})
@@ -99,15 +100,20 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 }
 
 func isFluxManifest(path string) bool {
-	k8sManifest := getPossibleKubernetesManifest(path)
-	if k8sManifest == nil {
+	k8sManifests := getPossibleKubernetesManifests(path)
+	if len(k8sManifests) == 0 {
 		return false
 	}
-	return strings.Contains(*k8sManifest.ApiVersion, "toolkit.fluxcd.io")
+	for _, manifest := range k8sManifests {
+		if !strings.Contains(*k8sManifest.ApiVersion, "toolkit.fluxcd.io") {
+			return false
+		}
+	}
+	return true
 }
 
 func isKubernetesManifest(path string) bool {
-	return getPossibleKubernetesManifest(path) != nil
+	return len(getPossibleKubernetesManifest(path)) > 0
 }
 
 // getPossibleKubernetesManifest returns a kubernetesManifest from given path, nil if could not be open or parsed
@@ -122,17 +128,22 @@ func getPossibleKubernetesManifest(path string) *KubernetesManifest {
 		logrus.Debugf("Could not read contents from file %s", file.Name())
 		return nil
 	}
-	var k8sManifest KubernetesManifest
-	err = yaml.Unmarshal(content, &k8sManifest)
-	if err != nil {
-		// not being to unmarshal means it is not a k8s file
-		return nil
+	specs := regexp.MustCompile("[\r\n]-+[\r\n]").Split(string(contents), -1)
+	manifests := []KubernetesManifest{}
+	for _, spec := range specs {
+		var k8sManifest KubernetesManifest
+		err = yaml.Unmarshal(content, &k8sManifest)
+		if err != nil {
+			// not being to unmarshal means it is not a k8s file
+			continue
+		}
+		if k8sManifest.ApiVersion == nil || k8sManifest.Kind == nil {
+			// not having either apiVersion nor kind means it is not a k8s file
+			continue
+		}
+		manifests = append(manifests, k8sManifest)
 	}
-	if k8sManifest.ApiVersion == nil || k8sManifest.Kind == nil {
-		// not having either apiVersion nor kind means it is not a k8s file
-		return nil
-	}
-	return &k8sManifest
+	return manifests
 }
 
 func isHelmBaseFolder(path string) (bool, error) {
