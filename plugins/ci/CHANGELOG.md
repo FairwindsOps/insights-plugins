@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.0
+* update Trivy plugin
+
 ## 2.0.3
 * Update alpine to remove CVE
 
