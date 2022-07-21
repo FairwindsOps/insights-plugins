@@ -1,4 +1,6 @@
 # Changelog
+## 2.0.3
+* Fix OPA panic if `kind` field is missing
 
 ## 2.0.3
 * Update alpine to remove CVE
