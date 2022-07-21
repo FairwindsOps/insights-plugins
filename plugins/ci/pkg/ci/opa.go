@@ -56,14 +56,20 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 				}
 				break
 			}
-			resourceKind := yamlNode["kind"].(string)
-			if resourceKind == "list" {
-				nodes := yamlNode["items"].([]interface{})
-				for _, node := range nodes {
-					nodeMap := node.(map[string]interface{})
-					files = append(files, nodeMap)
+
+			if yamlKind, ok := yamlNode["kind"]; ok {
+				resourceKind := yamlKind.(string)
+				if resourceKind == "list" {
+					nodes := yamlNode["items"].([]interface{})
+					for _, node := range nodes {
+						nodeMap := node.(map[string]interface{})
+						files = append(files, nodeMap)
+					}
+				} else {
+					files = append(files, yamlNode)
 				}
 			} else {
+				logrus.Warn("Manifest is missing field Kind")
 				files = append(files, yamlNode)
 			}
 		}
