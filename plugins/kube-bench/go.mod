@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.44.58 // indirect
+	github.com/aws/aws-sdk-go v1.44.60 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -24,7 +24,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.12.0 // indirect
 	github.com/subosito/gotenv v1.4.0 // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/sys v0.0.0-20220721230656-c6bc011c0c49 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
