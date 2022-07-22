@@ -19,7 +19,11 @@ commands:
     description: Build docker Images
     steps:
     - checkout
-    - setup_remote_docker
+    - setup_remote_docker:
+        version: 20.10.11
+        # Docker Layer Caching saves /var/lib/docker in a persistent volume,
+        # for Dockerfiles that use `RUN --mount=type=cache. . .`
+        docker_layer_caching: true
     - set_environment_variables
     - set_tags
     - run:
@@ -27,7 +31,7 @@ commands:
         command: |
           for plugin in "${CHANGED[@]}"; do
             docker-pull -f ./plugins/$plugin/build.config
-            ROK8S_DOCKER_BUILD_EXTRAARGS="--no-cache" docker-build -f ./plugins/$plugin/build.config
+            DOCKER_BUILDKIT=1 docker-build -f ./plugins/$plugin/build.config
           done
 
   docker_push_plugins:
@@ -40,25 +44,6 @@ commands:
           for plugin in "${CHANGED[@]}"; do
             docker-push -f ./plugins/$plugin/build.config
           done
-
-  insights_test:
-    description: Fairwinds Insights CI integration
-    steps:
-    - run:
-        name: Run Insights CI script
-        command: |
-          if [ ${#CHANGED[@]} -gt 0 ]; then
-            echo "images:" >> fairwinds-insights.yaml
-            echo "  docker:" >> fairwinds-insights.yaml
-            for plugin in "${CHANGED[@]}"; do
-              source ./plugins/$plugin/build.config
-              echo "  - quay.io/$REPOSITORY_NAME:latest" >> fairwinds-insights.yaml
-            done
-            cat fairwinds-insights.yaml
-            curl -L https://insights.fairwinds.com/v0/insights-ci.sh > ci-script.sh
-            chmod +x ci-script.sh
-            ./ci-script.sh
-          fi
 
   check_version_changed:
     description: Check that version.txt changed if folder changed
@@ -97,7 +82,6 @@ jobs:
     executor: ci-images
     steps:
       - docker_build
-      - insights_test
       - slack/notify:
           event: fail
           branch_pattern: main
@@ -107,7 +91,6 @@ jobs:
     executor: ci-images-large
     steps:
       - docker_build
-      - insights_test
       - docker_push_plugins
       - slack/notify:
           event: fail
@@ -189,12 +172,57 @@ jobs:
                 ]
             }
 
+  validate_modified_opa_policies:
+    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
+    executor: ci-images
+    steps:
+      - checkout
+      - set_environment_variables
+      - setup_remote_docker
+      - run: ./.circleci/scripts/install-insights-cli.sh
+      - run: ./scripts/validate-modified-opa-policies.sh
+      - slack/notify:
+          event: fail
+          custom: |
+            {
+                "text": "One or more modified OPA policies in insights-plugins has failed validation",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "One or more modified OPA policies in insights-plugins has failed validation!\n\n$FAILED_OPA_POLICIES_MARKDOWN"
+                        }
+                    }
+                ]
+            }
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+                "text": "All modified OPA policies in insights-plugins have passed validation",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":tada: All modified OPA policies in insights-plugins have passed validation!"
+                        }
+                    }
+                ]
+            }
+
 workflows:
   version: 2
   release:
     jobs:
       - test
       - check_version_changed
+      - validate_modified_opa_policies:
+          name: Validate Modified OPA Policies
+          requires:
+            - test
+            - check_version_changed
       - build_plugins:
           filters:
             branches:

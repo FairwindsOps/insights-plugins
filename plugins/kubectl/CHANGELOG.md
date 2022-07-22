@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.19.18
+* Update alpine to remove CVE
+
 ## 0.19.17
 * Bump alpine to 3.16
 

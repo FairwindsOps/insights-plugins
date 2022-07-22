@@ -1,9 +1,10 @@
+# This manifest is used to test the accompanying OPA policy.
 apiVersion: v1
 kind: Pod
 metadata:
   name: policy-test
-  # This pod being in the default namespace should cause the policy to fail.
-  namespace: default
+  # This namespace other than `default` will cause the policy to succeed.
+  namespace: myapp
   labels:
     app: myapp
 spec:

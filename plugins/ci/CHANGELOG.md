@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.0
+* update Trivy plugin
+
+## 2.0.3
+* Update alpine to remove CVE
+
+## 2.0.2
+* Add debug info
+
+## 2.0.1
+* update versions
+
+## 2.0.0
+* updated CI NewActionItemThreshold default to -1
+
 ## 1.6.2
 * Fix auto-detection on resolving non-kubernetes manifests.
 
