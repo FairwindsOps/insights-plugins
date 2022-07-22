@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.0
+* Fixing failing tags fetch from `quay.io`
+
 ## 0.19.3
 * Update alpine to remove CVE
 

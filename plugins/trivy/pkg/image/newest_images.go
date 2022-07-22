@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/docker/docker/api/types"
-	"github.com/genuinetools/reg/registry"
-	"github.com/genuinetools/reg/repoutils"
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	version "github.com/mcuadros/go-version"
 	"github.com/sirupsen/logrus"
 )
@@ -28,7 +28,7 @@ const MaxNewestVersionsToScan = 1
 // GetNewestVersions returns newest versions and newest version within same major version
 func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) {
 	logrus.Info("Started retrieving newest versions for ", repo, ":", tag)
-	tags, err := fetchTags(ctx, repo, tag)
+	tags, err := fetchTags(ctx, repo)
 	if err != nil {
 		logrus.Error("Error fetching tags for ", repo, ":", tag, err)
 		return nil, err
@@ -42,34 +42,16 @@ func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) 
 	return newest[len(newest)-MaxNewestVersionsToScan:], nil
 }
 
-func fetchTags(ctx context.Context, imageName, tag string) ([]string, error) {
-	image, err := registry.ParseImage(imageName)
+func fetchTags(ctx context.Context, imageRepoName string) ([]string, error) {
+	repository, err := name.NewRepository(imageRepoName)
 	if err != nil {
 		return nil, err
 	}
-	r, err := createRegistryClient(ctx, image.Domain)
-	if err != nil {
-		return nil, err
-	}
-	tags, err := r.Tags(ctx, image.Path)
+	tags, err := remote.List(repository, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
 	return tags, nil
-}
-
-func createRegistryClient(ctx context.Context, domain string) (*registry.Registry, error) {
-	auth := types.AuthConfig{}
-	if domain == "docker.io" {
-		auth.ServerAddress = repoutils.DefaultDockerRegistry
-	}
-	return registry.New(ctx, auth, registry.Opt{
-		Domain:   domain,
-		Insecure: false,
-		Debug:    false,
-		SkipPing: false,
-		NonSSL:   false,
-	})
 }
 
 func filterAndSort(tags []string, currentTag string) []string {
