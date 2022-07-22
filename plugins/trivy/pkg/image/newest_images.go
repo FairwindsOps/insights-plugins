@@ -51,6 +51,7 @@ func fetchTags(ctx context.Context, imageRepoName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Fetched %d tags for  %s", len(tags), imageRepoName)
 	return tags, nil
 }
 
