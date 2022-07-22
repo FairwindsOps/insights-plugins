@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.1
+* update to go 1.18 and update packages
+
 ## 2.1.0
 * update Trivy plugin
 
