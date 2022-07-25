@@ -100,7 +100,7 @@ jobs:
   test:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
-      - image: circleci/golang:1.18
+      - image: cimg/go:1.18
     steps:
       - checkout
       - set_environment_variables
@@ -125,7 +125,7 @@ jobs:
   check_version_changed:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
-      - image: circleci/golang:1.18
+      - image: cimg/go:1.18
     steps:
       - checkout
       - set_environment_variables
