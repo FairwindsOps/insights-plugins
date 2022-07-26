@@ -18,7 +18,7 @@ WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/admission
 COPY ./admission/go.* ./
 RUN --mount=type=cache,target=/root/.cache/go-build go mod download
 
-RUN --mount=type=cache,target=/root/.cache/go-build go get -u github.com/gobuffalo/packr/v2/packr2
+RUN --mount=type=cache,target=/root/.cache/go-build go install github.com/gobuffalo/packr/v2/packr2@latest
 
 COPY ./admission/version.txt .
 COPY ./admission/embed.go .
