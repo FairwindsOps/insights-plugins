@@ -14,7 +14,7 @@ for d in ./plugins/*/ ; do
         echo "updating..."
         if [[ -z $UPDATE_PKG ]]; then
           go get -u -d ./...
-        else
+        elif [[ $UPDATE_PKG != "none" ]]; then
           go get -u -d $UPDATE_PKG
         fi
         go mod tidy
