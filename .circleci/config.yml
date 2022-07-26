@@ -98,7 +98,6 @@ jobs:
           template: basic_fail_1
 
   test:
-    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
       - image: cimg/go:1.18
     steps:
@@ -123,7 +122,6 @@ jobs:
           template: basic_fail_1
 
   check_version_changed:
-    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
       - image: cimg/go:1.18
     steps:
