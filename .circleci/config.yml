@@ -104,7 +104,7 @@ jobs:
       - checkout
       - set_environment_variables
       - set_tags
-      - run: go install golang.org/x/lint/golint
+      - run: go install golang.org/x/lint/golint@latest
       - run: |
           for plugin in "${GO_PKGS[@]}"; do
             echo "linting $plugin"
