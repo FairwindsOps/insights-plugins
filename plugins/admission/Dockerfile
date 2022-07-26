@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1.3
 # Minimally dockerfile:2.1 is required by RUN --mount=type=cache
 # Ref: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md
-FROM golang:1.17 as build-env
+FROM golang:1.18 as build-env
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/
 
 
