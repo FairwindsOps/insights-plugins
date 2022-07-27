@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.12
+* update to go 1.18 and update packages
+
 ## 0.1.11
 * Update alpine to remove CVE
 
