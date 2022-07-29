@@ -21,7 +21,7 @@ type gitInfo struct {
 func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
 	
-	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", baseRepoPath), "marking directory as safe")
+	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", "/insights"), "marking directory as safe")
 	if err != nil {
 		logrus.Errorf("Unable to mark directory %s as safe: %v", baseRepoPath, err)
 		return nil, err
