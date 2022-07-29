@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.16
+* support HPA v2beta1 for local files
+
 ## 2.0.15
 * update to go 1.18 and update packages
 
