@@ -36,8 +36,7 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 		groupVersions = append(groupVersions, schema.GroupVersion{Group: group, Version: version})
 
 	}
-	dynamic := dynamicFake.NewSimpleDynamicClient(k8sruntime.NewScheme())
-	restMapper := meta.NewDefaultRESTMapper(groupVersions)
+	gvks := []schema.GroupVersionKind{}
 	for _, obj := range objects {
 		apiVersion := obj["apiVersion"].(string)
 		versionSplit := strings.Split(apiVersion, "/")
@@ -51,9 +50,31 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 		}
 		gv := schema.GroupVersion{Group: group, Version: version}
 		gvk := gv.WithKind(obj["kind"].(string))
+		gvks = append(gvks, gvk)
+	}
+	
+	scheme := k8sruntime.NewScheme()
+	
+	for _, gvk := range gvks {
+		gvkList := schema.GroupVersionKind{
+			Group: gvk.Group,
+			Version: gvk.Version,
+			Kind: gvk.Kind + "List",
+		}
+		scheme.AddKnownTypeWithName(gvkList, &unstructured.UnstructuredList{})
+	}
+	dynamic := dynamicFake.NewSimpleDynamicClient(scheme)
+	restMapper := meta.NewDefaultRESTMapper(groupVersions)
+	
+	for idx, gvk := range gvks {
+		obj := objects[idx]
 		restMapper.Add(gvk, meta.RESTScopeNamespace)
 
-		mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: group, Kind: obj["kind"].(string)})
+		gk := schema.GroupKind{
+			Group: gvk.Group,
+			Kind: gvk.Kind,
+		}
+		mapping, err := restMapper.RESTMapping(gk)
 		if err != nil {
 			panic(err)
 		}

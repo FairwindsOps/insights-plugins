@@ -39,7 +39,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 	actionItems := make([]opa.ActionItem, 0)
 	configFolder := ci.config.Options.TempFolder + "/configuration/"
 	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
-		if !strings.HasSuffix(info.Name(), ".yaml") {
+		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
 			return nil
 		}
 		file, err := os.Open(path)
