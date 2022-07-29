@@ -69,7 +69,11 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 	for _, gvk := range gvks {
 		restMapper.Add(gvk, meta.RESTScopeNamespace)
 
-		mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: group, Kind: obj["kind"].(string)})
+		gk := schema.GroupKind{
+			Group: gvk.Group,
+			Kind: gvk.Kind,
+		}
+		mapping, err := restMapper.RESTMapping(gk)
 		if err != nil {
 			panic(err)
 		}
