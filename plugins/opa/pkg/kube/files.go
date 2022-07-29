@@ -66,7 +66,8 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 	dynamic := dynamicFake.NewSimpleDynamicClient(scheme)
 	restMapper := meta.NewDefaultRESTMapper(groupVersions)
 	
-	for _, gvk := range gvks {
+	for idx, gvk := range gvks {
+		obj := objects[idx]
 		restMapper.Add(gvk, meta.RESTScopeNamespace)
 
 		gk := schema.GroupKind{
