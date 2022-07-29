@@ -52,7 +52,7 @@ var builtInKinds = []schema.GroupVersionKind{
 func SetFakeClient() *Client {
 	scheme := k8sruntime.NewScheme()
 	for _, gvk := range builtInKinds {
-		listKind = schema.GroupVersionKind{
+		listKind := schema.GroupVersionKind{
 			Group: gvk.Group,
 			Version: gvk.Version,
 			Kind: gvk.Kind + "List",
