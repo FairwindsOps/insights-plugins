@@ -52,6 +52,8 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 		gv := schema.GroupVersion{Group: group, Version: version}
 		gvk := gv.WithKind(obj["kind"].(string))
 		restMapper.Add(gvk, meta.RESTScopeNamespace)
+		gvkList := gv.WithKind(obj["kind"].(string) + "List")
+		restMapper.Add(gvk, meta.RESTScopeNamespace)
 
 		mapping, err := restMapper.RESTMapping(schema.GroupKind{Group: group, Kind: obj["kind"].(string)})
 		if err != nil {
