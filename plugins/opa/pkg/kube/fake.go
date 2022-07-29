@@ -23,7 +23,7 @@ var builtInGroupVersions = []schema.GroupVersion{
 	{
 		Group: "autoscaling",
 		Version: "v2beta1",
-	}
+	},
 }
 
 var builtInKinds = []schema.GroupVersionKind{
