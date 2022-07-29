@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.2
+* Fix for git 2.35.2
+
 ## 2.1.1
 * update to go 1.18 and update packages
 
