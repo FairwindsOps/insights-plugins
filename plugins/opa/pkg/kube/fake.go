@@ -57,7 +57,7 @@ func SetFakeClient() *Client {
 			Version: gvk.Version,
 			Kind: gvk.Kind + "List",
 		}
-		scheme.AddKnowntypeWithName(listKind,  &unstructured.UnstructuredList{})
+		scheme.AddKnownTypeWithName(listKind,  &unstructured.UnstructuredList{})
 	}
 
 	dynamic := dynamicFake.NewSimpleDynamicClient(scheme)
