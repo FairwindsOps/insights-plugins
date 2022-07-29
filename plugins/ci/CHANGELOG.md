@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.2
+* support HPA v2beta1 in OPA checks
+
 ## 2.1.1
 * update to go 1.18 and update packages
 
