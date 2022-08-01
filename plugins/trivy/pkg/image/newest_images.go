@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/samber/lo"
 
 	semver "github.com/Masterminds/semver/v3"
 
@@ -82,8 +81,7 @@ func filterAndSort(suggestedTags []string, curTagStr string) ([]string, error) {
 
 		cPre := curVersion.Prerelease()
 		vPre := v.Prerelease()
-		isKnownPreRelease := lo.Contains(knownPreReleases, cPre)
-		if isKnownPreRelease && vPre != "" && cPre != vPre {
+		if cPre != "" && vPre != "" && cPre != vPre {
 			logrus.Infof("pre-releases does not match: %s != %s", cPre, vPre)
 			continue
 		}

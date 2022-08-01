@@ -7,7 +7,7 @@ import (
 )
 
 func TestFilterAndSort(t *testing.T) {
-	tags := []string{"6b6d653", "v0.0.14", "v0.0.22", "v0.0.16", "v0.0.16-alpine"}
+	tags := []string{"6b6d653", "v0.0.14", "v0.0.22", "v0.0.16", "v0.0.16-alpine", "v0.0.14-beta2"}
 	newestTags, err := filterAndSort(tags, "v0.0.14-beta1")
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"v0.0.14", "v0.0.16-alpine", "v0.0.16", "v0.0.22"}, newestTags)
