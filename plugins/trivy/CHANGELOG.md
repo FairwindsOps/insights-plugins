@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.2
+* improve image tags recommendations
+
 ## 0.20.1
 * update to go 1.18 and update packages
 
