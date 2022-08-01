@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.4
+* update packages
+
 ## 2.1.3
 * Fix for git 2.35.2
 
