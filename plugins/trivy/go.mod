@@ -3,9 +3,10 @@ module github.com/fairwindsops/insights-plugins/plugins/trivy
 go 1.18
 
 require (
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/google/go-containerregistry v0.11.0
-	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2
 	github.com/sirupsen/logrus v1.9.0
+	github.com/stretchr/testify v1.7.1
 	github.com/thoas/go-funk v0.9.2
 	k8s.io/apimachinery v0.24.3
 	k8s.io/client-go v0.24.3
@@ -46,6 +47,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.12.2 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
