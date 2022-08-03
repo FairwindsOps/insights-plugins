@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.2
+* improve image tags recommendations
+
+## 0.20.1
+* update to go 1.18 and update packages
+
 ## 0.20.0
 * Fixing failing tags fetch from `quay.io`
 

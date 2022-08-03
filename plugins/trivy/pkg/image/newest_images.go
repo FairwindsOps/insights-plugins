@@ -7,11 +7,13 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	version "github.com/mcuadros/go-version"
+
+	semver "github.com/Masterminds/semver/v3"
+
 	"github.com/sirupsen/logrus"
 )
 
-var specific = []string{
+var knownPreReleases = []string{
 	"centos-7",
 	"debian-8",
 	"debian-9",
@@ -34,7 +36,10 @@ func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) 
 		return nil, err
 
 	}
-	newest := filterAndSort(tags, tag)
+	newest, err := filterAndSort(tags, tag)
+	if err != nil {
+		return nil, err
+	}
 	logrus.Info("Finished retrieving newest versions for ", repo, ":", tag)
 	if len(newest) <= MaxNewestVersionsToScan {
 		return newest, nil
@@ -54,22 +59,46 @@ func fetchTags(ctx context.Context, imageRepoName string) ([]string, error) {
 	return tags, nil
 }
 
-func filterAndSort(tags []string, currentTag string) []string {
-	newest := []string{}
-	c := version.NewConstrainGroupFromString(">" + currentTag)
-	currentTagSpecificToken := GetSpecificToken(currentTag)
-	for _, targetTag := range tags {
-		targetTagSpecificToken := GetSpecificToken(targetTag)
-		if c.Match(targetTag) && currentTagSpecificToken == targetTagSpecificToken {
-			newest = append(newest, targetTag)
+func filterAndSort(suggestedTags []string, curTagStr string) ([]string, error) {
+	curVersion, err := semver.NewVersion(curTagStr)
+	if err != nil {
+		logrus.Infof("could not parse current tag semver %s: %v", curTagStr, err)
+		return []string{}, nil
+	}
+
+	constraint, err := semver.NewConstraint(">" + curTagStr)
+	if err != nil {
+		return nil, err
+	}
+
+	newest := []*semver.Version{}
+	for _, tag := range suggestedTags {
+		v, err := semver.NewVersion(tag)
+		if err != nil {
+			logrus.Infof("could not parse tag semver %s: %v", tag, err)
+			continue
+		}
+
+		cPre := curVersion.Prerelease()
+		vPre := v.Prerelease()
+		if cPre != "" && vPre != "" && cPre != vPre {
+			logrus.Infof("pre-releases does not match: %s != %s", cPre, vPre)
+			continue
+		}
+
+		check, errors := constraint.Validate(v)
+		if check {
+			newest = append(newest, v)
+		} else {
+			logrus.Debug(errors) // for debugging only
 		}
 	}
-	version.Sort(newest)
-	return newest
+	Sort(newest)
+	return Versions(newest).ToStringSlice(), nil
 }
 
 func GetSpecificToken(tag string) string {
-	for _, v := range specific {
+	for _, v := range knownPreReleases {
 		if strings.Contains(tag, v) {
 			return v
 		}
