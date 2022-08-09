@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.6
+* Fix for missing fields in container manifests
+
 ## 2.1.5
 * update packages
 
