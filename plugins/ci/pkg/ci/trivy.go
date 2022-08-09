@@ -228,8 +228,16 @@ func getShaAndRepoTags(path string) (string, []string, error) {
 		allRepoTags := make([]string, 0)
 		var configFileName string
 		for _, imageDef := range jsonBody {
-			configFileName = imageDef.(map[string]interface{})["Config"].(string)
-			repoTags := imageDef.(map[string]interface{})["RepoTags"].([]interface{})
+			configFileName, ok = imageDef.(map[string]interface{})["Config"].(string)
+			if !ok {
+				logrus.Warningf("Found manifest with no Config at %s", path)
+				continue
+			}
+			repoTags, ok := imageDef.(map[string]interface{})["RepoTags"].([]interface{})
+			if !ok {
+				logrus.Warningf("Found manifest with no RepoTags at %s", path)
+				continue
+			}
 			for _, tag := range repoTags {
 				allRepoTags = append(allRepoTags, tag.(string))
 			}
