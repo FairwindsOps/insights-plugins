@@ -228,6 +228,7 @@ func getShaAndRepoTags(path string) (string, []string, error) {
 		allRepoTags := make([]string, 0)
 		var configFileName string
 		for _, imageDef := range jsonBody {
+			var ok bool
 			configFileName, ok = imageDef.(map[string]interface{})["Config"].(string)
 			if !ok {
 				logrus.Warningf("Found manifest with no Config at %s", path)
