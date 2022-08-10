@@ -1,4 +1,6 @@
 # Changelog
+## 2.1.6
+* Fix OPA panic if `kind` field is missing
 
 ## 2.1.5
 * update packages
