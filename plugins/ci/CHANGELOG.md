@@ -1,6 +1,24 @@
 # Changelog
-## 2.0.4
+## 2.1.6
 * Fix OPA panic if `kind` field is missing
+
+## 2.1.5
+* update packages
+
+## 2.1.4
+* update packages
+
+## 2.1.3
+* Fix for git 2.35.2
+
+## 2.1.2
+* support HPA v2beta1 in OPA checks
+
+## 2.1.1
+* update to go 1.18 and update packages
+
+## 2.1.0
+* update Trivy plugin
 
 ## 2.0.3
 * Update alpine to remove CVE

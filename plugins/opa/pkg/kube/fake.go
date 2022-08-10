@@ -11,33 +11,61 @@ import (
 	dynamicFake "k8s.io/client-go/dynamic/fake"
 )
 
-func SetFakeClient() *Client {
-	scheme := k8sruntime.NewScheme()
-	scheme.AddKnownTypeWithName(schema.GroupVersionKind{
+var builtInGroupVersions = []schema.GroupVersion{
+	{
+		Group: "apps",
+		Version: "v1",
+	},
+	{
+		Group: "autoscaling",
+		Version: "v1",
+	},
+	{
+		Group: "autoscaling",
+		Version: "v2beta1",
+	},
+}
+
+var builtInKinds = []schema.GroupVersionKind{
+	{
 		Group:   "apps",
 		Version: "v1",
-		Kind:    "ReplicaSetList",
-	}, &unstructured.UnstructuredList{})
-	scheme.AddKnownTypeWithName(schema.GroupVersionKind{
+		Kind:    "ReplicaSet",
+	},
+	{
 		Group:   "autoscaling",
 		Version: "v1",
-		Kind:    "HorizontalPodAutoscalerList",
-	}, &unstructured.UnstructuredList{})
-	scheme.AddKnownTypeWithName(schema.GroupVersionKind{
+		Kind:    "HorizontalPodAutoscaler",
+	},	
+	{
+		Group:   "autoscaling",
+		Version: "v2beta1",
+		Kind:    "HorizontalPodAutoscaler",
+	},
+	{
 		Group:   "apps",
 		Version: "v1",
-		Kind:    "DeploymentList",
-	}, &unstructured.UnstructuredList{})
+		Kind:    "Deployment",
+	},
+}
+
+func SetFakeClient() *Client {
+	scheme := k8sruntime.NewScheme()
+	for _, gvk := range builtInKinds {
+		listKind := schema.GroupVersionKind{
+			Group: gvk.Group,
+			Version: gvk.Version,
+			Kind: gvk.Kind + "List",
+		}
+		scheme.AddKnownTypeWithName(listKind,  &unstructured.UnstructuredList{})
+	}
+
 	dynamic := dynamicFake.NewSimpleDynamicClient(scheme)
-	gv := schema.GroupVersion{Group: "apps", Version: "v1"}
-	gv2 := schema.GroupVersion{Group: "autoscaling", Version: "v1"}
-	gvk := gv.WithKind("Deployment")
-	restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{gv, gv2})
-	restMapper.Add(gvk, meta.RESTScopeNamespace)
-	gvk = gv2.WithKind("HorizontalPodAutoscaler")
-	restMapper.Add(gvk, meta.RESTScopeNamespace)
-	gvk = gv.WithKind("ReplicaSet")
-	restMapper.Add(gvk, meta.RESTScopeNamespace)
+	restMapper := meta.NewDefaultRESTMapper(builtInGroupVersions)
+	for _, gvk := range builtInKinds {
+		restMapper.Add(gvk, meta.RESTScopeNamespace)
+	}
+
 	client := Client{
 		restMapper,
 		dynamic,

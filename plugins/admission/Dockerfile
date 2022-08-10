@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1.3
 # Minimally dockerfile:2.1 is required by RUN --mount=type=cache
 # Ref: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md
-FROM golang:1.17 as build-env
+FROM golang:1.18 as build-env
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/
 
 
@@ -18,7 +18,7 @@ WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/admission
 COPY ./admission/go.* ./
 RUN --mount=type=cache,target=/root/.cache/go-build go mod download
 
-RUN --mount=type=cache,target=/root/.cache/go-build go get -u github.com/gobuffalo/packr/v2/packr2
+RUN --mount=type=cache,target=/root/.cache/go-build go install github.com/gobuffalo/packr/v2/packr2@latest
 
 COPY ./admission/version.txt .
 COPY ./admission/embed.go .
