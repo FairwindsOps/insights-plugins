@@ -1,4 +1,4 @@
-FROM golang:1.17 as build-env
+FROM golang:1.18 as build-env
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/trivy/
 
 

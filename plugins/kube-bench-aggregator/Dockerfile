@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM golang:1.18 as builder
 
 WORKDIR /workspace
 
@@ -18,6 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o kube-bench 
 
 FROM alpine:20220715
 WORKDIR /usr/local/bin
+RUN apk -U upgrade
 RUN apk --no-cache add ca-certificates
 
 RUN addgroup -S insights && adduser -u 1200 -S insights -G insights

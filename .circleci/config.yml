@@ -98,14 +98,13 @@ jobs:
           template: basic_fail_1
 
   test:
-    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
-      - image: circleci/golang:1.17
+      - image: cimg/go:1.18
     steps:
       - checkout
       - set_environment_variables
       - set_tags
-      - run: go get -u golang.org/x/lint/golint
+      - run: go install golang.org/x/lint/golint@latest
       - run: |
           for plugin in "${GO_PKGS[@]}"; do
             echo "linting $plugin"
@@ -117,15 +116,15 @@ jobs:
       - run: cd plugins/opa ; go test ./... ; cd ../..
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - run: cd plugins/ci ; go test ./... ; cd ../..
+      - run: cd plugins/trivy ; go test ./... ; cd ../..
       - slack/notify:
           event: fail
           branch_pattern: main
           template: basic_fail_1
 
   check_version_changed:
-    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     docker:
-      - image: circleci/golang:1.12
+      - image: cimg/go:1.18
     steps:
       - checkout
       - set_environment_variables

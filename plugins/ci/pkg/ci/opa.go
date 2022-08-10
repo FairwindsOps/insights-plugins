@@ -39,7 +39,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 	actionItems := make([]opa.ActionItem, 0)
 	configFolder := ci.config.Options.TempFolder + "/configuration/"
 	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
-		if !strings.HasSuffix(info.Name(), ".yaml") {
+		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
 			return nil
 		}
 		file, err := os.Open(path)
@@ -56,15 +56,20 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 				}
 				break
 			}
-			resourceKind := yamlNode["kind"].(string)
-			if resourceKind == "list" {
-				nodes := yamlNode["items"].([]interface{})
-				for _, node := range nodes {
-					nodeMap := node.(map[string]interface{})
-					files = append(files, nodeMap)
+
+			if yamlKind, ok := yamlNode["kind"]; ok {
+				resourceKind := yamlKind.(string)
+				if resourceKind == "list" {
+					nodes := yamlNode["items"].([]interface{})
+					for _, node := range nodes {
+						nodeMap := node.(map[string]interface{})
+						files = append(files, nodeMap)
+					}
+				} else {
+					files = append(files, yamlNode)
 				}
 			} else {
-				files = append(files, yamlNode)
+				logrus.Warn("Manifest is missing field Kind")
 			}
 		}
 		return nil
