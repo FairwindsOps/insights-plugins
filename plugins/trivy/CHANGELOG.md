@@ -1,5 +1,5 @@
 # Changelog
-## 0.20.0
+## 0.20.3
 * Offline support
 
 ## 0.20.2
