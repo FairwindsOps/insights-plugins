@@ -1,4 +1,7 @@
 # Changelog
+## 0.21.1
+* Update dependencies
+
 ## 0.21.0
 * Offline support
 
