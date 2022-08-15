@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.3
+* Update dependencies
+
 ## 0.20.2
 * improve image tags recommendations
 

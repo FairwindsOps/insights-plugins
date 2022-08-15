@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.17
+* Update dependencies
+
 ## 2.0.16
 * support HPA v2beta1 for local files
 
