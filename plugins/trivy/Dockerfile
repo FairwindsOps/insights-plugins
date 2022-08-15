@@ -25,8 +25,12 @@ COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/plugins/t
 COPY --from=build-env /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
 
+RUN TRIVY_CACHE_DIR=/var/tmp trivy image --download-db-only
+
 ENV HOME=/
 RUN mkdir $HOME/.docker
+
+RUN apk add --no-cache skopeo
 
 COPY report.sh ./
 CMD ./report.sh
