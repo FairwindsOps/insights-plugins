@@ -1,4 +1,6 @@
 # Changelog
+## 0.21.0
+* Offline support
 
 ## 0.20.2
 * improve image tags recommendations
