@@ -19,14 +19,18 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s 
 
 RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.30.0/trivy_0.30.0_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
-FROM alpine:20220715
+FROM alpine:3.16
 WORKDIR /trivy
 COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/plugins/trivy/scan ./scan
 COPY --from=build-env /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
 
+RUN TRIVY_CACHE_DIR=/var/tmp trivy image --download-db-only
+
 ENV HOME=/
 RUN mkdir $HOME/.docker
+
+RUN apk add --no-cache skopeo
 
 COPY report.sh ./
 CMD ./report.sh

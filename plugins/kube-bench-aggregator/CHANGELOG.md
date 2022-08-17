@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.20
+* Update dependencies
+
 ## 0.2.19
 * update packages
 

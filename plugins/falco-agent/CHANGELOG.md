@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.13
+* Update dependencies
+
 ## 0.1.12
 * update to go 1.18 and update packages
 
