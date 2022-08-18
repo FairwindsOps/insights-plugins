@@ -1,5 +1,9 @@
 # Changelog
 
+
+## 2.1.9
+* Fix leaking access token in std out.
+
 ## 2.1.8
 * Fix for missing fields in container manifests
 
