@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.0.9
+* Fixed AWS costs rounding
 ## 1.0.8
 * Update dependencies
 
