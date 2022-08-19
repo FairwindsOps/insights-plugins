@@ -20,13 +20,12 @@ type gitInfo struct {
 
 func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
-	
 	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", "/insights"), "marking directory as safe")
 	if err != nil {
 		logrus.Errorf("Unable to mark directory %s as safe: %v", baseRepoPath, err)
 		return nil, err
 	}
-	
+
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {
 		masterHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranch), "getting master hash")
@@ -35,7 +34,6 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
-	logrus.Infof("Master hash: %s", masterHash)
 
 	currentHash := os.Getenv("CURRENT_HASH")
 	if currentHash == "" {
@@ -45,7 +43,6 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
-	logrus.Infof("Current hash: %s", masterHash)
 
 	commitMessage := os.Getenv("COMMIT_MESSAGE")
 	if commitMessage == "" {
@@ -58,8 +55,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	if len(commitMessage) > 100 {
 		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
 	}
-	logrus.Infof("Commit message: %s", commitMessage)
-	
+
 	branch := os.Getenv("BRANCH_NAME")
 	if branch == "" {
 		branch, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD"), "getting branch name")
@@ -68,7 +64,6 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
-	logrus.Infof("Branch: %s", branch)
 
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
@@ -78,7 +73,6 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
-	logrus.Infof("Origin: %s", origin)
 
 	if repoName == "" {
 		logrus.Infof("No repositoryName set, defaulting to origin.")
@@ -98,14 +92,15 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 		}
 		repoName = strings.TrimSuffix(repoName, ".git")
 	}
-	logrus.Infof("Repo Name: %s", repoName)
 
-	return &gitInfo{
+	gitInfo := gitInfo{
 		masterHash:    strings.TrimSuffix(masterHash, "\n"),
 		currentHash:   strings.TrimSuffix(currentHash, "\n"),
 		commitMessage: strings.TrimSuffix(commitMessage, "\n"),
 		branch:        strings.TrimSuffix(branch, "\n"),
 		origin:        strings.TrimSuffix(origin, "\n"),
 		repoName:      strings.TrimSuffix(repoName, "\n"),
-	}, nil
+	}
+	logrus.Infof("git info: %+v", gitInfo)
+	return &gitInfo, nil
 }

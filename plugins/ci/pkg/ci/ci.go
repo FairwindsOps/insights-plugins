@@ -325,7 +325,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, strings.TrimSuffix(report.Version, "\n"))
 	}
 
-	client := &http.Client{}
+	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warn("Unable to Post results to Insights")
@@ -552,6 +552,9 @@ func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
 	if err != nil {
 		return fmt.Errorf("Error while sending results back to %s: %v", ci.config.Options.Hostname, err)
 	}
+
+	ci.printScannedFilesInfo()
+
 	fmt.Printf("%d new Action Items:\n", len(results.NewActionItems))
 	printActionItems(results.NewActionItems)
 	fmt.Printf("%d fixed Action Items:\n", len(results.FixedActionItems))
@@ -572,6 +575,24 @@ func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
 		fmt.Println("\n\nFairwinds Insights checks passed.")
 	}
 	return nil
+}
+
+func (ci *CIScan) printScannedFilesInfo() {
+	s := len(ci.config.Manifests.YamlPaths)
+	if s > 0 {
+		fmt.Print("Kubernetes files scanned:")
+		for i, p := range ci.config.Manifests.YamlPaths {
+			fmt.Printf("\t%s - [%d/%d]", p, i+1, s)
+		}
+	}
+
+	s = len(ci.config.Manifests.Helm)
+	if s > 0 {
+		fmt.Print("Helm charts scanned:")
+		for i, h := range ci.config.Manifests.Helm {
+			fmt.Printf("\t%s - [%d/%d]", h.Chart, i+1, s)
+		}
+	}
 }
 
 func printActionItems(ais []models.ActionItem) {
