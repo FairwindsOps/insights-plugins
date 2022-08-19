@@ -552,9 +552,6 @@ func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
 	if err != nil {
 		return fmt.Errorf("Error while sending results back to %s: %v", ci.config.Options.Hostname, err)
 	}
-
-	ci.printScannedFilesInfo()
-
 	fmt.Printf("%d new Action Items:\n", len(results.NewActionItems))
 	printActionItems(results.NewActionItems)
 	fmt.Printf("%d fixed Action Items:\n", len(results.FixedActionItems))
@@ -566,6 +563,9 @@ func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
 			return fmt.Errorf("Could not save jUnit results: %v", err)
 		}
 	}
+
+	ci.printScannedFilesInfo()
+
 	if !results.Pass {
 		fmt.Printf("\n\nFairwinds Insights checks failed:\n%v\n\nVisit %s/orgs/%s/repositories for more information\n\n", err, ci.config.Options.Hostname, ci.config.Options.Organization)
 		if ci.config.Options.SetExitCode {
@@ -580,17 +580,17 @@ func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
 func (ci *CIScan) printScannedFilesInfo() {
 	s := len(ci.config.Manifests.YamlPaths)
 	if s > 0 {
-		fmt.Print("Kubernetes files scanned:")
+		fmt.Println("Kubernetes files scanned:")
 		for i, p := range ci.config.Manifests.YamlPaths {
-			fmt.Printf("\t%s - [%d/%d]", p, i+1, s)
+			fmt.Printf("\t[%d/%d] - %s\n", i+1, s, p)
 		}
 	}
 
 	s = len(ci.config.Manifests.Helm)
 	if s > 0 {
-		fmt.Print("Helm charts scanned:")
+		fmt.Println("Helm charts scanned:")
 		for i, h := range ci.config.Manifests.Helm {
-			fmt.Printf("\t%s - [%d/%d]", h.Chart, i+1, s)
+			fmt.Printf("\t[%d/%d] - %s/%s\n", i+1, s, h.Path, h.Name)
 		}
 	}
 }
