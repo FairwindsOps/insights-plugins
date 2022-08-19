@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.9
+* Improving logging to show k8s and helm files
+
 ## 2.1.8
 * Fix for missing fields in container manifests
 
