@@ -1,6 +1,8 @@
 #! /bin/bash
 set -eo pipefail
 
+# Hard-coding four external images we own. Need to find a better solution here.
+images=(quay.io/fairwinds/polaris:6.0 quay.io/fairwinds/nova:v3.2 quay.io/fairwinds/pluto:v5.10 quay.io/fairwinds/goldilocks:v4.4)
 have_vulns=()
 
 for d in ./plugins/*/ ; do
@@ -14,6 +16,9 @@ for d in ./plugins/*/ ; do
     version=$(cat $d/version.txt)
     . $d/build.config
     name="quay.io/$REPOSITORY_NAME:$version"
+done
+
+for i in "${images[@]}"; do
     echo "scanning $name"
     docker pull $name
 
