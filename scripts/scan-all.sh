@@ -1,8 +1,8 @@
 #! /bin/bash
 set -eo pipefail
 
-# Hard-coding four external images we own. Need to find a better solution here.
-images=(quay.io/fairwinds/polaris:6.0 quay.io/fairwinds/nova:v3.2 quay.io/fairwinds/pluto:v5.10 quay.io/fairwinds/goldilocks:v4.4)
+# Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
+images=(quay.io/fairwinds/polaris:6.0 quay.io/fairwinds/nova:v3.2 quay.io/fairwinds/pluto:v5.10 quay.io/fairwinds/goldilocks:v2.2.0)
 have_vulns=()
 
 for d in ./plugins/*/ ; do
