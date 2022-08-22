@@ -16,9 +16,10 @@ for d in ./plugins/*/ ; do
     version=$(cat $d/version.txt)
     . $d/build.config
     name="quay.io/$REPOSITORY_NAME:$version"
+    images+=($name)
 done
 
-for i in "${images[@]}"; do
+for name in "${images[@]}"; do
     echo "scanning $name"
     docker pull $name
 
@@ -28,6 +29,7 @@ for i in "${images[@]}"; do
       have_vulns+=($name)
     fi
     set -e
+    echo "done with scan!"
 done
 
 if [[ -n $BASH_ENV ]]; then
