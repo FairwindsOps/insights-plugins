@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.7
+* upgrade plugins on build
+
 ## 1.0.6
 * Update dependencies
 
