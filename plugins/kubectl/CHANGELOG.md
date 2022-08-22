@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.19.20
+* upgrade plugins on build
+
 ## 0.19.19
 * Update dependencies
 

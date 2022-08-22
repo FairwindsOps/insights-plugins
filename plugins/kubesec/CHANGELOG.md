@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.20
+* upgrade plugins on build
+
 ## 1.3.19
 * Update dependencies
 
