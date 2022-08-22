@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.19
+* upgrade plugins on build
+
 ## 1.2.18
 * Update dependencies
 

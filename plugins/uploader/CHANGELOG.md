@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.16
+* upgrade plugins on build
+
 ## 0.3.15
 * Update dependencies
 
