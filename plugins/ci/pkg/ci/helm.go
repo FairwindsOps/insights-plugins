@@ -149,7 +149,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesF
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
-		helmValuesFileArgs = append(helmValuesFileArgs, "-f", vf)
+		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(baseRepoFolder, vf))
 	}
 	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
 	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
