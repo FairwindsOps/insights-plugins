@@ -2,6 +2,9 @@
 ## 2.1.9
 * Fix `helm template` command in some environments
 
+## 2.1.9
+* upgrade plugins on build
+
 ## 2.1.8
 * Fix for missing fields in container manifests
 
