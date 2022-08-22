@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,13 +21,12 @@ type gitInfo struct {
 
 func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
-	
 	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", "/insights"), "marking directory as safe")
 	if err != nil {
 		logrus.Errorf("Unable to mark directory %s as safe: %v", baseRepoPath, err)
 		return nil, err
 	}
-	
+
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {
 		masterHash, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranch), "getting master hash")
@@ -59,7 +59,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
 	}
 	logrus.Infof("Commit message: %s", commitMessage)
-	
+
 	branch := os.Getenv("BRANCH_NAME")
 	if branch == "" {
 		branch, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD"), "getting branch name")
@@ -78,7 +78,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
-	logrus.Infof("Origin: %s", origin)
+	logrus.Infof("Origin: %s", util.RemoveToken(origin))
 
 	if repoName == "" {
 		logrus.Infof("No repositoryName set, defaulting to origin.")
