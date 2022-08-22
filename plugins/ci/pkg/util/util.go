@@ -23,6 +23,7 @@ func GetRepoDetails(repositoryName string) (owner, repoName string) {
 	return "", repositoryName
 }
 
+// ExactlyOneOf looks for atleast one occurance.
 func ExactlyOneOf(inputs ...bool) bool {
 	foundAtLeastOne := false
 	for _, input := range inputs {
@@ -34,4 +35,14 @@ func ExactlyOneOf(inputs ...bool) bool {
 		}
 	}
 	return foundAtLeastOne
+}
+
+// RemoveToken sanitizes output to remove token
+func RemoveToken(s string) string {
+	index := strings.Index(s, "x-access-token")
+	index2 := strings.Index(s, "@github.com")
+	if index < 0 || index2 < 0 {
+		return s
+	}
+	return strings.ReplaceAll(s, s[index+15:index2], "<TOKEN>")
 }
