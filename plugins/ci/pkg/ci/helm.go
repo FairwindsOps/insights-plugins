@@ -138,10 +138,11 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm, filepath.Join(baseRepoFolder, helm.Path), helmValuesFiles, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, baseRepoFolder, helm.Path, helmValuesFiles, tempFolder, configFolder)
 }
 
-func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
+func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
+	helmPath = filepath.Join(repoPath, helmPath)
 	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
 		return err
@@ -149,7 +150,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesF
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
-		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(baseRepoFolder, vf))
+		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
 	}
 	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
 	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
