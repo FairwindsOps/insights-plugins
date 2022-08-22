@@ -1,5 +1,5 @@
 # Changelog
-## 2.1.9
+## 2.1.10
 * Fix `helm template` command in some environments
 
 ## 2.1.9
