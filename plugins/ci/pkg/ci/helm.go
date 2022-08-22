@@ -126,7 +126,7 @@ func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion str
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm, chartDownloadPath, helmValuesFiles, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, "", chartDownloadPath, helmValuesFiles, tempFolder, configFolder)
 }
 
 func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
