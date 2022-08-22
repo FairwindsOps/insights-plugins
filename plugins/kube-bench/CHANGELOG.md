@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.18
+* use --no-cache for apk upgrades
+
 ## 0.3.17
 * Update dependencies
 

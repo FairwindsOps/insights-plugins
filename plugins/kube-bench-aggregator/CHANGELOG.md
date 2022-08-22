@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.21
+* use --no-cache for apk upgrades
+
 ## 0.2.20
 * Update dependencies
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.11
+* use --no-cache for apk upgrades
+
 ## 2.1.10
 * Fix leaking access token in std out.
 

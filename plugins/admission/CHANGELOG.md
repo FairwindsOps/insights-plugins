@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.7
+* use --no-cache for apk upgrades
+
 ## 1.5.6
 * upgrade plugins on build
 

@@ -1,6 +1,6 @@
 FROM alpine:3.16
 
-RUN apk -U upgrade
+RUN apk -U upgrade --no-cache
 RUN echo "TODO: this line just removes a cached layer"
 # Is curl only used for build? Can we move to a multistage? Can we remove some of these other packages?
 RUN apk update && apk upgrade

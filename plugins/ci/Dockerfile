@@ -31,7 +31,7 @@ RUN go build ./cmd/insights-ci
 FROM alpine:3.16
 WORKDIR /insights
 
-RUN apk -U upgrade
+RUN apk -U upgrade --no-cache
 RUN apk add --no-cache skopeo git libc6-compat
 RUN mkdir -p /output/tmp
 

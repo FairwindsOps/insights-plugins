@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o prometheus-
 
 FROM alpine:3.16
 
-RUN apk -U upgrade
+RUN apk -U upgrade --no-cache
 COPY --from=builder /workspace/prometheus-collector /usr/local/bin/
 
 CMD ["prometheus-collector"]

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.19
+* use --no-cache for apk upgrades
+
 ## 2.0.18
 * upgrade plugins on build
 
