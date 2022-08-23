@@ -18,6 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o falco-ag
 
 FROM alpine:3.16
 WORKDIR /usr/local/bin
+RUN apk -U upgrade
 RUN apk --no-cache add ca-certificates
 
 RUN addgroup -S insights && adduser -u 1200 -S insights -G insights

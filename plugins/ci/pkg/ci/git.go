@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,6 +35,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
+	logrus.Infof("Master hash: %s", masterHash)
 
 	currentHash := os.Getenv("CURRENT_HASH")
 	if currentHash == "" {
@@ -43,6 +45,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
+	logrus.Infof("Current hash: %s", masterHash)
 
 	commitMessage := os.Getenv("COMMIT_MESSAGE")
 	if commitMessage == "" {
@@ -55,6 +58,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	if len(commitMessage) > 100 {
 		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
 	}
+	logrus.Infof("Commit message: %s", commitMessage)
 
 	branch := os.Getenv("BRANCH_NAME")
 	if branch == "" {
@@ -64,6 +68,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
+	logrus.Infof("Branch: %s", branch)
 
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
@@ -73,6 +78,7 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 			return nil, err
 		}
 	}
+	logrus.Infof("Origin: %s", util.RemoveToken(origin))
 
 	if repoName == "" {
 		logrus.Infof("No repositoryName set, defaulting to origin.")
@@ -92,15 +98,14 @@ func getGitInfo(baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 		}
 		repoName = strings.TrimSuffix(repoName, ".git")
 	}
+	logrus.Infof("Repo Name: %s", repoName)
 
-	gitInfo := gitInfo{
+	return &gitInfo{
 		masterHash:    strings.TrimSuffix(masterHash, "\n"),
 		currentHash:   strings.TrimSuffix(currentHash, "\n"),
 		commitMessage: strings.TrimSuffix(commitMessage, "\n"),
 		branch:        strings.TrimSuffix(branch, "\n"),
 		origin:        strings.TrimSuffix(origin, "\n"),
 		repoName:      strings.TrimSuffix(repoName, "\n"),
-	}
-	logrus.Infof("git info: %+v", gitInfo)
-	return &gitInfo, nil
+	}, nil
 }

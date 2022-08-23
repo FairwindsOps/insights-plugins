@@ -19,6 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o fw-opa c
 
 FROM alpine:3.16
 WORKDIR /usr/local/bin
+RUN apk -U upgrade
 RUN apk --no-cache add ca-certificates
 
 USER 1200

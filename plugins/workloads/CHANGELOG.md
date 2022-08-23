@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.15
+* upgrade plugins on build
+
 ## 2.2.14
 * Update dependencies
 
