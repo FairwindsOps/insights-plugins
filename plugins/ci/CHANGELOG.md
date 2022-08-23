@@ -1,4 +1,8 @@
 # Changelog
+
+## 2.1.12
+* Improves logging to show k8s and helm files
+
 ## 2.1.11
 * Fix `helm template` command in some environments
 
@@ -7,7 +11,6 @@
 
 ## 2.1.9
 * upgrade plugins on build
-
 
 ## 2.1.8
 * Fix for missing fields in container manifests

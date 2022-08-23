@@ -118,7 +118,7 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	req.Header.Set("Authorization", "Bearer "+token)
-	client := &http.Client{}
+	client := http.DefaultClient
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warnf("Unable to Get Checks from Insights(%s)", configurationObject.Options.Hostname)
