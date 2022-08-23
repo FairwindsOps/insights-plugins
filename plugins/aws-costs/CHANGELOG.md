@@ -1,4 +1,7 @@
 # Changelog
+
+## 1.0.11
+* Updated documentation
 ## 1.0.10
 * Update aws-cli
 
