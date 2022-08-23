@@ -548,6 +548,8 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 }
 
 func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
+	ci.printScannedFilesInfo()
+
 	results, err := ci.sendResults(reports)
 	if err != nil {
 		return fmt.Errorf("Error while sending results back to %s: %v", ci.config.Options.Hostname, err)
@@ -563,8 +565,6 @@ func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
 			return fmt.Errorf("Could not save jUnit results: %v", err)
 		}
 	}
-
-	ci.printScannedFilesInfo()
 
 	if !results.Pass {
 		fmt.Printf("\n\nFairwinds Insights checks failed:\n%v\n\nVisit %s/orgs/%s/repositories for more information\n\n", err, ci.config.Options.Hostname, ci.config.Options.Organization)
