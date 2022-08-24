@@ -27,6 +27,9 @@ Each of these plugins retrieves data from a Kubernetes cluster and sends it to I
 * `e2e` contains logic for e2e tests
 * The remaining folders are one folder per plugin
 
+## Changelog
+Navigate to our charts repo to see the [latest changes to the Insights Agent Helm Chart](https://github.com/FairwindsOps/charts/blob/master/stable/insights-agent/CHANGELOG.md).
+
 ## Contributing
 
 PRs welcome! Check out the [Contributing Guidelines](CONTRIBUTING.md) and
