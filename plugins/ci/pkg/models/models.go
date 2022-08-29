@@ -74,13 +74,18 @@ func (hc *HelmConfig) IsFluxFile() bool {
 }
 
 type reportsConfig struct {
-	Polaris reportConfig `yaml:"polaris"`
-	Pluto   reportConfig `yaml:"pluto"`
-	Trivy   trivyConfig  `yaml:"trivy"`
-	OPA     reportConfig `yaml:"opa"`
+	Polaris   reportConfig    `yaml:"polaris"`
+	Pluto     reportConfig    `yaml:"pluto"`
+	Terraform terraformConfig `yaml:"terraform"`
+	Trivy     trivyConfig     `yaml:"trivy"`
+	OPA       reportConfig    `yaml:"opa"`
 }
 
 type reportConfig struct {
+	Enabled *bool `yaml:"enabled"`
+}
+
+type terraformConfig struct {
 	Enabled *bool `yaml:"enabled"`
 }
 

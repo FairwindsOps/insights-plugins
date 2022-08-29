@@ -544,10 +544,11 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		reports = append(reports, &plutoReport)
 	}
 
-	err = ci.ProcessTerraformPaths()
+	terraformReports, err := ci.ProcessTerraformPaths()
 	if err != nil {
 		return nil, fmt.Errorf("while processing Terraform: %w", err)
 	}
+	reports = append(reports, &terraformReports)
 	return reports, nil
 }
 
