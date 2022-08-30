@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	admissionv1 "k8s.io/api/admission/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
@@ -42,15 +45,17 @@ func (w webhookFailurePolicy) String() string {
 
 // Validator is the entry point for the admission webhook.
 type Validator struct {
+	clientset            *kubernetes.Clientset
 	iConfig              models.InsightsConfig
 	decoder              *admission.Decoder
 	config               *models.Configuration
 	webhookFailurePolicy webhookFailurePolicy
 }
 
-func NewValidator(iConfig models.InsightsConfig) *Validator {
+func NewValidator(cs *kubernetes.Clientset, iConfig models.InsightsConfig) *Validator {
 	return &Validator{
-		iConfig: iConfig,
+		iConfig:   iConfig,
+		clientset: cs,
 	}
 }
 
@@ -89,10 +94,8 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
-	var err error
 	var decoded map[string]interface{}
-
-	err = json.Unmarshal(req.Object.Raw, &decoded)
+	err := json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
@@ -104,24 +107,41 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		return true, nil, nil, nil
 	}
 
+	var namespaceObject map[string]any
+	if namespace, ok := decoded["metadata"].(map[string]interface{})["namespace"].(string); ok && namespace != "" {
+		namespaceObject, err = getNamespaceObject(v.clientset, namespace)
+		if err != nil {
+			return false, nil, nil, err
+		}
+	}
+
 	logrus.Debugf("Processing with config %+v", v.config)
-	metadata, err := getRequestReport(req)
+	metadataReport, err := getRequestReport(req, namespaceObject)
 	if err != nil {
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
-	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
+	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadataReport)
+}
+
+func getNamespaceObject(clientset *kubernetes.Clientset, namespace string) (map[string]any, error) {
+	ns, err := clientset.CoreV1().Namespaces().Get(context.Background(), namespace, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"kind":       ns.Kind,
+		"apiVersion": ns.APIVersion,
+		"metadata": map[string]any{
+			"labels":      ns.Labels,
+			"annotations": ns.Annotations,
+		},
+	}, nil
 }
 
 // Handle for Validator to run validation checks.
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s",
-		req.Operation,
-		req.RequestKind.Group,
-		req.RequestKind.Version,
-		req.RequestKind.Kind,
-		req.Name,
-		req.Namespace)
+	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
@@ -140,14 +160,19 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 	return response
 }
 
-func getRequestReport(req admission.Request) (models.ReportInfo, error) {
-	report := models.ReportInfo{
-		Report:  "metadata",
-		Version: "0.1.0",
-	}
-	var err error
-	report.Contents, err = json.Marshal(&req.AdmissionRequest)
-	return report, err
+type MetadataReport struct {
+	admissionv1.AdmissionRequest
+	NamespaceObject map[string]any `json:"namespaceObject,omitempty"`
+}
+
+func getRequestReport(req admission.Request, namespaceObject map[string]any) (models.ReportInfo, error) {
+	metadataReport := MetadataReport{AdmissionRequest: req.AdmissionRequest, NamespaceObject: namespaceObject}
+	contents, err := json.Marshal(&metadataReport)
+	return models.ReportInfo{
+		Report:   "metadata",
+		Version:  "0.2.0",
+		Contents: contents,
+	}, err
 }
 
 func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {

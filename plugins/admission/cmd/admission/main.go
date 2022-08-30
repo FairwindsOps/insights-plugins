@@ -13,6 +13,7 @@ import (
 
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -91,12 +92,18 @@ func keepConfigurationRefreshed(ctx context.Context, cfg models.InsightsConfig, 
 }
 
 func main() {
+	setLogLevel()
 	interval, err := getIntervalOrDefault(1)
 	if err != nil {
 		exitWithError("could not get interval", err)
 	}
+	k8sCfg := k8sConfig.GetConfigOrDie()
 	iConfig := mustGetInsightsConfigFromEnvVars()
-	handler := fadmission.NewValidator(iConfig)
+	clientset, err := kubernetes.NewForConfig(k8sCfg)
+	if err != nil {
+		exitWithError("could not get k8s clientset from config", err)
+	}
+	handler := fadmission.NewValidator(clientset, iConfig)
 	var mutatorHandler fadmission.Mutator
 	go keepConfigurationRefreshed(context.Background(), iConfig, interval, handler, &mutatorHandler)
 
@@ -106,11 +113,11 @@ func main() {
 		var err error
 		webhookPort, err = strconv.ParseInt(portString, 10, 0)
 		if err != nil {
-			panic(err)
+			exitWithError("could not parse WEBHOOK_PORT to int", err)
 		}
 	}
 
-	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
+	mgr, err := manager.New(k8sCfg, manager.Options{
 		CertDir:                "/opt/cert",
 		HealthProbeBindAddress: ":8081",
 		Port:                   int(webhookPort),
@@ -118,8 +125,6 @@ func main() {
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
 	}
-
-	setLogLevel()
 
 	webhookFailurePolicyString := os.Getenv("WEBHOOK_FAILURE_POLICY")
 	ok := handler.SetWebhookFailurePolicy(webhookFailurePolicyString)
