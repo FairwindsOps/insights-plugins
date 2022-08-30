@@ -37,3 +37,10 @@ type Configuration struct {
 	}
 	Polaris *polarisconfiguration.Configuration
 }
+
+type InsightsConfig struct {
+	Hostname     string
+	Organization string
+	Cluster      string
+	Token        string
+}

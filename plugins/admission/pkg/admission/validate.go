@@ -42,9 +42,16 @@ func (w webhookFailurePolicy) String() string {
 
 // Validator is the entry point for the admission webhook.
 type Validator struct {
+	iConfig              models.InsightsConfig
 	decoder              *admission.Decoder
 	config               *models.Configuration
 	webhookFailurePolicy webhookFailurePolicy
+}
+
+func NewValidator(iConfig models.InsightsConfig) *Validator {
+	return &Validator{
+		iConfig: iConfig,
+	}
 }
 
 // SetWebhookFailurePolicy parses a string into one of the
@@ -105,7 +112,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
-	return processInputYAML(ctx, *v.config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
+	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
 }
 
 // Handle for Validator to run validation checks.
@@ -145,7 +152,7 @@ func getRequestReport(req admission.Request) (models.ReportInfo, error) {
 	return report, err
 }
 
-func processInputYAML(ctx context.Context, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
+func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
 	reports := []models.ReportInfo{
 		metaReport,
 	}
@@ -183,7 +190,7 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 		reports = append(reports, plutoReport)
 	}
 
-	results, warnings, errors, err := SendResults(reports, token)
+	results, warnings, errors, err := sendResults(iConfig, reports, token)
 	if err != nil {
 		return false, nil, nil, err
 	}

@@ -33,21 +33,14 @@ func exitWithError(message string, err error) {
 	}
 }
 
-var handler fadmission.Validator
-var mutatorHandler fadmission.Mutator
-var organization string
-var hostname string
-var cluster string
-var token string
-
-func refreshConfig() error {
-	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", hostname, organization, cluster)
+func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mutatorHandler *fadmission.Mutator) error {
+	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", cfg.Hostname, cfg.Organization, cfg.Cluster)
 	logrus.Infof("Refreshing configuration from url %s", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+cfg.Token)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -78,25 +71,16 @@ func refreshConfig() error {
 	return nil
 }
 
-func keepConfigurationRefreshed(ctx context.Context) {
-	targetDuration := 1
-	durationString := os.Getenv("CONFIGURATION_INTERVAL")
-	if durationString != "" {
-		durationInt, err := strconv.Atoi(durationString)
-		if err != nil {
-			exitWithError("CONFIGURATION_INTERVAL is not an integer", err)
-		}
-		targetDuration = durationInt
-	}
-	ticker := time.NewTicker(time.Minute * time.Duration(targetDuration))
-	err := refreshConfig()
+func keepConfigurationRefreshed(ctx context.Context, cfg models.InsightsConfig, interval int, validatorHandler *fadmission.Validator, mutatorHandler *fadmission.Mutator) {
+	err := refreshConfig(cfg, validatorHandler, mutatorHandler)
 	if err != nil {
 		exitWithError("Error refreshing configuration", err)
 	}
+	ticker := time.NewTicker(time.Minute * time.Duration(interval))
 	for {
 		select {
 		case <-ticker.C:
-			err = refreshConfig()
+			err = refreshConfig(cfg, validatorHandler, mutatorHandler)
 			if err != nil {
 				logrus.Errorf("Error refreshing configuration: %+v", err)
 			}
@@ -106,20 +90,36 @@ func keepConfigurationRefreshed(ctx context.Context) {
 	}
 }
 
-func main() {
-	organization = os.Getenv("FAIRWINDS_ORGANIZATION")
-	hostname = os.Getenv("FAIRWINDS_HOSTNAME")
-	cluster = os.Getenv("FAIRWINDS_CLUSTER")
-	var err error
-	go keepConfigurationRefreshed(context.Background())
+func getConfigurationInterval() (int, error) {
+	durationString := os.Getenv("CONFIGURATION_INTERVAL")
+	if durationString == "" {
+		return 1, nil
+	}
+	durationInt, err := strconv.Atoi(durationString)
+	if err != nil {
+		return 0, fmt.Errorf("CONFIGURATION_INTERVAL is not an integer: %v", err)
+	}
+	return durationInt, nil
+}
 
-	token = strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+func main() {
+	organization := os.Getenv("FAIRWINDS_ORGANIZATION")
+	hostname := os.Getenv("FAIRWINDS_HOSTNAME")
+	cluster := os.Getenv("FAIRWINDS_CLUSTER")
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
+	interval, err := getConfigurationInterval()
+	if err != nil {
+		exitWithError("could not get interval", err)
+	}
+	iConfig := models.InsightsConfig{Hostname: hostname, Organization: organization, Cluster: cluster, Token: token}
+	handler := fadmission.NewValidator(iConfig)
+	var mutatorHandler fadmission.Mutator
+	go keepConfigurationRefreshed(context.Background(), iConfig, interval, handler, &mutatorHandler)
 
-	var webhookPort int64
-	webhookPort = 8443
+	webhookPort := int64(8443)
 	portString := strings.TrimSpace(os.Getenv("WEBHOOK_PORT"))
 	if portString != "" {
 		var err error
@@ -164,7 +164,7 @@ func main() {
 	server.CertName = "tls.crt"
 	server.KeyName = "tls.key"
 
-	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &handler})
+	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: handler})
 	mgr.GetWebhookServer().Register("/mutate", &webhook.Admission{Handler: &mutatorHandler})
 
 	logrus.Infof("Starting webhook manager %s (OPA %s)", admissionversion.String(), opaversion.String())
