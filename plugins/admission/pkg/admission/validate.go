@@ -104,7 +104,6 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Infof("Object has an owner - skipping")
 		return true, nil, nil, nil
 	}
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 
 	logrus.Debugf("Processing with config %+v", v.config)
 	metadata, err := getRequestReport(req)
@@ -112,7 +111,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
-	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
+	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, v.iConfig.Token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
 }
 
 // Handle for Validator to run validation checks.
@@ -168,7 +167,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 	}
 	if configurationObject.Reports.OPA {
 		logrus.Info("Running OPA")
-		opaReport, err := opa.ProcessOPA(ctx, decodedObject, name, apiGroup, kind, namespace, configurationObject)
+		opaReport, err := opa.ProcessOPA(ctx, decodedObject, name, apiGroup, kind, namespace, configurationObject, iConfig)
 		if err != nil {
 			return false, nil, nil, err
 		}
