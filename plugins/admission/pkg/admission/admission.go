@@ -17,7 +17,7 @@ import (
 )
 
 // sendResults sends the results to Insights
-func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo, token string) (passed bool, warnings []string, errors []string, err error) {
+func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (passed bool, warnings []string, errors []string, err error) {
 	var b bytes.Buffer
 
 	w := multipart.NewWriter(&b)
@@ -46,7 +46,7 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo, tok
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+iConfig.Token)
 	req.Header.Set("X-Fairwinds-Admission-Version", admissionversion.String())
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)

@@ -99,7 +99,6 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	}
 
 	ownerReferences, ok := decoded["metadata"].(map[string]interface{})["ownerReferences"].([]interface{})
-
 	if ok && len(ownerReferences) > 0 {
 		logrus.Infof("Object has an owner - skipping")
 		return true, nil, nil, nil
@@ -111,7 +110,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
-	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, v.iConfig.Token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
+	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
 }
 
 // Handle for Validator to run validation checks.
@@ -151,10 +150,9 @@ func getRequestReport(req admission.Request) (models.ReportInfo, error) {
 	return report, err
 }
 
-func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
-	reports := []models.ReportInfo{
-		metaReport,
-	}
+func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
+	reports := []models.ReportInfo{metaReport}
+
 	if configurationObject.Reports.Polaris {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
@@ -165,6 +163,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		}
 		reports = append(reports, polarisReport)
 	}
+
 	if configurationObject.Reports.OPA {
 		logrus.Info("Running OPA")
 		opaReport, err := opa.ProcessOPA(ctx, decodedObject, name, apiGroup, kind, namespace, configurationObject, iConfig)
@@ -189,7 +188,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		reports = append(reports, plutoReport)
 	}
 
-	results, warnings, errors, err := sendResults(iConfig, reports, token)
+	results, warnings, errors, err := sendResults(iConfig, reports)
 	if err != nil {
 		return false, nil, nil, err
 	}
