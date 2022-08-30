@@ -103,9 +103,18 @@ func getConfigurationInterval() (int, error) {
 }
 
 func main() {
-	organization := os.Getenv("FAIRWINDS_ORGANIZATION")
 	hostname := os.Getenv("FAIRWINDS_HOSTNAME")
+	if hostname == "" {
+		exitWithError("FAIRWINDS_HOSTNAME environment variable not set", nil)
+	}
+	organization := os.Getenv("FAIRWINDS_ORGANIZATION")
+	if organization == "" {
+		exitWithError("FAIRWINDS_ORGANIZATION environment variable not set", nil)
+	}
 	cluster := os.Getenv("FAIRWINDS_CLUSTER")
+	if cluster == "" {
+		exitWithError("FAIRWINDS_CLUSTER environment variable not set", nil)
+	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
