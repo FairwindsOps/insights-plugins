@@ -90,40 +90,12 @@ func keepConfigurationRefreshed(ctx context.Context, cfg models.InsightsConfig, 
 	}
 }
 
-func getConfigurationInterval() (int, error) {
-	durationString := os.Getenv("CONFIGURATION_INTERVAL")
-	if durationString == "" {
-		return 1, nil
-	}
-	durationInt, err := strconv.Atoi(durationString)
-	if err != nil {
-		return 0, fmt.Errorf("CONFIGURATION_INTERVAL is not an integer: %v", err)
-	}
-	return durationInt, nil
-}
-
 func main() {
-	hostname := os.Getenv("FAIRWINDS_HOSTNAME")
-	if hostname == "" {
-		exitWithError("FAIRWINDS_HOSTNAME environment variable not set", nil)
-	}
-	organization := os.Getenv("FAIRWINDS_ORGANIZATION")
-	if organization == "" {
-		exitWithError("FAIRWINDS_ORGANIZATION environment variable not set", nil)
-	}
-	cluster := os.Getenv("FAIRWINDS_CLUSTER")
-	if cluster == "" {
-		exitWithError("FAIRWINDS_CLUSTER environment variable not set", nil)
-	}
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-	if token == "" {
-		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
-	}
-	interval, err := getConfigurationInterval()
+	interval, err := getIntervalOrDefault(1)
 	if err != nil {
 		exitWithError("could not get interval", err)
 	}
-	iConfig := models.InsightsConfig{Hostname: hostname, Organization: organization, Cluster: cluster, Token: token}
+	iConfig := mustGetInsightsConfigFromEnvVars()
 	handler := fadmission.NewValidator(iConfig)
 	var mutatorHandler fadmission.Mutator
 	go keepConfigurationRefreshed(context.Background(), iConfig, interval, handler, &mutatorHandler)
@@ -181,6 +153,38 @@ func main() {
 		logrus.Errorf("Error starting manager: %v", err)
 		os.Exit(1)
 	}
+}
+
+func getIntervalOrDefault(fallback int) (int, error) {
+	durationString := os.Getenv("CONFIGURATION_INTERVAL")
+	if durationString == "" {
+		return fallback, nil
+	}
+	durationInt, err := strconv.Atoi(durationString)
+	if err != nil {
+		return 0, fmt.Errorf("CONFIGURATION_INTERVAL is not an integer: %v", err)
+	}
+	return durationInt, nil
+}
+
+func mustGetInsightsConfigFromEnvVars() models.InsightsConfig {
+	hostname := os.Getenv("FAIRWINDS_HOSTNAME")
+	if hostname == "" {
+		exitWithError("FAIRWINDS_HOSTNAME environment variable not set", nil)
+	}
+	organization := os.Getenv("FAIRWINDS_ORGANIZATION")
+	if organization == "" {
+		exitWithError("FAIRWINDS_ORGANIZATION environment variable not set", nil)
+	}
+	cluster := os.Getenv("FAIRWINDS_CLUSTER")
+	if cluster == "" {
+		exitWithError("FAIRWINDS_CLUSTER environment variable not set", nil)
+	}
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
+	}
+	return models.InsightsConfig{Hostname: hostname, Organization: organization, Cluster: cluster, Token: token}
 }
 
 func setLogLevel() {
