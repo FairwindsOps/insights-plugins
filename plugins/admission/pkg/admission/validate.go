@@ -52,10 +52,10 @@ type Validator struct {
 	webhookFailurePolicy webhookFailurePolicy
 }
 
-func NewValidator(cs *kubernetes.Clientset, iConfig models.InsightsConfig) *Validator {
+func NewValidator(clientset *kubernetes.Clientset, iConfig models.InsightsConfig) *Validator {
 	return &Validator{
 		iConfig:   iConfig,
-		clientset: cs,
+		clientset: clientset,
 	}
 }
 
