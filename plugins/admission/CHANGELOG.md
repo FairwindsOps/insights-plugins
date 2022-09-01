@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.6.0
-* adds `namespaceObject` field to `metadata` report 
+* adds `namespaceMetadata` field to `metadata` report 
 
 ## 1.5.6
 * upgrade plugins on build

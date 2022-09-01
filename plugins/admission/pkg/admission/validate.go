@@ -107,16 +107,16 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		return true, nil, nil, nil
 	}
 
-	var namespaceObject map[string]any
+	var namespaceMetadata map[string]any
 	if namespace, ok := decoded["metadata"].(map[string]interface{})["namespace"].(string); ok && namespace != "" {
-		namespaceObject, err = getNamespaceObject(v.clientset, namespace)
+		namespaceMetadata, err = getNamespaceMetadata(v.clientset, namespace)
 		if err != nil {
 			return false, nil, nil, err
 		}
 	}
 
 	logrus.Debugf("Processing with config %+v", v.config)
-	metadataReport, err := getRequestReport(req, namespaceObject)
+	metadataReport, err := getRequestReport(req, namespaceMetadata)
 	if err != nil {
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
@@ -124,7 +124,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadataReport)
 }
 
-func getNamespaceObject(clientset *kubernetes.Clientset, namespace string) (map[string]any, error) {
+func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (map[string]any, error) {
 	ns, err := clientset.CoreV1().Namespaces().Get(context.Background(), namespace, v1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -162,11 +162,11 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 
 type MetadataReport struct {
 	admissionv1.AdmissionRequest
-	NamespaceObject map[string]any `json:"namespaceObject,omitempty"`
+	NamespaceMetadata map[string]any `json:"namespaceMetadata,omitempty"`
 }
 
-func getRequestReport(req admission.Request, namespaceObject map[string]any) (models.ReportInfo, error) {
-	metadataReport := MetadataReport{AdmissionRequest: req.AdmissionRequest, NamespaceObject: namespaceObject}
+func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (models.ReportInfo, error) {
+	metadataReport := MetadataReport{AdmissionRequest: req.AdmissionRequest, NamespaceMetadata: namespaceMetadata}
 	contents, err := json.Marshal(&metadataReport)
 	return models.ReportInfo{
 		Report:   "metadata",
