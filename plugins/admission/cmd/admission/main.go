@@ -13,6 +13,7 @@ import (
 
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -33,21 +34,14 @@ func exitWithError(message string, err error) {
 	}
 }
 
-var handler fadmission.Validator
-var mutatorHandler fadmission.Mutator
-var organization string
-var hostname string
-var cluster string
-var token string
-
-func refreshConfig() error {
-	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", hostname, organization, cluster)
+func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mutatorHandler *fadmission.Mutator) error {
+	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", cfg.Hostname, cfg.Organization, cfg.Cluster)
 	logrus.Infof("Refreshing configuration from url %s", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+cfg.Token)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -78,25 +72,16 @@ func refreshConfig() error {
 	return nil
 }
 
-func keepConfigurationRefreshed(ctx context.Context) {
-	targetDuration := 1
-	durationString := os.Getenv("CONFIGURATION_INTERVAL")
-	if durationString != "" {
-		durationInt, err := strconv.Atoi(durationString)
-		if err != nil {
-			exitWithError("CONFIGURATION_INTERVAL is not an integer", err)
-		}
-		targetDuration = durationInt
-	}
-	ticker := time.NewTicker(time.Minute * time.Duration(targetDuration))
-	err := refreshConfig()
+func keepConfigurationRefreshed(ctx context.Context, cfg models.InsightsConfig, interval int, validatorHandler *fadmission.Validator, mutatorHandler *fadmission.Mutator) {
+	err := refreshConfig(cfg, validatorHandler, mutatorHandler)
 	if err != nil {
 		exitWithError("Error refreshing configuration", err)
 	}
+	ticker := time.NewTicker(time.Minute * time.Duration(interval))
 	for {
 		select {
 		case <-ticker.C:
-			err = refreshConfig()
+			err = refreshConfig(cfg, validatorHandler, mutatorHandler)
 			if err != nil {
 				logrus.Errorf("Error refreshing configuration: %+v", err)
 			}
@@ -107,29 +92,32 @@ func keepConfigurationRefreshed(ctx context.Context) {
 }
 
 func main() {
-	organization = os.Getenv("FAIRWINDS_ORGANIZATION")
-	hostname = os.Getenv("FAIRWINDS_HOSTNAME")
-	cluster = os.Getenv("FAIRWINDS_CLUSTER")
-	var err error
-	go keepConfigurationRefreshed(context.Background())
-
-	token = strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-	if token == "" {
-		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
+	setLogLevel()
+	interval, err := getIntervalOrDefault(1)
+	if err != nil {
+		exitWithError("could not get interval", err)
 	}
+	k8sCfg := k8sConfig.GetConfigOrDie()
+	iConfig := mustGetInsightsConfigFromEnvVars()
+	clientset, err := kubernetes.NewForConfig(k8sCfg)
+	if err != nil {
+		exitWithError("could not get k8s clientset from config", err)
+	}
+	handler := fadmission.NewValidator(clientset, iConfig)
+	var mutatorHandler fadmission.Mutator
+	go keepConfigurationRefreshed(context.Background(), iConfig, interval, handler, &mutatorHandler)
 
-	var webhookPort int64
-	webhookPort = 8443
+	webhookPort := int64(8443)
 	portString := strings.TrimSpace(os.Getenv("WEBHOOK_PORT"))
 	if portString != "" {
 		var err error
 		webhookPort, err = strconv.ParseInt(portString, 10, 0)
 		if err != nil {
-			panic(err)
+			exitWithError("could not parse WEBHOOK_PORT to int", err)
 		}
 	}
 
-	mgr, err := manager.New(k8sConfig.GetConfigOrDie(), manager.Options{
+	mgr, err := manager.New(k8sCfg, manager.Options{
 		CertDir:                "/opt/cert",
 		HealthProbeBindAddress: ":8081",
 		Port:                   int(webhookPort),
@@ -137,8 +125,6 @@ func main() {
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
 	}
-
-	setLogLevel()
 
 	webhookFailurePolicyString := os.Getenv("WEBHOOK_FAILURE_POLICY")
 	ok := handler.SetWebhookFailurePolicy(webhookFailurePolicyString)
@@ -164,7 +150,7 @@ func main() {
 	server.CertName = "tls.crt"
 	server.KeyName = "tls.key"
 
-	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: &handler})
+	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: handler})
 	mgr.GetWebhookServer().Register("/mutate", &webhook.Admission{Handler: &mutatorHandler})
 
 	logrus.Infof("Starting webhook manager %s (OPA %s)", admissionversion.String(), opaversion.String())
@@ -172,6 +158,38 @@ func main() {
 		logrus.Errorf("Error starting manager: %v", err)
 		os.Exit(1)
 	}
+}
+
+func getIntervalOrDefault(fallback int) (int, error) {
+	durationString := os.Getenv("CONFIGURATION_INTERVAL")
+	if durationString == "" {
+		return fallback, nil
+	}
+	durationInt, err := strconv.Atoi(durationString)
+	if err != nil {
+		return 0, fmt.Errorf("CONFIGURATION_INTERVAL is not an integer: %v", err)
+	}
+	return durationInt, nil
+}
+
+func mustGetInsightsConfigFromEnvVars() models.InsightsConfig {
+	hostname := os.Getenv("FAIRWINDS_HOSTNAME")
+	if hostname == "" {
+		exitWithError("FAIRWINDS_HOSTNAME environment variable not set", nil)
+	}
+	organization := os.Getenv("FAIRWINDS_ORGANIZATION")
+	if organization == "" {
+		exitWithError("FAIRWINDS_ORGANIZATION environment variable not set", nil)
+	}
+	cluster := os.Getenv("FAIRWINDS_CLUSTER")
+	if cluster == "" {
+		exitWithError("FAIRWINDS_CLUSTER environment variable not set", nil)
+	}
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
+	}
+	return models.InsightsConfig{Hostname: hostname, Organization: organization, Cluster: cluster, Token: token}
 }
 
 func setLogLevel() {
