@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.16
+* Update Dockerfile to support building for other architectures
+
 ## 2.2.15
 * upgrade plugins on build
 

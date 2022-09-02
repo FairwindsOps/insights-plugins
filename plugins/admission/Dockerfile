@@ -2,13 +2,15 @@
 # Minimally dockerfile:2.1 is required by RUN --mount=type=cache
 # Ref: https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md
 FROM golang:1.18 as build-env
+ARG TARGETARCH
+ARG TARGETOS
 WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/
 
 
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
+ENV GOOS=$TARGETOS
+ENV GOARCH=$TARGETARCH
 ENV GOFLAGS=-mod=mod
 
 COPY opa opa

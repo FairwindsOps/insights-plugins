@@ -1,5 +1,7 @@
 # Build the manager binary
 FROM golang:1.18 as builder
+ARG TARGETARCH
+ARG TARGETOS
 
 WORKDIR /workspace
 
@@ -13,7 +15,7 @@ RUN go mod download
 
 COPY pkg pkg
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o falco-agent pkg/*.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GO111MODULE=on go build -a -o falco-agent pkg/*.go
 
 
 FROM alpine:3.16

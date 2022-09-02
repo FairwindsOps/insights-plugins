@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.20
+* Update Dockerfile to support building for other architectures
+
 ## 1.2.19
 * upgrade plugins on build
 

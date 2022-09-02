@@ -1,6 +1,7 @@
 # Build the right-sizer controller.
 FROM golang:1.18 as builder
-
+ARG TARGETARCH
+ARG TARGETOS
 WORKDIR /workspace
 
 # Copy the Go Modules manifests
@@ -14,7 +15,7 @@ RUN go mod download
 COPY cmd cmd
 COPY src src
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -o right-sizer cmd/main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} GO111MODULE=on go build -o right-sizer cmd/main.go
 
 FROM scratch
 USER 1200:1200
