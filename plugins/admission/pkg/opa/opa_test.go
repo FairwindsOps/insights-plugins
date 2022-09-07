@@ -16,11 +16,12 @@ import (
 func TestProcessOPA(t *testing.T) {
 	kube.SetFakeClient()
 	config := models.Configuration{}
+	iConfig := models.InsightsConfig{}
 	checks := []opa.OPACustomCheck{}
 	instances := []opa.CheckSetting{}
 	config.OPA.CustomCheckInstances = instances
 	config.OPA.CustomChecks = checks
-	report, err := ProcessOPA(context.TODO(), nil, "", "", "", "", config)
+	report, err := ProcessOPA(context.TODO(), nil, "", "", "", "", config, iConfig)
 	assert.Equal(t, "opa", report.Report)
 	assert.NoError(t, err)
 	var reportObject map[string]interface{}
@@ -67,7 +68,7 @@ labelrequired[results] {
 
 	config.OPA.CustomChecks = checks
 	config.OPA.CustomCheckInstances = instances
-	report, err = ProcessOPA(context.TODO(), object, "test", "", "Pod", "test", config)
+	report, err = ProcessOPA(context.TODO(), object, "test", "", "Pod", "test", config, iConfig)
 	assert.NoError(t, err)
 	assert.Equal(t, "opa", report.Report)
 	err = json.Unmarshal(report.Contents, &reportObject)
@@ -95,7 +96,7 @@ labelrequired[results] {
 	}
 	checks = append(checks, check)
 	config.OPA.CustomChecks = checks
-	report, err = ProcessOPA(context.TODO(), object, "test", "", "Pod", "test", config)
+	report, err = ProcessOPA(context.TODO(), object, "test", "", "Pod", "test", config, iConfig)
 	assert.NoError(t, err)
 	assert.Equal(t, "opa", report.Report)
 	err = json.Unmarshal(report.Contents, &reportObject)

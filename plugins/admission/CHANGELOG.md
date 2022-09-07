@@ -1,7 +1,10 @@
 # Changelog
 
-## 1.5.7
+## 1.6.1
 * Update Dockerfile to support building for other architectures
+
+## 1.6.0
+* adds `namespaceMetadata` field to `metadata` report 
 
 ## 1.5.6
 * upgrade plugins on build
