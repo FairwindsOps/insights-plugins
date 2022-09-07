@@ -10,6 +10,7 @@ temporary_git_tag=$(cat version.txt)
 echo "$(basename $0) creating local tag ${temporary_git_tag} for goreleaser"
 # The -f is included to overwrite existing tags, perhaps from previous CI jobs.
 git tag -f -m "temporary local tag for goreleaser" ${temporary_git_tag}
+export GORELEASER_CURRENT_TAG=${temporary_git_tag}
 goreleaser
+unset GORELEASER_CURRENT_TAG
 git tag -d ${temporary_git_tag}
-
