@@ -7,5 +7,6 @@ RUN apk --no-cache add ca-certificates curl
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/${TARGETOS}/${TARGETARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
-COPY . .
+COPY download.sh .
+COPY uploader.sh .
 ENTRYPOINT ["uploader.sh"]
