@@ -1,4 +1,4 @@
-project_name: insights-uploader
+project_name: aws-costs
 release:
   disable: true
 changelog:
@@ -19,39 +19,36 @@ dockers:
   # Also, some images are broken out to avoid pushing them for pre-release git
   # tags. E.G. VX.Y.Z-rc1 should not docker-push latest.
 - image_templates:
-  - "ivanfetch/plugin-uploader:{{ .Tag }}-amd64"
+  - "ivanfetch/plugin-aws-costs:{{ .Tag }}-amd64"
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
   # These files will be available to a COPY Dockerfile command.
   # Note there are additional extra_files repeated below.
   extra_files:
-    - download.sh
-    - uploader.sh
+    - aws-costs.sh
 - image_templates:
-  - "ivanfetch/plugin-uploader:v{{ .Major }}-amd64"
-  - "ivanfetch/plugin-uploader:v{{ .Major }}.{{ .Minor }}-amd64"
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}-amd64"
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}.{{ .Minor }}-amd64"
   use: buildx
   # Do not push images if the git tag indicates prerelease. E.G. 1.0.0-rc1
   skip_push: auto
   build_flag_templates:
   - "--platform=linux/amd64"
   extra_files:
-    - download.sh
-    - uploader.sh
+    - aws-costs.sh
 - image_templates:
-  - "ivanfetch/plugin-uploader:{{ .Tag }}-arm64"
+  - "ivanfetch/plugin-aws-costs:{{ .Tag }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
   build_flag_templates:
   - "--platform=linux/arm64"
   extra_files:
-    - download.sh
-    - uploader.sh
+    - aws-costs.sh
 - image_templates:
-  - "ivanfetch/plugin-uploader:v{{ .Major }}-arm64"
-  - "ivanfetch/plugin-uploader:v{{ .Major }}.{{ .Minor }}-arm64"
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}-arm64"
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}.{{ .Minor }}-arm64"
   use: buildx
   # Do not push images if the git tag indicates prerelease. E.G. 1.0.0-rc1
   skip_push: auto
@@ -60,32 +57,31 @@ dockers:
   build_flag_templates:
   - "--platform=linux/arm64"
   extra_files:
-    - download.sh
-    - uploader.sh
+    - aws-costs.sh
 docker_manifests:
 # Combine images of the same tag into a single Docker manifest.
 # E.G. A v1.2.3 manifest includes image tags
 # v1.2.3-amd64, v1.2.3-arm64.
-- name_template: ivanfetch/plugin-uploader:latest
+- name_template: ivanfetch/plugin-aws-costs:latest
   # Do not push manifests if the git tag indicates prerelease. E.G. 1.0.0-rc1
   skip_push: auto
   image_templates:
-  - "ivanfetch/plugin-uploader:{{ .Tag }}-amd64"
-  - "ivanfetch/plugin-uploader:{{ .Tag }}-arm64"
-- name_template: ivanfetch/plugin-uploader:{{ .Tag }}
+  - "ivanfetch/plugin-aws-costs:{{ .Tag }}-amd64"
+  - "ivanfetch/plugin-aws-costs:{{ .Tag }}-arm64"
+- name_template: ivanfetch/plugin-aws-costs:{{ .Tag }}
   image_templates:
-  - "ivanfetch/plugin-uploader:{{ .Tag }}-amd64"
-  - "ivanfetch/plugin-uploader:{{ .Tag }}-arm64"
-- name_template: ivanfetch/plugin-uploader:v{{ .Major }}
+  - "ivanfetch/plugin-aws-costs:{{ .Tag }}-amd64"
+  - "ivanfetch/plugin-aws-costs:{{ .Tag }}-arm64"
+- name_template: ivanfetch/plugin-aws-costs:v{{ .Major }}
   # Do not push manifests if the git tag indicates prerelease. E.G. 1.0.0-rc1
   skip_push: auto
   image_templates:
-  - "ivanfetch/plugin-uploader:v{{ .Major }}-amd64"
-  - "ivanfetch/plugin-uploader:v{{ .Major }}-arm64"
-- name_template: ivanfetch/plugin-uploader:v{{ .Major }}.{{ .Minor }}
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}-amd64"
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}-arm64"
+- name_template: ivanfetch/plugin-aws-costs:v{{ .Major }}.{{ .Minor }}
   # Do not push manifests if the git tag indicates prerelease. E.G. 1.0.0-rc1
   skip_push: auto
   image_templates:
-  - "ivanfetch/plugin-uploader:v{{ .Major }}.{{ .Minor }}-amd64"
-  - "ivanfetch/plugin-uploader:v{{ .Major }}.{{ .Minor }}-arm64"
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}.{{ .Minor }}-amd64"
+  - "ivanfetch/plugin-aws-costs:v{{ .Major }}.{{ .Minor }}-arm64"
 
