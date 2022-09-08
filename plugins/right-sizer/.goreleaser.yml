@@ -1,0 +1,80 @@
+project_name: right-sizer
+release:
+  disable: true
+changelog:
+  skip: true
+env:
+  - CGO_ENABLED=0
+  - GO11MODULE=on
+builds:
+- main: cmd/main.go
+  # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
+  # minus those under `ignore`.
+  goarch:
+  - amd64
+  - arm64
+  goos:
+  - linux
+  - darwin
+dockers:
+  # There are multiple images to match the `--platform` docker build flag with
+  # combinations of `GOOS`, `GOARCH`, and `GOARM`
+  # Also, some images are broken out to avoid pushing them for pre-release git
+  # tags. E.G. VX.Y.Z-rc1 should not docker-push latest.
+- image_templates:
+  - "ivanfetch/plugin-right-sizer:{{ .Tag }}-amd64"
+  use: buildx
+  build_flag_templates:
+  - "--platform=linux/amd64"
+- image_templates:
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}-amd64"
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}.{{ .Minor }}-amd64"
+  use: buildx
+  # Do not push images if the git tag indicates prerelease. E.G. 1.0.0-rc1
+  skip_push: auto
+  build_flag_templates:
+  - "--platform=linux/amd64"
+- image_templates:
+  - "ivanfetch/plugin-right-sizer:{{ .Tag }}-arm64"
+  use: buildx
+  goarch: arm64
+  goos: linux
+  build_flag_templates:
+  - "--platform=linux/arm64"
+- image_templates:
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}-arm64"
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}.{{ .Minor }}-arm64"
+  use: buildx
+  # Do not push images if the git tag indicates prerelease. E.G. 1.0.0-rc1
+  skip_push: auto
+  goarch: arm64
+  goos: linux
+  build_flag_templates:
+  - "--platform=linux/arm64"
+docker_manifests:
+# Combine images of the same tag into a single Docker manifest.
+# E.G. A v1.2.3 manifest includes image tags
+# v1.2.3-amd64, v1.2.3-arm64.
+- name_template: ivanfetch/plugin-right-sizer:latest
+  # Do not push manifests if the git tag indicates prerelease. E.G. 1.0.0-rc1
+  skip_push: auto
+  image_templates:
+  - "ivanfetch/plugin-right-sizer:{{ .Tag }}-amd64"
+  - "ivanfetch/plugin-right-sizer:{{ .Tag }}-arm64"
+- name_template: ivanfetch/plugin-right-sizer:{{ .Tag }}
+  image_templates:
+  - "ivanfetch/plugin-right-sizer:{{ .Tag }}-amd64"
+  - "ivanfetch/plugin-right-sizer:{{ .Tag }}-arm64"
+- name_template: ivanfetch/plugin-right-sizer:v{{ .Major }}
+  # Do not push manifests if the git tag indicates prerelease. E.G. 1.0.0-rc1
+  skip_push: auto
+  image_templates:
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}-amd64"
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}-arm64"
+- name_template: ivanfetch/plugin-right-sizer:v{{ .Major }}.{{ .Minor }}
+  # Do not push manifests if the git tag indicates prerelease. E.G. 1.0.0-rc1
+  skip_push: auto
+  image_templates:
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}.{{ .Minor }}-amd64"
+  - "ivanfetch/plugin-right-sizer:v{{ .Major }}.{{ .Minor }}-arm64"
+
