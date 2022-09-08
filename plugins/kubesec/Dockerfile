@@ -15,7 +15,7 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s
 ENV GOPATH=/home/ubuntu/go/
 RUN curl -L "https://github.com/controlplaneio/kubesec/releases/download/v2.11.5/kubesec_${TARGETOS}_${TARGETARCH}.tar.gz" > kubesec.tar.gz && tar -xvf kubesec.tar.gz && mv kubesec /usr/bin/ && rm kubesec.tar.gz
 
-COPY . .
+COPY main.sh .
 
 USER 1000
 CMD ["main.sh"]
