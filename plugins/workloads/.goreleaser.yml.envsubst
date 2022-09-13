@@ -1,0 +1,66 @@
+project_name: workload
+release:
+  disable: true
+changelog:
+  skip: true
+archives:
+- format: binary
+env:
+  - CGO_ENABLED=0
+  - GO11MODULE=on
+builds:
+- main: ./pkg
+  # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
+  # minus those under `ignore`.
+  goarch:
+  - amd64
+  - arm64
+  goos:
+  - linux
+  - darwin
+dockers:
+  # There are multiple images to match the `--platform` docker build flag with
+  # combinations of `GOOS`, `GOARCH`, and `GOARM`
+  # Also, some images are broken out to avoid pushing them for pre-release git
+  # tags. E.G. VX.Y.Z-rc1 should not docker-push latest.
+- image_templates:
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
+  use: buildx
+  build_flag_templates:
+  - "--platform=linux/amd64"
+- image_templates:
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+  use: buildx
+  goarch: arm64
+  goos: linux
+  build_flag_templates:
+  - "--platform=linux/arm64"
+docker_manifests:
+# Combine images of the same tag into a single Docker manifest.
+# E.G. A v1.2.3 manifest includes image tags
+# v1.2.3-amd64, v1.2.3-arm64.
+- name_template: ivanfetch/plugin-workloads:{{ .FullCommit }}
+  image_templates:
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-workloads:latest
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-workloads:{{ .Tag }}
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-workloads:v{{ .Major }}
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-workloads:v{{ .Major }}.{{ .Minor }}
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+
