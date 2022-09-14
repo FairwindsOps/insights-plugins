@@ -1,0 +1,66 @@
+project_name: kubesec
+release:
+  disable: true
+changelog:
+  skip: true
+builds:
+- skip: true
+  # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
+  # minus those under `ignore`.
+  goarch:
+  - amd64
+  - arm64
+  goos:
+  - linux
+dockers:
+  # There are multiple images to match the `--platform` docker build flag with
+  # combinations of `GOOS`, `GOARCH`, and `GOARM`
+- image_templates:
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-amd64"
+  use: buildx
+  build_flag_templates:
+  - "--platform=linux/amd64"
+  # These files will be available to a COPY Dockerfile command.
+  # Note there are additional extra_files repeated below.
+  extra_files:
+    - main.sh
+- image_templates:
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-arm64"
+  use: buildx
+  goarch: arm64
+  goos: linux
+  build_flag_templates:
+  - "--platform=linux/arm64"
+  extra_files:
+    - main.sh
+docker_manifests:
+# Create DOcker manifests that make multiple architectures available within a tag,
+# and provide partial-version tags like 2, and 2.2.
+- name_template: ivanfetch/plugin-kubesec:{{ .FullCommit }}
+  image_templates:
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-kubesec:latest
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-kubesec:{{ .Tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-kubesec:{{ .Major }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-kubesec:{{ .Major }}.{{ .Minor }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-kubesec:{{ .FullCommit }}-arm64"
