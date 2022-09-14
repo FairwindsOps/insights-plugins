@@ -1,4 +1,4 @@
-project_name: workload
+project_name: insights-admission
 release:
   disable: true
 changelog:
@@ -9,8 +9,16 @@ archives:
 env:
   - CGO_ENABLED=0
   - GO11MODULE=on
+  - GOFLAGS=-mod=mod
+  # Avoid contaminating workstation Go directories.
+  - GOMODCACHE={{ .Env.TMPDIR }}/admission-go-mod-cache
+  - GOBIN={{ .Env.TMPDIR }}/admission-go-bin
+before:
+  hooks:
+    - go mod download
+    - ./install-and-run-packr2-for-polaris.sh
 builds:
-- main: ./pkg
+- main: ./cmd/admission/main.go
   # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
   # minus those under `ignore`.
   goarch:
@@ -22,12 +30,12 @@ dockers:
   # There are multiple images to match the `--platform` docker build flag with
   # combinations of `GOOS`, `GOARCH`, and `GOARM`
 - image_templates:
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-amd64"
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
 - image_templates:
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
@@ -36,31 +44,31 @@ dockers:
 docker_manifests:
 # Create DOcker manifests that make multiple architectures available within a tag,
 # and provide partial-version tags like 2, and 2.2.
-- name_template: ivanfetch/plugin-workloads:{{ .FullCommit }}
+- name_template: ivanfetch/plugin-admission:{{ .FullCommit }}
   image_templates:
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
-- name_template: ivanfetch/plugin-workloads:latest
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-admission:latest
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
-- name_template: ivanfetch/plugin-workloads:{{ .Tag }}
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-admission:{{ .Tag }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
-- name_template: ivanfetch/plugin-workloads:{{ .Major }}
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-admission:{{ .Major }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
-- name_template: ivanfetch/plugin-workloads:{{ .Major }}.{{ .Minor }}
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-arm64"
+- name_template: ivanfetch/plugin-admission:{{ .Major }}.{{ .Minor }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-amd64"
-  - "ivanfetch/plugin-workloads:{{ .FullCommit }}-arm64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-amd64"
+  - "ivanfetch/plugin-admission:{{ .FullCommit }}-arm64"
