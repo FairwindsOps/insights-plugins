@@ -9,7 +9,7 @@ if [ ! -r version.txt ] ; then
   exit 1
 fi
 temporary_git_tag=$(cat version.txt)
-echo "${this_script} creating local tag ${temporary_git_tag} for goreleaser"
+echo "${this_script} creating git tag ${temporary_git_tag} for goreleaser"
 # The -f is included to overwrite existing tags, perhaps from previous CI jobs.
 git tag -f -m "temporary local tag for goreleaser" ${temporary_git_tag}
 export GORELEASER_CURRENT_TAG=${temporary_git_tag}
@@ -24,5 +24,6 @@ if [ $? -eq 0 ] ; then
   echo "${this_script} removing the temporary .goreleaser.yml since goreleaser was successful"
   rm .goreleaser.yml # Keep git clean for additional goreleaser runs
 fi
+echo "${this_script} deleting git tag ${temporary_git_tag} for goreleaser"
 unset GORELEASER_CURRENT_TAG
 git tag -d ${temporary_git_tag}
