@@ -3,9 +3,6 @@ release:
   disable: true
 changelog:
   skip: true
-# This avoids creating .tar.gz archives.
-archives:
-- format: binary
 builds:
 - skip: true
   # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
