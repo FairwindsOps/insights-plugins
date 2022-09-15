@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.8
+## 1.1.0
 * Update Dockerfile to support building for other architectures
 
 ## 1.0.7

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.13
+## 2.2.0
 * Update Dockerfile to support building for other architectures
 
 ## 2.1.12

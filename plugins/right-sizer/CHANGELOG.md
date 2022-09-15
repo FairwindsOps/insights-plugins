@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.8
+## 0.4.0
 * Update Dockerfile to support building for other architectures
 
 ## 0.3.7
