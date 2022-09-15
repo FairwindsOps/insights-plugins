@@ -77,9 +77,9 @@ executors:
     docker:
       - image: quay.io/reactiveops/ci-images:v11-stretch
   goreleaser:
-    resource_class: large
+    #resource_class: large
     docker:
-      - image: goreleaser/goreleaser:v1.6.3
+      - image: goreleaser/goreleaser:v1.10.3
 
 
 jobs:
