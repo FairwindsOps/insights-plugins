@@ -1,7 +1,11 @@
 # Changelog
 
+## 1.0.12
+* Update Dockerfile to support building for other architectures
+
 ## 1.0.11
 * Fixed aws costs filename
+
 ## 1.0.10
 * Update aws-cli
 
