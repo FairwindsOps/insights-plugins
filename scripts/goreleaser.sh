@@ -8,6 +8,13 @@ if [ ! -r version.txt ] ; then
   echo "This ${this_script} script expects to be run from within a sub-directory of an Insights plugin, which should contain a version.txt file."
   exit 1
 fi
+if [ "$(git config user.email)" == "" ] ; then
+  # git will use this env var as its user.email.
+  # git tag -m is used in case tags are manually pushed by accident,
+  # however git tag -m requires an email.
+  export EMAIL="goreleaser_ci@fairwinds.com"
+
+fi
 temporary_git_tag=$(cat version.txt)
 echo "${this_script} creating git tag ${temporary_git_tag} for goreleaser"
 # The -f is included to overwrite existing tags, perhaps from previous CI jobs.
