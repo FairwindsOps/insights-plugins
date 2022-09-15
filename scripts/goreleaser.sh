@@ -36,6 +36,8 @@ goreleaser $@
 if [ $? -eq 0 ] ; then
   echo "${this_script} removing the temporary .goreleaser.yml since goreleaser was successful"
   rm .goreleaser.yml # Keep git clean for additional goreleaser runs
+  echo "${this_script} resetting the git repository so it is not in a dirty state for future goreleaser runs since goreleaser was successful"
+  git checkout .
 fi
 echo "${this_script} deleting git tag ${temporary_git_tag} for goreleaser"
 unset GORELEASER_CURRENT_TAG
