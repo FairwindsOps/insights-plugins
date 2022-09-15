@@ -5,11 +5,11 @@ orbs:
   rok8s-scripts: fairwinds/rok8s-scripts@11.11.5
 
 commands:
-  install_debian_dependencies:
+  install_alpine_dependencies:
     description: Installs dependencies for CI scripts
     steps:
-    - run: apt-get update
-    - run: apt-get install -y gettext
+    - run: apk update
+    - run: apk add gettext
   set_environment_variables:
     description: Sets environment variables for this job.
     steps:
@@ -37,7 +37,7 @@ commands:
         # Docker Layer Caching saves /var/lib/docker in a persistent volume,
         # for Dockerfiles that use `RUN --mount=type=cache. . .`
         docker_layer_caching: true
-    - install_debian_dependencies
+    - install_alpine_dependencies
     - set_environment_variables
     - set_tags
     - run:
@@ -76,17 +76,16 @@ executors:
   ci-images:
     docker:
       - image: quay.io/reactiveops/ci-images:v11-stretch
-  golang:
+  goreleaser:
     resource_class: large
     docker:
-      - image: golang:1.18
+      - image: goreleaser/goreleaser:v1.10.3
 
 
 jobs:
   build_and_push_plugins:
-    executor: golang
+    executor: goreleaser
     steps:
-      - install_goreleaser
       - goreleaser
       - slack/notify:
           event: fail
