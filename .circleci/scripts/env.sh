@@ -1,7 +1,12 @@
 set -eo pipefail
+sudo_cmd=""
+if [ "$id -u)" != ""0" ] ; then
+  # This script may be run as a non-root user, which requires sudo
+sudo_cmd="sudo"
+fi
 
-sudo apt-get update && sudo apt-get install apt-transport-https ca-certificates -y
-sudo update-ca-certificates
+${sudo_cmd} apt-get update && ${sudo_cmd} apt-get install apt-transport-https ca-certificates -y
+${sudo_cmd} update-ca-certificates
 
 echo 'export SLACK_DEFAULT_CHANNEL=CPYBX810T' >> ${BASH_ENV}
 

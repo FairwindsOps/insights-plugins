@@ -5,6 +5,11 @@ orbs:
   rok8s-scripts: fairwinds/rok8s-scripts@11.11.5
 
 commands:
+  install_debian_dependencies:
+    description: Installs dependencies for CI scripts
+    steps:
+    - run: apt-get update
+    - run: apt-get install -y gettext
   set_environment_variables:
     description: Sets environment variables for this job.
     steps:
@@ -15,6 +20,14 @@ commands:
     steps:
     - run: ./.circleci/set_tags.sh
 
+  install_goreleaser:
+    description: Installs goreleaser
+    steps:
+    - run: curl -L https://github.com/goreleaser/goreleaser/releases/download/v1.10.3/goreleaser_Linux_x86_64.tar.gz > goreleaser.tar.gz
+    - run: tar -xvf goreleaser.tar.gz
+    - run: mv ./goreleaser /usr/local/bin/goreleaser
+    - run: rm goreleaser.tar.gz
+
   goreleaser:
     description: Build binaries and build/push docker Images depending on the git branch
     steps:
@@ -24,12 +37,7 @@ commands:
         # Docker Layer Caching saves /var/lib/docker in a persistent volume,
         # for Dockerfiles that use `RUN --mount=type=cache. . .`
         docker_layer_caching: true
-    - run:
-        name: Install Dependencies
-        command: |
-          apk update
-          # gettext provides envsubst
-          apk add sudo gettext
+    - install_debian_dependencies
     - set_environment_variables
     - set_tags
     - run:
@@ -68,19 +76,17 @@ executors:
   ci-images:
     docker:
       - image: quay.io/reactiveops/ci-images:v11-stretch
-  goreleaser:
+  golang:
     resource_class: large
     docker:
-      # The GoReleaser version determines the Go version.
-      # Manually determine which version of Go is used by which GoReleaser version.
-      # For possible GoReleaser tags, see https://hub.docker.com/r/goreleaser/goreleaser/tags
-      - image: goreleaser/goreleaser:v1.10.3
+      - image: golang:1.18
 
 
 jobs:
   build_and_push_plugins:
-    executor: goreleaser
+    executor: golang
     steps:
+      - install_goreleaser
       - goreleaser
       - slack/notify:
           event: fail
