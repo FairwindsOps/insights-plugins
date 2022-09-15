@@ -24,15 +24,18 @@ commands:
         # Docker Layer Caching saves /var/lib/docker in a persistent volume,
         # for Dockerfiles that use `RUN --mount=type=cache. . .`
         docker_layer_caching: true
+    - run:
+        name: Install Dependencies
+        command: |
+          apk update
+          # gettext provides envsubst
+          apk add sudo gettext
     - set_environment_variables
     - set_tags
     - run:
         name: Build Plugin Docker Images
         command: |
           docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
-          apk update
-          # gettext provides envsubst
-          apk add sudo gettext
           for plugin in "${CHANGED[@]}"; do
             cd ./plugins/$plugin
             ../../scripts/goreleaser.sh
