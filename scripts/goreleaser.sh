@@ -1,9 +1,15 @@
 #!/usr/bin/env sh
-# Wrap goreleaser by creating a temporary git tag from the version.txt file.
+# Wrap goreleaser by using envsubst on .goreleaser.yml,
+# and creating a temporary git tag from an Insights plugin the version.txt file.
 set -e
 this_script="$(basename $0)"
 hash envsubst
 hash goreleaser
+echo "${this_script} will run goreleaser for $(basename $(pwd))"
+if [ "${TMPDIR} == "" ] ; then
+  export TMPDIR="/tmp"
+  echo "${this_script} temporarily set the TMPDIR environment variable to ${TMPDIR}, used by some .goreleaser.yml files"
+fi
 if [ ! -r version.txt ] ; then
   echo "This ${this_script} script expects to be run from within a sub-directory of an Insights plugin, which should contain a version.txt file."
   exit 1
@@ -13,7 +19,7 @@ if [ "$(git config user.email)" == "" ] ; then
   # git tag -m is used in case tags are manually pushed by accident,
   # however git tag -m requires an email.
   export EMAIL="goreleaser_ci@fairwinds.com"
-
+  echo "${this_script} using ${EMAIL} temporarily as the git user.email"
 fi
 temporary_git_tag=$(cat version.txt)
 echo "${this_script} creating git tag ${temporary_git_tag} for goreleaser"
