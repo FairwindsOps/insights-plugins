@@ -36,7 +36,7 @@ commands:
         version: 20.10.11
         # Docker Layer Caching saves /var/lib/docker in a persistent volume,
         # for Dockerfiles that use `RUN --mount=type=cache. . .`
-        docker_layer_caching: true
+        #docker_layer_caching: true
     - install_alpine_dependencies
     - set_environment_variables
     - set_tags
