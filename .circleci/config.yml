@@ -30,6 +30,9 @@ commands:
         name: Build Plugin Docker Images
         command: |
           docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
+          apk update
+          # gettext provides envsubst
+          apk add sudo gettext
           for plugin in "${CHANGED[@]}"; do
             cd ./plugins/$plugin
             ../../scripts/goreleaser.sh
