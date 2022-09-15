@@ -5,12 +5,14 @@ orbs:
   rok8s-scripts: fairwinds/rok8s-scripts@11.11.5
 
 commands:
-  install_alpine_dependencies:
+  install_goreleaser_dependencies:
     description: Installs dependencies for CI scripts
     steps:
     - run: apk update
+    # gettext provides envsubst
     - run: apk add gettext
-      # Required to register other docker platforms.
+    # Register other docker platforms, to build arm64.
+    # This shouldn't be needed, why TBD.
     - run: docker run --privileged --rm tonistiigi/binfmt --install all
   set_environment_variables:
     description: Sets environment variables for this job.
@@ -22,14 +24,6 @@ commands:
     steps:
     - run: ./.circleci/set_tags.sh
 
-  install_goreleaser:
-    description: Installs goreleaser
-    steps:
-    - run: curl -L https://github.com/goreleaser/goreleaser/releases/download/v1.10.3/goreleaser_Linux_x86_64.tar.gz > goreleaser.tar.gz
-    - run: tar -xvf goreleaser.tar.gz goreleaser
-    - run: mv ./goreleaser /usr/local/bin/goreleaser
-    - run: rm goreleaser.tar.gz
-
   goreleaser:
     description: Build binaries and build/push docker Images depending on the git branch
     steps:
@@ -39,7 +33,7 @@ commands:
         # Docker Layer Caching saves /var/lib/docker in a persistent volume,
         # for Dockerfiles that use `RUN --mount=type=cache. . .`
         docker_layer_caching: true
-    - install_alpine_dependencies
+    - install_goreleaser_dependencies
     - set_environment_variables
     - set_tags
     - run:
@@ -81,6 +75,9 @@ executors:
   goreleaser:
     resource_class: large
     docker:
+      # The goreleaser image tag determins the version of Go.
+      # Manually check goreleaser images for their version of Go.
+      # Ref: https://hub.docker.com/r/goreleaser/goreleaser/tags
       - image: goreleaser/goreleaser:v1.10.3
 
 
