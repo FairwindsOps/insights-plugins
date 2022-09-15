@@ -79,7 +79,7 @@ executors:
   goreleaser:
     resource_class: large
     docker:
-      - image: goreleaser/goreleaser:v1.10.3
+      - image: goreleaser/goreleaser:v1.6.3
 
 
 jobs:
