@@ -18,7 +18,7 @@ if [ "$(git config user.email)" == "" ] ; then
   # git will use this env var as its user.email.
   # git tag -m is used in case tags are manually pushed by accident,
   # however git tag -m requires an email.
-  export EMAIL="goreleaser_ci@fairwinds.com"
+  export EMAIL='goreleaser_ci@fairwinds.com'
   echo "${this_script} using ${EMAIL} temporarily as the git user.email"
 fi
 temporary_git_tag=$(cat version.txt)
