@@ -1,6 +1,6 @@
 set -eo pipefail
 sudo_cmd=""
-if [ "$id -u)" != ""0" ] ; then
+if [ "$(id -u)" != "0" ] ; then
   # This script may be run as a non-root user, which requires sudo
 sudo_cmd="sudo"
 fi
