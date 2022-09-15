@@ -6,7 +6,7 @@ this_script="$(basename $0)"
 hash envsubst
 hash goreleaser
 echo "${this_script} will run goreleaser for $(basename $(pwd))"
-if [ "${TMPDIR} == "" ] ; then
+if [ "${TMPDIR}" == "" ] ; then
   export TMPDIR="/tmp"
   echo "${this_script} temporarily set the TMPDIR environment variable to ${TMPDIR}, used by some .goreleaser.yml files"
 fi
