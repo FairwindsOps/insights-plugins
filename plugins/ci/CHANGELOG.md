@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.13
+* Update versions
+
 ## 2.1.12
 * Improves logging to show k8s and helm files
 
