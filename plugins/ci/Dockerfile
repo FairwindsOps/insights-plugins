@@ -6,8 +6,8 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 ENV GOARCH=amd64
 ENV trivyVersion=0.30.4
-ENV polarisVersion=7.0.1
-ENV plutoVersion=5.10.3
+ENV polarisVersion=7.1.0
+ENV plutoVersion=5.10.7
 
 COPY ci/go.mod ci/
 COPY ci/go.sum ci/
