@@ -34,8 +34,8 @@ export skip_feature_docker_tags=true
 export skip_main_docker_tags=false
 else
   # Use an adjusted git branch name as an additional docker tag, for feature branches.
-  export feature_docker_tag=$(echo "${CIRCLE_BRANCH:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')'
-  echo "${this_script} also using docker tag ${feature_docker_tag} as ${CIRCLE_BRANCH} is a feature branch"
+  export feature_docker_tag=$(echo "${CIRCLE_BRANCH:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
+  echo "${this_script} also using docker tag ${feature_docker_tag} since ${CIRCLE_BRANCH} is a feature branch"
 fi
 cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml
 goreleaser $@
