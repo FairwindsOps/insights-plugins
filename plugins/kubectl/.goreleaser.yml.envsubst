@@ -34,6 +34,12 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/test-kubectl:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
 - name_template: quay.io/fairwinds/test-kubectl:latest
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}

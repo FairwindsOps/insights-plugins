@@ -40,6 +40,12 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/test-prometheus-collector:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/test-prometheus-collector:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/test-prometheus-collector:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/test-prometheus-collector:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/test-prometheus-collector:{{ .FullCommit }}-arm64"
 - name_template: quay.io/fairwinds/test-prometheus-collector:latest
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}

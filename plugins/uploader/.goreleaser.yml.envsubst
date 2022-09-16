@@ -42,6 +42,10 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/test-insights-uploader:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/test-insights-uploader:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/test-insights-uploader:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
 - name_template: quay.io/fairwinds/test-insights-uploader:latest
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
