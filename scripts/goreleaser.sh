@@ -26,11 +26,17 @@ echo "${this_script} creating git tag ${temporary_git_tag} for goreleaser"
 # The -f is included to overwrite existing tags, perhaps from previous CI jobs.
 git tag -f -m "temporary local tag for goreleaser" ${temporary_git_tag}
 export GORELEASER_CURRENT_TAG=${temporary_git_tag}
+export skip_feature_docker_tags=false
 export skip_main_docker_tags=true
 if [ "${CIRCLE_BRANCH}" == "testmain" ] ; then
-  echo "${this_script} setting skip_main_docker_tags to false because this is the main branch"
+  echo "${this_script} setting skip_main_docker_tags to false, and skip_feature_docker_tags to true,  because this is the main branch"
+export skip_feature_docker_tags=true
 export skip_main_docker_tags=false
-  fi
+else
+  # Use an adjusted git branch name as an additional docker tag, for feature branches.
+  export feature_docker_tag=$(echo "${CIRCLE_BRANCH:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')'
+  echo "${this_script} also using docker tag ${feature_docker_tag} as ${CIRCLE_BRANCH} is a feature branch"
+fi
 cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml
 goreleaser $@
 if [ $? -eq 0 ] ; then
