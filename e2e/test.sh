@@ -66,7 +66,7 @@ pyServer=$!
 
 trap "cat /workspace/py.log && kill $pyServer" EXIT
 sleep 5
-insightsHost="http://$(awk 'END{print $1}' /etc/hosts):8080"
+insightsHost="http://$(awk '{if(/172/) print $1}' /etc/hosts):8080"
 kubectl create namespace insights-agent
 
 cat ./tags.sh
