@@ -41,6 +41,9 @@ commands:
         command: |
           docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
           for plugin in "${CHANGED[@]}"; do
+            if [ "${plugin}" == "_template" ] ; then
+              continue
+            fi
             cd ./plugins/$plugin
             ../../scripts/goreleaser.sh
             cd ../..
