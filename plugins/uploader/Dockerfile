@@ -9,4 +9,5 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s
 
 COPY download.sh .
 COPY uploader.sh .
+COPY version.txt .
 ENTRYPOINT ["uploader.sh"]

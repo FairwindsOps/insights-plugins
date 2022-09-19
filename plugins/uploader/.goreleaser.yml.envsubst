@@ -26,6 +26,7 @@ dockers:
   extra_files:
     - download.sh
     - uploader.sh
+    - version.txt
 - image_templates:
   - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"
   use: buildx
@@ -36,6 +37,7 @@ dockers:
   extra_files:
     - download.sh
     - uploader.sh
+    - version.txt
 docker_manifests:
 # Create DOcker manifests that make multiple architectures available within a tag,
 # and provide partial-version tags like 2, and 2.2.
