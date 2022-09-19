@@ -1,4 +1,6 @@
 # Changelog
+## 0.1.9
+* Add sample goreleaser config and Dockerfile
 
 ## 0.1.8
 * Update dependencies
