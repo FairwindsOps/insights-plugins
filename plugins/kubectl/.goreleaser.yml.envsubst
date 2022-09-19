@@ -1,3 +1,4 @@
+# The .goreleaser.yml.envsubst file is processed by ../../scripts/goreleaser.sh
 project_name: kubectl
 release:
   disable: true
@@ -16,12 +17,12 @@ dockers:
   # There are multiple images to match the `--platform` docker build flag with
   # combinations of `GOOS`, `GOARCH`, and `GOARM`
 - image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-amd64"
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
 - image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
@@ -30,37 +31,37 @@ dockers:
 docker_manifests:
 # Create DOcker manifests that make multiple architectures available within a tag,
 # and provide partial-version tags like 2, and 2.2.
-- name_template: quay.io/fairwinds/test-kubectl:{{ .FullCommit }}
+- name_template: quay.io/fairwinds/kubectl:{{ .FullCommit }}
   image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/test-kubectl:{{ .Env.feature_docker_tag }}
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/kubectl:{{ .Env.feature_docker_tag }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_feature_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/test-kubectl:latest
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/kubectl:latest
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/test-kubectl:{{ .Tag }}
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/kubectl:{{ .Tag }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/test-kubectl:{{ .Major }}
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/kubectl:{{ .Major }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/test-kubectl:{{ .Major }}.{{ .Minor }}
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/kubectl:{{ .Major }}.{{ .Minor }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/test-kubectl:{{ .FullCommit }}-arm64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/kubectl:{{ .FullCommit }}-arm64"

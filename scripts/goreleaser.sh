@@ -42,7 +42,7 @@ git tag -f -m "temporary local tag for goreleaser" ${temporary_git_tag}
 export GORELEASER_CURRENT_TAG=${temporary_git_tag}
 export skip_feature_docker_tags=false
 export skip_main_docker_tags=true
-if [ "${CIRCLE_BRANCH}" == "testmain" ] ; then
+if [ "${CIRCLE_BRANCH}" == "main" ] ; then
   echo "${this_script} setting skip_main_docker_tags to false, and skip_feature_docker_tags to true,  because this is the main branch"
 export skip_feature_docker_tags=true
 export skip_main_docker_tags=false
