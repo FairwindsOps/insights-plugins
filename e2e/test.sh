@@ -94,7 +94,6 @@ kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworklo
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 # Be sure the right-sizer controller is available to see this OOM-kill.
 kubectl wait --for=condition=ready -l app=insights-agent,component=right-sizer pod --timeout=60s --namespace insights-agent
-sleep 5 # Allow container to settle and avoid restart-backoff
 kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
 kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
 # Verify the test workload has a new container restart.
@@ -151,7 +150,9 @@ if [ $rightsizer_num_items -eq 0 ] ; then
   echo "The right-sizer controller has no report items after checking $n times."
   cat output/right-sizer.json
   collect_rightsizer_debug
-  false # Fail the test.
+  # right-sizer is a soft fail for now, see FWI-2806
+  echo right-sizer is a temporary soft-fail for now...
+  #false # Fail the test.
 fi
 if [ $rightsizer_num_ooms -ne 2 ] ; then
   echo "The right-sizer report item has \"${rightsizer_num_ooms}\" numOOMs instead of 2, after checking $n times."
