@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.7.0
-* Update Dockerfile to support building for other architectures
+* Build docker images for linux/arm64, and update to Go 1.19.1
 
 ## 1.6.0
 * adds `namespaceMetadata` field to `metadata` report 

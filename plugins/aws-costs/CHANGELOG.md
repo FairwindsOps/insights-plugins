@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.1.0
-* Update Dockerfile to support building for other architectures
+* Build docker images for linux/arm64, and update to Go 1.19.1
 
 ## 1.0.11
 * Fixed aws costs filename

@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.4.0
-* Update Dockerfile to support building for other architectures
+* Build docker images for linux/arm64, and update to Go 1.19.1
 
 ## 0.3.7
 * Update dependencies
