@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -166,25 +166,22 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request.memoryLimit = memVal.Values[0].Value
 		combinedRequests[key] = request
 	}
-	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
-	workloads, err := controller.GetAllTopControllers(ctx, dynamicClient, restMapper, "")
+	podsOwners, err := GetPodsOwners(ctx, api, r)
 	if err != nil {
 		return nil, err
 	}
-	workloadMap := make(map[string]controller.Workload)
-	for _, workload := range workloads {
-		for _, pod := range workload.Pods {
-			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = workload
-		}
+	logrus.Infof("Found %d metrics for podsOwners", len(podsOwners))
+	controllerNameMap := map[string]string{}
+	kindMap := map[string]string{}
+	for _, podOwner := range podsOwners {
+		owner := getOwner(podOwner)
+		controllerNameMap[fmt.Sprintf("%s/%s", owner.ControllerNamespace, owner.PodName)] = owner.ControllerName
+		kindMap[fmt.Sprintf("%s/%s", owner.ControllerNamespace, owner.PodName)] = owner.ControllerKind
 	}
+	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
 	for _, val := range combinedRequests {
-		workload, ok := workloadMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
-		if !ok {
-			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
-		} else {
-			val.ControllerName = workload.TopController.GetName()
-			val.ControllerKind = workload.TopController.GetKind()
-		}
+		val.ControllerName = controllerNameMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
+		val.ControllerKind = kindMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
 		requestArray = append(requestArray, val)
 	}
 	return requestArray, nil
@@ -199,5 +196,7 @@ func getOwner(sample *model.SampleStream) Owner {
 		ControllerNamespace: string(sample.Metric["namespace"]),
 		PodName:             string(sample.Metric["pod"]),
 		Container:           string(sample.Metric["container"]),
+		ControllerName:      string(sample.Metric["workload"]),
+		ControllerKind:      string(sample.Metric["workload_type"]),
 	}
 }

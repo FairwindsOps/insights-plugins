@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -83,6 +83,18 @@ func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Rang
 
 func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
 	query := `rate(container_cpu_usage_seconds_total{image!="", container!="POD", container!=""}[2m])`
+	values, warnings, err := api.QueryRange(ctx, query, r)
+	for _, warning := range warnings {
+		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values.(model.Matrix), err
+}
+
+func GetPodsOwners(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
+	query := `namespace_workload_pod:kube_pod_owner:relabel`
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
