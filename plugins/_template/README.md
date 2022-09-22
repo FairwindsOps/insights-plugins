@@ -1,10 +1,10 @@
 # Template 
 
-This is a template plugin. When adding a new plugin you can start with copying this directory and changing the values from there.
+This is a template plugin. When adding a new plugin you can start by copying this directory and changing the values in the included files.
 
-This section should include a description of what your plugin does.
+This ReadMe section should include a description of what your plugin does.
 
-A Dockerfile will also be required (no sample is provided). And a repository will need to be created in quay for the new plugin.
+Both a goreleaser configuration and a Dockerfile are required (the included sample is for a Go-based plugin), and a repository will need to be created in quay for the new plugin.
 
 ## Running locally
 
