@@ -94,7 +94,7 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 }
 
 func GetPodsOwners(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	query := `namespace_workload_pod:kube_pod_owner:relabel`
+	query := "namespace_workload_pod:kube_pod_owner:relabel"
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
