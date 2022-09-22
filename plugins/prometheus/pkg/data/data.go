@@ -175,16 +175,22 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	kindMap := map[string]string{}
 	for _, podOwner := range podsOwners {
 		owner := getOwner(podOwner)
-		controllerNameMap[fmt.Sprintf("%s/%s", owner.ControllerNamespace, owner.PodName)] = owner.ControllerName
-		kindMap[fmt.Sprintf("%s/%s", owner.ControllerNamespace, owner.PodName)] = owner.ControllerKind
+		key := getPodOwnerKey(owner)
+		controllerNameMap[key] = owner.ControllerName
+		kindMap[key] = owner.ControllerKind
 	}
 	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
 	for _, val := range combinedRequests {
-		val.ControllerName = controllerNameMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
-		val.ControllerKind = kindMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
+		key := fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)
+		val.ControllerName = controllerNameMap[key]
+		val.ControllerKind = kindMap[key]
 		requestArray = append(requestArray, val)
 	}
 	return requestArray, nil
+}
+
+func getPodOwnerKey(owner Owner) string {
+	return fmt.Sprintf("%s/%s", owner.ControllerNamespace, owner.PodName)
 }
 
 func getKey(sample *model.SampleStream) string {
