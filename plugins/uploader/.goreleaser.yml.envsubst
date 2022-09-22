@@ -1,0 +1,77 @@
+# The .goreleaser.yml.envsubst file is processed by ../../scripts/goreleaser.sh
+project_name: insights-uploader
+release:
+  disable: true
+changelog:
+  skip: true
+builds:
+- skip: true
+  # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
+  # minus those under `ignore`.
+  goarch:
+  - amd64
+  - arm64
+  goos:
+  - linux
+dockers:
+  # There are multiple images to match the `--platform` docker build flag with
+  # combinations of `GOOS`, `GOARCH`, and `GOARM`
+- image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-amd64"
+  use: buildx
+  build_flag_templates:
+  - "--platform=linux/amd64"
+  # These files will be available to a COPY Dockerfile command.
+  # Note there are additional extra_files repeated below.
+  extra_files:
+    - download.sh
+    - uploader.sh
+    - version.txt
+- image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"
+  use: buildx
+  goarch: arm64
+  goos: linux
+  build_flag_templates:
+  - "--platform=linux/arm64"
+  extra_files:
+    - download.sh
+    - uploader.sh
+    - version.txt
+docker_manifests:
+# Create DOcker manifests that make multiple architectures available within a tag,
+# and provide partial-version tags like 2, and 2.2.
+- name_template: quay.io/fairwinds/insights-uploader:{{ .FullCommit }}
+  image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-uploader:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-uploader:latest
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-uploader:{{ .Tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-uploader:{{ .Major }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-uploader:{{ .Major }}.{{ .Minor }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-uploader:{{ .FullCommit }}-arm64"

@@ -1,30 +1,20 @@
-FROM golang:1.18 as build-env
-WORKDIR /go/src/github.com/fairwindsops/insights-plugins/plugins/trivy/
+FROM alpine:3.16 as downloader
+ARG TARGETARCH
+ARG TARGETOS
+ENV trivyVersion=0.30.4
+RUN apk update && apk add curl
 
+RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/${TARGETOS}/${TARGETARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
-ENV GO111MODULE=on
-ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
-
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
-
-COPY pkg ./pkg
-COPY cmd ./cmd
-RUN go build -a -o scan ./cmd/trivy
-
-RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
-
-RUN curl -L https://github.com/aquasecurity/trivy/releases/download/v0.30.4/trivy_0.30.4_Linux-64bit.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
+RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
+  curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
 FROM alpine:3.16
 WORKDIR /trivy
 RUN apk -U upgrade
-COPY --from=build-env /go/src/github.com/fairwindsops/insights-plugins/plugins/trivy/scan ./scan
-COPY --from=build-env /usr/local/bin/kubectl /usr/local/bin/kubectl
-COPY --from=build-env /usr/local/bin/trivy /usr/local/bin/trivy
+COPY scan ./scan
+COPY --from=downloader /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 
 RUN TRIVY_CACHE_DIR=/var/tmp trivy image --download-db-only
 
