@@ -1,0 +1,77 @@
+# ***NOTE*** This file requires editing.
+# Replace newplugin with the name of the new plugin.
+# Also inspect the definitions under env, and under builds.main
+
+# This file is processed by the ../../scripts/goreleaser.sh wrapper.
+project_name: newplugin
+release:
+  disable: true
+changelog:
+  skip: true
+# This avoids creating .tar.gz archives.
+archives:
+- format: binary
+env:
+  - CGO_ENABLED=0
+  - GO11MODULE=on
+builds:
+- main: cmd/newplugin/main.go
+  # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
+  # minus those under `ignore`.
+  goarch:
+  - amd64
+  - arm64
+  goos:
+  - linux
+dockers:
+  # There are multiple images to match the `--platform` docker build flag with
+  # combinations of `GOOS`, `GOARCH`, and `GOARM`
+- image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  use: buildx
+  build_flag_templates:
+  - "--platform=linux/amd64"
+- image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+  use: buildx
+  goarch: arm64
+  goos: linux
+  build_flag_templates:
+  - "--platform=linux/arm64"
+docker_manifests:
+# Create DOcker manifests that make multiple architectures available within a tag,
+# and provide partial-version tags like 2, and 2.2.
+- name_template: quay.io/fairwinds/newplugin:{{ .FullCommit }}
+  image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/newplugin:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/newplugin:latest
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/newplugin:{{ .Tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/newplugin:{{ .Major }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/newplugin:{{ .Major }}.{{ .Minor }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"

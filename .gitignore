@@ -1,5 +1,6 @@
 tags.sh
-
+plugins/*/dist/
+plugins/*/.goreleaser.yml
 # MacOS files
 *.DS_Store
 
