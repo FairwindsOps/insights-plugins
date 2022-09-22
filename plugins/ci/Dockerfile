@@ -2,7 +2,7 @@ FROM alpine:3.16 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV trivyVersion=0.30.4
-ENV polarisVersion=7.1.0
+ENV polarisVersion=7.1.4
 ENV plutoVersion=5.10.7
 
 # Bash and openssl are  required by the Helm script.
