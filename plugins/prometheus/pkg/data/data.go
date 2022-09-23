@@ -57,6 +57,7 @@ func getRange() prometheusV1.Range {
 func getController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
 	name = podName
 	kind = "Pod"
+	prefixMatchLength := 0
 	for _, workload := range workloads {
 		if workload.TopController.GetNamespace() != namespace {
 			continue
@@ -69,14 +70,10 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 				return
 			}
 		}
-		// 5 digit alphanumeric (pod) or strictly numeric segments (cronjob -> job, statefulset). or 9 digit alphanumberic (deployment -> rs)
-		matched, err := regexp.Match(fmt.Sprintf("^%s-([a-z0-9]{5}|[a-z0-9]{9}|[0-9]*)(-[a-z0-9]{5})?$", workload.TopController.GetName()), []byte(podName))
-		if err != nil {
-			logrus.Error(err)
-			return
-		}
-		if matched {
+		workloadName := workload.TopController.GetName()
+		if prefixMatchLength < len(workloadName) && strings.HasPrefix(podName, workloadName) {
 			// Weak match for a pod. Don't return yet in case there's a better match.
+			prefixMatchLength = len(workloadName)
 			name = workload.TopController.GetName()
 			kind = workload.TopController.GetKind()
 		}
@@ -171,19 +168,18 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	if err != nil {
 		return nil, err
 	}
-	workloadMap := make(map[string]controller.Workload)
+	workloadMap := make(map[string]*controller.Workload)
 	for _, workload := range workloads {
 		for _, pod := range workload.Pods {
-			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = workload
+			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = &workload
 		}
 	}
 	for _, val := range combinedRequests {
-		workload, ok := workloadMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
-		if !ok {
-			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
-		} else {
+		if workload, ok := workloadMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]; ok {
 			val.ControllerName = workload.TopController.GetName()
 			val.ControllerKind = workload.TopController.GetKind()
+		} else {
+			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
 		}
 		requestArray = append(requestArray, val)
 	}
