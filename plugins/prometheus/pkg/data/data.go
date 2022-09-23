@@ -16,7 +16,7 @@ package data
 import (
 	"context"
 	"fmt"
-	"regexp"
+	"strings"
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
