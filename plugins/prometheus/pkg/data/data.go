@@ -166,31 +166,28 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request.memoryLimit = memVal.Values[0].Value
 		combinedRequests[key] = request
 	}
-	podsOwners, err := GetPodsOwners(ctx, api, r)
+	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
+	workloads, err := controller.GetAllTopControllers(ctx, dynamicClient, restMapper, "")
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Found %d metrics for podsOwners", len(podsOwners))
-	controllerNameMap := map[string]string{}
-	kindMap := map[string]string{}
-	for _, podOwner := range podsOwners {
-		owner := getOwner(podOwner)
-		key := getPodOwnerKey(owner)
-		controllerNameMap[key] = owner.ControllerName
-		kindMap[key] = owner.ControllerKind
+	workloadMap := make(map[string]controller.Workload)
+	for _, workload := range workloads {
+		for _, pod := range workload.Pods {
+			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = workload
+		}
 	}
-	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
 	for _, val := range combinedRequests {
-		key := fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)
-		val.ControllerName = controllerNameMap[key]
-		val.ControllerKind = kindMap[key]
+		workload, ok := workloadMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
+		if !ok {
+			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
+		} else {
+			val.ControllerName = workload.TopController.GetName()
+			val.ControllerKind = workload.TopController.GetKind()
+		}
 		requestArray = append(requestArray, val)
 	}
 	return requestArray, nil
-}
-
-func getPodOwnerKey(owner Owner) string {
-	return fmt.Sprintf("%s/%s", owner.ControllerNamespace, owner.PodName)
 }
 
 func getKey(sample *model.SampleStream) string {
@@ -202,7 +199,5 @@ func getOwner(sample *model.SampleStream) Owner {
 		ControllerNamespace: string(sample.Metric["namespace"]),
 		PodName:             string(sample.Metric["pod"]),
 		Container:           string(sample.Metric["container"]),
-		ControllerName:      string(sample.Metric["workload"]),
-		ControllerKind:      string(sample.Metric["workload_type"]),
 	}
 }
