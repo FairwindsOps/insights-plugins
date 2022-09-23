@@ -1,4 +1,5 @@
 # Changelog
+
 ## 1.1.0
 * Build docker images for linux/arm64, and update to Go 1.19.1
 
