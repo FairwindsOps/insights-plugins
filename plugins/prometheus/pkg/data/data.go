@@ -169,9 +169,9 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		return nil, err
 	}
 	workloadMap := make(map[string]*controller.Workload)
-	for _, workload := range workloads {
+	for idx, workload := range workloads {
 		for _, pod := range workload.Pods {
-			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = &workload
+			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = &workloads[idx]
 		}
 	}
 	for _, val := range combinedRequests {
