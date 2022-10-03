@@ -54,7 +54,7 @@ func getRange() prometheusV1.Range {
 	}
 }
 
-var kindPreferenceOrder = ["Pod", "ReplicaSet", "DaemonSet", "Job", "CronJob", "StatefulSet", "Deployment"]
+var kindPreferenceOrder = []string{"Pod", "ReplicaSet", "DaemonSet", "Job", "CronJob", "StatefulSet", "Deployment"}
 func getController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
 	name = podName
 	kind = "Pod"
