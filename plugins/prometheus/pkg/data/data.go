@@ -64,17 +64,17 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 		if workload.TopController.GetNamespace() != namespace {
 			continue
 		}
-		for _, pod := range workload.Pods {
-			if pod.GetName() == podName {
-				// Exact match for a pod, go ahead and return
-				name = workload.TopController.GetName()
-				kind = workload.TopController.GetKind()
-				return
-			}
-		}
 
 		workloadName := workload.TopController.GetName()
 		workloadKind := workload.TopController.GetKind()
+		for _, pod := range workload.Pods {
+			if pod.GetName() == podName {
+				// Exact match for a pod, go ahead and return
+				name = workloadName
+				kind = workloadKind
+				return
+			}
+		}
 
 		isMatch := strings.HasPrefix(podName, workloadName)
 		if !isMatch {
