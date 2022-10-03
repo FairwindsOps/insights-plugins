@@ -58,6 +58,7 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 	name = podName
 	kind = "Pod"
 	prefixMatchLength := 0
+	logrus.Infof("Looking for controller matching %s/%s", namespace, podName)
 	for _, workload := range workloads {
 		if workload.TopController.GetNamespace() != namespace {
 			continue
@@ -71,13 +72,16 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 			}
 		}
 		workloadName := workload.TopController.GetName()
+		logrus.Infof("  checking workload %s", workloadName)
 		if prefixMatchLength < len(workloadName) && strings.HasPrefix(podName, workloadName) {
 			// Weak match for a pod. Don't return yet in case there's a better match.
+			logrus.Infof("  match!")
 			prefixMatchLength = len(workloadName)
 			name = workload.TopController.GetName()
 			kind = workload.TopController.GetKind()
 		}
 	}
+	logrus.Infof("  returning %s/%s", kind, name)
 	return
 }
 
@@ -180,6 +184,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 			val.ControllerKind = workload.TopController.GetKind()
 		} else {
 			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
+			logrus.Infof("Could not find owner for pod %s in namespace %s, using %s/%s", val.PodName, val.ControllerNamespace, val.ControllerKind, val.ControllerName)
 		}
 		requestArray = append(requestArray, val)
 	}
