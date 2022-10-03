@@ -54,11 +54,12 @@ func getRange() prometheusV1.Range {
 	}
 }
 
+var kindPreferenceOrder = ["Pod", "ReplicaSet", "DaemonSet", "Job", "CronJob", "StatefulSet", "Deployment"]
 func getController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
 	name = podName
 	kind = "Pod"
 	prefixMatchLength := 0
-	logrus.Infof("Looking for controller matching %s/%s", namespace, podName)
+	kindPreference := -1
 	for _, workload := range workloads {
 		if workload.TopController.GetNamespace() != namespace {
 			continue
@@ -71,17 +72,33 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 				return
 			}
 		}
+
 		workloadName := workload.TopController.GetName()
-		logrus.Infof("  checking workload %s", workloadName)
-		if prefixMatchLength < len(workloadName) && strings.HasPrefix(podName, workloadName) {
-			// Weak match for a pod. Don't return yet in case there's a better match.
-			logrus.Infof("  match!")
+		workloadKind := workload.TopController.GetKind()
+
+		isMatch := strings.HasPrefix(podName, workloadName)
+		if !isMatch {
+			continue
+		}
+
+		isBetterMatch = prefixMatchLength < len(workloadName)
+		if !isBetterMatch && prefixMatchLength == len(workloadName) {
+			kindIdx = -1
+			for idx, kind := range kindPreferenceOrder {
+				if kind == workloadKind {
+					kindIdx = idx
+				}
+			}
+			isBetterMatch = kindIdx > kindPreference
+		}
+
+		if isBetterMatch {
 			prefixMatchLength = len(workloadName)
-			name = workload.TopController.GetName()
-			kind = workload.TopController.GetKind()
+			kindPreference = kindIdx
+			name = workloadName
+			kind = workloadKind
 		}
 	}
-	logrus.Infof("  returning %s/%s", kind, name)
 	return
 }
 
