@@ -6,7 +6,7 @@ replace github.com/fairwindsops/insights-plugins/plugins/opa => ./
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/open-policy-agent/opa v0.42.2
+	github.com/open-policy-agent/opa v0.43.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
