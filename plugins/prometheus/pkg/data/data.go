@@ -81,16 +81,14 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 			continue
 		}
 
-		isBetterMatch := prefixMatchLength < len(workloadName)
-		if !isBetterMatch && prefixMatchLength == len(workloadName) {
-			kindIdx := -1
-			for idx, kind := range kindPreferenceOrder {
-				if kind == workloadKind {
-					kindIdx = idx
-				}
+		kindIdx := -1
+		for idx, kind := range kindPreferenceOrder {
+			if kind == workloadKind {
+				kindIdx = idx
 			}
-			isBetterMatch = kindIdx > kindPreference
 		}
+
+		isBetterMatch := prefixMatchLength < len(workloadName) || (prefixMatchLength == len(workloadName) && kindIdx > kindPreference)
 
 		if isBetterMatch {
 			prefixMatchLength = len(workloadName)
