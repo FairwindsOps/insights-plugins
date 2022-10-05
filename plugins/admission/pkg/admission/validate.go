@@ -3,10 +3,12 @@ package admission
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,6 +97,13 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
 	var decoded map[string]interface{}
+
+	serviceAccount := req.UserInfo.Username
+	if lo.Contains(v.config.IgnoreServicesAccount, serviceAccount) {
+		msg := fmt.Sprintf("Service account %s is being ignored by configuration", serviceAccount)
+		return true, []string{msg}, nil, nil
+	}
+
 	err := json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
@@ -154,6 +163,9 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 		}
 	}
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
+	if len(warnings) > 0 {
+		response.Warnings = warnings
+	}
 	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
 	logrus.Infof("%d errors returned: %s", len(errors), strings.Join(errors, ", "))
 	logrus.Infof("Allowed: %t", allowed)
@@ -177,7 +189,6 @@ func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (
 
 func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
 	reports := []models.ReportInfo{metaReport}
-
 	if configurationObject.Reports.Polaris {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
