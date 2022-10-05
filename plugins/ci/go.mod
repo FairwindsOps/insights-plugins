@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/ci
 
-go 1.18
+go 1.19
 
 replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
 
