@@ -98,9 +98,9 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
 	var decoded map[string]interface{}
 
-	serviceAccount := req.UserInfo.Username
-	if lo.Contains(v.config.IgnoreServicesAccount, serviceAccount) {
-		msg := fmt.Sprintf("Service account %s is being ignored by configuration", serviceAccount)
+	username := req.UserInfo.Username
+	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
+		msg := fmt.Sprintf("Service account %s is being ignored by configuration", username)
 		return true, []string{msg}, nil, nil
 	}
 

@@ -35,13 +35,13 @@ type Configuration struct {
 		CustomChecks         []opa.OPACustomCheck
 		CustomCheckInstances []opa.CheckSetting
 	}
-	Polaris               *polarisconfiguration.Configuration
-	IgnoreServicesAccount []string
+	Polaris *polarisconfiguration.Configuration
 }
 
 type InsightsConfig struct {
-	Hostname     string
-	Organization string
-	Cluster      string
-	Token        string
+	Hostname        string
+	Organization    string
+	Cluster         string
+	Token           string
+	IgnoreUsernames []string
 }
