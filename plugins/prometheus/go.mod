@@ -3,11 +3,11 @@ module github.com/fairwindsops/insights-plugins/plugins/prometheus
 go 1.18
 
 require (
-	github.com/fairwindsops/controller-utils v0.1.2
+	github.com/fairwindsops/controller-utils v0.2.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/common v0.37.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.2
 	k8s.io/apimachinery v0.24.3
 	k8s.io/client-go v0.24.3
 	sigs.k8s.io/controller-runtime v0.12.3

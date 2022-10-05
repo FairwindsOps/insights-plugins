@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.1
+* Update versions
+
 ## 2.2.0
 * Build docker images for linux/arm64, and update to Go 1.19.1
 
