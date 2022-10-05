@@ -92,13 +92,13 @@ func TestGetController(t *testing.T) {
 	name, kind := getController(workloads, podName, namespace)
 	assert.Equal(t, "asdf", name)
 	assert.Equal(t, "Deployment", kind)
-	podName = "asdf-default"
 
+	podName = "foobar-default"
 	name, kind = getController(workloads, podName, namespace)
 	assert.Equal(t, podName, name)
 	assert.Equal(t, "Pod", kind)
-	podName = "asdf2-12a3468-asd1e"
 
+	podName = "asdf2-12a3468-asd1e"
 	name, kind = getController(workloads, podName, namespace)
 	assert.Equal(t, "asdf2-12a3468", name)
 	assert.Equal(t, "ReplicaSet", kind)
