@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.1
+* Added support to ignore some services account
+
 ## 1.7.0
 * Build docker images for linux/arm64, and update to Go 1.19.1
 
