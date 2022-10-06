@@ -98,7 +98,6 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
 	var decoded map[string]interface{}
 	username := req.UserInfo.Username
-	fmt.Println(v.iConfig.IgnoreUsernames)
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
 		return true, []string{msg}, nil, nil
