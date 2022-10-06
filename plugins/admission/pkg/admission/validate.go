@@ -84,6 +84,7 @@ func (v *Validator) SetWebhookFailurePolicy(s string) bool {
 // InjectDecoder injects the decoder.
 func (v *Validator) InjectDecoder(d admission.Decoder) error {
 	logrus.Info("Injecting decoder")
+	logrus.Info("Injecting config--------------------------------------")
 	v.decoder = &d
 	return nil
 }
@@ -91,6 +92,7 @@ func (v *Validator) InjectDecoder(d admission.Decoder) error {
 // InjectConfig injects the config.
 func (v *Validator) InjectConfig(c models.Configuration) error {
 	logrus.Info("Injecting config")
+	logrus.Info("Injecting config--------------------------------------")
 	v.config = &c
 	return nil
 }
@@ -99,18 +101,18 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	var decoded map[string]interface{}
 	username := req.UserInfo.Username
 	logrus.Infof("Using service account %s is being ignored by configuration", username)
+	fmt.Println(username)
 	logrus.Infof("Ignoring usernames=%s", v.iConfig.IgnoreUsernames)
+	fmt.Println(v.iConfig.IgnoreUsernames)
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
 		msg := fmt.Sprintf("Service account %s is being ignored by configuration", username)
 		return true, []string{msg}, nil, nil
 	}
-
 	err := json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
 	}
-
 	ownerReferences, ok := decoded["metadata"].(map[string]interface{})["ownerReferences"].([]interface{})
 	if ok && len(ownerReferences) > 0 {
 		logrus.Infof("Object has an owner - skipping")
@@ -154,7 +156,7 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
-		logrus.Errorf("Error validating request: %v", err)
+		logrus.Errorf("-----------------Error validating request: %v", err)
 		if v.webhookFailurePolicy != webhookFailurePolicyIgnore {
 			logrus.Infoln("Failing validation request due to errors, as failurePolicy is not set to ignore")
 			return admission.Errored(http.StatusBadRequest, err)
