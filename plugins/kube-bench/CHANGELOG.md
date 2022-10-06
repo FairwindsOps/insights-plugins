@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+* Update dependencies
+
 ## 0.4.1
 * Update to go 1.19
 
