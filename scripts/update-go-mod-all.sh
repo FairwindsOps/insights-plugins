@@ -1,6 +1,7 @@
 #! /bin/bash
 set -eo pipefail
 
+go version
 go clean -modcache
 for d in ./plugins/*/ ; do
     echo -e "\n\n\n\n$d"
@@ -17,7 +18,9 @@ for d in ./plugins/*/ ; do
         elif [[ $UPDATE_PKG != "none" ]]; then
           go get -u -d $UPDATE_PKG
         fi
+        echo -e "\ntidying"
         go mod tidy
+        echo -e "\ntesting"
         go test ./...
     fi
     cd ../..
