@@ -39,8 +39,9 @@ type Configuration struct {
 }
 
 type InsightsConfig struct {
-	Hostname     string
-	Organization string
-	Cluster      string
-	Token        string
+	Hostname        string
+	Organization    string
+	Cluster         string
+	Token           string
+	IgnoreUsernames []string
 }
