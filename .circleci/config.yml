@@ -96,7 +96,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - checkout
       - set_environment_variables
@@ -121,7 +121,7 @@ jobs:
 
   check_version_changed:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - checkout
       - set_environment_variables

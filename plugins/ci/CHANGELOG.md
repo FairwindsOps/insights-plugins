@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.2
+* Update to go 1.19
+
 ## 2.2.1
 * Update versions
 
