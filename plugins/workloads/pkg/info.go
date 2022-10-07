@@ -144,16 +144,16 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 
 		podSpec := controller.GetPodSpec(workload.TopController.Object)
 		if podSpec == nil {
-			// Could be a top-level object like Prometheus, which doesn't have controllers.
+			// Could be a top-level object like Prometheus, which doesn't have a podSpec, so fall back to the actual pods
 			if len(workload.Pods) > 0 {
 				err = runtime.DefaultUnstructuredConverter.FromUnstructured(workload.Pods[0].UnstructuredContent(), &pd)
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				// Nothing we can do here--no pods in the cluster, and no containers in the top-level object
+				// Nothing we can do here--no pods in the cluster, and no podSpec in the top-level object
 				// TODO: there's probably a mid-level object where we can get the info.
-				// e.g. a Prometheus doesn't have containers, but its Deployment does
+				// e.g. a Prometheus doesn't have podSpec, but its Deployment does
 				continue
 			}
 		} else {
