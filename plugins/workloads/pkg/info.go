@@ -140,6 +140,11 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		var containers []ContainerResult
 		podCount := float64(len(workload.Pods))
 		podSpec := controller.GetPodSpec(workload.TopController.Object)
+		if podSpec == nil {
+			// Could be a top-level object like Prometheus, which doesn't have controllers.
+			// TODO: we could probably get closer here...
+			continue
+		}
 		// Convert the unstructured object to cluster.
 		var pd corev1.Pod
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(map[string]interface{}{"spec": podSpec}, &pd)
