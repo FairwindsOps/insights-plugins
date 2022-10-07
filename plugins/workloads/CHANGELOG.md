@@ -1,4 +1,6 @@
 # Changelog
+## 2.3.2
+* Fix for top-level controllers with no pod info
 
 ## 2.3.1
 * Update to go 1.19
