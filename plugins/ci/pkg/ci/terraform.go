@@ -3,7 +3,7 @@ package ci
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -27,7 +27,7 @@ func (ci *CIScan) ProcessTerraformPaths() (models.ReportInfo, error) {
 	}
 	TFSecVersion, err := commands.Exec("tfsec", "-v")
 	if err != nil {
-		return models.ReportInfo{}, fmt.Errorf("cannot get tfsec version: %w", err)
+		return models.ReportInfo{}, fmt.Errorf("cannot get the version of tfsec: %w", err)
 	}
 	TFSecVersion = strings.TrimPrefix(TFSecVersion, "v")
 	report := models.ReportInfo{
@@ -39,7 +39,7 @@ func (ci *CIScan) ProcessTerraformPaths() (models.ReportInfo, error) {
 	if err != nil {
 		return report, fmt.Errorf("while encoding report output: %w", err)
 	}
-	err = ioutil.WriteFile(report.Filename, file, 0644)
+	err = os.WriteFile(report.Filename, file, 0644)
 	if err != nil {
 		return report, fmt.Errorf("while writing report output: %w", err)
 	}
@@ -50,21 +50,21 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	logrus.Infof("processing terraform path %s", terraformPath)
 	terraformPathAsFileName := strings.ReplaceAll(strings.TrimPrefix(terraformPath, ci.repoBaseFolder), "/", "")
 	outputFile := filepath.Join(ci.config.Options.TempFolder, fmt.Sprintf("tfsec-output-%s", terraformPathAsFileName))
-	logrus.Infof("running tfsec and outputting to %s", outputFile)
+	logrus.Debugf("running tfsec and outputting to %s", outputFile)
 	_, err := commands.ExecWithMessage(exec.Command("tfsec", "-f", "json", "-O", outputFile, filepath.Join(ci.repoBaseFolder, terraformPath)), "scanning Terraform in "+terraformPath)
 	if err != nil {
 		return nil, err
 	}
 	var output models.TFSecReportProperties
-	data, err := ioutil.ReadFile(outputFile)
+	data, err := os.ReadFile(outputFile)
 	if err != nil {
 		logrus.Errorf("Error reading tfsec output from %s: %v", outputFile, err)
-		return nil, fmt.Errorf("while reading output from %s: %w", err)
+		return nil, fmt.Errorf("while reading output from %s: %w", outputFile, err)
 	}
 	err = json.Unmarshal(data, &output)
 	if err != nil {
 		logrus.Errorf("Error decoding tfsec output from %s: %v", outputFile, err)
-		return nil, fmt.Errorf("while decoding output from %s: %w", err)
+		return nil, fmt.Errorf("while decoding output from %s: %w", outputFile, err)
 	}
 	logrus.Infof("%d tfsec results for path %s", len(output.Items), terraformPath)
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, output)
