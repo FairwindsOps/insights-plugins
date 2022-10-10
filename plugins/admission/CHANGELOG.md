@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.0
+* Added support to ignore some services account
+## 1.7.1
+* Update to go 1.19
+## 1.7.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 1.6.0
+* adds `namespaceMetadata` field to `metadata` report 
+
 ## 1.5.6
 * upgrade plugins on build
 
