@@ -3,7 +3,7 @@ package ci
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -117,7 +117,7 @@ func getPossibleKubernetesManifest(path string) *KubernetesManifest {
 		logrus.Debugf("Could not open file %s", path)
 		return nil
 	}
-	content, err := ioutil.ReadAll(file)
+	content, err := io.ReadAll(file)
 	if err != nil {
 		logrus.Debugf("Could not read contents from file %s", file.Name())
 		return nil
@@ -136,7 +136,7 @@ func getPossibleKubernetesManifest(path string) *KubernetesManifest {
 }
 
 func isHelmBaseFolder(path string) (bool, error) {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return false, fmt.Errorf("Could not read dir %s: %v", path, err)
 	}
@@ -193,7 +193,7 @@ func tryFetchNameFromChartFile(baseFolder, chart string) string {
 			logrus.Debugf("Could not open file %s: %v", f, err)
 			continue
 		}
-		content, err := ioutil.ReadAll(file)
+		content, err := io.ReadAll(file)
 		if err != nil {
 			logrus.Warnf("Could not read %s: %v", f, err)
 			continue
