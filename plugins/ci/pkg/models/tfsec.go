@@ -2,12 +2,6 @@ package models
 
 // TFSecResult contains a single TFSec finding.
 type TFSecResult struct {
-	Kind         string `json:"kind"`
-	ResourceName string `json:"resourceName"`
-	/*
-		ResourceNamespace string              `json:"resourceNamespace"`
-		ResourceContainer string              `json:"resourceContainer"`
-	*/
 	RuleID          string              `json:"rule_id"`
 	RuleDescription string              `json:"rule_description"`
 	Severity        string              `json:"severity"`
