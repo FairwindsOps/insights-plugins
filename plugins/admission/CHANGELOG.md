@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.1
+* Update x/text to remove CVE
+
 ## 1.8.0
 * Added support to ignore some services account
 ## 1.7.1
