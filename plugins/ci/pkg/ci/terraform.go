@@ -39,7 +39,7 @@ func (ci *CIScan) ProcessTerraformPaths() (models.ReportInfo, error) {
 	if err != nil {
 		return report, fmt.Errorf("while encoding report output: %w", err)
 	}
-	err = os.WriteFile(report.Filename, file, 0644)
+	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), file, 0644)
 	if err != nil {
 		return report, fmt.Errorf("while writing report output: %w", err)
 	}
@@ -48,10 +48,11 @@ func (ci *CIScan) ProcessTerraformPaths() (models.ReportInfo, error) {
 
 func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResult, error) {
 	logrus.Infof("processing terraform path %s", terraformPath)
-	terraformPathAsFileName := strings.ReplaceAll(strings.TrimPrefix(terraformPath, ci.repoBaseFolder), "/", "")
+	terraformPathAsFileName := strings.ReplaceAll(strings.TrimPrefix(terraformPath, ci.repoBaseFolder), "/", "_")
 	outputFile := filepath.Join(ci.config.Options.TempFolder, fmt.Sprintf("tfsec-output-%s", terraformPathAsFileName))
 	logrus.Debugf("running tfsec and outputting to %s", outputFile)
-	_, err := commands.ExecWithMessage(exec.Command("tfsec", "-f", "json", "-O", outputFile, filepath.Join(ci.repoBaseFolder, terraformPath)), "scanning Terraform in "+terraformPath)
+	// The -s avoids tfsec exiting with an error value for scan warnings.
+	_, err := commands.ExecWithMessage(exec.Command("tfsec", "-s", "-f", "json", "-O", outputFile, filepath.Join(ci.repoBaseFolder, terraformPath)), "scanning Terraform in "+terraformPath)
 	if err != nil {
 		return nil, err
 	}
