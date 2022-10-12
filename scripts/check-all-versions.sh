@@ -46,7 +46,13 @@ for proj in ${plugin_projects[@]}; do
   used_versions[$proj]=$(yq e ".$value_name.image.tag" $values_file)
 done
 
-all_projects=()
+latest_versions["admission"]=$(cat ../plugins/admission/version.txt)
+used_versions["admission"]=$(yq e ".appVersion" ./charts/stable/insights-admission/Chart.yaml)
+
+latest_versions["admission-chart"]=$(yq e ".version" ./charts/stable/insights-admission/Chart.yaml)
+used_versions["admission-chart"]=$(yq e ".dependencies[] | select(.name == \"insights-admission\").version" ./charts/stable/insights-agent/requirements.yaml)
+
+all_projects=( admission admission-chart )
 all_projects+=(${cloned_projects[@]})
 all_projects+=(${plugin_projects[@]})
 
