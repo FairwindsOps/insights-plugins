@@ -68,6 +68,20 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		return nil, fmt.Errorf("while decoding output from %s: %w", outputFile, err)
 	}
 	logrus.Infof("%d tfsec results for path %s", len(output.Items), terraformPath)
+	logrus.Debugf("Removing the base repository path %q and prepending the repository name %q to the Location.FileName of each tfsec result", ci.repoBaseFolder, ci.config.Options.RepositoryName)
+	for i, _ := range output.Items {
+		newFileName := output.Items[i].Location.FileName
+		newFileName = strings.TrimPrefix(newFileName, ci.repoBaseFolder) // trim base folder as-is
+		absRepoBaseFolder, err := filepath.Abs(ci.repoBaseFolder)        // Also attempt to trim the absolute version of the same path
+		if err != nil {
+			logrus.Warnf("tfsec result filenames will retain the repository base folder of %q because it was unable to be trimmed as an absolute path: %v", ci.repoBaseFolder, err)
+		} else {
+			newFileName = strings.TrimPrefix(newFileName, absRepoBaseFolder+"/")
+		}
+
+		newFileName = fmt.Sprintf("%s:%s", ci.config.Options.RepositoryName, newFileName)
+		output.Items[i].Location.FileName = newFileName
+	}
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, output)
 	return output.Items, nil
 }
