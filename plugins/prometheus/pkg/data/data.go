@@ -54,12 +54,10 @@ func getRange() prometheusV1.Range {
 	}
 }
 
-var kindPreferenceOrder = []string{"Pod", "ReplicaSet", "DaemonSet", "Job", "CronJob", "StatefulSet", "Deployment"}
 func getController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
 	name = podName
 	kind = "Pod"
 	prefixMatchLength := 0
-	kindPreference := -1
 	for _, workload := range workloads {
 		if workload.TopController.GetNamespace() != namespace {
 			continue
@@ -81,18 +79,9 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 			continue
 		}
 
-		kindIdx := -1
-		for idx, kind := range kindPreferenceOrder {
-			if kind == workloadKind {
-				kindIdx = idx
-			}
-		}
-
-		isBetterMatch := prefixMatchLength < len(workloadName) || (prefixMatchLength == len(workloadName) && kindIdx > kindPreference)
-
+		isBetterMatch := len(workloadName) > prefixMatchLength
 		if isBetterMatch {
 			prefixMatchLength = len(workloadName)
-			kindPreference = kindIdx
 			name = workloadName
 			kind = workloadKind
 		}
@@ -183,7 +172,13 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
-	workloads, err := controller.GetAllTopControllers(ctx, dynamicClient, restMapper, "")
+
+	client := controller.Client{
+		Context: ctx,
+		Dynamic: dynamicClient,
+		RESTMapper: restMapper,
+	}
+	workloads, err := client.GetAllTopControllersSummary("")
 	if err != nil {
 		return nil, err
 	}
