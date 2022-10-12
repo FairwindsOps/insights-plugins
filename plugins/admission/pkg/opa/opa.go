@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	opaversion "github.com/fairwindsops/insights-plugins/plugins/opa"
@@ -19,25 +18,24 @@ import (
 )
 
 // ProcessOPA runs all CustomChecks against the provided Kubernetes object.
-func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, configuration models.Configuration) (models.ReportInfo, error) {
+func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, configuration models.Configuration, iConfig models.InsightsConfig) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:  "opa",
 		Version: opaversion.String(),
 	}
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
-	cluster := os.Getenv("FAIRWINDS_CLUSTER")
 	for _, check := range configuration.OPA.CustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
-			newActionItems, err := ProcessOPAV1(ctx, obj, resourceName, apiGroup, resourceKind, resourceNamespace, check, configuration.OPA.CustomCheckInstances, rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: cluster})
+			newActionItems, err := ProcessOPAV1(ctx, obj, resourceName, apiGroup, resourceKind, resourceNamespace, check, configuration.OPA.CustomCheckInstances, rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: iConfig.Cluster})
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)
 			}
 		case 2.0:
-			newActionItems, err := ProcessOPAV2(ctx, obj, resourceName, apiGroup, resourceKind, resourceNamespace, check, rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: cluster})
+			newActionItems, err := ProcessOPAV2(ctx, obj, resourceName, apiGroup, resourceKind, resourceNamespace, check, rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: iConfig.Cluster})
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)

@@ -1,7 +1,11 @@
 # Changelog
 
+## 1.1.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
 ## 1.0.11
 * Fixed aws costs filename
+
 ## 1.0.10
 * Update aws-cli
 

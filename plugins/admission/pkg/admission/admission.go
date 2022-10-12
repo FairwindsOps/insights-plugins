@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"os"
 
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -17,18 +16,8 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
-var organization string
-var hostname string
-var cluster string
-
-func init() {
-	organization = os.Getenv("FAIRWINDS_ORGANIZATION")
-	hostname = os.Getenv("FAIRWINDS_HOSTNAME")
-	cluster = os.Getenv("FAIRWINDS_CLUSTER")
-}
-
-// SendResults sends the results to Insights
-func SendResults(reports []models.ReportInfo, token string) (passed bool, warnings []string, errors []string, err error) {
+// sendResults sends the results to Insights
+func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (passed bool, warnings []string, errors []string, err error) {
 	var b bytes.Buffer
 
 	w := multipart.NewWriter(&b)
@@ -49,7 +38,7 @@ func SendResults(reports []models.ReportInfo, token string) (passed bool, warnin
 	}
 	w.Close()
 
-	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/submit", hostname, organization, cluster)
+	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/submit", iConfig.Hostname, iConfig.Organization, iConfig.Cluster)
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
 		logrus.Warn("Unable to create Request")
@@ -57,7 +46,7 @@ func SendResults(reports []models.ReportInfo, token string) (passed bool, warnin
 	}
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+iConfig.Token)
 	req.Header.Set("X-Fairwinds-Admission-Version", admissionversion.String())
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, report.Version)

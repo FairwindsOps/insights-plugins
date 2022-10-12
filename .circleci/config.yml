@@ -5,6 +5,15 @@ orbs:
   rok8s-scripts: fairwinds/rok8s-scripts@11.11.5
 
 commands:
+  install_goreleaser_dependencies:
+    description: Installs dependencies for CI scripts
+    steps:
+    - run: apk update
+    # gettext provides envsubst
+    - run: apk add gettext
+    # Register other docker platforms, to build arm64.
+    # This shouldn't be needed, why TBD.
+    - run: docker run --privileged --rm tonistiigi/binfmt --install all
   set_environment_variables:
     description: Sets environment variables for this job.
     steps:
@@ -15,8 +24,8 @@ commands:
     steps:
     - run: ./.circleci/set_tags.sh
 
-  docker_build:
-    description: Build docker Images
+  goreleaser:
+    description: Build binaries and build/push docker Images depending on the git branch
     steps:
     - checkout
     - setup_remote_docker:
@@ -24,25 +33,20 @@ commands:
         # Docker Layer Caching saves /var/lib/docker in a persistent volume,
         # for Dockerfiles that use `RUN --mount=type=cache. . .`
         docker_layer_caching: true
+    - install_goreleaser_dependencies
     - set_environment_variables
     - set_tags
     - run:
         name: Build Plugin Docker Images
         command: |
-          for plugin in "${CHANGED[@]}"; do
-            docker-pull -f ./plugins/$plugin/build.config
-            DOCKER_BUILDKIT=1 docker-build -f ./plugins/$plugin/build.config
-          done
-
-  docker_push_plugins:
-    description: Push docker images that were built
-    steps:
-    - run:
-        name: Push Plugin Docker Images
-        command: |
           docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
           for plugin in "${CHANGED[@]}"; do
-            docker-push -f ./plugins/$plugin/build.config
+            if [ "${plugin}" == "_template" ] ; then
+              continue
+            fi
+            cd ./plugins/$plugin
+            ../../scripts/goreleaser.sh
+            cd ../..
           done
 
   check_version_changed:
@@ -71,27 +75,20 @@ executors:
   ci-images:
     docker:
       - image: quay.io/reactiveops/ci-images:v11-stretch
-  ci-images-large:
+  goreleaser:
     resource_class: large
     docker:
-      - image: quay.io/reactiveops/ci-images:v11-stretch
+      # The goreleaser image tag determins the version of Go.
+      # Manually check goreleaser images for their version of Go.
+      # Ref: https://hub.docker.com/r/goreleaser/goreleaser/tags
+      - image: goreleaser/goreleaser:v1.11.4
 
 
 jobs:
-  build_plugins:
-    executor: ci-images
-    steps:
-      - docker_build
-      - slack/notify:
-          event: fail
-          branch_pattern: main
-          template: basic_fail_1
-
   build_and_push_plugins:
-    executor: ci-images-large
+    executor: goreleaser
     steps:
-      - docker_build
-      - docker_push_plugins
+      - goreleaser
       - slack/notify:
           event: fail
           branch_pattern: main
@@ -99,7 +96,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - checkout
       - set_environment_variables
@@ -124,7 +121,7 @@ jobs:
 
   check_version_changed:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
     steps:
       - checkout
       - set_environment_variables
@@ -222,11 +219,6 @@ workflows:
           requires:
             - test
             - check_version_changed
-      - build_plugins:
-          filters:
-            branches:
-              only:
-              - /pull\/[0-9]+/
       - build_and_push_plugins:
           context: org-global
           requires:

@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
-images=(quay.io/fairwinds/polaris:7.0 quay.io/fairwinds/nova:v3.3 quay.io/fairwinds/pluto:v5.10 quay.io/fairwinds/goldilocks:v2.2.0)
+images=(quay.io/fairwinds/polaris:7.1 quay.io/fairwinds/nova:v3.4 quay.io/fairwinds/pluto:v5.10 quay.io/fairwinds/goldilocks:v2.2.0)
 have_vulns=()
 
 for d in ./plugins/*/ ; do
@@ -10,12 +10,12 @@ for d in ./plugins/*/ ; do
     if [[ $d == *"_template"* ]]; then
       continue
     fi
-    if [[ ! -f $d/build.config ]]; then
+    if [[ ! -f "$d/.goreleaser.yml.envsubst" ]]; then
       continue
     fi
     version=$(cat $d/version.txt)
-    . $d/build.config
-    name="quay.io/$REPOSITORY_NAME:$version"
+    repo=$(cat "$d/.goreleaser.yml.envsubst" | grep "quay.io" | head -1 | sed s/:.*// | sed 's/^  - "//')
+    name="$repo:$version"
     images+=($name)
 done
 
