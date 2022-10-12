@@ -252,7 +252,6 @@ workflows:
     jobs:
       - test
       - check_version_changed
-      - check_versions
       - validate_modified_opa_policies:
           name: Validate Modified OPA Policies
           requires:
