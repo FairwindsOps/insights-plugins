@@ -30,12 +30,32 @@ for proj in ${cloned_projects[@]}; do
   used_versions[$proj]=$(yq r $values_file "$proj.image.tag")
 done
 
+plugin_projects=( aws-costs falco-agent kube-bench kube-bench-aggregator opa prometheus rbac-reporter right-sizer trivy uploader workloads )
+declare -A rewrites=()
+for proj in ${plugin_projects[@]}; do
+  rewrites[$proj]=$proj
+done
+rewrites["aws-costs"]="awscosts"
+rewrites["falco-agent"]="falco"
+rewrites["kube-bench-aggregator"]="kube-bench.aggregator"
+rewrites["prometheus"]="prometheus-metrics"
+
+for proj in ${plugin_projects[@]}; do
+  latest_versions[$proj]=$(cat ../plugins/$proj/version.txt)
+  value_name=${rewrites[$proj]}
+  used_versions[$proj]=$(yq r $values_file "$value_name.image.tag")
+done
+
+all_projects=()
+all_projects+=(${cloned_projects[@]})
+all_projects+=(${plugin_projects[@]})
+
 echo "latest versions: ${latest_versions[@]}"
 echo "used versions: ${used_versions[@]}"
 
 need_update=0
 
-for proj in ${cloned_projects[@]}; do
+for proj in ${all_projects[@]}; do
   echo -e "\n"
   latest=${latest_versions[$proj]}
   used=${used_versions[$proj]}
