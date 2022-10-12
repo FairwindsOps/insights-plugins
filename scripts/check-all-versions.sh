@@ -70,7 +70,7 @@ for proj in ${all_projects[@]}; do
     echo -e "$RED$proj needs update from $used to $latest$NO_COLOR"
     need_update=1
     if [[ -n $BASH_ENV ]]; then
-      echo "OUTDATED_VERSIONS_LIST+='- ${$proj}: $used should be updated to $latest\n'">> ${BASH_ENV}
+      echo "OUTDATED_VERSIONS_LIST+='- ${proj}: $used should be updated to $latest\n'">> ${BASH_ENV}
     fi
   fi
 done
