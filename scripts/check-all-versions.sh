@@ -55,6 +55,10 @@ echo "used versions: ${used_versions[@]}"
 
 need_update=0
 
+if [[ -n $BASH_ENV ]]; then
+  echo "export OUTDATED_VERSIONS_LIST=''" >> ${BASH_ENV}
+fi
+
 for proj in ${all_projects[@]}; do
   echo -e "\n"
   latest=${latest_versions[$proj]}
@@ -65,11 +69,16 @@ for proj in ${all_projects[@]}; do
   if [[ $latest != $used* ]]; then
     echo -e "$RED$proj needs update from $used to $latest$NO_COLOR"
     need_update=1
+    if [[ -n $BASH_ENV ]]; then
+      echo "OUTDATED_VERSIONS_LIST+='- ${$proj}: $used should be updated to $latest\n'">> ${BASH_ENV}
+    fi
   fi
 done
 
 cd ..
-#rm -rf tmp_repos
+
+rm -rf tmp_repos
+
 
 if [[ $need_update -eq 1 ]]; then
   exit 1

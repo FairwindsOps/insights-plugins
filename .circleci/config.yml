@@ -135,6 +135,36 @@ jobs:
       - checkout
       - set_environment_variables
       - run: ./scripts/check-all-versions.sh
+      - slack/notify:
+          event: fail
+          custom: |
+            {
+                "text": "One or more versions in insights-plugins are out of date!",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "One or more versions in insights-plugins are out of date!\n\n$OUTDATED_VERSIONS_LIST"
+                        }
+                    }
+                ]
+            }
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+                "text": "All versions in insights-plugins are up to date",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":tada: All versions in insights-plugins are up to date!"
+                        }
+                    }
+                ]
+            }
 
   scan_for_vulnerabilities:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
