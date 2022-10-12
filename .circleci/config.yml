@@ -128,6 +128,14 @@ jobs:
       - set_tags
       - check_version_changed
 
+  check_versions:
+    docker:
+      - image: quay.io/reactiveops/ci-images:v11.13.5-alpine
+    steps:
+      - checkout
+      - set_environment_variables
+      - run: ./scripts/check-all-versions.sh
+
   scan_for_vulnerabilities:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     executor: ci-images
@@ -214,6 +222,7 @@ workflows:
     jobs:
       - test
       - check_version_changed
+      - check_versions
       - validate_modified_opa_policies:
           name: Validate Modified OPA Policies
           requires:
@@ -243,6 +252,7 @@ workflows:
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities
+      - check_versions
     triggers:
       - schedule:
           cron: "0 12 * * *"
