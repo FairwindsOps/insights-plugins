@@ -27,7 +27,7 @@ for proj in ${cloned_projects[@]}; do
   cd $proj
   latest_versions[$proj]=$(git describe --tags --abbrev=0)
   cd ..
-  used_versions[$proj]=$(yq r $values_file "$proj.image.tag")
+  used_versions[$proj]=$(yq e ".$proj.image.tag" $values_file)
 done
 
 plugin_projects=( aws-costs falco-agent kube-bench kube-bench-aggregator opa prometheus rbac-reporter right-sizer trivy uploader workloads )
@@ -43,7 +43,7 @@ rewrites["prometheus"]="prometheus-metrics"
 for proj in ${plugin_projects[@]}; do
   latest_versions[$proj]=$(cat ../plugins/$proj/version.txt)
   value_name=${rewrites[$proj]}
-  used_versions[$proj]=$(yq r $values_file "$value_name.image.tag")
+  used_versions[$proj]=$(yq e ".$value_name.image.tag" $values_file)
 done
 
 all_projects=()
