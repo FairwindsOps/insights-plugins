@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -129,7 +128,12 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		return nil, err
 	}
 
-	workloads, err := controller.GetAllTopControllers(ctx, dynamicClient, restMapper, "")
+	client := controller.Client{
+		Context: ctx,
+		Dynamic: dynamicClient,
+		RESTMapper: restMapper,
+	}
+	workloads, err := client.GetAllTopControllersSummary("")
 	if err != nil {
 		logrus.Errorf("Error while getting all TopControllers: %v", err)
 		return nil, err
@@ -138,36 +142,14 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	for _, workload := range workloads {
 		topController := workload.TopController
 		var containers []ContainerResult
-		podCount := float64(len(workload.Pods))
 
-		var pd corev1.Pod
-
-		podSpec := controller.GetPodSpec(workload.TopController.Object)
-		if podSpec == nil {
-			// Could be a top-level object like Prometheus, which doesn't have a podSpec, so fall back to the actual pods
-			if len(workload.Pods) > 0 {
-				err = runtime.DefaultUnstructuredConverter.FromUnstructured(workload.Pods[0].UnstructuredContent(), &pd)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				// Nothing we can do here--no pods in the cluster, and no podSpec in the top-level object
-				// TODO: there's probably a mid-level object where we can get the info.
-				// e.g. a Prometheus doesn't have podSpec, but its Deployment does
-				continue
+		if workload.PodSpec != nil {
+			for _, ctn := range workload.PodSpec.Containers {
+				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp()))
 			}
-		} else {
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(map[string]interface{}{"spec": podSpec}, &pd)
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Convert the unstructured object to cluster.
-		for _, ctn := range pd.Spec.Containers {
-			containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp()))
 		}
 		controller := formatControllers(topController.GetKind(), topController.GetName(), topController.GetNamespace(), string(topController.GetUID()), topController.GetOwnerReferences(), containers, topController.GetAnnotations(), topController.GetLabels())
-		controller.PodCount = podCount
+		controller.PodCount = float64(workload.RunningPodCount)
 		interfaces = append(interfaces, controller)
 	}
 
