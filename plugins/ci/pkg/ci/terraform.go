@@ -79,7 +79,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 			newFileName = strings.TrimPrefix(newFileName, absRepoBaseFolder+"/")
 		}
 
-		newFileName = fmt.Sprintf("%s:%s", ci.config.Options.RepositoryName, newFileName)
+		// newFileName = fmt.Sprintf("%s:%s", ci.config.Options.RepositoryName, newFileName)
 		output.Items[i].Location.FileName = newFileName
 	}
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, output)
