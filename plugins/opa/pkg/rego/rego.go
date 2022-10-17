@@ -10,15 +10,17 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
 	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // InsightsInfo exposes Insights perspective, for consideration in rego
 // policies.  FOr example, the context rego has been executed -
 // Continuous Integration, Admission Controller, or the Insights Agent.
 type InsightsInfo struct {
-	InsightsContext string
-	Cluster         string
-	Repository      string
+	InsightsContext  string
+	Cluster          string
+	Repository       string
+	AdmissionRequest *admission.Request
 }
 
 type KubeDataFunction interface {
@@ -31,7 +33,7 @@ func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]int
 	return nil, nil
 }
 
-func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo *InsightsInfo) *rego.Rego {
+func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo InsightsInfo) *rego.Rego {
 	return rego.New(
 		rego.Query("results = data"),
 		rego.Module("fairwinds", body),
@@ -49,7 +51,7 @@ func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo *InsightsIn
 			GetInsightsInfoFunction(insightsInfo)))
 }
 
-func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
+func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo InsightsInfo) ([]interface{}, error) {
 	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
@@ -72,7 +74,7 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 
 // func RunRegoForItemV2 evaluates rego against a Kube object. IT replaces
 // RunRegoForItemV() and supports v2 of Insights OPACustomChecks.
-func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
+func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo InsightsInfo) ([]interface{}, error) {
 	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
@@ -112,18 +114,24 @@ func getDataFunction(fn func(context.Context, string, string) ([]interface{}, er
 // GetInsightsInfoFunction returns a function that is called from a rego
 // policy, to provide Insights information to the policy depending on the
 // function parameter.
-func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
+func GetInsightsInfoFunction(insightsInfo InsightsInfo) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
 	return func(bc rego.BuiltinContext, inf *ast.Term) (*ast.Term, error) {
 		reqInfo, err := getStringFromAST(inf)
 		if err != nil {
 			return nil, rego.NewHaltError(fmt.Errorf("unable to convert requested InsightsInfo to string: %w", err))
 		}
-		var retInfo string
+		var retInfo any
 		switch strings.ToLower(reqInfo) {
 		case "context":
 			retInfo = insightsInfo.InsightsContext
 		case "cluster":
 			retInfo = insightsInfo.Cluster
+		case strings.ToLower("admissionRequest"):
+			if insightsInfo.AdmissionRequest == nil {
+				retInfo = nil // explicit is require
+			} else {
+				retInfo = insightsInfo.AdmissionRequest.AdmissionRequest
+			}
 		default:
 			return nil, rego.NewHaltError(fmt.Errorf("cannot return unknown Insights Info %q", reqInfo))
 		}
