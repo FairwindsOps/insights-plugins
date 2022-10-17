@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.3
+* update controller-utils to 0.3.0
+
 ## 1.1.2
 * Update to go 1.19
 
