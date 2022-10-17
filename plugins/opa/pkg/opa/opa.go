@@ -135,7 +135,7 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 		return nil, err
 	}
 	for _, obj := range list.Items {
-		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
+		newItems, err := ProcessCheckForItem(ctx, check, checkInstance, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +159,7 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.G
 	}
 	logrus.Debugf("Listed %d %q objects for check %s, target %s", len(list.Items), gvr, check.Name, gr)
 	for _, obj := range list.Items {
-		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
+		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +170,7 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.G
 
 // ProcessCheckForItem is a runRegoForItem() wrapper that uses the specified
 // Kubernetes Kind/Namespace/Name to construct an action item.
-func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo rego.InsightsInfo) ([]ActionItem, error) {
+func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
 	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
@@ -183,7 +183,7 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 
 // ProcessCheckForItemV2 is a runRegoForItemV2() wrapper that uses the specified
 // Kubernetes Kind/Namespace/Name to construct an action item.
-func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo rego.InsightsInfo) ([]ActionItem, error) {
+func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
 	results, err := runRegoForItemV2(ctx, check.Rego, obj, insightsInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
@@ -198,7 +198,7 @@ func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[st
 // InsightsInfo, running the rego policy with the Kubernetes object as input.
 // The Insights Parameters and Insights Info struct are also made available to
 // the executing rego policy (the latter via a function).
-func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}, insightsInfo rego.InsightsInfo) ([]interface{}, error) {
+func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
 	client := kube.GetKubeClient()
 	return rego.RunRegoForItem(ctx, body, params, obj, *client, insightsInfo)
 }
@@ -206,7 +206,7 @@ func runRegoForItem(ctx context.Context, body string, params map[string]interfac
 // runRegoForItemV2 accepts rego, a Kube object, and InsightsInfo, running the
 // rego policy with the Kubernetes object as input.  The Insights Info struct
 // is also made available to the executing rego policy via a function.
-func runRegoForItemV2(ctx context.Context, body string, obj map[string]interface{}, insightsInfo rego.InsightsInfo) ([]interface{}, error) {
+func runRegoForItemV2(ctx context.Context, body string, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
 	client := kube.GetKubeClient()
 	return rego.RunRegoForItemV2(ctx, body, obj, *client, insightsInfo)
 }

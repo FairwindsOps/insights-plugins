@@ -105,7 +105,7 @@ func TestOPAParseFail(t *testing.T) {
 	ctx := context.TODO()
 
 	params := map[string]interface{}{}
-	_, err := runRegoForItem(ctx, brokenRego, params, fakeObj.Object, rego.InsightsInfo{})
+	_, err := runRegoForItem(ctx, brokenRego, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.Error(t, err)
 }
 
@@ -114,7 +114,7 @@ func TestOPAParseInsightsInfoFail(t *testing.T) {
 	ctx := context.TODO()
 
 	params := map[string]interface{}{}
-	_, err := runRegoForItem(ctx, regoWithIncorrectInsightsInfo, params, fakeObj.Object, rego.InsightsInfo{})
+	_, err := runRegoForItem(ctx, regoWithIncorrectInsightsInfo, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.Error(t, err)
 }
 
@@ -124,14 +124,14 @@ func TestReturnDescription(t *testing.T) {
 	details := OutputFormat{}
 
 	params := map[string]interface{}{}
-	results, err := runRegoForItem(ctx, basicRego, params, fakeObj.Object, rego.InsightsInfo{})
+	results, err := runRegoForItem(ctx, basicRego, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ais))
 
 	params["labels"] = []string{"foo"}
-	results, err = runRegoForItem(ctx, basicRego, params, fakeObj.Object, rego.InsightsInfo{})
+	results, err = runRegoForItem(ctx, basicRego, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -143,7 +143,7 @@ func TestReturnDescription(t *testing.T) {
 	assert.Equal(t, "label {\"foo\"} is present", ais[0].Description)
 
 	params = map[string]interface{}{}
-	results, err = runRegoForItem(ctx, regoWithInsightsInfo, params, fakeObj.Object, rego.InsightsInfo{InsightsContext: "Agent", Cluster: "us-east-1"})
+	results, err = runRegoForItem(ctx, regoWithInsightsInfo, params, fakeObj.Object, &rego.InsightsInfo{InsightsContext: "Agent", Cluster: "us-east-1"})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -162,7 +162,7 @@ func TestReturnDescription(t *testing.T) {
 			},
 		},
 	}
-	results, err = runRegoForItem(ctx, regoWithInsightsInfoAdmissionOpField, params, fakeObj.Object, rego.InsightsInfo{InsightsContext: "Agent", Cluster: "us-east-1", AdmissionRequest: req})
+	results, err = runRegoForItem(ctx, regoWithInsightsInfoAdmissionOpField, params, fakeObj.Object, &rego.InsightsInfo{InsightsContext: "Agent", Cluster: "us-east-1", AdmissionRequest: req})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -190,7 +190,7 @@ func TestExampleFiles(t *testing.T) {
 		regoString := string(bytes)
 		ctx := context.TODO()
 		params := map[string]interface{}{}
-		_, err = runRegoForItem(ctx, regoString, params, fakeObj.Object, rego.InsightsInfo{})
+		_, err = runRegoForItem(ctx, regoString, params, fakeObj.Object, &rego.InsightsInfo{})
 		return err
 	})
 	assert.NoError(t, err)
@@ -202,7 +202,7 @@ func TestReturnFull(t *testing.T) {
 	details := OutputFormat{}
 
 	params := map[string]interface{}{}
-	results, err := runRegoForItem(ctx, returnFull, params, fakeObj.Object, rego.InsightsInfo{})
+	results, err := runRegoForItem(ctx, returnFull, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -226,7 +226,7 @@ func TestReturnFull(t *testing.T) {
 		Category:    &defaultCategory,
 	}
 
-	results, err = runRegoForItem(ctx, returnFull, params, fakeObj.Object, rego.InsightsInfo{})
+	results, err = runRegoForItem(ctx, returnFull, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -237,7 +237,7 @@ func TestReturnFull(t *testing.T) {
 	assert.Equal(t, 0.5, ais[0].Severity)
 	assert.Equal(t, "Security", ais[0].Category)
 
-	results, err = runRegoForItem(ctx, returnEmpty, params, fakeObj.Object, rego.InsightsInfo{})
+	results, err = runRegoForItem(ctx, returnEmpty, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
@@ -255,14 +255,14 @@ func TestK8sAPI(t *testing.T) {
 	details := OutputFormat{}
 
 	params := map[string]interface{}{}
-	results, err := runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object, rego.InsightsInfo{})
+	results, err := runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err := processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(ais))
 
 	kube.AddFakeDeployment()
-	results, err = runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object, rego.InsightsInfo{})
+	results, err = runRegoForItem(ctx, regoWithK8s, params, fakeObj.Object, &rego.InsightsInfo{})
 	assert.NoError(t, err)
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)

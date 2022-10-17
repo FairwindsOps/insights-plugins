@@ -33,7 +33,7 @@ func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]int
 	return nil, nil
 }
 
-func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo InsightsInfo) *rego.Rego {
+func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo *InsightsInfo) *rego.Rego {
 	return rego.New(
 		rego.Query("results = data"),
 		rego.Module("fairwinds", body),
@@ -51,7 +51,7 @@ func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo InsightsInf
 			GetInsightsInfoFunction(insightsInfo)))
 }
 
-func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo InsightsInfo) ([]interface{}, error) {
+func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
 	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
@@ -74,7 +74,7 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 
 // func RunRegoForItemV2 evaluates rego against a Kube object. IT replaces
 // RunRegoForItemV() and supports v2 of Insights OPACustomChecks.
-func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo InsightsInfo) ([]interface{}, error) {
+func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
 	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
@@ -114,7 +114,7 @@ func getDataFunction(fn func(context.Context, string, string) ([]interface{}, er
 // GetInsightsInfoFunction returns a function that is called from a rego
 // policy, to provide Insights information to the policy depending on the
 // function parameter.
-func GetInsightsInfoFunction(insightsInfo InsightsInfo) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
+func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContext, *ast.Term) (*ast.Term, error) {
 	return func(bc rego.BuiltinContext, inf *ast.Term) (*ast.Term, error) {
 		reqInfo, err := getStringFromAST(inf)
 		if err != nil {
