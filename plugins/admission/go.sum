@@ -123,6 +123,7 @@ github.com/evanphx/json-patch v5.6.0+incompatible h1:jBYDEEiFBPxA0v50tFdvOzQQTCv
 github.com/evanphx/json-patch v5.6.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/evanphx/json-patch/v5 v5.6.0 h1:b91NhWfaz02IuVxO9faSllyAtNXHMPkC5J8sJCLunww=
 github.com/evanphx/json-patch/v5 v5.6.0/go.mod h1:G79N1coSVB93tBe7j6PhzjmR3/2VvlbKOFpnXhI9Bw4=
+github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20221004151238-ef0e69a26717/go.mod h1:y85/FLicZNopXuKJa8OJXobcXTp59u/Pqxig5QE1fAs=
 github.com/fairwindsops/pluto/v5 v5.9.1-0.20220629194848-a932cda953da h1:lcxn2n25j7dTOzz/zyjf0kSFQ+ETNBwvyl3wnrpTAqc=
 github.com/fairwindsops/pluto/v5 v5.9.1-0.20220629194848-a932cda953da/go.mod h1:4jGioNPfZKZ0o7Tr0aGBYl97R9NHgCgGgcC91wM2MRA=
 github.com/fairwindsops/polaris v0.0.0-20220512134546-92f0b6e551df h1:hUbUonna3gvqShL6xshXLrf4d+SRTbggHY+NlNY9EDY=
