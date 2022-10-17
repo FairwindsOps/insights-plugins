@@ -128,6 +128,44 @@ jobs:
       - set_tags
       - check_version_changed
 
+  check_versions:
+    docker:
+      - image: quay.io/reactiveops/ci-images:v11.13.5-alpine
+    steps:
+      - checkout
+      - set_environment_variables
+      - run: ./scripts/check-all-versions.sh
+      - slack/notify:
+          event: fail
+          custom: |
+            {
+                "text": "One or more versions in insights-plugins are out of date!",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "One or more versions in insights-plugins are out of date!\n\n$OUTDATED_VERSIONS_LIST"
+                        }
+                    }
+                ]
+            }
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+                "text": "All versions in insights-plugins are up to date",
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ":tada: All versions in insights-plugins are up to date!"
+                        }
+                    }
+                ]
+            }
+
   scan_for_vulnerabilities:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     executor: ci-images
@@ -243,6 +281,7 @@ workflows:
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities
+      - check_versions
     triggers:
       - schedule:
           cron: "0 12 * * *"
