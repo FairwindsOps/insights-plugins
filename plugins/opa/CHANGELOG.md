@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.2
+* Update x/text to remove CVE
+
 ## 2.1.1
 * Update to go 1.19
 
