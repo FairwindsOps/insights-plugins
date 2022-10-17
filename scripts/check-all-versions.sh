@@ -7,7 +7,6 @@ NO_COLOR='\033[0m'
 if mkdir tmp_repos; then
   cd tmp_repos
   git clone https://github.com/FairwindsOps/charts
-  git clone https://github.com/FairwindsOps/insights-plugins
   git clone https://github.com/FairwindsOps/polaris
   git clone https://github.com/FairwindsOps/goldilocks
   git clone https://github.com/FairwindsOps/pluto
