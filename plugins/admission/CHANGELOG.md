@@ -1,7 +1,10 @@
 # Changelog
 
-## 1.8.1
+## 1.8.2
 * Pass the admission request object to the OPA runtime engine
+
+## 1.8.1
+* Update x/text to remove CVE
 
 ## 1.8.0
 * Added support to ignore some services account
