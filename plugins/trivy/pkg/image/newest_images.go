@@ -62,7 +62,7 @@ func fetchTags(ctx context.Context, imageRepoName string) ([]string, error) {
 func filterAndSort(suggestedTags []string, curTagStr string) ([]string, error) {
 	curVersion, err := semver.NewVersion(curTagStr)
 	if err != nil {
-		logrus.Infof("could not parse current tag semver %s: %v", curTagStr, err)
+		logrus.Debugf("could not parse current tag semver %s: %v", curTagStr, err)
 		return []string{}, nil
 	}
 
@@ -75,7 +75,7 @@ func filterAndSort(suggestedTags []string, curTagStr string) ([]string, error) {
 	for _, tag := range suggestedTags {
 		v, err := semver.NewVersion(tag)
 		if err != nil {
-			logrus.Infof("could not parse tag semver %s: %v", tag, err)
+			logrus.Debugf("could not parse tag semver %s: %v", tag, err)
 			continue
 		}
 
