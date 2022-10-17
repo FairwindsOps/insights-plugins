@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.22.3
+* Update x/text to remove CVE
+
 ## 0.22.2
 * Tune down some debug logs
 

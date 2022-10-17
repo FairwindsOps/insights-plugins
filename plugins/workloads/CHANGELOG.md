@@ -1,7 +1,11 @@
 # Changelog
 
+## 2.3.4
+* Update x/text to remove CVE
+
 ## 2.3.3
 * update controller-utils to 0.3.0
+
 ## 2.3.2
 * Fix for top-level controllers with no pod info
 
