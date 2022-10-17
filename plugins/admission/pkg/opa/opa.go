@@ -31,13 +31,13 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
-			newActionItems, err := ProcessOPAV1(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, configuration.OPA.CustomCheckInstances, requestInfo)
+			newActionItems, err := ProcessOPAV1(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, configuration.OPA.CustomCheckInstances, &requestInfo)
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)
 			}
 		case 2.0:
-			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, requestInfo)
+			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, &requestInfo)
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)
@@ -60,7 +60,7 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 // ProcessOPAV1 runs a V1 CustomCheck against a Kubernetes object,
 // returning action items and potentially multiple wrapped errors (as returned
 // by multiple instances; CheckSettings associated with a CustomCheck).
-func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, checkInstances []opa.CheckSetting, insightsInfo rego.InsightsInfo) ([]opa.ActionItem, error) {
+func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, checkInstances []opa.CheckSetting, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
 	for _, instanceObject := range checkInstances {
@@ -106,7 +106,7 @@ func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGrou
 // ProcessOPAV2 runs a V2 CustomCheck against a Kubernetes object,
 // returning action items and any error encountered while processing the
 // check.
-func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, insightsInfo rego.InsightsInfo) ([]opa.ActionItem, error) {
+func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
 	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, insightsInfo)
 	return newActionItems, err
 }
