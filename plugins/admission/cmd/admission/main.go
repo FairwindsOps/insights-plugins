@@ -189,7 +189,12 @@ func mustGetInsightsConfigFromEnvVars() models.InsightsConfig {
 	if token == "" {
 		exitWithError("FAIRWINDS_TOKEN environment variable not set", nil)
 	}
-	return models.InsightsConfig{Hostname: hostname, Organization: organization, Cluster: cluster, Token: token}
+	usernameTokens := strings.Split(os.Getenv("FAIRWINDS_IGNORE_USERNAMES"), ",")
+	ignoreUsernames := []string{}
+	for _, username := range usernameTokens {
+		ignoreUsernames = append(ignoreUsernames, strings.TrimSpace(username))
+	}
+	return models.InsightsConfig{Hostname: hostname, Organization: organization, Cluster: cluster, Token: token, IgnoreUsernames: ignoreUsernames}
 }
 
 func setLogLevel() {

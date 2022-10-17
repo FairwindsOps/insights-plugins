@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.22.1
+## 0.22.2
 * Tune down some debug logs
+
+## 0.22.1
+* Update to go 1.19
 
 ## 0.22.0
 * Build docker images for linux/arm64, and update to Go 1.19.1

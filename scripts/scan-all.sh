@@ -10,12 +10,12 @@ for d in ./plugins/*/ ; do
     if [[ $d == *"_template"* ]]; then
       continue
     fi
-    if [[ ! -f $d/build.config ]]; then
+    if [[ ! -f "$d/.goreleaser.yml.envsubst" ]]; then
       continue
     fi
     version=$(cat $d/version.txt)
-    . $d/build.config
-    name="quay.io/$REPOSITORY_NAME:$version"
+    repo=$(cat "$d/.goreleaser.yml.envsubst" | grep "quay.io" | head -1 | sed s/:.*// | sed 's/^  - "//')
+    name="$repo:$version"
     images+=($name)
 done
 
