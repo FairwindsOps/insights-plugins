@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.3
+* Update x/text to remove CVE
+
 ## 0.2.2
 * Update dependencies
 

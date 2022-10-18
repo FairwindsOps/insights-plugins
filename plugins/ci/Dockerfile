@@ -5,6 +5,7 @@ ENV trivyVersion=0.30.4
 ENV tfsecVersion=1.28.0
 ENV polarisVersion=7.1.4
 ENV plutoVersion=5.11.1
+ENV helmVersion=3.10.1
 
 # Bash and openssl are  required by the Helm script.
 RUN apk update && apk --no-cache add curl bash openssl ca-certificates
@@ -14,7 +15,7 @@ RUN curl -L https://github.com/aquasecurity/tfsec/releases/download/v${tfsecVers
 RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/$polarisVersion/polaris_${TARGETOS}_${TARGETARCH}.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
 RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 
-RUN DESIRED_VERSION=3.10.0 curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+RUN DESIRED_VERSION=$helmVersion curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
 FROM alpine:3.16
 WORKDIR /insights
