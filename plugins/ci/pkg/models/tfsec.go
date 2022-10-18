@@ -13,17 +13,15 @@ type TFSecResult struct {
 	Location        TFSecResultLocation `json:"location"`
 }
 
-// TFSecResultLocation contains the range of line numbers that caused a TFSec
-// result.
+// TFSecResultLocation contains the file name and line numbers where an issue
+// was found.
 type TFSecResultLocation struct {
 	FileName  string `json:"filename"`
 	StartLine int64  `json:"start_line"`
 	EndLine   int64  `json:"end_line"`
 }
 
-// TFSecReportProperties contains TFSec output.
+// TFSecReportProperties contains multiple TFSec results.
 type TFSecReportProperties struct {
 	Items []TFSecResult `json:"results"`
 }
-
-// TFSecReport is an Insights report.
