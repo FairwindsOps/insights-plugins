@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0.0
+* Add Terraform scanning via a tfsec report
+
 ## 2.4.1
 * Temporarily revert terraform scanning
 
