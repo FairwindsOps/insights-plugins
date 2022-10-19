@@ -96,8 +96,16 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 		}
 
 		for _, containerStatus := range pod.Status.ContainerStatuses {
+			var imageName string
+			imageIDFields := strings.SplitN(containerStatus.ImageID, "@", 2) // split image from SHA
+			if len(imageIDFields) < 2 || imageIDFields[0] == "" {
+				logrus.Debugf("cannot split containerStatuses.imageID %q by @ to construct an image name, falling back to using imageStatuses.image", containerStatus.ImageID)
+				imageName = containerStatus.Image
+			} else {
+				imageName = strings.TrimPrefix(imageIDFields[0], "docker-pullable://")
+			}
 			im := models.Image{
-				Name:  containerStatus.Image,
+				Name:  imageName,
 				ID:    strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://"),
 				Owner: models.Resource(owner),
 			}
