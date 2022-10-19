@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.23.3
+## 0.23.0
 * Use the `ImageID` to get container images instead of `Image`, to address when `ContainerStatuses.Image` only contains a SHA
 
 ## 0.22.3
