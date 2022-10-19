@@ -128,7 +128,7 @@ func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContex
 			retInfo = insightsInfo.Cluster
 		case strings.ToLower("admissionRequest"):
 			if insightsInfo.AdmissionRequest == nil {
-				retInfo = nil // explicit is require
+				retInfo = nil // explicit set is required
 			} else {
 				retInfo = insightsInfo.AdmissionRequest.AdmissionRequest
 			}
