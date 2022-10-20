@@ -8,6 +8,9 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
@@ -21,7 +24,7 @@ func TestProcessOPA(t *testing.T) {
 	instances := []opa.CheckSetting{}
 	config.OPA.CustomCheckInstances = instances
 	config.OPA.CustomChecks = checks
-	report, err := ProcessOPA(context.TODO(), nil, "", "", "", "", config, iConfig)
+	report, err := ProcessOPA(context.TODO(), nil, admission.Request{}, config, iConfig)
 	assert.Equal(t, "opa", report.Report)
 	assert.NoError(t, err)
 	var reportObject map[string]interface{}
@@ -68,7 +71,17 @@ labelrequired[results] {
 
 	config.OPA.CustomChecks = checks
 	config.OPA.CustomCheckInstances = instances
-	report, err = ProcessOPA(context.TODO(), object, "test", "", "Pod", "test", config, iConfig)
+	req := admission.Request{
+		AdmissionRequest: v1.AdmissionRequest{
+			Name:      "test",
+			Namespace: "test",
+			RequestKind: &metav1.GroupVersionKind{
+				Group: "",
+				Kind:  "Pod",
+			},
+		},
+	}
+	report, err = ProcessOPA(context.TODO(), object, req, config, iConfig)
 	assert.NoError(t, err)
 	assert.Equal(t, "opa", report.Report)
 	err = json.Unmarshal(report.Contents, &reportObject)
@@ -96,7 +109,7 @@ labelrequired[results] {
 	}
 	checks = append(checks, check)
 	config.OPA.CustomChecks = checks
-	report, err = ProcessOPA(context.TODO(), object, "test", "", "Pod", "test", config, iConfig)
+	report, err = ProcessOPA(context.TODO(), object, req, config, iConfig)
 	assert.NoError(t, err)
 	assert.Equal(t, "opa", report.Report)
 	err = json.Unmarshal(report.Contents, &reportObject)

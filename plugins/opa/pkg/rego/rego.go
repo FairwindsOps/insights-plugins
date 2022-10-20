@@ -10,15 +10,17 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/types"
 	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // InsightsInfo exposes Insights perspective, for consideration in rego
 // policies.  FOr example, the context rego has been executed -
 // Continuous Integration, Admission Controller, or the Insights Agent.
 type InsightsInfo struct {
-	InsightsContext string
-	Cluster         string
-	Repository      string
+	InsightsContext  string
+	Cluster          string
+	Repository       string
+	AdmissionRequest *admission.Request
 }
 
 type KubeDataFunction interface {
@@ -118,12 +120,18 @@ func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContex
 		if err != nil {
 			return nil, rego.NewHaltError(fmt.Errorf("unable to convert requested InsightsInfo to string: %w", err))
 		}
-		var retInfo string
+		var retInfo any
 		switch strings.ToLower(reqInfo) {
 		case "context":
 			retInfo = insightsInfo.InsightsContext
 		case "cluster":
 			retInfo = insightsInfo.Cluster
+		case strings.ToLower("admissionRequest"):
+			if insightsInfo.AdmissionRequest == nil {
+				retInfo = nil // explicit set is required
+			} else {
+				retInfo = insightsInfo.AdmissionRequest.AdmissionRequest
+			}
 		default:
 			return nil, rego.NewHaltError(fmt.Errorf("cannot return unknown Insights Info %q", reqInfo))
 		}
