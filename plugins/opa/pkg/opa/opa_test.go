@@ -12,6 +12,9 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
+	admissionv1 "k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var fakeObj = unstructured.Unstructured{
@@ -86,7 +89,14 @@ requestinvalidinsightsinfo[description] {
 const regoWithInsightsInfo = `
 package fairwinds
 requestinsightsinfo[description] {
-  description := sprintf("the context is %v and the cluster is %v", [insightsinfo("context"), insightsinfo("cluster")])
+  description := sprintf("the context is %v, the cluster is %v and admissionRequest is %v", [insightsinfo("context"), insightsinfo("cluster"), insightsinfo("admissionRequest")])
+}
+`
+
+const regoWithInsightsInfoAdmissionOpField = `
+package fairwinds
+requestinsightsinfo[description] {
+  description := sprintf("the context is %v, the cluster is %v and admissionRequest is %v", [insightsinfo("context"), insightsinfo("cluster"), insightsinfo("admissionRequest").operation])
 }
 `
 
@@ -138,7 +148,26 @@ func TestReturnDescription(t *testing.T) {
 	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(ais))
-	assert.Equal(t, "the context is Agent and the cluster is us-east-1", ais[0].Description)
+	assert.Equal(t, "the context is Agent, the cluster is us-east-1 and admissionRequest is null", ais[0].Description)
+
+	params = map[string]interface{}{}
+	req := &admission.Request{
+		AdmissionRequest: admissionv1.AdmissionRequest{
+			Operation: admissionv1.Create,
+			Name:      "name",
+			Namespace: "ns",
+			RequestKind: &metav1.GroupVersionKind{
+				Kind:  "Pod",
+				Group: "Group",
+			},
+		},
+	}
+	results, err = runRegoForItem(ctx, regoWithInsightsInfoAdmissionOpField, params, fakeObj.Object, &rego.InsightsInfo{InsightsContext: "Agent", Cluster: "us-east-1", AdmissionRequest: req})
+	assert.NoError(t, err)
+	ais, err = processResults(fakeObj.GetName(), fakeObj.GetKind(), fakeObj.GetNamespace(), results, "my-test", details)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(ais))
+	assert.Equal(t, "the context is Agent, the cluster is us-east-1 and admissionRequest is CREATE", ais[0].Description)
 }
 
 func TestExampleFiles(t *testing.T) {

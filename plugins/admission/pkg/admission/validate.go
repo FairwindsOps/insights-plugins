@@ -96,38 +96,30 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
-	var decoded map[string]interface{}
 	username := req.UserInfo.Username
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
 		return true, []string{msg}, nil, nil
 	}
+	var decoded map[string]any
 	err := json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
 	}
-	ownerReferences, ok := decoded["metadata"].(map[string]interface{})["ownerReferences"].([]interface{})
+	ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any)
 	if ok && len(ownerReferences) > 0 {
 		logrus.Infof("Object has an owner - skipping")
 		return true, nil, nil, nil
 	}
-
 	var namespaceMetadata map[string]any
-	if namespace, ok := decoded["metadata"].(map[string]interface{})["namespace"].(string); ok && namespace != "" {
+	if namespace, ok := decoded["metadata"].(map[string]any)["namespace"].(string); ok && namespace != "" {
 		namespaceMetadata, err = getNamespaceMetadata(v.clientset, namespace)
 		if err != nil {
 			return false, nil, nil, err
 		}
 	}
-
-	logrus.Debugf("Processing with config %+v", v.config)
-	metadataReport, err := getRequestReport(req, namespaceMetadata)
-	if err != nil {
-		logrus.Errorf("Error marshaling admission request")
-		return false, nil, nil, err
-	}
-	return processInputYAML(ctx, v.iConfig, *v.config, req.Object.Raw, decoded, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadataReport)
+	return processInputYAML(ctx, v.iConfig, *v.config, decoded, req, namespaceMetadata)
 }
 
 func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (map[string]any, error) {
@@ -184,29 +176,35 @@ func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (
 	}, err
 }
 
-func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
-	reports := []models.ReportInfo{metaReport}
-	if configurationObject.Reports.Polaris {
+func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config models.Configuration, decoded map[string]any, req admission.Request, namespaceMetadata map[string]any) (bool, []string, []string, error) {
+	logrus.Debugf("Processing with config %+v", config)
+	metadataReport, err := getRequestReport(req, namespaceMetadata)
+	if err != nil {
+		logrus.Errorf("Error marshaling admission request")
+		return false, nil, nil, err
+	}
+	reports := []models.ReportInfo{metadataReport}
+	if config.Reports.Polaris {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
-		polarisConfig := *configurationObject.Polaris
-		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, input)
+		polarisConfig := *config.Polaris
+		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, req.Object.Raw)
 		if err != nil {
 			return false, nil, nil, err
 		}
 		reports = append(reports, polarisReport)
 	}
 
-	if configurationObject.Reports.OPA {
+	if config.Reports.OPA {
 		logrus.Info("Running OPA")
-		opaReport, err := opa.ProcessOPA(ctx, decodedObject, name, apiGroup, kind, namespace, configurationObject, iConfig)
+		opaReport, err := opa.ProcessOPA(ctx, decoded, req, config, iConfig)
 		if err != nil {
 			return false, nil, nil, err
 		}
 		reports = append(reports, opaReport)
 	}
 
-	if configurationObject.Reports.Pluto {
+	if config.Reports.Pluto {
 		logrus.Info("Running Pluto")
 		userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
 		userTargetVersions, err := pluto.ParsePlutoTargetVersions(userTargetVersionsStr)
@@ -214,7 +212,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 			logrus.Errorf("unable to parse pluto target versions %q: %v", userTargetVersionsStr, err)
 			return false, nil, nil, err
 		}
-		plutoReport, err := pluto.ProcessPluto(input, userTargetVersions)
+		plutoReport, err := pluto.ProcessPluto(req.Object.Raw, userTargetVersions)
 		if err != nil {
 			return false, nil, nil, err
 		}
