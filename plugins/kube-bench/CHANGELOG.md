@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.3
+* Update kube-bench to 0.6.10
+
 ## 0.4.2
 * Update x/text to remove CVE
 
