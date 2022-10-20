@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.0
+* Add support for `insightsinfo("admissionRequest")` that exposes the admission request
+
 ## 2.1.2
 * Update x/text to remove CVE
 
