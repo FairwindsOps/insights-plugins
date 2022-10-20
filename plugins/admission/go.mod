@@ -19,7 +19,7 @@ require (
 )
 
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20221004151238-ef0e69a26717
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20221017172222-9f85ec7693eb
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.9.0
 	github.com/samber/lo v1.30.0
