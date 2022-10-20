@@ -5,11 +5,12 @@ go 1.19
 require github.com/aquasecurity/kube-bench v0.6.10
 
 require (
-	github.com/aws/aws-sdk-go v1.44.112 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.16.16 // indirect
+	github.com/aws/aws-sdk-go-v2/service/securityhub v1.23.5 // indirect
+	github.com/aws/smithy-go v1.13.3 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
