@@ -15,7 +15,8 @@ import (
 	"github.com/ghodss/yaml" // supports both yaml and json
 )
 
-var supportedExtensions = []string{"yaml", "yml", "json"}
+var supportedKubeExtensions = []string{"yaml", "yml", "json"}
+var supportedExtensions = []string{"yaml", "yml", "json", "tf"}
 
 type KubernetesManifest struct {
 	ApiVersion *string `json:"apiVersion"` // Affects YAML field names too.
@@ -24,8 +25,6 @@ type KubernetesManifest struct {
 
 // ConfigFileAutoDetection reads recursively a path looking for kubernetes manifests and helm charts, returns a fairwinds-insights configuration struct or error
 func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
-	// ivan
-	logrus.Infof("about to autodetect config with basePath %q\n", basePath)
 	k8sManifests := []string{}
 	helmFolders := []string{}
 	terraformPaths := []string{}
@@ -58,11 +57,7 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 					return err
 				}
 				if terraformFolder {
-					relPath, err := filepath.Rel(basePath, path)
-					if err != nil {
-						return err
-					}
-					terraformPaths = append(terraformPaths, relPath)
+					terraformPaths = append(terraformPaths, path)
 					return filepath.SkipDir
 				}
 				logrus.Debugf("this is a directory: %s", info.Name())
@@ -159,7 +154,7 @@ func isHelmBaseFolder(path string) (bool, error) {
 	}
 
 	for _, file := range files {
-		for _, ext := range supportedExtensions {
+		for _, ext := range supportedKubeExtensions {
 			if file.Name() == "Chart."+ext {
 				return true, nil
 			}
@@ -180,8 +175,8 @@ func isTerraformFolder(path string) (bool, error) {
 			continue
 		}
 		fileExtension := filepath.Ext(file.Name())
-		if strings.EqualFold(fileExtension, "tf") {
-			logrus.Debugf("Directory %q contains a .tf (Terraform) file", path)
+		if strings.EqualFold(fileExtension, ".tf") {
+			logrus.Debugf("Directory %q contains Terraform because a .tf file was found", path)
 			return true, nil
 		}
 	}
@@ -223,7 +218,7 @@ func logDuplicatedHelmConfigNames(arr []models.HelmConfig) {
 
 // tries to extract name from Chart.yaml file, return chart (dir name) as fallback
 func tryFetchNameFromChartFile(baseFolder, chart string) string {
-	for _, ext := range supportedExtensions {
+	for _, ext := range supportedKubeExtensions {
 		f := "Chart." + ext
 		file, err := os.Open(filepath.Join(baseFolder, chart, f))
 		if err != nil {
@@ -255,7 +250,7 @@ func tryFetchNameFromChartFile(baseFolder, chart string) string {
 
 // tries to discover the default values file, returns empty str if not found
 func tryDiscoverValuesFile(baseFolder, path string) string {
-	for _, ext := range supportedExtensions {
+	for _, ext := range supportedKubeExtensions {
 		f := "values." + ext
 		possibleValuesFile := filepath.Join(baseFolder, path, f)
 		if _, err := os.Stat(possibleValuesFile); errors.Is(err, os.ErrNotExist) {
