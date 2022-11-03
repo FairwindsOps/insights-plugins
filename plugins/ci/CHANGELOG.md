@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.0
+* Update trivy to version 0.34.0
+
 ## 2.2.4
 * Update x/text to remove CVE
 
