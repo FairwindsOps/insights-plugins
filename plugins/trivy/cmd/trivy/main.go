@@ -36,6 +36,7 @@ type newestVersions struct {
  * Images or images recommendations that no longer belongs to that cluster are filtered out
  */
 func main() {
+	setLogLevel()
 	setEnv()
 	lastReport, err := image.GetLastReport()
 	if err != nil {
@@ -85,6 +86,18 @@ func main() {
 	logrus.Info("Finished writing file ", outputFile)
 }
 
+func setLogLevel() {
+	if os.Getenv("LOGRUS_LEVEL") != "" {
+		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+		if err != nil {
+			panic(fmt.Errorf("Invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
+		}
+		logrus.SetLevel(lvl)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+}
+
 func getNewestVersionsToScan(ctx context.Context, allReports []models.ImageReport, imagesToScan []models.Image) []models.Image {
 	var imageWithVulns []models.ImageReport
 	for _, img := range imagesToScan {
@@ -122,10 +135,23 @@ func getNewestVersionsToScan(ctx context.Context, allReports []models.ImageRepor
 func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, img models.ImageReport) {
 	parts := strings.Split(img.Name, ":")
 	if len(parts) != 2 {
+		versionsChan <- newestVersions{
+			err: fmt.Errorf("cannot find tag while getting newest version for image %q", img.Name),
+		}
 		return
 	}
 	repo := parts[0]
 	tag := parts[1]
+	if strings.Contains(strings.ToLower(img.Name), "@sha256:") {
+		// Do not try to find newer versions when the tag is a sha256.
+		repo = strings.Split(repo, "@")[0]
+		logrus.Debugf("not getting newest versions for repo %q because the tag is a sha256: %q", img.Name)
+		versionsChan <- newestVersions{
+			repo:     repo,
+			versions: []string{},
+		}
+		return
+	}
 	versions, err := image.GetNewestVersions(ctx, repo, tag)
 	if err != nil {
 		versionsChan <- newestVersions{
