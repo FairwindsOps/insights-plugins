@@ -145,7 +145,7 @@ func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, im
 	if strings.Contains(strings.ToLower(img.Name), "@sha256:") {
 		// Do not try to find newer versions when the tag is a sha256.
 		repo = strings.Split(repo, "@")[0]
-		logrus.Debugf("not getting newest versions for repo %q because the tag is a sha256: %q", img.Name)
+		logrus.Debugf("not getting newest versions for repo %q because the tag is a sha256: %q", repo, img.Name)
 		versionsChan <- newestVersions{
 			repo:     repo,
 			versions: []string{},
