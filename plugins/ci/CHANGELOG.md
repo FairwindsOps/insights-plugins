@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.0
+* Make some GIT commands optional (masterHash, commitMessage, branch and origin)
+
 ## 2.2.4
 * Update x/text to remove CVE
 
