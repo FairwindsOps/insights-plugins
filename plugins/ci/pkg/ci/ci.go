@@ -296,7 +296,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
+	repoDetails, err := getGitInfo(commands.ExecInDir, ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
