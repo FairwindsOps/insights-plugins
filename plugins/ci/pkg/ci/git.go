@@ -145,9 +145,9 @@ Or disable shallow clone entirely: https://docs.gitlab.com/ee/ci/pipelines/setti
 	case models.AzureDevops:
 		// TODO: Vitor
 	case models.Travis:
-		// TODO: Vitor
+		// works with default configuration
 	case models.CircleCI:
-		// usually works with default configuration
+		// works with default configuration
 	default:
 		logrus.Infof("there are no recommendations for CI Runner %v - please enter in contact with fairwinds support", ciRunner)
 	}
