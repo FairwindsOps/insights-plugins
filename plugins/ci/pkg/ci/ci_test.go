@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,5 +35,5 @@ exemptions:
 	assert.Equal(t, "fairwinds-production", cfg.Options.Organization)
 	assert.Equal(t, "master", cfg.Options.BaseBranch)
 	assert.Equal(t, "FairwindsOps/fairwindsops-infrastructure", cfg.Options.RepositoryName)
-	assert.Equal(t, models.GithubActions, cfg.Options.CIRunner)
+	assert.Empty(t, cfg.Options.CIRunner) // should not be read from file
 }

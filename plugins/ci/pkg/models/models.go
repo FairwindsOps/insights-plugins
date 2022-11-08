@@ -103,7 +103,7 @@ type optionConfig struct {
 	Organization           string      `yaml:"organization"`
 	JUnitOutput            string      `yaml:"junitOutput"`
 	RepositoryName         string      `yaml:"repositoryName"`
-	CIRunner               CIRunnerVal `yaml:"ciRunner"`
+	CIRunner               CIRunnerVal `yaml:"-"`
 }
 
 type imageConfig struct {
@@ -195,9 +195,11 @@ func (c *Configuration) SetPathDefaults() {
 
 // SetDefaults sets configuration defaults
 //
-// it should follow the order:
-// - file content > env. variables > default
+// it should respect the order:
+// - config. file content > env. variables > default
 func (c *Configuration) SetDefaults() {
+	c.Options.CIRunner = CIRunnerVal(strings.TrimSpace(os.Getenv("CI_RUNNER"))) // only set via env. variable
+
 	if c.Options.BaseBranch == "" {
 		baseBranch := strings.TrimSpace(os.Getenv("BASE_BRANCH"))
 		if baseBranch != "" {
@@ -219,10 +221,6 @@ func (c *Configuration) SetDefaults() {
 		} else {
 			c.Options.Hostname = "https://insights.fairwinds.com"
 		}
-	}
-	if c.Options.CIRunner == "" {
-		ciRunner := strings.TrimSpace(os.Getenv("CI_RUNNER"))
-		c.Options.CIRunner = CIRunnerVal(ciRunner)
 	}
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"

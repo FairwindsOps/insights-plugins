@@ -44,10 +44,17 @@ func getGitInfo(cmdExecutor cmdExecutor, ciRunner models.CIRunnerVal, baseRepoPa
 	var gitCommandFail bool
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {
-		masterHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranch), "getting master hash")
+		// 1 - tries: git merge-base HEAD {baseBranch}
+		// 2 - tries: git merge-base HEAD origin/{baseBranch}
+		baseBranchParsed := strings.TrimPrefix(baseBranch, "origin/") // main
+		masterHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranchParsed), "getting master hash")
 		if err != nil {
-			logrus.Warnf("Unable to get GIT merge-base: %v", err)
-			gitCommandFail = true
+			logrus.Warnf("Unable to get GIT merge-base(1): %v", err)
+			masterHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "merge-base", "HEAD", "origin/"+baseBranchParsed), "getting master hash")
+			if err != nil {
+				logrus.Warnf("Unable to get GIT merge-base(2): %v", err)
+				gitCommandFail = true
+			}
 		}
 	}
 	logrus.Infof("Master hash: %s", masterHash)
