@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"testing"
 
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,15 +16,15 @@ func TestExtractRepoNameFromOrigin(t *testing.T) {
 }
 
 func TestGetGitInfo(t *testing.T) {
-	r, err := getGitInfo(successfulStubExecutor, ".", "fairwinds/insights-plugins", "main")
+	r, err := getGitInfo(successfulStubExecutor, models.GithubActions, ".", "fairwinds/insights-plugins", "main")
 	assert.NoError(t, err)
 	assert.Equal(t, &gitInfo{origin: "origin-url", branch: "branch-name", masterHash: "master-hash", currentHash: "current-hash", commitMessage: "commit-message", repoName: "fairwinds/insights-plugins"}, r)
 
-	r, err = getGitInfo(errorOnOptionalStubExecutor, ".", "fairwinds/insights-plugins", "main")
+	r, err = getGitInfo(errorOnOptionalStubExecutor, models.GithubActions, ".", "fairwinds/insights-plugins", "main")
 	assert.NoError(t, err)
 	assert.Equal(t, &gitInfo{origin: "", branch: "", masterHash: "", currentHash: "current-hash", commitMessage: "", repoName: "fairwinds/insights-plugins"}, r)
 
-	r, err = getGitInfo(errorOnRequiredStubExecutor, ".", "fairwinds/insights-plugins", "main")
+	r, err = getGitInfo(errorOnRequiredStubExecutor, models.GithubActions, ".", "fairwinds/insights-plugins", "main")
 	assert.Error(t, err)
 	assert.Nil(t, r)
 }

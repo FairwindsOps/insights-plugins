@@ -296,7 +296,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(commands.ExecInDir, ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
+	repoDetails, err := getGitInfo(commands.ExecInDir, ci.config.Options.CIRunner, ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
@@ -470,6 +470,10 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml: %v", err)
 		}
 	}
+	return readConfigurationFromReader(configHandler)
+}
+
+func readConfigurationFromReader(configHandler io.Reader) (*models.Configuration, error) {
 	configContents, err := ioutil.ReadAll(configHandler)
 	if err != nil {
 		return nil, fmt.Errorf("Could not read fairwinds-insights.yaml: %v", err)

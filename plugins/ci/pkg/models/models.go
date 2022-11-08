@@ -83,16 +83,27 @@ type trivyConfig struct {
 	SkipManifests *bool `yaml:"skipManifests"`
 }
 
+type CIRunnerVal string
+
+const (
+	GithubActions CIRunnerVal = "github-actions"
+	CircleCI      CIRunnerVal = "circle-ci"
+	Gitlab        CIRunnerVal = "gitlab"
+	Travis        CIRunnerVal = "travis"
+	AzureDevops   CIRunnerVal = "azure-devops"
+)
+
 type optionConfig struct {
-	SetExitCode            bool   `yaml:"setExitCode"`
-	BaseBranch             string `yaml:"baseBranch"`
-	NewActionItemThreshold int    `yaml:"newActionItemThreshold"`
-	SeverityThreshold      string `yaml:"severityThreshold"`
-	TempFolder             string `yaml:"tempFolder"`
-	Hostname               string `yaml:"hostname"`
-	Organization           string `yaml:"organization"`
-	JUnitOutput            string `yaml:"junitOutput"`
-	RepositoryName         string `yaml:"repositoryName"`
+	SetExitCode            bool        `yaml:"setExitCode"`
+	BaseBranch             string      `yaml:"baseBranch"`
+	NewActionItemThreshold int         `yaml:"newActionItemThreshold"`
+	SeverityThreshold      string      `yaml:"severityThreshold"`
+	TempFolder             string      `yaml:"tempFolder"`
+	Hostname               string      `yaml:"hostname"`
+	Organization           string      `yaml:"organization"`
+	JUnitOutput            string      `yaml:"junitOutput"`
+	RepositoryName         string      `yaml:"repositoryName"`
+	CIRunner               CIRunnerVal `yaml:"ciRunner"`
 }
 
 type imageConfig struct {
@@ -196,16 +207,10 @@ func (c *Configuration) SetDefaults() {
 		}
 	}
 	if c.Options.Organization == "" {
-		orgName := strings.TrimSpace(os.Getenv("ORG_NAME"))
-		if orgName != "" {
-			c.Options.Organization = orgName
-		}
+		c.Options.Organization = strings.TrimSpace(os.Getenv("ORG_NAME"))
 	}
 	if c.Options.RepositoryName == "" {
-		repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
-		if repoName != "" {
-			c.Options.RepositoryName = repoName
-		}
+		c.Options.RepositoryName = strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	}
 	if c.Options.Hostname == "" {
 		hostname := strings.TrimSpace(os.Getenv("HOSTNAME"))
@@ -214,6 +219,10 @@ func (c *Configuration) SetDefaults() {
 		} else {
 			c.Options.Hostname = "https://insights.fairwinds.com"
 		}
+	}
+	if c.Options.CIRunner == "" {
+		ciRunner := strings.TrimSpace(os.Getenv("CI_RUNNER"))
+		c.Options.CIRunner = CIRunnerVal(ciRunner)
 	}
 	if c.Options.SeverityThreshold == "" {
 		c.Options.SeverityThreshold = "danger"

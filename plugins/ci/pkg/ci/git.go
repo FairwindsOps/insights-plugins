@@ -1,10 +1,12 @@
 package ci
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +23,7 @@ type gitInfo struct {
 // cmdExecutor was extracted to be able to test this function - as the main implementation execute real commands on the given path
 type cmdExecutor func(dir string, cmd *exec.Cmd, message string) (string, error)
 
-func getGitInfo(cmdExecutor cmdExecutor, baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
+func getGitInfo(cmdExecutor cmdExecutor, ciRunner models.CIRunnerVal, baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
 	_, err = cmdExecutor(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", "/insights"), "marking directory as safe")
 	if err != nil {
@@ -39,11 +41,13 @@ func getGitInfo(cmdExecutor cmdExecutor, baseRepoPath, repoName, baseBranch stri
 	}
 	logrus.Infof("Current hash: %s", currentHash)
 
+	var gitCommandFail bool
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {
 		masterHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranch), "getting master hash")
 		if err != nil {
 			logrus.Warnf("Unable to get GIT merge-base: %v", err)
+			gitCommandFail = true
 		}
 	}
 	logrus.Infof("Master hash: %s", masterHash)
@@ -53,6 +57,7 @@ func getGitInfo(cmdExecutor cmdExecutor, baseRepoPath, repoName, baseBranch stri
 		commitMessage, err = cmdExecutor(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message")
 		if err != nil {
 			logrus.Warnf("Unable to get GIT commit message: %v", err)
+			gitCommandFail = true
 		}
 	}
 	if len(commitMessage) > 100 {
@@ -65,6 +70,7 @@ func getGitInfo(cmdExecutor cmdExecutor, baseRepoPath, repoName, baseBranch stri
 		branch, err = cmdExecutor(baseRepoPath, exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD"), "getting branch name")
 		if err != nil {
 			logrus.Warnf("Unable to get GIT branch name: %v", err)
+			gitCommandFail = true
 		}
 	}
 	logrus.Infof("Branch: %s", branch)
@@ -74,9 +80,14 @@ func getGitInfo(cmdExecutor cmdExecutor, baseRepoPath, repoName, baseBranch stri
 		origin, err = cmdExecutor(baseRepoPath, exec.Command("git", "remote", "get-url", "origin"), "getting origin url")
 		if err != nil {
 			logrus.Warnf("Unable to get GIT origin: %v", err)
+			gitCommandFail = true
 		}
 	}
 	logrus.Infof("Origin: %s", util.RemoveToken(origin))
+
+	if gitCommandFail {
+		logGitCIRunnerHint(ciRunner)
+	}
 
 	if repoName == "" {
 		logrus.Infof("No repositoryName set, defaulting to origin.")
@@ -110,4 +121,34 @@ func extractRepoNameFromOrigin(origin string) string {
 		repoName = repoNameSplit[len(repoNameSplit)-1]
 	}
 	return strings.TrimSuffix(repoName, ".git")
+}
+
+func logGitCIRunnerHint(ciRunner models.CIRunnerVal) {
+	logrus.Warnf("CI git commands has failed at least once. For better results, please, consider setting your configuration as following:")
+	switch ciRunner {
+	case models.GithubActions:
+		fmt.Println(`jobs:
+	build:
+		steps:
+			- uses: actions/checkout@v3
+				with:
+					fetch-depth: 0`)
+		break
+	case models.Gitlab:
+		fmt.Println(`variables:
+	GIT_STRATEGY: clone
+	GIT_DEPTH: 50
+
+---
+
+Or disable shallow clone entirely: https://docs.gitlab.com/ee/ci/pipelines/settings.html#limit-the-number-of-changes-fetched-during-clone`)
+	case models.AzureDevops:
+		// TODO: Vitor
+	case models.Travis:
+		// TODO: Vitor
+	case models.CircleCI:
+		// usually works with default configuration
+	default:
+		logrus.Infof("there are no recommendations for CI Runner %v - please enter in contact with fairwinds support", ciRunner)
+	}
 }
