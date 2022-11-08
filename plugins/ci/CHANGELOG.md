@@ -2,7 +2,7 @@
 
 ## 2.4.0
 * Make some GIT commands optional (masterHash, commitMessage, branch and origin)
-* Add ciRunner to configFile and CI_RUNNER env. var support
+* Add CI_RUNNER env. var support
 
 ## 2.3.0
 * Update trivy to version 0.34.0
