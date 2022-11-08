@@ -321,6 +321,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	req.Header.Set("X-Severity-Threshold", ci.config.Options.SeverityThreshold)
 	req.Header.Set("X-Script-Version", os.Getenv("SCRIPT_VERSION"))
 	req.Header.Set("X-Image-Version", os.Getenv("IMAGE_VERSION"))
+	req.Header.Set("X-CI-Runner", string(ci.config.Options.CIRunner))
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, strings.TrimSuffix(report.Version, "\n"))
 	}
