@@ -1,0 +1,7 @@
+services:
+  - docker
+after_success: |
+  curl -L https://staging.insights.fairwinds.com/v0/insights-ci-2.1.0.sh > insights-ci.sh
+  echo "c7f9e6d6120998ea517419ce4e3de7039af3991ccb3392271dd91754b300d5e2 *insights-ci.sh" | shasum -a 256 --check
+  chmod +x insights-ci.sh
+  ./insights-ci.sh
