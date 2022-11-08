@@ -44,16 +44,20 @@ func getGitInfo(cmdExecutor cmdExecutor, ciRunner models.CIRunnerVal, baseRepoPa
 	var gitCommandFail bool
 	masterHash := os.Getenv("MASTER_HASH")
 	if masterHash == "" {
-		// 1 - tries: git merge-base HEAD {baseBranch}
-		// 2 - tries: git merge-base HEAD origin/{baseBranch}
-		baseBranchParsed := strings.TrimPrefix(baseBranch, "origin/") // main
-		masterHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "merge-base", "HEAD", baseBranchParsed), "getting master hash")
-		if err != nil {
-			logrus.Warnf("Unable to get GIT merge-base(1): %v", err)
-			masterHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "merge-base", "HEAD", "origin/"+baseBranchParsed), "getting master hash")
+		// tries multiple strategies:
+		// 	1 - {baseBranch}
+		// 	2 - origin/{baseBranch}
+		// 	3 - remotes/origin/{baseBranch}
+		baseBranchParsed := strings.TrimPrefix(baseBranch, "origin/")
+		branchStrategies := []string{baseBranchParsed, "origin/" + baseBranchParsed, "remotes/origin/" + baseBranchParsed}
+		for _, branch := range branchStrategies {
+			masterHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "merge-base", "HEAD", branch), "getting master hash")
 			if err != nil {
-				logrus.Warnf("Unable to get GIT merge-base(2): %v", err)
+				logrus.Warnf("Unable to get GIT merge-base: %v", err)
 				gitCommandFail = true
+			} else {
+				gitCommandFail = false
+				break
 			}
 		}
 	}
@@ -130,32 +134,35 @@ func extractRepoNameFromOrigin(origin string) string {
 	return strings.TrimSuffix(repoName, ".git")
 }
 
+type hint struct {
+	description, link string
+}
+
+// ciRunnerHintMap maps the CI Runner and their configuration hint description
+var ciRunnerHintMap = map[models.CIRunnerVal]hint{
+	models.GithubActions: {
+		description: `- uses: actions/checkout@v3
+		with:
+			fetch-depth: 0`,
+		link: "https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches",
+	},
+	models.AzureDevops: {
+		description: `variables:
+		Agent.Source.Git.ShallowFetchDepth: 0`,
+		link: "https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/pipeline-options-for-git?view=azure-devops&tabs=yaml#shallow-fetch",
+	},
+}
+
 func logGitCIRunnerHint(ciRunner models.CIRunnerVal) {
-	logrus.Warnf("CI git commands has failed at least once. For better results, please, consider setting your configuration as following:")
-	switch ciRunner {
-	case models.GithubActions:
-		fmt.Println(`jobs:
-	build:
-		steps:
-			- uses: actions/checkout@v3
-				with:
-					fetch-depth: 0`)
-		break
-	case models.Gitlab:
-		fmt.Println(`variables:
-	GIT_STRATEGY: clone
-	GIT_DEPTH: 50
-
----
-
-Or disable shallow clone entirely: https://docs.gitlab.com/ee/ci/pipelines/settings.html#limit-the-number-of-changes-fetched-during-clone`)
-	case models.AzureDevops:
-		// TODO: Vitor
-	case models.Travis:
-		// works with default configuration
-	case models.CircleCI:
-		// works with default configuration
-	default:
-		logrus.Infof("there are no recommendations for CI Runner %v - please enter in contact with fairwinds support", ciRunner)
+	logrus.Warnf("At least one GIT command has failed on CI runner %q. For better results, consider edit your CI runner file as following:", ciRunner)
+	if hint, ok := ciRunnerHintMap[ciRunner]; ok {
+		fmt.Println(hint.description)
+		fmt.Println(hint.link)
+		return
 	}
+	ciRunnerName := "unknown"
+	if ciRunner != "" {
+		ciRunnerName = string(ciRunner)
+	}
+	logrus.Infof("there are no recommendations for CI Runner %q - enter in contact with Fairwinds support", ciRunnerName)
 }

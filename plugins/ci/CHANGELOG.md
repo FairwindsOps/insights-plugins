@@ -1,8 +1,10 @@
 # Changelog
 
 ## 2.4.0
+* Add alternative GIT commands to fetch masterHash
 * Make some GIT commands optional (masterHash, commitMessage, branch and origin)
 * Add CI_RUNNER env. var support
+* Add hint logs based on CI runner
 
 ## 2.3.0
 * Update trivy to version 0.34.0
