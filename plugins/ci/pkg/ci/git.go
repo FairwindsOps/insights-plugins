@@ -154,8 +154,8 @@ var ciRunnerHintMap = map[models.CIRunnerVal]hint{
 }
 
 func logGitCIRunnerHint(ciRunner models.CIRunnerVal) {
-	logrus.Warnf("At least one GIT command has failed on CI runner %q. For better results, consider edit your CI runner file as following:", ciRunner)
 	if hint, ok := ciRunnerHintMap[ciRunner]; ok {
+		logrus.Warnf("At least one GIT command has failed on CI runner %q. For better results, consider edit your CI runner file as following:", ciRunner)
 		fmt.Println(hint.description)
 		fmt.Println(hint.link)
 		return
@@ -164,5 +164,5 @@ func logGitCIRunnerHint(ciRunner models.CIRunnerVal) {
 	if ciRunner != "" {
 		ciRunnerName = string(ciRunner)
 	}
-	logrus.Infof("there are no recommendations for CI Runner %q - enter in contact with Fairwinds support", ciRunnerName)
+	logrus.Infof("At least one GIT command has failed on CI runner %q - enter in contact with Fairwinds support", ciRunnerName)
 }
