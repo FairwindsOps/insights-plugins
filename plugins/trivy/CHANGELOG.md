@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.0
+* Update trivy to version 0.34.0
+
+## 0.23.1
+* Fix a breaking change in #714 
+
 ## 0.23.0
 * Use the `ImageID` to get container images instead of `Image`, to address when `ContainerStatuses.Image` only contains a SHA
 

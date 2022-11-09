@@ -97,12 +97,11 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 
 		for _, containerStatus := range pod.Status.ContainerStatuses {
 			var imageName string
-			imageIDFields := strings.SplitN(containerStatus.ImageID, "@", 2) // split image from SHA
-			if len(imageIDFields) < 2 || imageIDFields[0] == "" {
-				logrus.Debugf("cannot split containerStatuses.imageID %q by @ to construct an image name, falling back to using imageStatuses.image", containerStatus.ImageID)
-				imageName = containerStatus.Image
+			if strings.HasPrefix(containerStatus.Image, "sha256") {
+				imageName = strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
+				logrus.Debugf("using an image name %q from the containerStatuses.*.ImageID field, because containerStatuses.*.Image begins with sha256 - %q", imageName, containerStatus.Image)
 			} else {
-				imageName = strings.TrimPrefix(imageIDFields[0], "docker-pullable://")
+				imageName = containerStatus.Image
 			}
 			im := models.Image{
 				Name:  imageName,
