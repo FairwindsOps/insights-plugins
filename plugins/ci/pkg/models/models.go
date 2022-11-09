@@ -30,16 +30,22 @@ type ReportInfo struct {
 
 // Configuration is a struct representing the config options for Insights CI/CD
 type Configuration struct {
-	Images    imageConfig    `yaml:"images"`
-	Manifests ManifestConfig `yaml:"manifests"`
-	Options   optionConfig   `yaml:"options"`
-	Reports   reportsConfig  `yaml:"reports"`
+	Images    imageConfig     `yaml:"images"`
+	Manifests ManifestConfig  `yaml:"manifests"`
+	Terraform TerraformConfig `yaml:"terraform"`
+	Options   optionConfig    `yaml:"options"`
+	Reports   reportsConfig   `yaml:"reports"`
 }
 
 // ManifestConfig is a struct representing the config options for Manifests
 type ManifestConfig struct {
 	YamlPaths []string     `yaml:"yaml"`
 	Helm      []HelmConfig `yaml:"helm"`
+}
+
+// TerraformConfig is a struct representing the config options for Terraform
+type TerraformConfig struct {
+	Paths []string `yaml:"paths"`
 }
 
 // HelmConfig is the configuration for helm.
@@ -68,13 +74,18 @@ func (hc *HelmConfig) IsFluxFile() bool {
 }
 
 type reportsConfig struct {
-	Polaris reportConfig `yaml:"polaris"`
-	Pluto   reportConfig `yaml:"pluto"`
-	Trivy   trivyConfig  `yaml:"trivy"`
-	OPA     reportConfig `yaml:"opa"`
+	Polaris   reportConfig    `yaml:"polaris"`
+	Pluto     reportConfig    `yaml:"pluto"`
+	Terraform terraformConfig `yaml:"terraform"`
+	Trivy     trivyConfig     `yaml:"trivy"`
+	OPA       reportConfig    `yaml:"opa"`
 }
 
 type reportConfig struct {
+	Enabled *bool `yaml:"enabled"`
+}
+
+type terraformConfig struct {
 	Enabled *bool `yaml:"enabled"`
 }
 
