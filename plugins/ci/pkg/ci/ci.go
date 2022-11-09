@@ -401,9 +401,7 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
-	// marker
-	basePath := filepath.Join("/var/tmp", "repository")
-	// basePath := filepath.Join("/app", "repository")
+	basePath := filepath.Join("/app", "repository")
 	_, repoName := util.GetRepoDetails(repoFullName)
 	baseRepoPath := filepath.Join(basePath, repoName)
 
