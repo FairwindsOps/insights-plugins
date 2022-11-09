@@ -151,6 +151,12 @@ var ciRunnerHintMap = map[models.CIRunnerVal]hint{
 		Agent.Source.Git.ShallowFetchDepth: 0`,
 		link: "https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/pipeline-options-for-git?view=azure-devops&tabs=yaml#shallow-fetch",
 	},
+	models.Gitlab: {
+		description: `  variables:
+    GIT_STRATEGY: clone
+    GIT_DEPTH: 0`,
+		link: "https://docs.gitlab.com/ee/ci/pipelines/settings.html#limit-the-number-of-changes-fetched-during-clone",
+	},
 }
 
 func logGitCIRunnerHint(ciRunner models.CIRunnerVal) {
