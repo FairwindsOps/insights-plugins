@@ -152,7 +152,8 @@ var ciRunnerHintMap = map[models.CIRunnerVal]hint{
 		link: "https://learn.microsoft.com/en-us/azure/devops/pipelines/repos/pipeline-options-for-git?view=azure-devops&tabs=yaml#shallow-fetch",
 	},
 	models.Gitlab: {
-		description: `  variables:
+		description: `docker-build:
+	variables:
     GIT_STRATEGY: clone
     GIT_DEPTH: 0`,
 		link: "https://docs.gitlab.com/ee/ci/pipelines/settings.html#limit-the-number-of-changes-fetched-during-clone",
