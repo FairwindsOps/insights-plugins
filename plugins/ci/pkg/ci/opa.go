@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -96,7 +95,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 	if err != nil {
 		return report, err
 	}
-	err = ioutil.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), bytes, 0644)
+	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), bytes, 0644)
 	if err != nil {
 		return report, err
 	}
@@ -125,7 +124,7 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 		return nil, nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		logrus.Warnf("Unable to Get Checks from Insights(%s)", configurationObject.Options.Hostname)
 		if err != nil {
 			logrus.Warn("Unable to read response body")
@@ -134,7 +133,7 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 		return nil, nil, fmt.Errorf("Insights returned unexpected HTTP status code: %d - %v", resp.StatusCode, string(body))
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
 		return nil, nil, err
