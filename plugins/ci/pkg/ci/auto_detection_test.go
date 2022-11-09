@@ -40,7 +40,7 @@ func TestAutoDetection(t *testing.T) {
 			},
 		},
 		Terraform: models.TerraformConfig{
-			Paths: []string{},
+			Paths: []string{"testdata/repo1/terraform"},
 		},
 	}
 
