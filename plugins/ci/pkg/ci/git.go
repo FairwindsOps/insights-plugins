@@ -141,9 +141,12 @@ type hint struct {
 // ciRunnerHintMap maps the CI Runner and their configuration hint description
 var ciRunnerHintMap = map[models.CIRunnerVal]hint{
 	models.GithubActions: {
-		description: `- uses: actions/checkout@v3
-		with:
-			fetch-depth: 0`,
+		description: `jobs:
+	build:
+		steps:
+			- uses: actions/checkout@v3
+				with:
+					fetch-depth: 0`,
 		link: "https://github.com/actions/checkout#fetch-all-history-for-all-tags-and-branches",
 	},
 	models.AzureDevops: {
@@ -157,6 +160,11 @@ var ciRunnerHintMap = map[models.CIRunnerVal]hint{
     GIT_STRATEGY: clone
     GIT_DEPTH: 0`,
 		link: "https://docs.gitlab.com/ee/ci/pipelines/settings.html#limit-the-number-of-changes-fetched-during-clone",
+	},
+	models.Travis: {
+		description: `git:
+	depth: false`,
+		link: "https://docs.travis-ci.com/user/customizing-the-build/#git-clone-depth",
 	},
 }
 
