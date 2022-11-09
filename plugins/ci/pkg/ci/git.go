@@ -101,7 +101,7 @@ func getGitInfo(cmdExecutor cmdExecutor, ciRunner models.CIRunnerVal, baseRepoPa
 	}
 
 	if repoName == "" {
-		logrus.Infof("No repositoryName set, defaulting to origin.")
+		logrus.Infof("No repositoryName set, extracting from origin")
 		repoName = extractRepoNameFromOrigin(origin)
 	}
 	logrus.Infof("Repo Name: %s", repoName)
