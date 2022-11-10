@@ -3,6 +3,7 @@ package ci
 import (
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -51,7 +52,7 @@ func (ci *CIScan) SaveJUnitFile(results models.ScanResults) error {
 		return err
 	}
 	xmlBytes = append([]byte(xml.Header), xmlBytes...)
-	err = os.WriteFile(jUnitOutputFile, xmlBytes, 0644)
+	err = ioutil.WriteFile(jUnitOutputFile, xmlBytes, 0644)
 	if err != nil {
 		return fmt.Errorf("could not save file: %v", err)
 	}

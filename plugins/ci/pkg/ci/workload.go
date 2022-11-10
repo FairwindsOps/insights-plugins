@@ -2,7 +2,7 @@ package ci
 
 import (
 	"encoding/json"
-	"os"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
@@ -19,7 +19,7 @@ func (ci *CIScan) GetWorkloadReport(resources []models.Resource) (models.ReportI
 	if err != nil {
 		return workloadsReport, err
 	}
-	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, workloadsReport.Filename), resourceBytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(ci.config.Options.TempFolder, workloadsReport.Filename), resourceBytes, 0644)
 	if err != nil {
 		return workloadsReport, err
 	}
