@@ -13,6 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func (ci *CIScan) TerraformEnabled() bool {
+	return *ci.config.Reports.TFSec.Enabled
+}
+
 func (ci *CIScan) ProcessTerraformPaths() (models.ReportInfo, error) {
 	logrus.Infof("processing %d Terraform paths", len(ci.config.Terraform.Paths))
 	var reportProperties models.TFSecReportProperties

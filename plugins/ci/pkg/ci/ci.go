@@ -401,7 +401,9 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
-	basePath := filepath.Join("/app", "repository")
+	// marker
+	// basePath := filepath.Join("/app", "repository")
+	basePath := filepath.Join("/var/tmp", "repository")
 	_, repoName := util.GetRepoDetails(repoFullName)
 	baseRepoPath := filepath.Join(basePath, repoName)
 
@@ -543,11 +545,13 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		reports = append(reports, &plutoReport)
 	}
 
-	terraformReports, err := ci.ProcessTerraformPaths()
-	if err != nil {
-		return nil, fmt.Errorf("while processing Terraform: %w", err)
+	if ci.TerraformEnabled() {
+		terraformReports, err := ci.ProcessTerraformPaths()
+		if err != nil {
+			return nil, fmt.Errorf("while processing Terraform: %w", err)
+		}
+		reports = append(reports, &terraformReports)
 	}
-	reports = append(reports, &terraformReports)
 	return reports, nil
 }
 

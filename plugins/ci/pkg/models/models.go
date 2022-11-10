@@ -74,18 +74,18 @@ func (hc *HelmConfig) IsFluxFile() bool {
 }
 
 type reportsConfig struct {
-	Polaris   reportConfig    `yaml:"polaris"`
-	Pluto     reportConfig    `yaml:"pluto"`
-	Terraform terraformConfig `yaml:"terraform"`
-	Trivy     trivyConfig     `yaml:"trivy"`
-	OPA       reportConfig    `yaml:"opa"`
+	Polaris reportConfig `yaml:"polaris"`
+	Pluto   reportConfig `yaml:"pluto"`
+	TFSec   tfSecConfig  `yaml:"tfsec"`
+	Trivy   trivyConfig  `yaml:"trivy"`
+	OPA     reportConfig `yaml:"opa"`
 }
 
 type reportConfig struct {
 	Enabled *bool `yaml:"enabled"`
 }
 
-type terraformConfig struct {
+type tfSecConfig struct {
 	Enabled *bool `yaml:"enabled"`
 }
 
@@ -248,6 +248,9 @@ func (c *Configuration) SetDefaults() {
 	}
 	if c.Reports.Trivy.SkipManifests == nil {
 		c.Reports.Trivy.SkipManifests = &falsehood
+	}
+	if c.Reports.TFSec.Enabled == nil {
+		c.Reports.TFSec.Enabled = &falsehood
 	}
 }
 
