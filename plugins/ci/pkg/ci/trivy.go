@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -127,7 +128,7 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 	if err != nil {
 		return trivyReport, err
 	}
-	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, trivyReport.Filename), trivyResults, 0644)
+	err = ioutil.WriteFile(filepath.Join(ci.config.Options.TempFolder, trivyReport.Filename), trivyResults, 0644)
 	if err != nil {
 		return trivyReport, err
 	}
@@ -215,7 +216,7 @@ func getShaAndRepoTags(path string) (string, []string, error) {
 		if header.Name != "manifest.json" {
 			continue
 		}
-		bytes, err := io.ReadAll(tarReader)
+		bytes, err := ioutil.ReadAll(tarReader)
 		if err != nil {
 			return "", nil, err
 		}
@@ -272,7 +273,7 @@ func getImageSha(path string, configFileName string) (string, error) {
 		if header.Name != configFileName {
 			continue
 		}
-		bytes, err := io.ReadAll(tarReader)
+		bytes, err := ioutil.ReadAll(tarReader)
 		if err != nil {
 			return "", err
 		}
@@ -319,7 +320,7 @@ func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels
 	}()
 
 	report := trivymodels.TrivyResults{}
-	data, err := os.ReadFile(reportFile)
+	data, err := ioutil.ReadFile(reportFile)
 	if err != nil {
 		logrus.Errorf("Error reading report %s: %s", imageID, err)
 		return nil, err
