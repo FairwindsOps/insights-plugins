@@ -3,7 +3,7 @@ package ci
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -55,7 +55,7 @@ func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder stri
 		return fmt.Errorf("Unable to open file %v: %v", helm.FluxFile, err)
 	}
 
-	fluxFileContent, err := ioutil.ReadAll(fluxFile)
+	fluxFileContent, err := io.ReadAll(fluxFile)
 	if err != nil {
 		return fmt.Errorf("Unable to read file %v: %v", helm.FluxFile, err)
 	}
@@ -174,7 +174,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 			return nil, err
 		}
 		fluxValuesFilePath := tempFolder + "flux-helm-values.yaml"
-		err = ioutil.WriteFile(fluxValuesFilePath, yaml, 0644)
+		err = os.WriteFile(fluxValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 			return nil, err
 		}
 		inlineValuesFilePath := tempFolder + "fairwinds-insights-helm-values.yaml"
-		err = ioutil.WriteFile(inlineValuesFilePath, yaml, 0644)
+		err = os.WriteFile(inlineValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +210,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CIScan) CopyYaml() error {
 	for _, yamlPath := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: " + yamlPath)
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: "+yamlPath)
 		if err != nil {
 			return err
 		}

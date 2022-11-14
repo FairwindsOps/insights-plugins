@@ -1,10 +1,13 @@
 # Changelog
 
-## 2.4.2
+## 3.2.0
 * Add alternative GIT commands to fetch masterHash
 * Make some GIT commands optional (masterHash, commitMessage, branch and origin)
 * Add CI_RUNNER env. var support
 * Add hint logs based on CI runner
+
+## 3.0.0
+* Add Terraform scanning via a tfsec report
 
 ## 2.4.1
 * Temporarily revert terraform scanning

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -333,7 +332,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
 		return nil, err
@@ -475,7 +474,7 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 }
 
 func readConfigurationFromReader(configHandler io.Reader) (*models.Configuration, error) {
-	configContents, err := ioutil.ReadAll(configHandler)
+	configContents, err := io.ReadAll(configHandler)
 	if err != nil {
 		return nil, fmt.Errorf("Could not read fairwinds-insights.yaml: %v", err)
 	}
@@ -549,6 +548,13 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		reports = append(reports, &plutoReport)
 	}
 
+	if ci.TerraformEnabled() {
+		terraformReports, err := ci.ProcessTerraformPaths()
+		if err != nil {
+			return nil, fmt.Errorf("while processing Terraform: %w", err)
+		}
+		reports = append(reports, &terraformReports)
+	}
 	return reports, nil
 }
 
@@ -629,7 +635,7 @@ func createFileFromConfig(path, filename string, cfg models.Configuration) error
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(filepath.Join(path, filename), bytes, 0644)
+	err = os.WriteFile(filepath.Join(path, filename), bytes, 0644)
 	if err != nil {
 		return err
 	}
