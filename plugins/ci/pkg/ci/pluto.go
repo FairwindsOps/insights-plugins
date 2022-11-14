@@ -1,7 +1,6 @@
 package ci
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -19,7 +18,7 @@ func (ci *CIScan) GetPlutoReport() (models.ReportInfo, error) {
 	if err != nil {
 		return report, err
 	}
-	err = ioutil.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), []byte(plutoResults), 0644)
+	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), []byte(plutoResults), 0644)
 	if err != nil {
 		return report, err
 	}
