@@ -295,7 +295,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	}
 	w.Close()
 
-	repoDetails, err := getGitInfo(ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
+	repoDetails, err := getGitInfo(commands.ExecInDir, ci.config.Options.CIRunner, ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
@@ -320,6 +320,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	req.Header.Set("X-Severity-Threshold", ci.config.Options.SeverityThreshold)
 	req.Header.Set("X-Script-Version", os.Getenv("SCRIPT_VERSION"))
 	req.Header.Set("X-Image-Version", os.Getenv("IMAGE_VERSION"))
+	req.Header.Set("X-CI-Runner", string(ci.config.Options.CIRunner))
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, strings.TrimSuffix(report.Version, "\n"))
 	}
@@ -469,6 +470,10 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 			return nil, fmt.Errorf("Could not open fairwinds-insights.yaml: %v", err)
 		}
 	}
+	return readConfigurationFromReader(configHandler)
+}
+
+func readConfigurationFromReader(configHandler io.Reader) (*models.Configuration, error) {
 	configContents, err := io.ReadAll(configHandler)
 	if err != nil {
 		return nil, fmt.Errorf("Could not read fairwinds-insights.yaml: %v", err)

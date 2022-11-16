@@ -94,16 +94,27 @@ type trivyConfig struct {
 	SkipManifests *bool `yaml:"skipManifests"`
 }
 
+type CIRunnerVal string
+
+const (
+	GithubActions CIRunnerVal = "github-actions"
+	CircleCI      CIRunnerVal = "circle-ci"
+	Gitlab        CIRunnerVal = "gitlab"
+	Travis        CIRunnerVal = "travis"
+	AzureDevops   CIRunnerVal = "azure-devops"
+)
+
 type optionConfig struct {
-	SetExitCode            bool   `yaml:"setExitCode"`
-	BaseBranch             string `yaml:"baseBranch"`
-	NewActionItemThreshold int    `yaml:"newActionItemThreshold"`
-	SeverityThreshold      string `yaml:"severityThreshold"`
-	TempFolder             string `yaml:"tempFolder"`
-	Hostname               string `yaml:"hostname"`
-	Organization           string `yaml:"organization"`
-	JUnitOutput            string `yaml:"junitOutput"`
-	RepositoryName         string `yaml:"repositoryName"`
+	SetExitCode            bool        `yaml:"setExitCode"`
+	BaseBranch             string      `yaml:"baseBranch"`
+	NewActionItemThreshold int         `yaml:"newActionItemThreshold"`
+	SeverityThreshold      string      `yaml:"severityThreshold"`
+	TempFolder             string      `yaml:"tempFolder"`
+	Hostname               string      `yaml:"hostname"`
+	Organization           string      `yaml:"organization"`
+	JUnitOutput            string      `yaml:"junitOutput"`
+	RepositoryName         string      `yaml:"repositoryName"`
+	CIRunner               CIRunnerVal `yaml:"-"`
 }
 
 type imageConfig struct {
@@ -195,9 +206,11 @@ func (c *Configuration) SetPathDefaults() {
 
 // SetDefaults sets configuration defaults
 //
-// it should follow the order:
-// - file content > env. variables > default
+// it should respect the order:
+// - config. file content > env. variables > default
 func (c *Configuration) SetDefaults() {
+	c.Options.CIRunner = CIRunnerVal(strings.TrimSpace(os.Getenv("CI_RUNNER"))) // only set via env. variable
+
 	if c.Options.BaseBranch == "" {
 		baseBranch := strings.TrimSpace(os.Getenv("BASE_BRANCH"))
 		if baseBranch != "" {
@@ -207,16 +220,10 @@ func (c *Configuration) SetDefaults() {
 		}
 	}
 	if c.Options.Organization == "" {
-		orgName := strings.TrimSpace(os.Getenv("ORG_NAME"))
-		if orgName != "" {
-			c.Options.Organization = orgName
-		}
+		c.Options.Organization = strings.TrimSpace(os.Getenv("ORG_NAME"))
 	}
 	if c.Options.RepositoryName == "" {
-		repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
-		if repoName != "" {
-			c.Options.RepositoryName = repoName
-		}
+		c.Options.RepositoryName = strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	}
 	if c.Options.Hostname == "" {
 		hostname := strings.TrimSpace(os.Getenv("HOSTNAME"))
