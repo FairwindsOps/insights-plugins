@@ -150,12 +150,23 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
-		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
+		if filepath.IsAbs(vf) {
+			helmValuesFileArgs = append(helmValuesFileArgs, "-f", vf)
+		} else {
+			helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
+		}
 	}
 	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
+	output, err := commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
-		return err
+		return models.ScanErrorsReportResult{
+			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
+			ErrorContext: fmt.Sprintf("templating helm chart %s", helm.Name),
+			Kind:         "HelmChart",
+			ResourceName: helm.Name,
+			Filename:     helm.Name,
+			Remediation:  "Examine the Helm template, values files, and any inline values that may be specified in fairwinds-insights.yaml, for syntax errors that cause the `helm template` command to fail.",
+		}
 	}
 	return nil
 }
@@ -197,6 +208,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 			return nil, err
 		}
 		inlineValuesFilePath := tempFolder + "fairwinds-insights-helm-values.yaml"
+		logrus.Debugf("writing temporary Helm values file %s containing inline values", inlineValuesFilePath)
 		err = os.WriteFile(inlineValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err

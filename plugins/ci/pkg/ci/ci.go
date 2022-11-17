@@ -482,9 +482,13 @@ func readConfigurationFromFile(configFilePath string) (*models.Configuration, er
 }
 
 func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
+	var reports []*models.ReportInfo
+	var scanErrorsReportProperties models.ScanErrorsReportProperties
+
 	err := ci.ProcessHelmTemplates()
 	if err != nil {
-		return nil, fmt.Errorf("Error while processing helm templates: %v", err)
+		// return nil, fmt.Errorf("Error while processing helm templates: %v", err)
+		scanErrorsReportProperties.AddItemFromError(err)
 	}
 
 	err = ci.CopyYaml()
@@ -497,8 +501,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error while extracting images from YAML manifests: %v", err)
 	}
-
-	var reports []*models.ReportInfo
 
 	// Scan manifests with Polaris
 	if ci.PolarisEnabled() {
@@ -549,6 +551,14 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 			return nil, fmt.Errorf("while processing Terraform: %w", err)
 		}
 		reports = append(reports, &terraformReports)
+	}
+
+	if len(scanErrorsReportProperties.Items) > 0 {
+		scanErrorsReport, err := ci.processScanErrorsReportProperties(scanErrorsReportProperties)
+		if err != nil {
+			return nil, fmt.Errorf("while processing scan errors report items: %w", err)
+		}
+		reports = append(reports, &scanErrorsReport)
 	}
 	return reports, nil
 }
