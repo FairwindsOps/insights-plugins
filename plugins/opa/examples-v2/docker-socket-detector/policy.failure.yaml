@@ -1,0 +1,35 @@
+# This manifest is used to test the accompanying OPA policy.
+# Applying this in your cluster could create a security vulnerability!
+# This deployment is for policy testing/validation only!
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-test
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: Always
+        name: nginx
+        volumeMounts:
+        - mountPath: /host/var/run/docker.sock
+          name: docker-socket
+      volumes:
+      - hostPath:
+      # This will cause the policy to fail.
+          path: /var/run/docker.sock
+          type: ""
+        name: docker-socket
+      securityContext:
+        privileged: true
