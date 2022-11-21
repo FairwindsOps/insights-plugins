@@ -6,6 +6,12 @@ Visit
 [insights.docs.fairwinds.com](https://insights.docs.fairwinds.com/features/continuous-integration/)
 for the full documentation
 
+
+# update trivy and opa
+
+Modify `project` and `sha` accordingly
+> go get github.com/fairwindsops/insights-plugins/plugins/${project}@${sha}
+
 # Running command example
 
 ## auto-scan

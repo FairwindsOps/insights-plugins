@@ -8,7 +8,7 @@ replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20221004151238-ef0e69a26717
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20221004151238-ef0e69a26717
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20221121155031-02c4c922d664
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
