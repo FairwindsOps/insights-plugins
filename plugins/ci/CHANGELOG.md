@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.3.0
+* Support `images.docker` download images inside the plugin
+
 ## 3.2.0
 * Add alternative GIT commands to fetch masterHash
 * Make some GIT commands optional (masterHash, commitMessage, branch and origin)
