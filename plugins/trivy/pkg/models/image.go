@@ -2,11 +2,16 @@ package models
 
 import "time"
 
+type DockerImage struct {
+	Name    string // paulbouwer/hello-kubernetes:1.7
+	PullRef string // paulbouwerhellokubernetes17
+}
+
 // Image represents a single container image to scan.
 type Image struct {
-	Name               string
-	ID                 string
-	PullRef            string
+	Name               string // paulbouwer/hello-kubernetes:1.7
+	ID                 string // paulbouwer/hello-kubernetes@sha256:93b15e948cae979539e152659edfd16549e3009140cc8a9ea2b91ffbd80a07f6
+	PullRef            string // paulbouwerhellokubernetes17
 	Owner              Resource
 	RecommendationOnly bool
 }

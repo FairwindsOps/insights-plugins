@@ -94,27 +94,9 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 			return nil
 		}
 
-		displayFilename, err := filepath.Rel(ci.configFolder, path)
+		displayFilename, helmName, err := ci.getDisplayFilenameAndHelmName(path)
 		if err != nil {
-			return fmt.Errorf("cannot be made relative to basepath: %v", err)
-		}
-		var helmName string
-		for _, helm := range ci.config.Manifests.Helm {
-			if strings.HasPrefix(displayFilename, helm.Name+"/") {
-				parts := strings.Split(displayFilename, "/")
-				parts = parts[2:]
-				displayFilename = strings.Join(parts, "/")
-				if helm.IsLocal() {
-					displayFilename = filepath.Join(helm.Path, displayFilename)
-				} else if helm.IsRemote() {
-					if helm.IsFluxFile() {
-						displayFilename = filepath.Join(helm.FluxFile, displayFilename)
-					} else {
-						displayFilename = filepath.Join(helm.Chart, displayFilename)
-					}
-				}
-				helmName = helm.Name
-			}
+			return err
 		}
 
 		file, err := os.Open(path)
@@ -194,13 +176,40 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 						return c.Name
 					}).([]string),
 				})
-
 			}
-
 		}
 		return nil
 	})
-	return images, resources, err
+	if err != nil {
+		return nil, nil, err
+	}
+	return images, resources, nil
+}
+
+func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, error) {
+	var displayFilename, helmName string
+	displayFilename, err := filepath.Rel(ci.configFolder, path)
+	if err != nil {
+		return "", "", fmt.Errorf("cannot be made relative to basepath: %v", err)
+	}
+	for _, helm := range ci.config.Manifests.Helm {
+		if strings.HasPrefix(displayFilename, helm.Name+"/") {
+			parts := strings.Split(displayFilename, "/")
+			parts = parts[2:]
+			displayFilename = strings.Join(parts, "/")
+			if helm.IsLocal() {
+				displayFilename = filepath.Join(helm.Path, displayFilename)
+			} else if helm.IsRemote() {
+				if helm.IsFluxFile() {
+					displayFilename = filepath.Join(helm.FluxFile, displayFilename)
+				} else {
+					displayFilename = filepath.Join(helm.Chart, displayFilename)
+				}
+			}
+			helmName = helm.Name
+		}
+	}
+	return displayFilename, helmName, err
 }
 
 func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
@@ -519,11 +528,12 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		if ci.SkipTrivyManifests() {
 			manifestImagesToScan = []trivymodels.Image{}
 		}
-		trivyReport, err := ci.GetTrivyReport(manifestImagesToScan)
+		dockerImages := getDockerImages(ci.config.Images.Docker)
+		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
 		if err != nil {
 			return nil, fmt.Errorf("Error while running Trivy: %v", err)
 		}
-		reports = append(reports, &trivyReport)
+		reports = append(reports, trivyReport)
 	}
 
 	workloadReport, err := ci.GetWorkloadReport(resources)
@@ -556,6 +566,16 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		reports = append(reports, &terraformReports)
 	}
 	return reports, nil
+}
+
+func getDockerImages(dockerImagesStr []string) []trivymodels.DockerImage {
+	dockerImages := []trivymodels.DockerImage{}
+	for _, v := range dockerImagesStr {
+		dockerImages = append(dockerImages, trivymodels.DockerImage{
+			Name: v,
+		})
+	}
+	return dockerImages
 }
 
 func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
