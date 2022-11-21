@@ -386,7 +386,10 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 			return "", "", nil, err
 		}
 	}
-	config.SetDefaults()
+	err = config.SetDefaults()
+	if err != nil {
+		return "", "", nil, err
+	}
 	config.SetPathDefaults()
 	logrus.Infof("Running with configuration %#v", config)
 	err = config.CheckForErrors()
@@ -451,7 +454,11 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 			return "", "", nil, err
 		}
 	}
-	config.SetDefaults()
+	err = config.SetDefaults()
+	if err != nil {
+		return "", "", nil, err
+	}
+
 	err = config.SetMountedPathDefaults(basePath, baseRepoPath)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
