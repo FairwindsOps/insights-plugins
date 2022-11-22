@@ -41,7 +41,13 @@ func TestDownloadImageViaSkopeo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "[skopeo copy --src-creds my-username:my-password docker://postgres:15.1-bullseye docker-archive:./postgres151bullseye]", cmd)
 
-	// #3 - SKOPEO_ARGS args test
+	// #3 - with registry credential using token
+	rc = models.RegistryCredential{Domain: "docker.io", Username: "<token>", Password: "my-bearer-token"}
+	cmd, err = downloadImageViaSkopeo(noopReturnArgsCmdExecutor, "./", "postgres:15.1-bullseye", &rc)
+	assert.NoError(t, err)
+	assert.Equal(t, "[skopeo copy --src-registry-token my-bearer-token docker://postgres:15.1-bullseye docker-archive:./postgres151bullseye]", cmd)
+
+	// #4 - SKOPEO_ARGS args test
 	os.Setenv("SKOPEO_ARGS", "random args")
 
 	rc = models.RegistryCredential{Domain: "docker.io", Username: "my-username", Password: "my-password"}

@@ -147,13 +147,20 @@ func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName strin
 	args := []string{"copy"}
 
 	if rc != nil {
-		// --src-creds USERNAME[:PASSWORD]
-		args = append(args, "--src-creds")
-		creds := rc.Username
-		if rc.Password != "" {
-			creds += ":" + rc.Password
+		if rc.Username == "<token>" {
+			// --src-registry-token string
+			args = append(args, "--src-registry-token")
+			args = append(args, rc.Password)
+		} else {
+			// --src-creds USERNAME[:PASSWORD]
+			args = append(args, "--src-creds")
+			creds := rc.Username
+			if rc.Password != "" {
+				creds += ":" + rc.Password
+			}
+			args = append(args, creds)
 		}
-		args = append(args, creds)
+		logrus.Infof("using credentials: %v", *rc)
 	}
 
 	if os.Getenv("SKOPEO_ARGS") != "" {
