@@ -1,5 +1,10 @@
 package models
 
+import (
+	"github.com/hashicorp/go-multierror"
+	"github.com/sirupsen/logrus"
+)
+
 const ScanErrorsReportVersion = "0.0.1"
 
 // ScanErrorResult contains a single error encountered during a scan.
@@ -34,14 +39,60 @@ type ScanErrorsReport struct {
 	Report  ScanErrorsReportProperties
 }
 
-// AddItemFromError type-asserts an Error type into a ScanErrorsReportResult
+// AddScanErrorsReportResultFromError type-asserts an Error type into a ScanErrorsReportResult
 // type, and adds it to the slice stored in the ScanErrorsReportProperties
 // receiver.
-func (reportProperties *ScanErrorsReportProperties) AddItemFromError(e error) {
-	newItem, ok := e.(ScanErrorsReportResult)
-	if !ok {
-		// maybe add an item without context or ResourceName?
-		return
+func (reportProperties *ScanErrorsReportProperties) AddScanErrorsReportResultFromError(e error) {
+	var newItem ScanErrorsReportResult
+	switch v := e.(type) {
+	case *multierror.Error: // multiple results
+		for _, singleErr := range v.Errors {
+			newItem, ok := singleErr.(ScanErrorsReportResult)
+			if !ok {
+				newItem = NewScanErrorsReportResultWithoutContext(singleErr)
+			}
+			reportProperties.Items = append(reportProperties.Items, newItem)
+		}
+	case ScanErrorsReportResult: // A single result
+		reportProperties.Items = append(reportProperties.Items, v)
+	default:
+		newItem = NewScanErrorsReportResultWithoutContext(e)
+		reportProperties.Items = append(reportProperties.Items, newItem)
 	}
-	reportProperties.Items = append(reportProperties.Items, newItem)
+	/*
+	   multipleErrs, ok := e.(*multierror.Error)
+	   	if !ok {
+	   		newItem, isOurErrorType := e.(ScanErrorsReportResult)
+	   		if !isOurErrorType {
+	   			// marker
+	   			return
+	   		}
+	   		reportProperties.Items = append(reportProperties.Items, newItem)
+	   		return
+	   	}
+	   	for _, singleErr := range multipleErrs.Errors {
+	   		newItem, ok := singleErr.(ScanErrorsReportResult)
+	   		if !ok {
+	   			// maybe add an item without context or ResourceName?
+	   			return
+	   		}
+	   		reportProperties.Items = append(reportProperties.Items, newItem)
+	   	}
+	*/
+	return
+}
+
+// NewScanErrorsReportResultWithoutContext accepts an error interface that is NOT
+// our type ScanErrorsReportResult, and logs that there is insufficient
+// context for this error, while returning a ScanErrorsReportResult type with
+// required fields populated (even if inadiquitly).
+func NewScanErrorsReportResultWithoutContext(e error) ScanErrorsReportResult {
+	logrus.Warnf("adding this error to the scan-errors report which does not have sufficient context, please return a ScanErrorsReportResult instead of a standard error: %v", e)
+	r := ScanErrorsReportResult{
+		Kind:         "ErrorWithoutContext",
+		ResourceName: "unknown",
+		ErrorContext: "performing an action in CI",
+		ErrorMessage: e.Error(),
+	}
+	return r
 }

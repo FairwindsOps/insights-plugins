@@ -488,27 +488,47 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	err := ci.ProcessHelmTemplates()
 	if err != nil {
 		// return nil, fmt.Errorf("Error while processing helm templates: %v", err)
-		scanErrorsReportProperties.AddItemFromError(err)
+		scanErrorsReportProperties.AddScanErrorsReportResultFromError(err)
 	}
 
 	err = ci.CopyYaml()
 	if err != nil {
-		return nil, fmt.Errorf("Error while copying YAML files: %v", err)
+		// return nil, fmt.Errorf("Error while copying YAML files: %v", err)
+		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "copying yaml files to configuration directory",
+			Kind:         "InternalOperation",
+			ResourceName: "CopyYaml",
+			Remediation:  "Examine the CI logs to determine why yaml files failed to copy to the configuration directory. Perhaps memory or disk space is low.",
+		})
 	}
 
 	// Scan YAML, find all images/kind/etc
 	manifestImages, resources, err := ci.getAllResources()
 	if err != nil {
-		return nil, fmt.Errorf("Error while extracting images from YAML manifests: %v", err)
+		// return nil, fmt.Errorf("Error while extracting images from YAML manifests: %v", err)
+		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "getting all resources from manifest files",
+			Kind:         "InternalOperation",
+			ResourceName: "GetAllResources",
+		})
 	}
 
 	// Scan manifests with Polaris
 	if ci.PolarisEnabled() {
 		polarisReport, err := ci.GetPolarisReport()
 		if err != nil {
-			return nil, fmt.Errorf("Error while running Polaris: %v", err)
+			// return nil, fmt.Errorf("Error while running Polaris: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "running polaris",
+				Kind:         "InternalOperation",
+				ResourceName: "GetPolarisReport",
+			})
+		} else {
+			reports = append(reports, &polarisReport)
 		}
-		reports = append(reports, &polarisReport)
 	}
 
 	if ci.TrivyEnabled() {
@@ -518,39 +538,74 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		}
 		trivyReport, err := ci.GetTrivyReport(manifestImagesToScan)
 		if err != nil {
-			return nil, fmt.Errorf("Error while running Trivy: %v", err)
+			// return nil, fmt.Errorf("Error while running Trivy: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "running trivy",
+				Kind:         "InternalOperation",
+				ResourceName: "GetTrivyReport",
+			})
+		} else {
+			reports = append(reports, &trivyReport)
 		}
-		reports = append(reports, &trivyReport)
 	}
 
 	workloadReport, err := ci.GetWorkloadReport(resources)
 	if err != nil {
-		return nil, fmt.Errorf("Error while aggregating workloads: %v", err)
+		// return nil, fmt.Errorf("Error while aggregating workloads: %v", err)
+		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "aggregating workloads",
+			Kind:         "InternalOperation",
+			ResourceName: "GetWorkloadReport",
+		})
+	} else {
+		reports = append(reports, &workloadReport)
 	}
-	reports = append(reports, &workloadReport)
 
 	if ci.OPAEnabled() {
 		opaReport, err := ci.ProcessOPA(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("Error while running OPA: %v", err)
+			// return nil, fmt.Errorf("Error while running OPA: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "running OPA",
+				Kind:         "InternalOperation",
+				ResourceName: "ProcessOPA",
+			})
+		} else {
+			reports = append(reports, &opaReport)
 		}
-		reports = append(reports, &opaReport)
 	}
 
 	if ci.PlutoEnabled() {
 		plutoReport, err := ci.GetPlutoReport()
 		if err != nil {
-			return nil, fmt.Errorf("Error while running Pluto: %v", err)
+			// return nil, fmt.Errorf("Error while running Pluto: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "running pluto",
+				Kind:         "InternalOperation",
+				ResourceName: "GetPlutoReport",
+			})
+		} else {
+			reports = append(reports, &plutoReport)
 		}
-		reports = append(reports, &plutoReport)
 	}
 
 	if ci.TerraformEnabled() {
 		terraformReports, err := ci.ProcessTerraformPaths()
 		if err != nil {
-			return nil, fmt.Errorf("while processing Terraform: %w", err)
+			// return nil, fmt.Errorf("while processing Terraform: %w", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "processing terraform",
+				Kind:         "InternalOperation",
+				ResourceName: "ProcessTerraformPaths",
+			})
+		} else {
+			reports = append(reports, &terraformReports)
 		}
-		reports = append(reports, &terraformReports)
 	}
 
 	if len(scanErrorsReportProperties.Items) > 0 {
