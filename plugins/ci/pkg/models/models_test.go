@@ -65,7 +65,7 @@ func TestRegistryCredentialsString(t *testing.T) {
 		Username: "username",
 		Password: "password",
 	}
-	assert.Equal(t, "domain: docker.io, username: username, Password: ********", fmt.Sprint(rc), "password should be hidden on print")
+	assert.Equal(t, "domain: docker.io, username: username, password: ********", fmt.Sprint(rc), "password should be hidden on print")
 }
 
 func TestFindCredentialForImage(t *testing.T) {
