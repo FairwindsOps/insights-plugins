@@ -61,21 +61,35 @@ func TestConfigSetDefaultsRegistryCredentials(t *testing.T) {
 
 func TestRegistryCredentialsString(t *testing.T) {
 	rc := RegistryCredential{
-		Domain:   "docker.com",
+		Domain:   "docker.io",
 		Username: "username",
 		Password: "password",
 	}
-	assert.Equal(t, "domain: docker.com, username: username, Password: ********", fmt.Sprint(rc), "password should be hidden on print")
+	assert.Equal(t, "domain: docker.io, username: username, Password: ********", fmt.Sprint(rc), "password should be hidden on print")
 }
 
 func TestFindCredentialForImage(t *testing.T) {
+	// #1
 	registryCredentials := RegistryCredentials{}
 	rc := registryCredentials.FindCredentialForImage("postgres:15.1-bullseye")
 	assert.Nil(t, rc)
 
+	// #2
 	registryCredentials = RegistryCredentials{
 		{
-			Domain:   "docker.com",
+			Domain:   "quay.io",
+			Username: "username",
+			Password: "password",
+		},
+	}
+
+	rc = registryCredentials.FindCredentialForImage("postgres:15.1-bullseye")
+	assert.Nil(t, rc)
+
+	// #3
+	registryCredentials = RegistryCredentials{
+		{
+			Domain:   "docker.io",
 			Username: "username",
 			Password: "password",
 		},
@@ -88,9 +102,13 @@ func TestFindCredentialForImage(t *testing.T) {
 
 	rc = registryCredentials.FindCredentialForImage("postgres:15.1-bullseye")
 	assert.NotNil(t, rc)
-	assert.Equal(t, "docker.com", rc.Domain)
+	assert.Equal(t, "docker.io", rc.Domain)
 
-	rc = registryCredentials.FindCredentialForImage("quay.io/postgres:15.1-bullseye")
+	rc = registryCredentials.FindCredentialForImage("username/postgres:15.1-bullseye")
+	assert.NotNil(t, rc)
+	assert.Equal(t, "docker.io", rc.Domain)
+
+	rc = registryCredentials.FindCredentialForImage("quay.io/osbuild/postgres:13-alpine-202211021552")
 	assert.NotNil(t, rc)
 	assert.Equal(t, "quay.io", rc.Domain)
 }

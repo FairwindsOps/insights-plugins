@@ -132,9 +132,10 @@ func (rc RegistryCredentials) Validate() error {
 }
 
 func (rc RegistryCredentials) FindCredentialForImage(imageName string) *RegistryCredential {
-	parts := strings.SplitN(imageName, "/", 2)
-	domain := "docker.com"
-	if len(parts) >= 2 {
+	parts := strings.Split(imageName, "/")
+	domain := "docker.io"
+	if len(parts) == 3 {
+		// quay.io/fedora/httpd:version1.0
 		domain = parts[0]
 	}
 
@@ -157,7 +158,7 @@ type optionConfig struct {
 	Organization           string              `yaml:"organization"`
 	JUnitOutput            string              `yaml:"junitOutput"`
 	RepositoryName         string              `yaml:"repositoryName"`
-	RegistryCredentials    RegistryCredentials `yaml:"-"` // TODO: Vitor - expose it?!
+	RegistryCredentials    RegistryCredentials `yaml:"-"`
 	CIRunner               CIRunnerVal         `yaml:"-"`
 }
 
