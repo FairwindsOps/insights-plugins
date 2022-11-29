@@ -401,7 +401,12 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
-	basePath := filepath.Join("/app", "repository")
+	var basePath string = os.Getenv("LOCAL_BASE_PATH")
+	if basePath != "" {
+		logrus.Infof("using basePath of %q from environment LOCAL_BASE_PATH", basePath)
+	} else {
+		basePath := filepath.Join("/app", "repository")
+	}
 	_, repoName := util.GetRepoDetails(repoFullName)
 	baseRepoPath := filepath.Join(basePath, repoName)
 
@@ -487,13 +492,11 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 
 	err := ci.ProcessHelmTemplates()
 	if err != nil {
-		// return nil, fmt.Errorf("Error while processing helm templates: %v", err)
 		scanErrorsReportProperties.AddScanErrorsReportResultFromError(err)
 	}
 
 	err = ci.CopyYaml()
 	if err != nil {
-		// return nil, fmt.Errorf("Error while copying YAML files: %v", err)
 		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 			ErrorMessage: err.Error(),
 			ErrorContext: "copying yaml files to configuration directory",
@@ -506,7 +509,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	// Scan YAML, find all images/kind/etc
 	manifestImages, resources, err := ci.getAllResources()
 	if err != nil {
-		// return nil, fmt.Errorf("Error while extracting images from YAML manifests: %v", err)
 		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 			ErrorMessage: err.Error(),
 			ErrorContext: "getting all resources from manifest files",
@@ -519,7 +521,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	if ci.PolarisEnabled() {
 		polarisReport, err := ci.GetPolarisReport()
 		if err != nil {
-			// return nil, fmt.Errorf("Error while running Polaris: %v", err)
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
 				ErrorContext: "running polaris",
@@ -538,7 +539,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		}
 		trivyReport, err := ci.GetTrivyReport(manifestImagesToScan)
 		if err != nil {
-			// return nil, fmt.Errorf("Error while running Trivy: %v", err)
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
 				ErrorContext: "running trivy",
@@ -552,7 +552,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 
 	workloadReport, err := ci.GetWorkloadReport(resources)
 	if err != nil {
-		// return nil, fmt.Errorf("Error while aggregating workloads: %v", err)
 		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 			ErrorMessage: err.Error(),
 			ErrorContext: "aggregating workloads",
@@ -566,7 +565,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	if ci.OPAEnabled() {
 		opaReport, err := ci.ProcessOPA(context.Background())
 		if err != nil {
-			// return nil, fmt.Errorf("Error while running OPA: %v", err)
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
 				ErrorContext: "running OPA",
@@ -581,7 +579,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	if ci.PlutoEnabled() {
 		plutoReport, err := ci.GetPlutoReport()
 		if err != nil {
-			// return nil, fmt.Errorf("Error while running Pluto: %v", err)
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
 				ErrorContext: "running pluto",
@@ -596,7 +593,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	if ci.TerraformEnabled() {
 		terraformReports, err := ci.ProcessTerraformPaths()
 		if err != nil {
-			// return nil, fmt.Errorf("while processing Terraform: %w", err)
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
 				ErrorContext: "processing terraform",
@@ -611,7 +607,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	if len(scanErrorsReportProperties.Items) > 0 {
 		scanErrorsReport, err := ci.processScanErrorsReportProperties(scanErrorsReportProperties)
 		if err != nil {
-			return nil, fmt.Errorf("while processing scan errors report items: %w", err)
+			return nil, fmt.Errorf("unable to process scan errors report items: %w", err)
 		}
 		reports = append(reports, &scanErrorsReport)
 	}

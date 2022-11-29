@@ -14,16 +14,16 @@ func (ci *CIScan) GetPolarisReport() (models.ReportInfo, error) {
 		Report:   "polaris",
 		Filename: "polaris.json",
 	}
-	// Scan with Polaris
-	_, err := commands.ExecWithMessage(exec.Command("polaris", "audit", "--audit-path", ci.configFolder, "--output-file", filepath.Join(ci.config.Options.TempFolder, report.Filename)), "Audit with Polaris")
-	if err != nil {
-		return report, err
-	}
 	polarisVersion, err := commands.Exec("polaris", "version")
 	if err != nil {
-		return report, err
+		return report, fmt.Errorf("unable to get polaris version: %v", err)
 	}
 	report.Version = strings.Split(polarisVersion, ":")[1]
+	// Scan with Polaris
+	output, err := commands.ExecWithMessage(exec.Command("polaris", "audit", "--audit-path", ci.configFolder, "--output-file", filepath.Join(ci.config.Options.TempFolder, report.Filename)), "Audit with Polaris")
+	if err != nil {
+		return report, fmt.Errorf("%v: %s", err, output)
+	}
 	return report, nil
 }
 
