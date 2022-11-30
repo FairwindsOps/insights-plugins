@@ -23,3 +23,6 @@ plugins/*/.goreleaser.yml
 *.swp
 
 *.tmp
+
+# Plugin binaries
+/plugins/ci/insights-ci
