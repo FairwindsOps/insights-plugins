@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.4.0
+* Support for private images (REGISTRY_CREDENTIALS)
+
 ## 3.3.0
 * Support `images.docker` download images inside the plugin
 

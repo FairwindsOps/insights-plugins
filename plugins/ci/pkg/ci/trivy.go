@@ -27,7 +27,7 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 		return nil, err
 	}
 
-	err = downloadMissingImages(ci.config.Images.FolderName, dockerImages, manifestImages)
+	err = downloadMissingImages(ci.config.Images.FolderName, dockerImages, manifestImages, ci.config.Options.RegistryCredentials)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, ma
 	})
 }
 
-func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) error {
+func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) error {
 	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres151bullseye
 	// Download missing images
 	for _, image := range manifestImages {
@@ -112,7 +112,8 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			image.PullRef = ref
 			continue
 		}
-		err := downloadImageViaSkopeo(folderPath, image.Name)
+		rc := registryCredentials.FindCredentialForImage(image.Name)
+		_, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
 			return err
 		}
@@ -128,7 +129,8 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			image.PullRef = ref
 			continue
 		}
-		err := downloadImageViaSkopeo(folderPath, image.Name)
+		rc := registryCredentials.FindCredentialForImage(image.Name)
+		_, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
 			return err
 		}
@@ -138,19 +140,35 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 	return nil
 }
 
-func downloadImageViaSkopeo(folderPath, imageName string) error {
+func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName string, rc *models.RegistryCredential) (string, error) {
 	logrus.Infof("Downloading missing image %s", imageName)
 	dockerURL := "docker://" + imageName
 	archiveName := "docker-archive:" + folderPath + clearString(imageName)
-	cmd := exec.Command("skopeo", "copy", dockerURL, archiveName)
-	if os.Getenv("SKOPEO_ARGS") != "" {
-		args := []string{"copy"}
-		args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
-		args = append(args, dockerURL, archiveName)
-		cmd = exec.Command("skopeo", args...)
+	args := []string{"copy"}
+
+	if rc != nil {
+		if rc.Username == "<token>" {
+			// --src-registry-token string
+			args = append(args, "--src-registry-token")
+			args = append(args, rc.Password)
+		} else {
+			// --src-creds USERNAME[:PASSWORD]
+			args = append(args, "--src-creds")
+			creds := rc.Username
+			if rc.Password != "" {
+				creds += ":" + rc.Password
+			}
+			args = append(args, creds)
+		}
+		logrus.Infof("using credentials: %v", *rc)
 	}
-	_, err := commands.ExecWithMessage(cmd, "pulling "+imageName)
-	return err
+
+	if os.Getenv("SKOPEO_ARGS") != "" {
+		args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
+	}
+
+	args = append(args, dockerURL, archiveName)
+	return cmdExecutor(exec.Command("skopeo", args...), "pulling "+imageName)
 }
 
 // mergeImages - at this point, all images are downloaded at folderPath
