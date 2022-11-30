@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.2.1
+* update trivy
+
 ## 3.2.0
 * Add alternative GIT commands to fetch masterHash
 * Make some GIT commands optional (masterHash, commitMessage, branch and origin)
