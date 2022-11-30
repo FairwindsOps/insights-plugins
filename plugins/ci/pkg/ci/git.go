@@ -97,7 +97,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			gitCommandFail = true
 		}
 	}
-	logrus.Infof("Origin: %s", util.RemoveToken(origin))
+	logrus.Infof("Origin: %s", util.RemoveTokensAndPassword(origin))
 
 	if gitCommandFail {
 		logGitCIRunnerHint(ciRunner)

@@ -13,7 +13,7 @@ func ExecInDir(dir string, cmd *exec.Cmd, message string) (string, error) {
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error running %s - %s[%v]", util.RemoveToken(cmd.String()), string(output), util.RemoveToken(err.Error()))
+		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
 		return "", err
 	}
 	return string(output), nil
@@ -24,7 +24,7 @@ func ExecWithMessage(cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error running %s - %s[%v]", util.RemoveToken(cmd.String()), string(output), util.RemoveToken(err.Error()))
+		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
 		return "", err
 	}
 	return string(output), nil
@@ -35,7 +35,7 @@ func Exec(command string, args ...string) (string, error) {
 	cmd := exec.Command(command, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Unable to execute command: %s %s[%v]", util.RemoveToken(cmd.String()), string(output), util.RemoveToken(err.Error()))
+		logrus.Errorf("Unable to execute command: %s %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
 		return "", err
 	}
 	return string(output), nil
