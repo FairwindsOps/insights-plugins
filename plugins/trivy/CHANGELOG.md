@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.24.2
+* Add DockerImage to internal model
+
 ## 0.24.1
 * update trivy
 

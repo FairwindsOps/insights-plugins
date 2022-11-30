@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.3.0
+* Support `images.docker` download images inside the plugin
+
 ## 3.2.1
 * update trivy
 
