@@ -1,7 +1,7 @@
 FROM alpine:3.16 as downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.34.0
+ENV trivyVersion=0.35.0
 RUN apk update && apk add curl
 
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/${TARGETOS}/${TARGETARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
