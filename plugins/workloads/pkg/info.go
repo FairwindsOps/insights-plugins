@@ -205,34 +205,16 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	ingresses := []Ingress{}
 	// Ingresses
 	for _, namespace := range namespaces.Items {
-		// Ingresses from v1
-		IngressesV1 := kube.NetworkingV1().Ingresses(namespace.Name)
-		listV1, err := IngressesV1.List(ctx, listOpts)
+		ingressesV1 := kube.NetworkingV1().Ingresses(namespace.Name)
+		list, err := ingressesV1.List(ctx, listOpts)
 		if err != nil {
 			logrus.Errorf("Error fetching v1 ingresses: %v", err)
 			return nil, err
 		}
-		for _, item := range listV1.Items {
+		for _, item := range list.Items {
 			ingresses = append(ingresses, Ingress{
 				Kind:        item.Kind,
-				Name:        item.Kind,
-				Namespace:   item.Namespace,
-				Annotations: item.Annotations,
-				Labels:      item.Labels,
-				UID:         string(item.UID),
-			})
-		}
-		// Ingresses from v1beta1
-		ingressesV1Beta1 := kube.ExtensionsV1beta1().Ingresses(namespace.Name)
-		listV1Beta1, err := ingressesV1Beta1.List(ctx, listOpts)
-		if err != nil {
-			logrus.Errorf("Error fetching v1beta1 ingresses: %v", err)
-			return nil, err
-		}
-		for _, item := range listV1Beta1.Items {
-			ingresses = append(ingresses, Ingress{
-				Kind:        item.Kind,
-				Name:        item.Kind,
+				Name:        item.Name,
 				Namespace:   item.Namespace,
 				Annotations: item.Annotations,
 				Labels:      item.Labels,
