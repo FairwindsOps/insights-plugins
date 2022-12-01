@@ -6,8 +6,31 @@ Visit
 [insights.docs.fairwinds.com](https://insights.docs.fairwinds.com/features/continuous-integration/)
 for the full documentation
 
-# Testing
 
-Docker compose is currently configure for testing cloned repos using `docker-compose up --build`.
+# update trivy and opa
 
-`docker-compose.yaml` can be configured via the following variables to test your own repo
+Modify `project` and `sha` accordingly
+> go get github.com/fairwindsops/insights-plugins/plugins/${project}@${sha}
+
+# Running command example
+
+## auto-scan
+```
+GOOS=linux GOARCH=amd64 go build -o insights-ci cmd/insights-ci/main.go && \
+docker build . --tag insights-ci:latest && \
+docker run -v /Users/vvezani/fairwinds/insights-plugins/plugins/ci/.tmp:/app/repository \
+      -e "CLONE_REPO=true" \
+      -e "FAIRWINDS_TOKEN=thisisacitoken" \
+      -e "SCRIPT_VERSION=" \
+      -e "IMAGE_VERSION=0.0.1" \
+      -e "REPOSITORY_NAME=vitorvezani/blog" \
+      -e "BRANCH_NAME=main" \
+      -e "BASE_BRANCH=main" \
+      -e "GITHUB_ACCESS_TOKEN=" \
+      -e "ORG_NAME=acme-co" \
+      -e "HOSTNAME=https://be-main.k8s.insights.fairwinds.com" \
+      -e "LOGRUS_LEVEL=debug" \
+      -e 'REGISTRY_CREDENTIALS=[{"domain": "docker.io", "username": "my-user", "password": "my-pass"}]' \
+  insights-ci:latest && \ 
+rm -rf ./.tmp/
+```

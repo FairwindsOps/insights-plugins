@@ -1,0 +1,2 @@
+# ignore test images
+/pkg/ci/testdata/images

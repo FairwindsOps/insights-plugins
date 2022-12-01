@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.4.0
+* Support for private images (REGISTRY_CREDENTIALS)
+
+## 3.3.0
+* Support `images.docker` download images inside the plugin
+
+## 3.2.1
+* update trivy
+
+## 3.2.0
+* Add alternative GIT commands to fetch masterHash
+* Make some GIT commands optional (masterHash, commitMessage, branch and origin)
+* Add CI_RUNNER env. var support
+* Add hint logs based on CI runner
+
+## 3.1.0
+* Update tfsec, pluto, and polaris to adress additional `x/text` and `x/net` CVEs
+* Bump Helm to 3.10.2
+
 ## 3.0.0
 * Add Terraform scanning via a tfsec report
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.1
+* Add docker-socket check opa policy template.
+
 ## 2.2.0
 * Add support for `insightsinfo("admissionRequest")` that exposes the admission request
 
