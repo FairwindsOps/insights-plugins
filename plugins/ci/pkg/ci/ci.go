@@ -568,7 +568,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 				ResourceName: "GetTrivyReport",
 			})
 		} else {
-			reports = append(reports, &trivyReport)
+			reports = append(reports, trivyReport)
 		}
 	}
 
