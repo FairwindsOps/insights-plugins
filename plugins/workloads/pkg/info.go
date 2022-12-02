@@ -211,7 +211,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		ingressesV1 := kube.NetworkingV1().Ingresses(namespace.Name)
 		list, err := ingressesV1.List(ctx, listOpts)
 		if err != nil {
-			logrus.Errorf("Error fetching v1 ingresses: %v", err)
+			logrus.Errorf("Error fetching ingresses: %v", err)
 			return nil, err
 		}
 		for _, item := range list.Items {
