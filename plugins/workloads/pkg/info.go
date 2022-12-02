@@ -215,15 +215,18 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 			return nil, err
 		}
 		for _, item := range list.Items {
-			ingresses = append(ingresses, Ingress{
+			ingress := Ingress{
 				Kind:        KindIngress,
 				Name:        item.Name,
 				Namespace:   item.Namespace,
 				Annotations: item.Annotations,
 				Labels:      item.Labels,
 				UID:         string(item.UID),
-				APIVersion:  item.ManagedFields[0].APIVersion,
-			})
+			}
+			if len(item.ManagedFields) > 0 {
+				ingress.APIVersion = item.ManagedFields[0].APIVersion
+			}
+			ingresses = append(ingresses, ingress)
 		}
 	}
 
