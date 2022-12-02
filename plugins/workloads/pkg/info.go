@@ -15,6 +15,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+const KindIngress = "Ingress"
+
 // ControllerResult provides a wrapper around a PodResult
 type ControllerResult struct {
 	Kind        string
@@ -26,6 +28,16 @@ type ControllerResult struct {
 	ParentUID   string
 	PodCount    float64
 	Containers  []ContainerResult
+}
+
+type Ingress struct {
+	Kind        string
+	Name        string
+	Namespace   string
+	Annotations map[string]string
+	Labels      map[string]string
+	UID         string
+	APIVersion  string
 }
 
 // ContainerResult provides a list of validation messages for each container.
@@ -74,6 +86,7 @@ type ClusterWorkloadReport struct {
 	Nodes         []NodeSummary
 	Namespaces    []corev1.Namespace
 	Controllers   []ControllerResult
+	Ingresses     []Ingress
 }
 
 func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
@@ -129,8 +142,8 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	}
 
 	client := controller.Client{
-		Context: ctx,
-		Dynamic: dynamicClient,
+		Context:    ctx,
+		Dynamic:    dynamicClient,
 		RESTMapper: restMapper,
 	}
 	workloads, err := client.GetAllTopControllersSummary("")
@@ -192,6 +205,31 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		return nil, err
 	}
 
+	// Ingresses
+	ingresses := []Ingress{}
+	for _, namespace := range namespaces.Items {
+		ingressesV1 := kube.NetworkingV1().Ingresses(namespace.Name)
+		list, err := ingressesV1.List(ctx, listOpts)
+		if err != nil {
+			logrus.Errorf("Error fetching ingresses: %v", err)
+			return nil, err
+		}
+		for _, item := range list.Items {
+			ingress := Ingress{
+				Kind:        KindIngress,
+				Name:        item.Name,
+				Namespace:   item.Namespace,
+				Annotations: item.Annotations,
+				Labels:      item.Labels,
+				UID:         string(item.UID),
+			}
+			if len(item.ManagedFields) > 0 {
+				ingress.APIVersion = item.ManagedFields[0].APIVersion
+			}
+			ingresses = append(ingresses, ingress)
+		}
+	}
+
 	clusterWorkloadReport := ClusterWorkloadReport{
 		ServerVersion: serverVersion.Major + "." + serverVersion.Minor,
 		SourceType:    "Cluster",
@@ -200,6 +238,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		Nodes:         nodesSummaries,
 		Namespaces:    namespaces.Items,
 		Controllers:   interfaces,
+		Ingresses:     ingresses,
 	}
 	return &clusterWorkloadReport, nil
 }
