@@ -15,6 +15,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+const KindIngress = "Ingress"
+
 // ControllerResult provides a wrapper around a PodResult
 type ControllerResult struct {
 	Kind        string
@@ -35,6 +37,7 @@ type Ingress struct {
 	Annotations map[string]string
 	Labels      map[string]string
 	UID         string
+	APIVersion  string
 }
 
 // ContainerResult provides a list of validation messages for each container.
@@ -202,8 +205,8 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		return nil, err
 	}
 
-	ingresses := []Ingress{}
 	// Ingresses
+	ingresses := []Ingress{}
 	for _, namespace := range namespaces.Items {
 		ingressesV1 := kube.NetworkingV1().Ingresses(namespace.Name)
 		list, err := ingressesV1.List(ctx, listOpts)
@@ -213,12 +216,13 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		}
 		for _, item := range list.Items {
 			ingresses = append(ingresses, Ingress{
-				Kind:        item.Kind,
+				Kind:        KindIngress,
 				Name:        item.Name,
 				Namespace:   item.Namespace,
 				Annotations: item.Annotations,
 				Labels:      item.Labels,
 				UID:         string(item.UID),
+				APIVersion:  item.ManagedFields[0].APIVersion,
 			})
 		}
 	}
