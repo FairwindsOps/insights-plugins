@@ -100,11 +100,11 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 		semaphore <- true
 	}
 	logrus.Infof("Finished scanning all images")
-	return convertTrivyResultsToImageReport(images, reportByRef, ignoreErrors)
+	return ConvertTrivyResultsToImageReport(images, reportByRef, ignoreErrors)
 }
 
-// convertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
-func convertTrivyResultsToImageReport(images []models.Image, reportResultByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
+// ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
+func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
 	logrus.Infof("Converting results to image report")
 	allReports := []models.ImageReport{}
 	for _, i := range images {
