@@ -23,12 +23,6 @@ var extraFlags = ""
 
 const outputFile = image.TempDir + "/final-report.json"
 
-type newestVersions struct {
-	repo     string
-	versions []string
-	err      error
-}
-
 /*
  * Downloads the latest trivy report containing  all cluster scans and recommendation
  * Reads all images from the cluster and scan few of them
@@ -64,10 +58,10 @@ func main() {
 	aggregated := allReports
 	if os.Getenv("NO_RECOMMENDATIONS") == "" {
 		logrus.Infof("Scanning recommendations")
-		recommendationsToScan := getNewestVersionsToScan(ctx, allReports, imagesToScan)
+		recommendationsToScan := image.GetNewestVersionsToScan(ctx, allReports, imagesToScan)
 		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
 		recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
-		logrus.Infof("Dones scanning recommendations")
+		logrus.Infof("Done scanning recommendations")
 		recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
 		lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
 		aggregated = append(allReports, recommendationReport...)
@@ -95,73 +89,6 @@ func setLogLevel() {
 		logrus.SetLevel(lvl)
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
-	}
-}
-
-func getNewestVersionsToScan(ctx context.Context, allReports []models.ImageReport, imagesToScan []models.Image) []models.Image {
-	var imageWithVulns []models.ImageReport
-	for _, img := range imagesToScan {
-		imageSha := image.GetShaFromID(img.ID)
-		for _, report := range allReports {
-			reportSha := image.GetShaFromID(report.ID)
-			if report.Name == img.Name && reportSha == imageSha {
-				if len(report.Reports) > 0 {
-					imageWithVulns = append(imageWithVulns, report)
-				}
-			}
-		}
-	}
-	versionsChan := make(chan newestVersions, len(imageWithVulns))
-	for _, i := range imageWithVulns {
-		go getNewestVersions(versionsChan, ctx, i)
-	}
-	newImagesToScan := []models.Image{}
-	for i := 0; i < len(imageWithVulns); i++ {
-		vc := <-versionsChan
-		if vc.err == nil {
-			for _, v := range vc.versions {
-				newImagesToScan = append(newImagesToScan, models.Image{
-					ID:                 fmt.Sprintf("%v:%v", vc.repo, v),
-					Name:               fmt.Sprintf("%v:%v", vc.repo, v),
-					PullRef:            fmt.Sprintf("%v:%v", vc.repo, v),
-					RecommendationOnly: true,
-				})
-			}
-		}
-	}
-	return newImagesToScan
-}
-
-func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, img models.ImageReport) {
-	parts := strings.Split(img.Name, ":")
-	if len(parts) != 2 {
-		versionsChan <- newestVersions{
-			err: fmt.Errorf("cannot find tag while getting newest version for image %q", img.Name),
-		}
-		return
-	}
-	repo := parts[0]
-	tag := parts[1]
-	if strings.Contains(strings.ToLower(img.Name), "@sha256:") {
-		// Do not try to find newer versions when the tag is a sha256.
-		repo = strings.Split(repo, "@")[0]
-		logrus.Debugf("not getting newest versions for repo %q because the tag is a sha256: %q", repo, img.Name)
-		versionsChan <- newestVersions{
-			repo:     repo,
-			versions: []string{},
-		}
-		return
-	}
-	versions, err := image.GetNewestVersions(ctx, repo, tag)
-	if err != nil {
-		versionsChan <- newestVersions{
-			err: err,
-		}
-		return
-	}
-	versionsChan <- newestVersions{
-		repo:     repo,
-		versions: versions,
 	}
 }
 
