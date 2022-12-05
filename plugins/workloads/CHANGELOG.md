@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.0
+* Added ingresses support to workload report
+
 ## 2.3.4
 * Update x/text to remove CVE
 
