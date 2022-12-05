@@ -29,7 +29,7 @@ func init() {
 	passwordFile := os.Getenv("REGISTRY_PASSWORD_FILE")
 	if passwordFile != "" {
 		logrus.Infof("Reading registry password from %s", passwordFile)
-	    content, err := os.ReadFile(passwordFile)
+		content, err := os.ReadFile(passwordFile)
 		if err != nil {
 			panic(err)
 		}
@@ -180,7 +180,7 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
 		}
 	}
-	
+
 	logrus.Infof("Downloading image %s", pullRef)
 	imageFile, err := downloadPullRef(pullRef)
 	if err != nil {
@@ -214,7 +214,7 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		logrus.Errorf("Error decoding report %s: %s", imageID, err)
 		return nil, err
 	}
-	
+
 	logrus.Infof("Successfully scanned %s", imageID)
 
 	return &report, nil
@@ -235,13 +235,17 @@ func downloadPullRef(pullRef string) (string, error) {
 	args := []string{"copy"}
 
 	if registryUser != "" || registryPassword != "" {
-		args = append(args, "--src-creds", registryUser + ":" + registryPassword)
+		args = append(args, "--src-creds", registryUser+":"+registryPassword)
 	}
 	if registryCertDir != "" {
 		args = append(args, "--src-cert-dir", registryCertDir)
 	}
 
-	args = append(args, "docker://"+pullRef, "docker-archive:" + dest)
+	// needed when running locally on mac
+	// args = append(args, "--override-arch", "amd64")
+	// args = append(args, "--override-os", "linux")
+
+	args = append(args, "docker://"+pullRef, "docker-archive:"+dest)
 	err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
 	return dest, err
 }
