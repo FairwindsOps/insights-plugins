@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.5.0
+* Enable the `tfsec` report by default, as `terraform -> paths` are required in `fairwinds-insights.yaml`
+
 ## 3.4.0
 * Support for private images (REGISTRY_CREDENTIALS)
 
