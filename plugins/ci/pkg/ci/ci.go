@@ -566,11 +566,14 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	}
 
 	if ci.TerraformEnabled() {
-		terraformReports, err := ci.ProcessTerraformPaths()
+		terraformReports, areTerraformResults, err := ci.ProcessTerraformPaths()
 		if err != nil {
 			return nil, fmt.Errorf("while processing Terraform: %w", err)
 		}
-		reports = append(reports, &terraformReports)
+		if areTerraformResults {
+			logrus.Debugln("the Terraform report contains results")
+			reports = append(reports, &terraformReports)
+		}
 	}
 	return reports, nil
 }
