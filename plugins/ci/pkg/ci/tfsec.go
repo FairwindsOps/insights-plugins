@@ -38,7 +38,7 @@ func (ci *CIScan) ProcessTerraformPaths() (report models.ReportInfo, areResults 
 	}
 	TFSecVersion, err := commands.Exec("tfsec", "-v")
 	if err != nil {
-		return models.ReportInfo{}, false, fmt.Errorf("cannot get the version of tfsec: %w", false, err)
+		return models.ReportInfo{}, false, fmt.Errorf("cannot get the version of tfsec: %w", err)
 	}
 	TFSecVersion = strings.TrimPrefix(TFSecVersion, "v")
 	file, err := json.MarshalIndent(reportProperties, "", " ")

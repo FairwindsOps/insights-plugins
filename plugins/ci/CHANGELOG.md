@@ -1,7 +1,7 @@
 # Changelog
 
-## 3.5.0
-* Enable the `tfsec` report by default, as `terraform -> paths` are required in `fairwinds-insights.yaml`
+## 4.0.0
+* Enable the tfsec report by default. If `terraform -> paths` are specified, they will be scanned unless `reports -> tfsec -> enabled` is explicitly set to `false` in fairwinds-insights.yaml.
 
 ## 3.4.0
 * Support for private images (REGISTRY_CREDENTIALS)
