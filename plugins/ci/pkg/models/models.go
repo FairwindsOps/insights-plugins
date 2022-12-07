@@ -302,7 +302,7 @@ func (c *Configuration) SetDefaults() error {
 		c.Reports.Trivy.SkipManifests = &falsehood
 	}
 	if c.Reports.TFSec.Enabled == nil {
-		c.Reports.TFSec.Enabled = &falsehood
+		c.Reports.TFSec.Enabled = &truth
 	}
 
 	registryCredentialsJSON := strings.TrimSpace(os.Getenv("REGISTRY_CREDENTIALS")) // only set via env. variable
