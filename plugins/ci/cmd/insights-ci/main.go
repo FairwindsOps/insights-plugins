@@ -14,6 +14,8 @@ func main() {
 		exitWithError(ciScan, "Error creating CI Scan main struct", err)
 	}
 
+	// TODO: Vitor - add config print here
+
 	reports, err := ciScan.ProcessRepository()
 	if err != nil {
 		exitWithError(ciScan, "Error processing repository", err)

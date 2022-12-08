@@ -1,6 +1,8 @@
 package util
 
-import "strings"
+import (
+	"strings"
+)
 
 func ExtractMetadata(obj map[string]interface{}) (string, string, string, string) {
 	kind, _ := obj["kind"].(string)

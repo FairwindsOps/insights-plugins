@@ -47,6 +47,12 @@ type CIScan struct {
 	config         *models.Configuration
 }
 
+type insightsReportConfig struct {
+	Enabled *bool
+}
+
+type insightsReportsConfig map[string]insightsReportConfig
+
 // Create a new CI instance based on flag cloneRepo
 func NewCIScan() (*CIScan, error) {
 	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
@@ -449,6 +455,16 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 			return "", "", nil, err
 		}
 
+		// this is how we support enabling/disabling reports on auto-discovery (when no fairwinds-insights.yaml file is found)
+		if strings.TrimSpace(os.Getenv("AUTO_SCAN_REPORTS_CONFIG")) != "" {
+			var insightsReportConfig insightsReportsConfig
+			err := json.Unmarshal([]byte(os.Getenv("AUTO_SCAN_REPORTS_CONFIG")), &insightsReportConfig)
+			if err != nil {
+				return "", "", nil, fmt.Errorf("unable to parse auto-scan reports config: %v", err)
+			}
+			overrideReportsEnabled(config, insightsReportConfig)
+		}
+
 		err := createFileFromConfig(baseRepoPath, configFileName, *config)
 		if err != nil {
 			return "", "", nil, err
@@ -475,6 +491,24 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 	}
 
 	return filepath.Join(baseRepoPath, "../"), baseRepoPath, config, nil
+}
+
+func overrideReportsEnabled(cfg *models.Configuration, reportConfig insightsReportsConfig) {
+	if rCfg, ok := reportConfig["opa"]; ok {
+		cfg.Reports.OPA.Enabled = rCfg.Enabled
+	}
+	if rCfg, ok := reportConfig["polaris"]; ok {
+		cfg.Reports.Polaris.Enabled = rCfg.Enabled
+	}
+	if rCfg, ok := reportConfig["pluto"]; ok {
+		cfg.Reports.Pluto.Enabled = rCfg.Enabled
+	}
+	if rCfg, ok := reportConfig["trivy"]; ok {
+		cfg.Reports.Trivy.Enabled = rCfg.Enabled
+	}
+	if rCfg, ok := reportConfig["tfsec"]; ok {
+		cfg.Reports.TFSec.Enabled = rCfg.Enabled
+	}
 }
 
 func readConfigurationFromFile(configFilePath string) (*models.Configuration, error) {
@@ -632,6 +666,14 @@ func (ci *CIScan) printScannedFilesInfo() {
 		fmt.Println("Helm charts scanned:")
 		for i, h := range ci.config.Manifests.Helm {
 			fmt.Printf("\t[%d/%d] - %s/%s\n", i+1, s, h.Path, h.Name)
+		}
+	}
+
+	s = len(ci.config.Terraform.Paths)
+	if s > 0 {
+		fmt.Println("Terraform files scanned:")
+		for i, p := range ci.config.Terraform.Paths {
+			fmt.Printf("\t[%d/%d] - %s\n", i+1, s, p)
 		}
 	}
 }
