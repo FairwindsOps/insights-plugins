@@ -19,6 +19,7 @@ Modify `project` and `sha` accordingly
 GOOS=linux GOARCH=amd64 go build -o insights-ci cmd/insights-ci/main.go && \
 docker build . --tag insights-ci:latest && \
 docker run -v /Users/vvezani/fairwinds/insights-plugins/plugins/ci/.tmp:/app/repository \
+      -e "LOGRUS_LEVEL=debug" \
       -e "CLONE_REPO=true" \
       -e "FAIRWINDS_TOKEN=thisisacitoken" \
       -e "SCRIPT_VERSION=" \
@@ -31,6 +32,7 @@ docker run -v /Users/vvezani/fairwinds/insights-plugins/plugins/ci/.tmp:/app/rep
       -e "HOSTNAME=https://be-main.k8s.insights.fairwinds.com" \
       -e "LOGRUS_LEVEL=debug" \
       -e 'REGISTRY_CREDENTIALS=[{"domain": "docker.io", "username": "my-user", "password": "my-pass"}]' \
+      -e 'AUTO_SCAN_REPORTS_CONFIG={"polaris": {"enabled": true}, "opa": {"enabled": true}, "pluto": {"enabled": true}, "trivy": {"enabled": true}, "tfsec": {"enabled": true}}' \
   insights-ci:latest && \ 
 rm -rf ./.tmp/
 ```

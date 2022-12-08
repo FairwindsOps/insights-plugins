@@ -42,7 +42,7 @@ func RemoveTokensAndPassword(s string) string {
 	// based on x-access-token
 	index := strings.Index(s, "x-access-token")
 	index2 := strings.Index(s, "@github.com")
-	if index > 0 || index2 > 0 {
+	if index > 0 && index2 > 0 {
 		return strings.ReplaceAll(s, s[index+15:index2], "<TOKEN>")
 	}
 
