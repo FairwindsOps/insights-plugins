@@ -25,7 +25,7 @@ docker run -v /Users/vvezani/fairwinds/insights-plugins/plugins/ci/.tmp:/app/rep
       -e "SCRIPT_VERSION=" \
       -e "IMAGE_VERSION=0.0.1" \
       -e "REPOSITORY_NAME=vitorvezani/blog" \
-      -e "BRANCH_NAME=reports-config" \
+      -e "BRANCH_NAME=main" \
       -e "BASE_BRANCH=main" \
       -e "GITHUB_ACCESS_TOKEN=" \
       -e "ORG_NAME=acme-co" \
