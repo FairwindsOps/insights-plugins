@@ -51,7 +51,9 @@ type insightsReportConfig struct {
 	EnabledOnAutoDiscovery *bool
 }
 
-type insightsReportsConfig map[string]insightsReportConfig
+type insightsReportsConfig struct {
+	AutoScan map[string]insightsReportConfig
+}
 
 // Create a new CI instance based on flag cloneRepo
 func NewCIScan() (*CIScan, error) {
@@ -504,19 +506,19 @@ func unmarshalAndOverrideConfig(config *models.Configuration) error {
 }
 
 func overrideReportsEnabled(cfg *models.Configuration, reportConfig insightsReportsConfig) {
-	if rCfg, ok := reportConfig["opa"]; ok {
+	if rCfg, ok := reportConfig.AutoScan["opa"]; ok {
 		cfg.Reports.OPA.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
-	if rCfg, ok := reportConfig["polaris"]; ok {
+	if rCfg, ok := reportConfig.AutoScan["polaris"]; ok {
 		cfg.Reports.Polaris.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
-	if rCfg, ok := reportConfig["pluto"]; ok {
+	if rCfg, ok := reportConfig.AutoScan["pluto"]; ok {
 		cfg.Reports.Pluto.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
-	if rCfg, ok := reportConfig["trivy"]; ok {
+	if rCfg, ok := reportConfig.AutoScan["trivy"]; ok {
 		cfg.Reports.Trivy.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
-	if rCfg, ok := reportConfig["tfsec"]; ok {
+	if rCfg, ok := reportConfig.AutoScan["tfsec"]; ok {
 		cfg.Reports.TFSec.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
 }

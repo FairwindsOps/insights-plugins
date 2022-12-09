@@ -49,7 +49,14 @@ func TestUnmarshalAndOverrideConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, models.Configuration{}, cfg)
 
-	os.Setenv("REPORTS_CONFIG", `{"polaris": {"enabledOnAutoDiscovery": true}}`)
+	os.Setenv("REPORTS_CONFIG", `{"autoScan": {}}`)
+
+	cfg = models.Configuration{}
+	err = unmarshalAndOverrideConfig(&cfg)
+	assert.NoError(t, err)
+	assert.Equal(t, models.Configuration{}, cfg)
+
+	os.Setenv("REPORTS_CONFIG", `{"autoScan": {"polaris": {"enabledOnAutoDiscovery": true}}}`)
 
 	cfg = models.Configuration{}
 	err = unmarshalAndOverrideConfig(&cfg)
