@@ -52,12 +52,11 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 					helmFolders = append(helmFolders, relPath)
 					return filepath.SkipDir
 				}
-				// TODO: Vitor - Fix this - apparently, there should be no such thing as terraform folder
-				terraformFolder, err := isTerraformFolder(path)
+				isTerraformFolder, err := isTerraformFolder(path)
 				if err != nil {
 					return err
 				}
-				if terraformFolder {
+				if isTerraformFolder {
 					terraformPaths = append(terraformPaths, path)
 					return filepath.SkipDir
 				}

@@ -32,7 +32,7 @@ docker run -v /Users/vvezani/fairwinds/insights-plugins/plugins/ci/.tmp:/app/rep
       -e "HOSTNAME=https://be-main.k8s.insights.fairwinds.com" \
       -e "LOGRUS_LEVEL=debug" \
       -e 'REGISTRY_CREDENTIALS=[{"domain": "docker.io", "username": "my-user", "password": "my-pass"}]' \
-      -e 'AUTO_SCAN_REPORTS_CONFIG={"polaris": {"enabled": true}, "opa": {"enabled": true}, "pluto": {"enabled": true}, "trivy": {"enabled": true}, "tfsec": {"enabled": true}}' \
+      -e 'REPORTS_CONFIG={"polaris": {"enabledOnAutoDiscovery": false}, "opa": {"enabledOnAutoDiscovery": false}, "pluto": {"enabledOnAutoDiscovery": false}, "trivy": {"enabledOnAutoDiscovery": false}, "tfsec": {"enabledOnAutoDiscovery": false}}' \
   insights-ci:latest && \ 
 rm -rf ./.tmp/
 ```

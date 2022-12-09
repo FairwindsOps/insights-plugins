@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"strings"
 )
 
@@ -65,4 +66,9 @@ func RemoveTokensAndPassword(s string) string {
 	}
 
 	return s
+}
+
+func PrettyPrint(i interface{}) string {
+	s, _ := json.Marshal(i)
+	return string(s)
 }

@@ -48,7 +48,7 @@ type CIScan struct {
 }
 
 type insightsReportConfig struct {
-	Enabled *bool
+	EnabledOnAutoDiscovery *bool
 }
 
 type insightsReportsConfig map[string]insightsReportConfig
@@ -81,6 +81,8 @@ func NewCIScan() (*CIScan, error) {
 		configFolder:   configFolder,
 		config:         config,
 	}
+
+	logrus.Debugf("config is: %s", util.PrettyPrint(config))
 
 	return &ci, nil
 }
@@ -456,9 +458,9 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 		}
 
 		// this is how we support enabling/disabling reports on auto-discovery (when no fairwinds-insights.yaml file is found)
-		if strings.TrimSpace(os.Getenv("AUTO_SCAN_REPORTS_CONFIG")) != "" {
+		if strings.TrimSpace(os.Getenv("REPORTS_CONFIG")) != "" {
 			var insightsReportConfig insightsReportsConfig
-			err := json.Unmarshal([]byte(os.Getenv("AUTO_SCAN_REPORTS_CONFIG")), &insightsReportConfig)
+			err := json.Unmarshal([]byte(os.Getenv("REPORTS_CONFIG")), &insightsReportConfig)
 			if err != nil {
 				return "", "", nil, fmt.Errorf("unable to parse auto-scan reports config: %v", err)
 			}
@@ -495,19 +497,19 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 
 func overrideReportsEnabled(cfg *models.Configuration, reportConfig insightsReportsConfig) {
 	if rCfg, ok := reportConfig["opa"]; ok {
-		cfg.Reports.OPA.Enabled = rCfg.Enabled
+		cfg.Reports.OPA.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
 	if rCfg, ok := reportConfig["polaris"]; ok {
-		cfg.Reports.Polaris.Enabled = rCfg.Enabled
+		cfg.Reports.Polaris.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
 	if rCfg, ok := reportConfig["pluto"]; ok {
-		cfg.Reports.Pluto.Enabled = rCfg.Enabled
+		cfg.Reports.Pluto.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
 	if rCfg, ok := reportConfig["trivy"]; ok {
-		cfg.Reports.Trivy.Enabled = rCfg.Enabled
+		cfg.Reports.Trivy.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
 	if rCfg, ok := reportConfig["tfsec"]; ok {
-		cfg.Reports.TFSec.Enabled = rCfg.Enabled
+		cfg.Reports.TFSec.Enabled = rCfg.EnabledOnAutoDiscovery
 	}
 }
 
