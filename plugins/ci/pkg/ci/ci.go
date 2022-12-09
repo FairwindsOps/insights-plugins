@@ -16,8 +16,8 @@ import (
 	"strings"
 
 	trivymodels "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
@@ -157,9 +157,9 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 						Namespace: namespace,
 						Filename:  displayFilename,
 						HelmName:  helmName,
-						Containers: funk.Map(containers, func(c models.Container) string {
+						Containers: lo.Map(containers, func(c models.Container, _ int) string {
 							return c.Name
-						}).([]string),
+						}),
 					})
 				}
 			} else {
@@ -180,9 +180,9 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 					Namespace: namespace,
 					Filename:  displayFilename,
 					HelmName:  helmName,
-					Containers: funk.Map(containers, func(c models.Container) string {
+					Containers: lo.Map(containers, func(c models.Container, _ int) string {
 						return c.Name
-					}).([]string),
+					}),
 				})
 			}
 		}
@@ -232,7 +232,7 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 	}
 	podSpec := getPodSpec(yamlNode)
 	images := getImages(podSpec.(map[string]interface{}))
-	return funk.Map(images, func(c models.Container) trivymodels.Image {
+	return lo.Map(images, func(c models.Container, _ int) trivymodels.Image {
 		return trivymodels.Image{
 			Name: c.Image,
 			Owner: trivymodels.Resource{
@@ -241,7 +241,7 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 				Name:      owner.Name,
 			},
 		}
-	}).([]trivymodels.Image), images
+	}), images
 }
 
 // getPodSpec looks inside arbitrary YAML for a PodSpec
