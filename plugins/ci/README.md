@@ -19,7 +19,6 @@ Modify `project` and `sha` accordingly
 GOOS=linux GOARCH=amd64 go build -o insights-ci cmd/insights-ci/main.go && \
 docker build . --tag insights-ci:latest && \
 docker run -v /Users/vvezani/fairwinds/insights-plugins/plugins/ci/.tmp:/app/repository \
-      -e "LOGRUS_LEVEL=debug" \
       -e "CLONE_REPO=true" \
       -e "FAIRWINDS_TOKEN=thisisacitoken" \
       -e "SCRIPT_VERSION=" \

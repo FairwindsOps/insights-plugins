@@ -84,7 +84,7 @@ func NewCIScan() (*CIScan, error) {
 		config:         config,
 	}
 
-	logrus.Debugf("config is: %s", util.PrettyPrint(config))
+	logrus.Infof("Reports config is opa: %v, polaris: %v, pluto: %v, trivy: %v, tfsec: %v", ci.OPAEnabled(), ci.PolarisEnabled(), ci.PlutoEnabled(), ci.TrivyEnabled(), ci.TerraformEnabled())
 
 	return &ci, nil
 }
