@@ -106,11 +106,6 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 			Paths: terraformPaths,
 		},
 	}
-	if len(terraformPaths) > 0 {
-		truth := true
-		config.Reports.TFSec.Enabled = &truth
-	}
-
 	return &config, nil
 }
 
