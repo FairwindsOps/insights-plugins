@@ -1,9 +1,12 @@
 package ci
 
 import (
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,4 +39,22 @@ exemptions:
 	assert.Equal(t, "master", cfg.Options.BaseBranch)
 	assert.Equal(t, "FairwindsOps/fairwindsops-infrastructure", cfg.Options.RepositoryName)
 	assert.Empty(t, cfg.Options.CIRunner) // should not be read from file
+}
+
+func TestUnmarshalAndOverrideConfig(t *testing.T) {
+	os.Setenv("REPORTS_CONFIG", "{}")
+
+	cfg := models.Configuration{}
+	err := unmarshalAndOverrideConfig(&cfg)
+	assert.NoError(t, err)
+	assert.Equal(t, models.Configuration{}, cfg)
+
+	os.Setenv("REPORTS_CONFIG", `{"polaris": {"enabledOnAutoDiscovery": true}}`)
+
+	cfg = models.Configuration{}
+	err = unmarshalAndOverrideConfig(&cfg)
+	assert.NoError(t, err)
+	expected := models.Configuration{}
+	expected.Reports.Polaris.Enabled = lo.ToPtr(true)
+	assert.Equal(t, expected, cfg)
 }

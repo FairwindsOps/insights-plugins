@@ -459,12 +459,10 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 
 		// this is how we support enabling/disabling reports on auto-discovery (when no fairwinds-insights.yaml file is found)
 		if strings.TrimSpace(os.Getenv("REPORTS_CONFIG")) != "" {
-			var insightsReportConfig insightsReportsConfig
-			err := json.Unmarshal([]byte(os.Getenv("REPORTS_CONFIG")), &insightsReportConfig)
+			err := unmarshalAndOverrideConfig(config)
 			if err != nil {
-				return "", "", nil, fmt.Errorf("unable to parse auto-scan reports config: %v", err)
+				return "", "", nil, err
 			}
-			overrideReportsEnabled(config, insightsReportConfig)
 		}
 
 		err := createFileFromConfig(baseRepoPath, configFileName, *config)
@@ -493,6 +491,16 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 	}
 
 	return filepath.Join(baseRepoPath, "../"), baseRepoPath, config, nil
+}
+
+func unmarshalAndOverrideConfig(config *models.Configuration) error {
+	var insightsReportConfig insightsReportsConfig
+	err := json.Unmarshal([]byte(os.Getenv("REPORTS_CONFIG")), &insightsReportConfig)
+	if err != nil {
+		return fmt.Errorf("unable to parse auto-scan reports config: %v", err)
+	}
+	overrideReportsEnabled(config, insightsReportConfig)
+	return nil
 }
 
 func overrideReportsEnabled(cfg *models.Configuration, reportConfig insightsReportsConfig) {
