@@ -1,0 +1,1828 @@
+[
+  {
+    "ID": "registry.k8s.io/ingress-nginx/kube-webhook-certgen@sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47@sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47",
+    "Name": "registry.k8s.io/ingress-nginx/kube-webhook-certgen@sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47",
+    "OSArch": "linux/amd64",
+    "PullRef": "registry.k8s.io/ingress-nginx/kube-webhook-certgen@sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47",
+    "OwnerKind": "Job",
+    "OwnerName": "ingress-nginx-admission-create",
+    "OwnerContainer": "create",
+    "Namespace": "ingress-nginx",
+    "Report": [
+      {
+        "Target": "./output/tmp/registry_k8s_io_ingress_nginx_kube_webhook_certgen_sha256_549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47 (debian 11.4)",
+        "Vulnerabilities": null
+      },
+      {
+        "Target": "kube-webhook-certgen",
+        "Vulnerabilities": [
+          {
+            "Title": "golang: net/http: handle server errors after sending GOAWAY",
+            "Description": "In net/http in Go before 1.18.6 and 1.19.x before 1.19.1, attackers can cause a denial of service because an HTTP/2 connection can hang during closing if shutdown were preempted by a fatal error.",
+            "InstalledVersion": "v0.0.0-20211209124913-491a49abca63",
+            "FixedVersion": "0.0.0-20220906165146-f3363e06e74c",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27664",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:7129",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-27664.json",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-32189.json",
+              "https://access.redhat.com/security/cve/CVE-2022-27664",
+              "https://bugzilla.redhat.com/1913333",
+              "https://bugzilla.redhat.com/1913338",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2113814",
+              "https://bugzilla.redhat.com/2124669",
+              "https://errata.almalinux.org/8/ALSA-2022-7129.html",
+              "https://go.dev/cl/428735",
+              "https://go.dev/issue/54658",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s/m/0tgO0pjiBQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27664.html",
+              "https://linux.oracle.com/errata/ELSA-2022-7129.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JXKTHIGE5F576MAPFYCIJXNRGBSPISUF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TXS2OQ57KZC5XZKK5UW4SYKPVQAHIOJX/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27664",
+              "https://pkg.go.dev/vuln/GO-2022-0969",
+              "https://security.gentoo.org/glsa/202209-26",
+              "https://security.netapp.com/advisory/ntap-20220923-0004/"
+            ]
+          },
+          {
+            "Title": "golang: syscall: faccessat checks wrong group",
+            "Description": "Go before 1.17.10 and 1.18.x before 1.18.2 has Incorrect Privilege Assignment. When called with a non-zero flags parameter, the Faccessat function could incorrectly report that a file is accessible.",
+            "InstalledVersion": "v0.0.0-20210616094352-59db8d763f22",
+            "FixedVersion": "0.0.0-20220412211240-33da011f77ad",
+            "PkgName": "golang.org/x/sys",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2022-29526",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-29526",
+              "https://github.com/golang/go/issues/52313",
+              "https://go.dev/cl/399539",
+              "https://go.dev/cl/400074",
+              "https://go.dev/issue/52313",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/Y5qrqw_lWdU",
+              "https://linux.oracle.com/cve/CVE-2022-29526.html",
+              "https://linux.oracle.com/errata/ELSA-2022-5337.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Q6GE5EQGE4L2KRVGW4T75QVIYAXCLO5X/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/RQXU752ALW53OJAF5MG3WMR5CCZVLWW6/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Z55VUVGO7E5PJFXIOVAY373NZRHBNCI5/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZY2SLWOQR4ZURQ7UBRZ7JIX6H6F5JHJR/",
+              "https://pkg.go.dev/vuln/GO-2022-0493",
+              "https://security.gentoo.org/glsa/202208-02",
+              "https://security.netapp.com/advisory/ntap-20220729-0001/"
+            ]
+          },
+          {
+            "Title": "golang: out-of-bounds read in golang.org/x/text/language leads to DoS",
+            "Description": "A flaw was found in golang. The language package for go language can panic due to an out-of-bounds read when an incorrectly formatted language tag is being parsed. This flaw allows an attacker to cause applications using this package to parse untrusted input data to crash, leading to a denial of service of the affected component.",
+            "InstalledVersion": "v0.3.6",
+            "FixedVersion": "0.3.7",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2021-38561",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2021-38561",
+              "https://go.dev/cl/340830",
+              "https://go.googlesource.com/text/+/383b2e75a7a4198c42f8f87833eefb772868a56f",
+              "https://pkg.go.dev/vuln/GO-2021-0113"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.6",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.6",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "registry.k8s.io/ingress-nginx/controller@sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974@sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974",
+    "Name": "registry.k8s.io/ingress-nginx/controller@sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974",
+    "OSArch": "linux/amd64",
+    "PullRef": "registry.k8s.io/ingress-nginx/controller@sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974",
+    "OwnerKind": "Deployment",
+    "OwnerName": "ingress-nginx-controller",
+    "OwnerContainer": "controller",
+    "Namespace": "ingress-nginx",
+    "Report": [
+      {
+        "Target": "./output/tmp/registry_k8s_io_ingress_nginx_controller_sha256_54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974 (alpine 3.16.2)",
+        "Vulnerabilities": [
+          {
+            "Title": "curl: HTTP proxy double-free",
+            "Description": "curl before 7.86.0 has a double free. If curl is told to use an HTTP proxy for a transfer with a non-HTTP(S) URL, it sets up the connection to the remote server by issuing a CONNECT request to the proxy, and then tunnels the rest of the protocol through. An HTTP proxy might refuse this request (HTTP proxies often only allow outgoing connections to specific port numbers, like 443 for HTTPS) and instead return a non-200 status code to the client. Due to flaws in the error/cleanup handling, this could trigger a double free in curl if one of the following schemes were used in the URL for the transfer: dict, gopher, gophers, ldap, ldaps, rtmp, rtmps, or telnet. The earliest affected version is 7.77.0.",
+            "InstalledVersion": "7.83.1-r3",
+            "FixedVersion": "7.83.1-r4",
+            "PkgName": "curl",
+            "Severity": "CRITICAL",
+            "VulnerabilityID": "CVE-2022-42915",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-42915",
+              "https://curl.se/docs/CVE-2022-42915.html",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-42915",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/37YEVVC6NAF6H7UHH6YAUY5QEVY6LIH2/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HVU3IMZCKR4VE6KJ4GCWRL2ILLC6OV76/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Q27V5YYMXUVI6PRZQVECON32XPVWTKDK/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-42915",
+              "https://ubuntu.com/security/notices/USN-5702-1"
+            ]
+          },
+          {
+            "Title": "curl: HSTS bypass via IDN",
+            "Description": "In curl before 7.86.0, the HSTS check could be bypassed to trick it into staying with HTTP. Using its HSTS support, curl can be instructed to use HTTPS directly (instead of using an insecure cleartext HTTP step) even when HTTP is provided in the URL. This mechanism could be bypassed if the host name in the given URL uses IDN characters that get replaced with ASCII counterparts as part of the IDN conversion, e.g., using the character UTF-8 U+3002 (IDEOGRAPHIC FULL STOP) instead of the common ASCII full stop of U+002E (.). The earliest affected version is 7.77.0 2021-05-26.",
+            "InstalledVersion": "7.83.1-r3",
+            "FixedVersion": "7.83.1-r4",
+            "PkgName": "curl",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-42916",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-42916",
+              "https://curl.se/docs/CVE-2022-42916.html",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-42916",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/37YEVVC6NAF6H7UHH6YAUY5QEVY6LIH2/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HVU3IMZCKR4VE6KJ4GCWRL2ILLC6OV76/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Q27V5YYMXUVI6PRZQVECON32XPVWTKDK/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-42916",
+              "https://ubuntu.com/security/notices/USN-5702-1"
+            ]
+          },
+          {
+            "Title": "curl: POST following PUT confusion",
+            "Description": "A vulnerability was found in curl. The issue occurs when doing HTTP(S) transfers, where curl might erroneously use the read callback (`CURLOPT_READFUNCTION`) to ask for data to send, even when the `CURLOPT_POSTFIELDS` option has been set if it previously used the same handle to issue a `PUT` request which used that callback. This flaw may surprise the application and cause it to misbehave and either send off the wrong data or use memory after free or similar in the subsequent `POST` request.",
+            "InstalledVersion": "7.83.1-r3",
+            "FixedVersion": "7.83.1-r4",
+            "PkgName": "curl",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2022-32221",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32221",
+              "https://curl.se/docs/CVE-2022-32221.html",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-32221",
+              "https://ubuntu.com/security/notices/USN-5702-1",
+              "https://ubuntu.com/security/notices/USN-5702-2"
+            ]
+          },
+          {
+            "Title": "curl: HTTP proxy double-free",
+            "Description": "curl before 7.86.0 has a double free. If curl is told to use an HTTP proxy for a transfer with a non-HTTP(S) URL, it sets up the connection to the remote server by issuing a CONNECT request to the proxy, and then tunnels the rest of the protocol through. An HTTP proxy might refuse this request (HTTP proxies often only allow outgoing connections to specific port numbers, like 443 for HTTPS) and instead return a non-200 status code to the client. Due to flaws in the error/cleanup handling, this could trigger a double free in curl if one of the following schemes were used in the URL for the transfer: dict, gopher, gophers, ldap, ldaps, rtmp, rtmps, or telnet. The earliest affected version is 7.77.0.",
+            "InstalledVersion": "7.83.1-r3",
+            "FixedVersion": "7.83.1-r4",
+            "PkgName": "libcurl",
+            "Severity": "CRITICAL",
+            "VulnerabilityID": "CVE-2022-42915",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-42915",
+              "https://curl.se/docs/CVE-2022-42915.html",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-42915",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/37YEVVC6NAF6H7UHH6YAUY5QEVY6LIH2/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HVU3IMZCKR4VE6KJ4GCWRL2ILLC6OV76/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Q27V5YYMXUVI6PRZQVECON32XPVWTKDK/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-42915",
+              "https://ubuntu.com/security/notices/USN-5702-1"
+            ]
+          },
+          {
+            "Title": "curl: HSTS bypass via IDN",
+            "Description": "In curl before 7.86.0, the HSTS check could be bypassed to trick it into staying with HTTP. Using its HSTS support, curl can be instructed to use HTTPS directly (instead of using an insecure cleartext HTTP step) even when HTTP is provided in the URL. This mechanism could be bypassed if the host name in the given URL uses IDN characters that get replaced with ASCII counterparts as part of the IDN conversion, e.g., using the character UTF-8 U+3002 (IDEOGRAPHIC FULL STOP) instead of the common ASCII full stop of U+002E (.). The earliest affected version is 7.77.0 2021-05-26.",
+            "InstalledVersion": "7.83.1-r3",
+            "FixedVersion": "7.83.1-r4",
+            "PkgName": "libcurl",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-42916",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-42916",
+              "https://curl.se/docs/CVE-2022-42916.html",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-42916",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/37YEVVC6NAF6H7UHH6YAUY5QEVY6LIH2/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HVU3IMZCKR4VE6KJ4GCWRL2ILLC6OV76/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Q27V5YYMXUVI6PRZQVECON32XPVWTKDK/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-42916",
+              "https://ubuntu.com/security/notices/USN-5702-1"
+            ]
+          },
+          {
+            "Title": "curl: POST following PUT confusion",
+            "Description": "A vulnerability was found in curl. The issue occurs when doing HTTP(S) transfers, where curl might erroneously use the read callback (`CURLOPT_READFUNCTION`) to ask for data to send, even when the `CURLOPT_POSTFIELDS` option has been set if it previously used the same handle to issue a `PUT` request which used that callback. This flaw may surprise the application and cause it to misbehave and either send off the wrong data or use memory after free or similar in the subsequent `POST` request.",
+            "InstalledVersion": "7.83.1-r3",
+            "FixedVersion": "7.83.1-r4",
+            "PkgName": "libcurl",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2022-32221",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32221",
+              "https://curl.se/docs/CVE-2022-32221.html",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-32221",
+              "https://ubuntu.com/security/notices/USN-5702-1",
+              "https://ubuntu.com/security/notices/USN-5702-2"
+            ]
+          },
+          {
+            "Title": "libxml2: integer overflows with XML_PARSE_HUGE",
+            "Description": "An issue was discovered in libxml2 before 2.10.3. When parsing a multi-gigabyte XML document with the XML_PARSE_HUGE parser option enabled, several integer counters can overflow. This results in an attempt to access an array at a negative 2GB offset, typically leading to a segmentation fault.",
+            "InstalledVersion": "2.9.14-r1",
+            "FixedVersion": "2.9.14-r2",
+            "PkgName": "libxml2",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-40303",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-40303",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-40303",
+              "https://gitlab.gnome.org/GNOME/libxml2/-/commit/c846986356fc149915a74972bf198abc266bc2c0",
+              "https://gitlab.gnome.org/GNOME/libxml2/-/tags/v2.10.3",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-40303"
+            ]
+          },
+          {
+            "Title": "libxml2: dict corruption caused by entity reference cycles",
+            "Description": "An issue was discovered in libxml2 before 2.10.3. Certain invalid XML entity definitions can corrupt a hash table key, potentially leading to subsequent logic errors. In one case, a double-free can be provoked.",
+            "InstalledVersion": "2.9.14-r1",
+            "FixedVersion": "2.9.14-r2",
+            "PkgName": "libxml2",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-40304",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-40304",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-40304",
+              "https://gitlab.gnome.org/GNOME/libxml2/-/commit/1b41ec4e9433b05bb0376be4725804c54ef1d80b",
+              "https://gitlab.gnome.org/GNOME/libxml2/-/tags",
+              "https://gitlab.gnome.org/GNOME/libxml2/-/tags/v2.10.3",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-40304"
+            ]
+          }
+        ]
+      },
+      {
+        "Target": "nginx-ingress-controller",
+        "Vulnerabilities": [
+          {
+            "Title": "golang: net/http: handle server errors after sending GOAWAY",
+            "Description": "In net/http in Go before 1.18.6 and 1.19.x before 1.19.1, attackers can cause a denial of service because an HTTP/2 connection can hang during closing if shutdown were preempted by a fatal error.",
+            "InstalledVersion": "v0.0.0-20220722155237-a158d28d115b",
+            "FixedVersion": "0.0.0-20220906165146-f3363e06e74c",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27664",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:7129",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-27664.json",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-32189.json",
+              "https://access.redhat.com/security/cve/CVE-2022-27664",
+              "https://bugzilla.redhat.com/1913333",
+              "https://bugzilla.redhat.com/1913338",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2113814",
+              "https://bugzilla.redhat.com/2124669",
+              "https://errata.almalinux.org/8/ALSA-2022-7129.html",
+              "https://go.dev/cl/428735",
+              "https://go.dev/issue/54658",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s/m/0tgO0pjiBQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27664.html",
+              "https://linux.oracle.com/errata/ELSA-2022-7129.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JXKTHIGE5F576MAPFYCIJXNRGBSPISUF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TXS2OQ57KZC5XZKK5UW4SYKPVQAHIOJX/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27664",
+              "https://pkg.go.dev/vuln/GO-2022-0969",
+              "https://security.gentoo.org/glsa/202209-26",
+              "https://security.netapp.com/advisory/ntap-20220923-0004/"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "quay.io/fairwinds/insights-uploader:0.4@sha256:5527b17293f8949fbedb72aa5d3e10c1fe3ba145140229758cfb1f862a0c3e91",
+    "Name": "quay.io/fairwinds/insights-uploader:0.4",
+    "OSArch": "linux/amd64",
+    "PullRef": "quay.io/fairwinds/insights-uploader@sha256:5527b17293f8949fbedb72aa5d3e10c1fe3ba145140229758cfb1f862a0c3e91",
+    "OwnerKind": "CronJob",
+    "OwnerName": "trivy",
+    "OwnerContainer": "insights-uploader",
+    "Namespace": "insights-agent",
+    "Report": [
+      {
+        "Target": "./output/tmp/quay_io_fairwinds_insights_uploader_sha256_5527b17293f8949fbedb72aa5d3e10c1fe3ba145140229758cfb1f862a0c3e91 (alpine 3.16.3)",
+        "Vulnerabilities": null
+      },
+      {
+        "Target": "usr/local/bin/kubectl",
+        "Vulnerabilities": [
+          {
+            "Title": "golang: net/http: handle server errors after sending GOAWAY",
+            "Description": "In net/http in Go before 1.18.6 and 1.19.x before 1.19.1, attackers can cause a denial of service because an HTTP/2 connection can hang during closing if shutdown were preempted by a fatal error.",
+            "InstalledVersion": "v0.0.0-20220722155237-a158d28d115b",
+            "FixedVersion": "0.0.0-20220906165146-f3363e06e74c",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27664",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:7129",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-27664.json",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-32189.json",
+              "https://access.redhat.com/security/cve/CVE-2022-27664",
+              "https://bugzilla.redhat.com/1913333",
+              "https://bugzilla.redhat.com/1913338",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2113814",
+              "https://bugzilla.redhat.com/2124669",
+              "https://errata.almalinux.org/8/ALSA-2022-7129.html",
+              "https://go.dev/cl/428735",
+              "https://go.dev/issue/54658",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s/m/0tgO0pjiBQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27664.html",
+              "https://linux.oracle.com/errata/ELSA-2022-7129.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JXKTHIGE5F576MAPFYCIJXNRGBSPISUF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TXS2OQ57KZC5XZKK5UW4SYKPVQAHIOJX/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27664",
+              "https://pkg.go.dev/vuln/GO-2022-0969",
+              "https://security.gentoo.org/glsa/202209-26",
+              "https://security.netapp.com/advisory/ntap-20220923-0004/"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "quay.io/fairwinds/insights-uploader:0.4@sha256:702ad99d8dda3577617885a0875b50e53d0b15703edbac3b55b32112dc1715e8",
+    "Name": "quay.io/fairwinds/insights-uploader:0.4",
+    "OSArch": "linux/amd64",
+    "PullRef": "quay.io/fairwinds/insights-uploader@sha256:702ad99d8dda3577617885a0875b50e53d0b15703edbac3b55b32112dc1715e8",
+    "OwnerKind": "CronJob",
+    "OwnerName": "trivy",
+    "OwnerContainer": "insights-uploader",
+    "Namespace": "insights-agent",
+    "Report": [
+      {
+        "Target": "./output/tmp/quay_io_fairwinds_insights_uploader_sha256_702ad99d8dda3577617885a0875b50e53d0b15703edbac3b55b32112dc1715e8 (alpine 3.16.3)",
+        "Vulnerabilities": null
+      },
+      {
+        "Target": "usr/local/bin/kubectl",
+        "Vulnerabilities": [
+          {
+            "Title": "golang: net/http: handle server errors after sending GOAWAY",
+            "Description": "In net/http in Go before 1.18.6 and 1.19.x before 1.19.1, attackers can cause a denial of service because an HTTP/2 connection can hang during closing if shutdown were preempted by a fatal error.",
+            "InstalledVersion": "v0.0.0-20220722155237-a158d28d115b",
+            "FixedVersion": "0.0.0-20220906165146-f3363e06e74c",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27664",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:7129",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-27664.json",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-32189.json",
+              "https://access.redhat.com/security/cve/CVE-2022-27664",
+              "https://bugzilla.redhat.com/1913333",
+              "https://bugzilla.redhat.com/1913338",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2113814",
+              "https://bugzilla.redhat.com/2124669",
+              "https://errata.almalinux.org/8/ALSA-2022-7129.html",
+              "https://go.dev/cl/428735",
+              "https://go.dev/issue/54658",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s/m/0tgO0pjiBQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27664.html",
+              "https://linux.oracle.com/errata/ELSA-2022-7129.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JXKTHIGE5F576MAPFYCIJXNRGBSPISUF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TXS2OQ57KZC5XZKK5UW4SYKPVQAHIOJX/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27664",
+              "https://pkg.go.dev/vuln/GO-2022-0969",
+              "https://security.gentoo.org/glsa/202209-26",
+              "https://security.netapp.com/advisory/ntap-20220923-0004/"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "quay.io/jetstack/cert-manager-controller:v1.10.0@sha256:bdacfee1ec9bc2b93d46eeb9cac3abc842813b60ba522848c551cb846384c367",
+    "Name": "quay.io/jetstack/cert-manager-controller:v1.10.0",
+    "OSArch": "linux/amd64",
+    "PullRef": "quay.io/jetstack/cert-manager-controller@sha256:bdacfee1ec9bc2b93d46eeb9cac3abc842813b60ba522848c551cb846384c367",
+    "OwnerKind": "Deployment",
+    "OwnerName": "cert-manager",
+    "OwnerContainer": "cert-manager-controller",
+    "Namespace": "cert-manager",
+    "Report": [
+      {
+        "Target": "./output/tmp/quay_io_jetstack_cert_manager_controller_sha256_bdacfee1ec9bc2b93d46eeb9cac3abc842813b60ba522848c551cb846384c367 (debian 11.5)",
+        "Vulnerabilities": null
+      },
+      {
+        "Target": "app/cmd/controller/controller",
+        "Vulnerabilities": [
+          {
+            "Title": "aws/aws-sdk-go: CBC padding oracle issue in AWS S3 Crypto SDK for golang",
+            "Description": "A padding oracle vulnerability exists in the AWS S3 Crypto SDK for GoLang versions prior to V2. The SDK allows users to encrypt files with AES-CBC without computing a Message Authentication Code (MAC), which then allows an attacker who has write access to the target's S3 bucket and can observe whether or not an endpoint with access to the key can decrypt a file, they can reconstruct the plaintext with (on average) 128*length (plaintext) queries to the endpoint, by exploiting CBC's ability to manipulate the bytes of the next block and PKCS5 padding errors. It is recommended to update your SDK to V2 or later, and re-encrypt your files.",
+            "InstalledVersion": "v1.44.105",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2020-8911",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-8911",
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1869800",
+              "https://github.com/advisories/GHSA-f5pg-7wfw-84q9",
+              "https://github.com/aws/aws-sdk-go/commit/1e84382fa1c0086362b5a4b68e068d4f8518d40e",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://github.com/google/security-research/security/advisories/GHSA-f5pg-7wfw-84q9",
+              "https://github.com/sophieschmieg/exploits/tree/master/aws_s3_crypto_poc",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-8911",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "aws-sdk-go: In-band key negotiation issue in AWS S3 Crypto SDK for golang",
+            "Description": "A vulnerability in the in-band key negotiation exists in the AWS S3 Crypto SDK for GoLang versions prior to V2. An attacker with write access to the targeted bucket can change the encryption algorithm of an object in the bucket, which can then allow them to change AES-GCM to AES-CTR. Using this in combination with a decryption oracle can reveal the authentication key used by AES-GCM as decrypting the GMAC tag leaves the authentication key recoverable as an algebraic equation. It is recommended to update your SDK to V2 or later, and re-encrypt your files.",
+            "InstalledVersion": "v1.44.105",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "LOW",
+            "VulnerabilityID": "CVE-2020-8912",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-8912",
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1869801",
+              "https://github.com/advisories/GHSA-7f33-f4f5-xwgw",
+              "https://github.com/aws/aws-sdk-go/commit/1e84382fa1c0086362b5a4b68e068d4f8518d40e",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://github.com/google/security-research/security/advisories/GHSA-7f33-f4f5-xwgw",
+              "https://github.com/sophieschmieg/exploits/tree/master/aws_s3_crypto_poc",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-8912",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "The Go AWS S3 Crypto SDK contains vulnerabilities that can permit an attacker with write access to a bucket to decrypt files in that bucket.\n\nFiles encrypted by the V1 EncryptionClient using either the AES-CBC content cipher or the KMS key wrap algorithm are vulnerable. Users should migrate to the V1 EncryptionClientV2 API, which will not create vulnerable files. Old files will remain vulnerable until reencrypted with the new client.",
+            "InstalledVersion": "v1.44.105",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-7f33-f4f5-xwgw",
+            "References": [
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "The Go AWS S3 Crypto SDK contains vulnerabilities that can permit an attacker with write access to a bucket to decrypt files in that bucket.\n\nFiles encrypted by the V1 EncryptionClient using either the AES-CBC content cipher or the KMS key wrap algorithm are vulnerable. Users should migrate to the V1 EncryptionClientV2 API, which will not create vulnerable files. Old files will remain vulnerable until reencrypted with the new client.",
+            "InstalledVersion": "v1.44.105",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-f5pg-7wfw-84q9",
+            "References": [
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "quay.io/jetstack/cert-manager-cainjector:v1.10.0@sha256:a19dc8e0044e291e8a474e8da20740c4a09770d0011be4cfe001245b9790a87c",
+    "Name": "quay.io/jetstack/cert-manager-cainjector:v1.10.0",
+    "OSArch": "linux/amd64",
+    "PullRef": "quay.io/jetstack/cert-manager-cainjector@sha256:a19dc8e0044e291e8a474e8da20740c4a09770d0011be4cfe001245b9790a87c",
+    "OwnerKind": "Deployment",
+    "OwnerName": "cert-manager-cainjector",
+    "OwnerContainer": "cert-manager-cainjector",
+    "Namespace": "cert-manager",
+    "Report": [
+      {
+        "Target": "./output/tmp/quay_io_jetstack_cert_manager_cainjector_sha256_a19dc8e0044e291e8a474e8da20740c4a09770d0011be4cfe001245b9790a87c (debian 11.5)",
+        "Vulnerabilities": null
+      },
+      {
+        "Target": "app/cmd/cainjector/cainjector",
+        "Vulnerabilities": [
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "quay.io/jetstack/cert-manager-webhook:v1.10.0@sha256:2ab7b1370983e99550ae3d7ea5f1c357b5a5f6910a608ac5e441ae727ab3f4ea",
+    "Name": "quay.io/jetstack/cert-manager-webhook:v1.10.0",
+    "OSArch": "linux/amd64",
+    "PullRef": "quay.io/jetstack/cert-manager-webhook@sha256:2ab7b1370983e99550ae3d7ea5f1c357b5a5f6910a608ac5e441ae727ab3f4ea",
+    "OwnerKind": "Deployment",
+    "OwnerName": "cert-manager-webhook",
+    "OwnerContainer": "cert-manager-webhook",
+    "Namespace": "cert-manager",
+    "Report": [
+      {
+        "Target": "./output/tmp/quay_io_jetstack_cert_manager_webhook_sha256_2ab7b1370983e99550ae3d7ea5f1c357b5a5f6910a608ac5e441ae727ab3f4ea (debian 11.5)",
+        "Vulnerabilities": null
+      },
+      {
+        "Target": "app/cmd/webhook/webhook",
+        "Vulnerabilities": [
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "quay.io/fairwinds/fw-trivy:0.22@sha256:beef3733ea81ab94e5f06a70fed73e0020e134d4ff85f4f5d9dee4135c1f4cbb",
+    "Name": "quay.io/fairwinds/fw-trivy:0.22",
+    "OSArch": "linux/amd64",
+    "PullRef": "quay.io/fairwinds/fw-trivy@sha256:beef3733ea81ab94e5f06a70fed73e0020e134d4ff85f4f5d9dee4135c1f4cbb",
+    "OwnerKind": "CronJob",
+    "OwnerName": "trivy",
+    "OwnerContainer": "trivy",
+    "Namespace": "insights-agent",
+    "Report": [
+      {
+        "Target": "./output/tmp/quay_io_fairwinds_fw_trivy_sha256_beef3733ea81ab94e5f06a70fed73e0020e134d4ff85f4f5d9dee4135c1f4cbb (alpine 3.16.2)",
+        "Vulnerabilities": null
+      },
+      {
+        "Target": "usr/local/bin/kubectl",
+        "Vulnerabilities": [
+          {
+            "Title": "golang: net/http: handle server errors after sending GOAWAY",
+            "Description": "In net/http in Go before 1.18.6 and 1.19.x before 1.19.1, attackers can cause a denial of service because an HTTP/2 connection can hang during closing if shutdown were preempted by a fatal error.",
+            "InstalledVersion": "v0.0.0-20220722155237-a158d28d115b",
+            "FixedVersion": "0.0.0-20220906165146-f3363e06e74c",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27664",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:7129",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-27664.json",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-32189.json",
+              "https://access.redhat.com/security/cve/CVE-2022-27664",
+              "https://bugzilla.redhat.com/1913333",
+              "https://bugzilla.redhat.com/1913338",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2113814",
+              "https://bugzilla.redhat.com/2124669",
+              "https://errata.almalinux.org/8/ALSA-2022-7129.html",
+              "https://go.dev/cl/428735",
+              "https://go.dev/issue/54658",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s/m/0tgO0pjiBQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27664.html",
+              "https://linux.oracle.com/errata/ELSA-2022-7129.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JXKTHIGE5F576MAPFYCIJXNRGBSPISUF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TXS2OQ57KZC5XZKK5UW4SYKPVQAHIOJX/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27664",
+              "https://pkg.go.dev/vuln/GO-2022-0969",
+              "https://security.gentoo.org/glsa/202209-26",
+              "https://security.netapp.com/advisory/ntap-20220923-0004/"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          }
+        ]
+      },
+      {
+        "Target": "usr/local/bin/trivy",
+        "Vulnerabilities": [
+          {
+            "Title": "aws/aws-sdk-go: CBC padding oracle issue in AWS S3 Crypto SDK for golang",
+            "Description": "A padding oracle vulnerability exists in the AWS S3 Crypto SDK for GoLang versions prior to V2. The SDK allows users to encrypt files with AES-CBC without computing a Message Authentication Code (MAC), which then allows an attacker who has write access to the target's S3 bucket and can observe whether or not an endpoint with access to the key can decrypt a file, they can reconstruct the plaintext with (on average) 128*length (plaintext) queries to the endpoint, by exploiting CBC's ability to manipulate the bytes of the next block and PKCS5 padding errors. It is recommended to update your SDK to V2 or later, and re-encrypt your files.",
+            "InstalledVersion": "v1.44.46",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2020-8911",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-8911",
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1869800",
+              "https://github.com/advisories/GHSA-f5pg-7wfw-84q9",
+              "https://github.com/aws/aws-sdk-go/commit/1e84382fa1c0086362b5a4b68e068d4f8518d40e",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://github.com/google/security-research/security/advisories/GHSA-f5pg-7wfw-84q9",
+              "https://github.com/sophieschmieg/exploits/tree/master/aws_s3_crypto_poc",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-8911",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "aws-sdk-go: In-band key negotiation issue in AWS S3 Crypto SDK for golang",
+            "Description": "A vulnerability in the in-band key negotiation exists in the AWS S3 Crypto SDK for GoLang versions prior to V2. An attacker with write access to the targeted bucket can change the encryption algorithm of an object in the bucket, which can then allow them to change AES-GCM to AES-CTR. Using this in combination with a decryption oracle can reveal the authentication key used by AES-GCM as decrypting the GMAC tag leaves the authentication key recoverable as an algebraic equation. It is recommended to update your SDK to V2 or later, and re-encrypt your files.",
+            "InstalledVersion": "v1.44.46",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "LOW",
+            "VulnerabilityID": "CVE-2020-8912",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-8912",
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1869801",
+              "https://github.com/advisories/GHSA-7f33-f4f5-xwgw",
+              "https://github.com/aws/aws-sdk-go/commit/1e84382fa1c0086362b5a4b68e068d4f8518d40e",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://github.com/google/security-research/security/advisories/GHSA-7f33-f4f5-xwgw",
+              "https://github.com/sophieschmieg/exploits/tree/master/aws_s3_crypto_poc",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-8912",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "The Go AWS S3 Crypto SDK contains vulnerabilities that can permit an attacker with write access to a bucket to decrypt files in that bucket.\n\nFiles encrypted by the V1 EncryptionClient using either the AES-CBC content cipher or the KMS key wrap algorithm are vulnerable. Users should migrate to the V1 EncryptionClientV2 API, which will not create vulnerable files. Old files will remain vulnerable until reencrypted with the new client.",
+            "InstalledVersion": "v1.44.46",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-7f33-f4f5-xwgw",
+            "References": [
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "The Go AWS S3 Crypto SDK contains vulnerabilities that can permit an attacker with write access to a bucket to decrypt files in that bucket.\n\nFiles encrypted by the V1 EncryptionClient using either the AES-CBC content cipher or the KMS key wrap algorithm are vulnerable. Users should migrate to the V1 EncryptionClientV2 API, which will not create vulnerable files. Old files will remain vulnerable until reencrypted with the new client.",
+            "InstalledVersion": "v1.44.46",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-f5pg-7wfw-84q9",
+            "References": [
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "open-policy-agent: Compiler Bypass of WithUnsafeBuiltins using \"with\" keyword to mock functions",
+            "Description": "Open Policy Agent (OPA) is an open source, general-purpose policy engine. The Rego compiler provides a (deprecated) `WithUnsafeBuiltins` function, which allows users to provide a set of built-in functions that should be deemed unsafe â€” and as such rejected â€” by the compiler if encountered in the policy compilation stage. A bypass of this protection has been found, where the use of the `with` keyword to mock such a built-in function (a feature introduced in OPA v0.40.0), isnâ€™t taken into account by `WithUnsafeBuiltins`. Multiple conditions need to be met in order to create an adverse effect. Version 0.43.1 contains a patch for this issue. As a workaround, avoid using the `WithUnsafeBuiltins` function and use the `capabilities` feature instead.",
+            "InstalledVersion": "v0.42.0",
+            "FixedVersion": "0.44.0",
+            "PkgName": "github.com/open-policy-agent/opa",
+            "Severity": "CRITICAL",
+            "VulnerabilityID": "CVE-2022-36085",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-36085",
+              "https://github.com/advisories/GHSA-f524-rf33-2jjr",
+              "https://github.com/open-policy-agent/opa/commit/25a597bc3f4985162e7f65f9c36599f4f8f55823",
+              "https://github.com/open-policy-agent/opa/commit/3e8c754ed007b22393cf65e48751ad9f6457fee8",
+              "https://github.com/open-policy-agent/opa/pull/4540",
+              "https://github.com/open-policy-agent/opa/pull/4616",
+              "https://github.com/open-policy-agent/opa/releases/tag/v0.43.1",
+              "https://github.com/open-policy-agent/opa/security/advisories/GHSA-f524-rf33-2jjr",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-36085",
+              "https://pkg.go.dev/vuln/GO-2022-0978"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "Open Policy Agent (OPA) is an open source, general-purpose policy engine. The Rego compiler provides a (deprecated) `WithUnsafeBuiltins` function, which allows users to provide a set of built-in functions that should be deemed unsafe and rejected by the compiler if encountered in the policy compilation stage.\n\nA bypass of this protection is possible when using the `with` keyword to mock a built-in function that isn't taken into account by `WithUnsafeBuiltins`.",
+            "InstalledVersion": "v0.42.0",
+            "FixedVersion": "0.44.0",
+            "PkgName": "github.com/open-policy-agent/opa",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-f524-rf33-2jjr",
+            "References": [
+              "https://github.com/open-policy-agent/opa/commit/25a597bc3f4985162e7f65f9c36599f4f8f55823",
+              "https://github.com/open-policy-agent/opa/commit/3e8c754ed007b22393cf65e48751ad9f6457fee8",
+              "https://github.com/open-policy-agent/opa/pull/4540",
+              "https://github.com/open-policy-agent/opa/pull/4616",
+              "https://github.com/open-policy-agent/opa/releases/tag/v0.43.1",
+              "https://github.com/open-policy-agent/opa/security/advisories/GHSA-f524-rf33-2jjr",
+              "https://pkg.go.dev/vuln/GO-2022-0978"
+            ]
+          },
+          {
+            "Title": "golang: net/http: handle server errors after sending GOAWAY",
+            "Description": "In net/http in Go before 1.18.6 and 1.19.x before 1.19.1, attackers can cause a denial of service because an HTTP/2 connection can hang during closing if shutdown were preempted by a fatal error.",
+            "InstalledVersion": "v0.0.0-20220624214902-1bab6f366d9e",
+            "FixedVersion": "0.0.0-20220906165146-f3363e06e74c",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27664",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:7129",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-27664.json",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-32189.json",
+              "https://access.redhat.com/security/cve/CVE-2022-27664",
+              "https://bugzilla.redhat.com/1913333",
+              "https://bugzilla.redhat.com/1913338",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2113814",
+              "https://bugzilla.redhat.com/2124669",
+              "https://errata.almalinux.org/8/ALSA-2022-7129.html",
+              "https://go.dev/cl/428735",
+              "https://go.dev/issue/54658",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s/m/0tgO0pjiBQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27664.html",
+              "https://linux.oracle.com/errata/ELSA-2022-7129.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JXKTHIGE5F576MAPFYCIJXNRGBSPISUF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TXS2OQ57KZC5XZKK5UW4SYKPVQAHIOJX/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27664",
+              "https://pkg.go.dev/vuln/GO-2022-0969",
+              "https://security.gentoo.org/glsa/202209-26",
+              "https://security.netapp.com/advisory/ntap-20220923-0004/"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.7",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "helm: memory panic",
+            "Description": "Helm is a tool for managing Charts. Charts are packages of pre-configured Kubernetes resources. Fuzz testing, provided by the CNCF, identified input to functions in the _strvals_ package that can cause an out of memory panic. The _strvals_ package contains a parser that turns strings in to Go structures. The _strvals_ package converts these strings into structures Go can work with. Some string inputs can cause array data structures to be created causing an out of memory panic. Applications that use the _strvals_ package in the Helm SDK to parse user supplied input can suffer a Denial of Service when that input causes a panic that cannot be recovered from. The Helm Client will panic with input to `--set`, `--set-string`, and other value setting flags that causes an out of memory panic. Helm is not a long running service so the panic will not affect future uses of the Helm client. This issue has been resolved in 3.9.4. SDK users can validate strings supplied by users won't create large arrays causing significant memory usage before passing them to the _strvals_ functions.",
+            "InstalledVersion": "v3.9.0",
+            "FixedVersion": "3.9.4",
+            "PkgName": "helm.sh/helm/v3",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2022-36055",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-36055",
+              "https://github.com/helm/helm/commit/10466e3e179cc8cad4b0bb451108d3c442c69fbc",
+              "https://github.com/helm/helm/releases/tag/v3.9.4",
+              "https://github.com/helm/helm/security/advisories/GHSA-7hfp-qfw3-5jxh",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-36055",
+              "https://pkg.go.dev/vuln/GO-2022-0962"
+            ]
+          },
+          {
+            "Title": "Denial of service through string value parsing",
+            "Description": "Applications that use the strvals package in the Helm SDK to parse user supplied input can suffer a Denial of Service when that input causes a panic that cannot be recovered from.\n\nThe strvals package contains a parser that turns strings into Go structures. For example, the Helm client has command line flags like --set, --set-string, and others that enable the user to pass in strings that are merged into the values. The strvals package converts these strings into structures Go can work with. Some string inputs can cause array data structures to be created causing an out of memory panic.\n\nThe Helm Client will panic with input to --set, --set-string, and other value setting flags that causes an out of memory panic. Helm is not a long running service so the panic will not affect future uses of the Helm client.",
+            "InstalledVersion": "v3.9.0",
+            "FixedVersion": "3.9.4",
+            "PkgName": "helm.sh/helm/v3",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-7hfp-qfw3-5jxh",
+            "References": [
+              "https://github.com/advisories/GHSA-7hfp-qfw3-5jxh",
+              "https://github.com/helm/helm/commit/10466e3e179cc8cad4b0bb451108d3c442c69fbc",
+              "https://github.com/helm/helm/releases/tag/v3.9.4",
+              "https://github.com/helm/helm/security/advisories/GHSA-7hfp-qfw3-5jxh",
+              "https://pkg.go.dev/vuln/GO-2022-0962"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "quay.io/fairwinds/workloads:2.3@sha256:6b1148b3f06445c2bebcaa80755b5f860ad433496dd973c4a048c4f180074da7",
+    "Name": "quay.io/fairwinds/workloads:2.3",
+    "OSArch": "linux/amd64",
+    "PullRef": "quay.io/fairwinds/workloads@sha256:6b1148b3f06445c2bebcaa80755b5f860ad433496dd973c4a048c4f180074da7",
+    "OwnerKind": "CronJob",
+    "OwnerName": "workloads",
+    "OwnerContainer": "workloads",
+    "Namespace": "insights-agent",
+    "Report": [
+      {
+        "Target": "./output/tmp/quay_io_fairwinds_workloads_sha256_6b1148b3f06445c2bebcaa80755b5f860ad433496dd973c4a048c4f180074da7 (alpine 3.16.3)",
+        "Vulnerabilities": null
+      }
+    ],
+    "RecommendationOnly": false
+  },
+  {
+    "ID": "k8s.gcr.io/coredns/coredns:v1.8.0@sha256:1a1f05a2cd7c2fbfa7b45b21128c8a4880c003ca482460081dc12d76bfa863e8",
+    "Name": "k8s.gcr.io/coredns/coredns:v1.8.0",
+    "OSArch": "linux/amd64",
+    "PullRef": "k8s.gcr.io/coredns/coredns:v1.8.0",
+    "OwnerKind": "Deployment",
+    "OwnerName": "coredns",
+    "OwnerContainer": "coredns",
+    "Namespace": "kube-system",
+    "Report": [
+      {
+        "Target": "coredns",
+        "Vulnerabilities": [
+          {
+            "Title": "aws/aws-sdk-go: CBC padding oracle issue in AWS S3 Crypto SDK for golang",
+            "Description": "A padding oracle vulnerability exists in the AWS S3 Crypto SDK for GoLang versions prior to V2. The SDK allows users to encrypt files with AES-CBC without computing a Message Authentication Code (MAC), which then allows an attacker who has write access to the target's S3 bucket and can observe whether or not an endpoint with access to the key can decrypt a file, they can reconstruct the plaintext with (on average) 128*length (plaintext) queries to the endpoint, by exploiting CBC's ability to manipulate the bytes of the next block and PKCS5 padding errors. It is recommended to update your SDK to V2 or later, and re-encrypt your files.",
+            "InstalledVersion": "v1.35.9",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2020-8911",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-8911",
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1869800",
+              "https://github.com/advisories/GHSA-f5pg-7wfw-84q9",
+              "https://github.com/aws/aws-sdk-go/commit/1e84382fa1c0086362b5a4b68e068d4f8518d40e",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://github.com/google/security-research/security/advisories/GHSA-f5pg-7wfw-84q9",
+              "https://github.com/sophieschmieg/exploits/tree/master/aws_s3_crypto_poc",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-8911",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "aws-sdk-go: In-band key negotiation issue in AWS S3 Crypto SDK for golang",
+            "Description": "A vulnerability in the in-band key negotiation exists in the AWS S3 Crypto SDK for GoLang versions prior to V2. An attacker with write access to the targeted bucket can change the encryption algorithm of an object in the bucket, which can then allow them to change AES-GCM to AES-CTR. Using this in combination with a decryption oracle can reveal the authentication key used by AES-GCM as decrypting the GMAC tag leaves the authentication key recoverable as an algebraic equation. It is recommended to update your SDK to V2 or later, and re-encrypt your files.",
+            "InstalledVersion": "v1.35.9",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "LOW",
+            "VulnerabilityID": "CVE-2020-8912",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-8912",
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1869801",
+              "https://github.com/advisories/GHSA-7f33-f4f5-xwgw",
+              "https://github.com/aws/aws-sdk-go/commit/1e84382fa1c0086362b5a4b68e068d4f8518d40e",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://github.com/google/security-research/security/advisories/GHSA-7f33-f4f5-xwgw",
+              "https://github.com/sophieschmieg/exploits/tree/master/aws_s3_crypto_poc",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-8912",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "The Go AWS S3 Crypto SDK contains vulnerabilities that can permit an attacker with write access to a bucket to decrypt files in that bucket.\n\nFiles encrypted by the V1 EncryptionClient using either the AES-CBC content cipher or the KMS key wrap algorithm are vulnerable. Users should migrate to the V1 EncryptionClientV2 API, which will not create vulnerable files. Old files will remain vulnerable until reencrypted with the new client.",
+            "InstalledVersion": "v1.35.9",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-7f33-f4f5-xwgw",
+            "References": [
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "The Go AWS S3 Crypto SDK contains vulnerabilities that can permit an attacker with write access to a bucket to decrypt files in that bucket.\n\nFiles encrypted by the V1 EncryptionClient using either the AES-CBC content cipher or the KMS key wrap algorithm are vulnerable. Users should migrate to the V1 EncryptionClientV2 API, which will not create vulnerable files. Old files will remain vulnerable until reencrypted with the new client.",
+            "InstalledVersion": "v1.35.9",
+            "FixedVersion": "",
+            "PkgName": "github.com/aws/aws-sdk-go",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-f5pg-7wfw-84q9",
+            "References": [
+              "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09",
+              "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4",
+              "https://github.com/aws/aws-sdk-go/pull/3403",
+              "https://pkg.go.dev/vuln/GO-2022-0646"
+            ]
+          },
+          {
+            "Title": "gogo/protobuf: plugin/unmarshal/unmarshal.go lacks certain index validation",
+            "Description": "An issue was discovered in GoGo Protobuf before 1.3.2. plugin/unmarshal/unmarshal.go lacks certain index validation, aka the \"skippy peanut butter\" issue.",
+            "InstalledVersion": "v1.3.1",
+            "FixedVersion": "1.3.2",
+            "PkgName": "github.com/gogo/protobuf",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2021-3121",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2021-3121",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-3121",
+              "https://discuss.hashicorp.com/t/hcsec-2021-23-consul-exposed-to-denial-of-service-in-gogo-protobuf-dependency/29025",
+              "https://github.com/gogo/protobuf/commit/b03c65ea87cdc3521ede29f62fe3ce239267c1bc",
+              "https://github.com/gogo/protobuf/compare/v1.3.1...v1.3.2",
+              "https://lists.apache.org/thread.html/r68032132c0399c29d6cdc7bd44918535da54060a10a12b1591328bff@%3Cnotifications.skywalking.apache.org%3E",
+              "https://lists.apache.org/thread.html/r88d69555cb74a129a7bf84838073b61259b4a3830190e05a3b87994e@%3Ccommits.pulsar.apache.org%3E",
+              "https://lists.apache.org/thread.html/rc1e9ff22c5641d73701ba56362fb867d40ed287cca000b131dcf4a44@%3Ccommits.pulsar.apache.org%3E",
+              "https://nvd.nist.gov/vuln/detail/CVE-2021-3121",
+              "https://pkg.go.dev/vuln/GO-2021-0053",
+              "https://security.netapp.com/advisory/ntap-20210219-0006/"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "Due to improper bounds checking, maliciously crafted input to generated Unmarshal methods can cause an out-of-bounds panic. If parsing messages from untrusted parties, this may be used as a denial of service vector.",
+            "InstalledVersion": "v1.3.1",
+            "FixedVersion": "1.3.2",
+            "PkgName": "github.com/gogo/protobuf",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-c3h9-896r-86jm",
+            "References": [
+              "https://github.com/gogo/protobuf/commit/b03c65ea87cdc3521ede29f62fe3ce239267c1bc",
+              "https://pkg.go.dev/vuln/GO-2021-0053"
+            ]
+          },
+          {
+            "Title": "prometheus/client_golang: Denial of service using InstrumentHandlerCounter",
+            "Description": "client_golang is the instrumentation library for Go applications in Prometheus, and the promhttp package in client_golang provides tooling around HTTP servers and clients. In client_golang prior to version 1.11.1, HTTP server is susceptible to a Denial of Service through unbounded cardinality, and potential memory exhaustion, when handling requests with non-standard HTTP methods. In order to be affected, an instrumented software must use any of `promhttp.InstrumentHandler*` middleware except `RequestsInFlight`; not filter any specific methods (e.g GET) before middleware; pass metric with `method` label name to our middleware; and not have any firewall/LB/proxy that filters away requests with unknown `method`. client_golang version 1.11.1 contains a patch for this issue. Several workarounds are available, including removing the `method` label name from counter/gauge used in the InstrumentHandler; turning off affected promhttp handlers; adding custom middleware before promhttp handler that will sanitize the request method given by Go http.Request; and using a reverse proxy or web application firewall, configured to only allow a limited set of methods.",
+            "InstalledVersion": "v1.8.0",
+            "FixedVersion": "1.11.1",
+            "PkgName": "github.com/prometheus/client_golang",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-21698",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:8057",
+              "https://access.redhat.com/security/cve/CVE-2022-21698",
+              "https://bugzilla.redhat.com/2044628",
+              "https://bugzilla.redhat.com/2045880",
+              "https://bugzilla.redhat.com/2050648",
+              "https://bugzilla.redhat.com/2050742",
+              "https://bugzilla.redhat.com/2050743",
+              "https://bugzilla.redhat.com/2065290",
+              "https://bugzilla.redhat.com/2107342",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107376",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2107390",
+              "https://bugzilla.redhat.com/2107392",
+              "https://errata.almalinux.org/9/ALSA-2022-8057.html",
+              "https://github.com/advisories/GHSA-cg3q-j54f-5p7p",
+              "https://github.com/prometheus/client_golang/pull/962",
+              "https://github.com/prometheus/client_golang/pull/987",
+              "https://github.com/prometheus/client_golang/releases/tag/v1.11.1",
+              "https://github.com/prometheus/client_golang/security/advisories/GHSA-cg3q-j54f-5p7p",
+              "https://linux.oracle.com/cve/CVE-2022-21698.html",
+              "https://linux.oracle.com/errata/ELSA-2022-8057.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/2IK53GWZ475OQ6ENABKMJMTOBZG6LXUR/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/2PFW6Q2LXXWTFRTMTRN4ZGADFRQPKJ3D/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/36GUEPA5TPSC57DZTPYPBL6T7UPQ2FRH/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/3L6GDN5S5QZSCFKWD3GKL2RDZQ6B4UWA/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/4KDETHL5XCT6RZN2BBNOCEXRZ2W3SFU3/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/5OGNAFVXSMTTT2UPH6CS3IH6L3KM42Q7/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/7V7I72LSQ3IET3QJR6QPAVGJZ4CBDLN5/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/AK7CJBCGERCRXYUR2EWDSSDVAQMTAZGX/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DLUJZV3HBP56ADXU6QH2V7RNYUPMVBXQ/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FY3N7H6VSDZM37B4SKM2PFFCUWU7QYWN/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HLAQRRGNSO5MYCPAXGPH2OCSHOGHSQMQ/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/J5WPM42UR6XIBQNQPNQHM32X7S4LJTRX/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/KBMVIQFKQDSSTHVVJWJ4QH6TW3JVB7XZ/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/MH6ALXEQXIFQRQFNJ5Y2MJ5DFPIX76VN/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/RN7JGC2LVHPEGSJYODFUV5FEKPBVG4D7/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/SASRKYHT5ZFSVMJUQUG3UAEQRJYGJKAR/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZKORFJTRRDJCWBTJPISKKCVMMMJBIRLG/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZY2SLWOQR4ZURQ7UBRZ7JIX6H6F5JHJR/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-21698",
+              "https://pkg.go.dev/vuln/GO-2022-0322"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "The Prometheus client_golang HTTP server is vulnerable to a denial of service attack when handling requests with non-standard HTTP methods.\n\nIn order to be affected, an instrumented software must use any of the promhttp.InstrumentHandler* middleware except `RequestsInFlight`; not filter any specific methods (e.g GET) before middleware; pass a metric with a \"method\" label name to a middleware; and not have any firewall/LB/proxy that filters away requests with unknown \"method\".",
+            "InstalledVersion": "v1.8.0",
+            "FixedVersion": "1.11.1",
+            "PkgName": "github.com/prometheus/client_golang",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-cg3q-j54f-5p7p",
+            "References": ["https://pkg.go.dev/vuln/GO-2022-0322"]
+          },
+          {
+            "Title": "etcd: Cross-site request forgery via crafted local POST forms",
+            "Description": "A cross-site request forgery flaw was found in etcd 3.3.1 and earlier. An attacker can set up a website that tries to send a POST request to the etcd server and modify a key. Adding a key is done with PUT so it is theoretically safe (can't PUT from an HTML form or such) but POST allows creating in-order keys that an attacker can send.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "v3.3.2",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2018-1098",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2018-1098",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1552714",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-1098",
+              "https://github.com/advisories/GHSA-5gjm-fj42-x983",
+              "https://github.com/coreos/etcd/commit/a7e5790c82039945639798ae9a3289fe787f5e56",
+              "https://github.com/coreos/etcd/issues/9353",
+              "https://github.com/etcd-io/etcd/issues/10479",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JX7QTIT465BQGRGNCE74RATRQLKT2QE4/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/UPGYHMSKDPW5GAMI7BEP3XQRVRLLBJKS/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2018-1098"
+            ]
+          },
+          {
+            "Title": "etcd: improper validation of passwords allow an attacker to guess or brute-force user's passwords",
+            "Description": "etcd before versions 3.3.23 and 3.4.10 does not perform any password length validation, which allows for very short passwords, such as those with a length of one. This may allow an attacker to guess or brute-force users' passwords with little computational effort.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "3.3.23, 3.4.10",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2020-15115",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-15115",
+              "https://github.com/advisories/GHSA-4993-m7g5-r9hh",
+              "https://github.com/etcd-io/etcd/security/advisories/GHSA-4993-m7g5-r9hh",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/L6B6R43Y7M3DCHWK3L3UVGE2K6WWECMP/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-15115"
+            ]
+          },
+          {
+            "Title": "etcd: DNS rebinding vulnerability in etcd server",
+            "Description": "DNS rebinding vulnerability found in etcd 3.3.1 and earlier. An attacker can control his DNS records to direct to localhost, and trick the browser into sending requests to localhost (or any other address).",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "v3.3.2",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2018-1099",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2018-1099",
+              "https://bugzilla.redhat.com/show_bug.cgi?id=1552717",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-1099",
+              "https://github.com/advisories/GHSA-wf43-55jj-vwq8",
+              "https://github.com/coreos/etcd/commit/a7e5790c82039945639798ae9a3289fe787f5e56",
+              "https://github.com/coreos/etcd/issues/9353",
+              "https://github.com/etcd-io/etcd/issues/10479",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JX7QTIT465BQGRGNCE74RATRQLKT2QE4/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/UPGYHMSKDPW5GAMI7BEP3XQRVRLLBJKS/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2018-1099"
+            ]
+          },
+          {
+            "Title": "etcd: Large slice causes panic in decodeRecord method",
+            "Description": "In etcd before versions 3.3.23 and 3.4.10, a large slice causes panic in decodeRecord method. The size of a record is stored in the length field of a WAL file and no additional validation is done on this data. Therefore, it is possible to forge an extremely large frame size that can unintentionally panic at the expense of any RAFT participant trying to decode the WAL.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "0.5.0-alpha.5.0.20200423152442-f4b650b51dc4",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2020-15106",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-15106",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-15106",
+              "https://github.com/etcd-io/etcd/blob/master/security/SECURITY_AUDIT.pdf",
+              "https://github.com/etcd-io/etcd/commit/f4b650b51dc4a53a8700700dc12e1242ac56ba07",
+              "https://github.com/etcd-io/etcd/pull/11793",
+              "https://github.com/etcd-io/etcd/security/advisories/GHSA-p4g4-wgrh-qrg2",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/L6B6R43Y7M3DCHWK3L3UVGE2K6WWECMP/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-15106",
+              "https://pkg.go.dev/vuln/GO-2020-0005",
+              "https://ubuntu.com/security/notices/USN-5628-1"
+            ]
+          },
+          {
+            "Title": "etcd: DoS in wal/wal.go",
+            "Description": "In etcd before versions 3.3.23 and 3.4.10, it is possible to have an entry index greater then the number of entries in the ReadAll method in wal/wal.go. This could cause issues when WAL entries are being read during consensus as an arbitrary etcd consensus participant could go down from a runtime panic when reading the entry.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "0.5.0-alpha.5.0.20200423152442-f4b650b51dc4",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2020-15112",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-15112",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-15112",
+              "https://github.com/advisories/GHSA-m332-53r6-2w93",
+              "https://github.com/etcd-io/etcd/blob/master/security/SECURITY_AUDIT.pdf",
+              "https://github.com/etcd-io/etcd/commit/7d1cf640497cbcdfb932e619b13624112c7e3865",
+              "https://github.com/etcd-io/etcd/commit/f4b650b51dc4a53a8700700dc12e1242ac56ba07",
+              "https://github.com/etcd-io/etcd/pull/11793",
+              "https://github.com/etcd-io/etcd/security/advisories/GHSA-m332-53r6-2w93",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/L6B6R43Y7M3DCHWK3L3UVGE2K6WWECMP/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-15112",
+              "https://pkg.go.dev/vuln/GO-2020-0005",
+              "https://ubuntu.com/security/notices/USN-5628-1"
+            ]
+          },
+          {
+            "Title": "etcd user credentials are stored in WAL logs in plaintext",
+            "Description": "The etcd assumes that the on disk files are secure. The possible fixes have been provided, however, it is the responsibility of the etcd users to make sure that the etcd server WAL log files are secure.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "3.3.23, 3.4.10",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-528j-9r78-wffx",
+            "References": [
+              "https://github.com/advisories/GHSA-528j-9r78-wffx",
+              "https://github.com/etcd-io/etcd/security/advisories/GHSA-528j-9r78-wffx"
+            ]
+          },
+          {
+            "Title": "etcd having a negative value for cluster node size results in an index out-of-bound panic during service discovery",
+            "Description": "When an etcd instance attempts to perform service discovery, if a cluster size is provided as a negative value, the etcd instance will panic without recovery.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "3.3.23, 3.4.10",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-9gp7-6833-wv89",
+            "References": [
+              "https://github.com/advisories/GHSA-9gp7-6833-wv89",
+              "https://github.com/etcd-io/etcd/security/advisories/GHSA-9gp7-6833-wv89"
+            ]
+          },
+          {
+            "Title": "etcd vulnerable to TOCTOU of gateway endpoint authentication",
+            "Description": "The vulnerability was spotted due to unclear documentation of how the gateway handles endpoints validation. \n\n### Detail\nThe gateway only authenticates endpoints detected from DNS SRV records, and it only authenticates the detected endpoints once.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "3.3.23, 3.4.10",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-h8g9-6gvh-5mrc",
+            "References": [
+              "https://github.com/advisories/GHSA-h8g9-6gvh-5mrc",
+              "https://github.com/etcd-io/etcd/security/advisories/GHSA-h8g9-6gvh-5mrc"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "Malformed WALs can be constructed such that WAL.ReadAll can cause attempted out of bounds reads, or creation of arbitrarily sized slices, which may be used as a DoS vector.",
+            "InstalledVersion": "v0.5.0-alpha.5.0.20200306183522-221f0cc107cb",
+            "FixedVersion": "0.5.0-alpha.5.0.20200423152442-f4b650b51dc4",
+            "PkgName": "go.etcd.io/etcd",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-m332-53r6-2w93",
+            "References": [
+              "https://github.com/etcd-io/etcd/blob/master/security/SECURITY_AUDIT.pdf",
+              "https://github.com/etcd-io/etcd/commit/f4b650b51dc4a53a8700700dc12e1242ac56ba07",
+              "https://github.com/etcd-io/etcd/pull/11793",
+              "https://pkg.go.dev/vuln/GO-2020-0005"
+            ]
+          },
+          {
+            "Title": "golang: crypto/ssh: crafted authentication request can lead to nil pointer dereference",
+            "Description": "A nil pointer dereference in the golang.org/x/crypto/ssh component through v0.0.0-20201203163018-be400aefbc4c for Go allows remote attackers to cause a denial of service against SSH servers.",
+            "InstalledVersion": "v0.0.0-20201002170205-7f63de1d35b0",
+            "FixedVersion": "0.0.0-20201216223049-8b5274cf687f",
+            "PkgName": "golang.org/x/crypto",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2020-29652",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-29652",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2020-29652",
+              "https://errata.almalinux.org/8/ALSA-2021-1796.html",
+              "https://go-review.googlesource.com/c/crypto/+/278852",
+              "https://go.dev/cl/278852",
+              "https://go.googlesource.com/crypto/+/8b5274cf687fd9316b4108863654cc57385531e8",
+              "https://groups.google.com/g/golang-announce/c/ouZIlBimOsE?pli=1",
+              "https://linux.oracle.com/cve/CVE-2020-29652.html",
+              "https://linux.oracle.com/errata/ELSA-2021-1796.html",
+              "https://lists.apache.org/thread.html/r68032132c0399c29d6cdc7bd44918535da54060a10a12b1591328bff@%3Cnotifications.skywalking.apache.org%3E",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-29652",
+              "https://pkg.go.dev/vuln/GO-2021-0227"
+            ]
+          },
+          {
+            "Title": "golang.org/x/crypto: empty plaintext packet causes panic",
+            "Description": "The x/crypto/ssh package before 0.0.0-20211202192323-5770296d904e of golang.org/x/crypto allows an attacker to panic an SSH server.",
+            "InstalledVersion": "v0.0.0-20201002170205-7f63de1d35b0",
+            "FixedVersion": "0.0.0-20211202192323-5770296d904e",
+            "PkgName": "golang.org/x/crypto",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2021-43565",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2021-43565",
+              "https://github.com/advisories/GHSA-gwc9-m7rh-j2ww",
+              "https://go.dev/cl/368814/",
+              "https://go.dev/issues/49932",
+              "https://groups.google.com/forum/#!forum/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/2AR1sKiM-Qs",
+              "https://nvd.nist.gov/vuln/detail/CVE-2021-43565",
+              "https://pkg.go.dev/vuln/GO-2022-0968"
+            ]
+          },
+          {
+            "Title": "golang: crash in a golang.org/x/crypto/ssh server",
+            "Description": "The golang.org/x/crypto/ssh package before 0.0.0-20220314234659-1baeb1ce4c0b for Go allows an attacker to crash a server in certain circumstances involving AddHostKey.",
+            "InstalledVersion": "v0.0.0-20201002170205-7f63de1d35b0",
+            "FixedVersion": "0.0.0-20220314234659-1baeb1ce4c0b",
+            "PkgName": "golang.org/x/crypto",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27191",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:8008",
+              "https://access.redhat.com/security/cve/CVE-2022-27191",
+              "https://bugzilla.redhat.com/1939485",
+              "https://bugzilla.redhat.com/1989564",
+              "https://bugzilla.redhat.com/1989570",
+              "https://bugzilla.redhat.com/1989575",
+              "https://bugzilla.redhat.com/2064702",
+              "https://bugzilla.redhat.com/2121445",
+              "https://bugzilla.redhat.com/2121453",
+              "https://errata.almalinux.org/9/ALSA-2022-8008.html",
+              "https://github.com/advisories/GHSA-8c26-wmh5-6g9v",
+              "https://go.dev/cl/392355",
+              "https://go.googlesource.com/crypto/+/1baeb1ce4c0b006eff0f294c47cb7617598dfb3d",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/-cp44ypCT5s",
+              "https://groups.google.com/g/golang-announce/c/-cp44ypCT5s/m/wmegxkLiAQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27191.html",
+              "https://linux.oracle.com/errata/ELSA-2022-8008.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/DLUJZV3HBP56ADXU6QH2V7RNYUPMVBXQ/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/EZ3S7LB65N54HXXBCB67P4TTOHTNPP5O/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HHGBEGJ54DZZGTXFUQNS7ZIG3E624YAF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/J5WPM42UR6XIBQNQPNQHM32X7S4LJTRX/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/QTFOIDHQRGNI4P6LYN6ILH5G443RYYKB/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/RQXU752ALW53OJAF5MG3WMR5CCZVLWW6/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/YHYRQB7TRMHDB3NEHW5XBRG7PPMUTPGV/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Z55VUVGO7E5PJFXIOVAY373NZRHBNCI5/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZFUNHFHQVJSADNH7EZ3B53CYDZVEEPBP/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZQNPPQWSTP2IX7SHE6TS4SP4EVMI5EZK/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZY2SLWOQR4ZURQ7UBRZ7JIX6H6F5JHJR/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27191",
+              "https://pkg.go.dev/vuln/GO-2021-0356",
+              "https://security.netapp.com/advisory/ntap-20220429-0002/"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "Attackers can cause a crash in SSH servers when the server has been configured by passing a Signer to ServerConfig.AddHostKey such that 1) the Signer passed to AddHostKey does not implement AlgorithmSigner, and 2) the Signer passed to AddHostKey returns a key of type “ssh-rsa” from its PublicKey method.\n\nServers that only use Signer implementations provided by the ssh package are unaffected.",
+            "InstalledVersion": "v0.0.0-20201002170205-7f63de1d35b0",
+            "FixedVersion": "0.0.0-20220314234659-1baeb1ce4c0b",
+            "PkgName": "golang.org/x/crypto",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-8c26-wmh5-6g9v",
+            "References": [
+              "https://go.dev/cl/392355",
+              "https://go.googlesource.com/crypto/+/1baeb1ce4c0b006eff0f294c47cb7617598dfb3d",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/-cp44ypCT5s",
+              "https://pkg.go.dev/vuln/GO-2021-0356"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "Unauthenticated clients can cause a panic in SSH servers.\n\nWhen using AES-GCM or ChaCha20Poly1305, consuming a malformed packet which contains an empty plaintext causes a panic.",
+            "InstalledVersion": "v0.0.0-20201002170205-7f63de1d35b0",
+            "FixedVersion": "0.0.0-20211202192323-5770296d904e",
+            "PkgName": "golang.org/x/crypto",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-gwc9-m7rh-j2ww",
+            "References": [
+              "https://go.dev/cl/368814/",
+              "https://go.dev/issues/49932",
+              "https://groups.google.com/g/golang-announce/c/2AR1sKiM-Qs",
+              "https://pkg.go.dev/vuln/GO-2022-0968"
+            ]
+          },
+          {
+            "Title": "golang: x/net/html: infinite loop in ParseFragment",
+            "Description": "golang.org/x/net before v0.0.0-20210520170846-37e1c6afe023 allows attackers to cause a denial of service (infinite loop) via crafted ParseFragment input.",
+            "InstalledVersion": "v0.0.0-20200707034311-ab3426394381",
+            "FixedVersion": "0.0.0-20210520170846-37e1c6afe023",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2021-33194",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2021-33194",
+              "https://github.com/golang/net/commit/37e1c6afe02340126705deced573a85ab75209d7",
+              "https://go.dev/cl/311090",
+              "https://go.dev/issue/46288",
+              "https://go.googlesource.com/net/+/37e1c6afe02340126705deced573a85ab75209d7",
+              "https://groups.google.com/g/golang-announce/c/wPunbCPkWUg",
+              "https://groups.google.com/g/golang-dev/c/28x0nthP-c8/m/KqWVTjsnBAAJ",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/4CHKSFMHZVOBCZSSVRE3UEYNKARTBMTM/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2021-33194",
+              "https://pkg.go.dev/vuln/GO-2021-0238"
+            ]
+          },
+          {
+            "Title": "golang: net/http: limit growth of header canonicalization cache",
+            "Description": "net/http in Go before 1.16.12 and 1.17.x before 1.17.5 allows uncontrolled memory consumption in the header canonicalization cache via HTTP/2 requests.",
+            "InstalledVersion": "v0.0.0-20200707034311-ab3426394381",
+            "FixedVersion": "0.0.0-20211209124913-491a49abca63",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2021-44716",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2021-44716",
+              "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2021-44716",
+              "https://github.com/golang/go/commit/48d948963c5ce7add72af5665a871caff6c1d35a (go1.17.5)",
+              "https://github.com/golang/go/issues/50058",
+              "https://github.com/golang/net/commit/491a49abca63de5e07ef554052d180a1b5fe2d70",
+              "https://go.dev/cl/369794",
+              "https://go.dev/issue/50058",
+              "https://groups.google.com/g/golang-announce/c/hcmEScgc00k",
+              "https://groups.google.com/g/golang-announce/c/hcmEScgc00k/m/ZWnOjeY4CQAJ",
+              "https://linux.oracle.com/cve/CVE-2021-44716.html",
+              "https://linux.oracle.com/errata/ELSA-2022-0001.html",
+              "https://lists.debian.org/debian-lts-announce/2022/01/msg00016.html",
+              "https://lists.debian.org/debian-lts-announce/2022/01/msg00017.html",
+              "https://nvd.nist.gov/vuln/detail/CVE-2021-44716",
+              "https://pkg.go.dev/vuln/GO-2022-0288",
+              "https://security.gentoo.org/glsa/202208-02",
+              "https://security.netapp.com/advisory/ntap-20220121-0002/"
+            ]
+          },
+          {
+            "Title": "golang: net/http: handle server errors after sending GOAWAY",
+            "Description": "In net/http in Go before 1.18.6 and 1.19.x before 1.19.1, attackers can cause a denial of service because an HTTP/2 connection can hang during closing if shutdown were preempted by a fatal error.",
+            "InstalledVersion": "v0.0.0-20200707034311-ab3426394381",
+            "FixedVersion": "0.0.0-20220906165146-f3363e06e74c",
+            "PkgName": "golang.org/x/net",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-27664",
+            "References": [
+              "https://access.redhat.com/errata/RHSA-2022:7129",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-27664.json",
+              "https://access.redhat.com/hydra/rest/securitydata/cve/CVE-2022-32189.json",
+              "https://access.redhat.com/security/cve/CVE-2022-27664",
+              "https://bugzilla.redhat.com/1913333",
+              "https://bugzilla.redhat.com/1913338",
+              "https://bugzilla.redhat.com/2107371",
+              "https://bugzilla.redhat.com/2107374",
+              "https://bugzilla.redhat.com/2107383",
+              "https://bugzilla.redhat.com/2107386",
+              "https://bugzilla.redhat.com/2107388",
+              "https://bugzilla.redhat.com/2113814",
+              "https://bugzilla.redhat.com/2124669",
+              "https://errata.almalinux.org/8/ALSA-2022-7129.html",
+              "https://go.dev/cl/428735",
+              "https://go.dev/issue/54658",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s",
+              "https://groups.google.com/g/golang-announce/c/x49AQzIVX-s/m/0tgO0pjiBQAJ",
+              "https://linux.oracle.com/cve/CVE-2022-27664.html",
+              "https://linux.oracle.com/errata/ELSA-2022-7129.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/JXKTHIGE5F576MAPFYCIJXNRGBSPISUF/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/TXS2OQ57KZC5XZKK5UW4SYKPVQAHIOJX/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-27664",
+              "https://pkg.go.dev/vuln/GO-2022-0969",
+              "https://security.gentoo.org/glsa/202209-26",
+              "https://security.netapp.com/advisory/ntap-20220923-0004/"
+            ]
+          },
+          {
+            "Title": "golang: net/http: panic in ReadRequest and ReadResponse when reading a very large header",
+            "Description": "net/http in Go before 1.15.12 and 1.16.x before 1.16.4 allows remote attackers to cause a denial of service (panic) via a large header to ReadRequest or ReadResponse. Server, Transport, and Client can each be affected in some configurations.",
+            "InstalledVersion": "v0.0.0-20200707034311-ab3426394381",
+            "FixedVersion": "0.0.0-20210428140749-89ef3d95e781",
+            "PkgName": "golang.org/x/net",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2021-31525",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2021-31525",
+              "https://github.com/golang/go/issues/45710",
+              "https://go.dev/cl/313069",
+              "https://go.dev/issue/45710",
+              "https://go.googlesource.com/net/+/89ef3d95e781148a0951956029c92a211477f7f9",
+              "https://groups.google.com/g/golang-announce/c/cu9SP4eSXMc",
+              "https://linux.oracle.com/cve/CVE-2021-31525.html",
+              "https://linux.oracle.com/errata/ELSA-2021-3076.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ISRZZ6NY5R2TBYE72KZFOCO25TEUQTBF/",
+              "https://nvd.nist.gov/vuln/detail/CVE-2021-31525",
+              "https://pkg.go.dev/vuln/GO-2022-0236",
+              "https://security.gentoo.org/glsa/202208-02"
+            ]
+          },
+          {
+            "Title": "golang: syscall: faccessat checks wrong group",
+            "Description": "Go before 1.17.10 and 1.18.x before 1.18.2 has Incorrect Privilege Assignment. When called with a non-zero flags parameter, the Faccessat function could incorrectly report that a file is accessible.",
+            "InstalledVersion": "v0.0.0-20201015000850-e3ed0017c211",
+            "FixedVersion": "0.0.0-20220412211240-33da011f77ad",
+            "PkgName": "golang.org/x/sys",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2022-29526",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-29526",
+              "https://github.com/golang/go/issues/52313",
+              "https://go.dev/cl/399539",
+              "https://go.dev/cl/400074",
+              "https://go.dev/issue/52313",
+              "https://groups.google.com/g/golang-announce",
+              "https://groups.google.com/g/golang-announce/c/Y5qrqw_lWdU",
+              "https://linux.oracle.com/cve/CVE-2022-29526.html",
+              "https://linux.oracle.com/errata/ELSA-2022-5337.html",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Q6GE5EQGE4L2KRVGW4T75QVIYAXCLO5X/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/RQXU752ALW53OJAF5MG3WMR5CCZVLWW6/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/Z55VUVGO7E5PJFXIOVAY373NZRHBNCI5/",
+              "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZY2SLWOQR4ZURQ7UBRZ7JIX6H6F5JHJR/",
+              "https://pkg.go.dev/vuln/GO-2022-0493",
+              "https://security.gentoo.org/glsa/202208-02",
+              "https://security.netapp.com/advisory/ntap-20220729-0001/"
+            ]
+          },
+          {
+            "Title": "golang: out-of-bounds read in golang.org/x/text/language leads to DoS",
+            "Description": "A flaw was found in golang. The language package for go language can panic due to an out-of-bounds read when an incorrectly formatted language tag is being parsed. This flaw allows an attacker to cause applications using this package to parse untrusted input data to crash, leading to a denial of service of the affected component.",
+            "InstalledVersion": "v0.3.3",
+            "FixedVersion": "0.3.7",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2021-38561",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2021-38561",
+              "https://go.dev/cl/340830",
+              "https://go.googlesource.com/text/+/383b2e75a7a4198c42f8f87833eefb772868a56f",
+              "https://pkg.go.dev/vuln/GO-2021-0113"
+            ]
+          },
+          {
+            "Title": "golang: golang.org/x/text/language: ParseAcceptLanguage takes a long time to parse complex tags",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.3",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "HIGH",
+            "VulnerabilityID": "CVE-2022-32149",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2022-32149",
+              "https://github.com/advisories/GHSA-69ch-w2m2-3vjp",
+              "https://github.com/golang/go/issues/56152",
+              "https://github.com/golang/text/commit/434eadcdbc3b0256971992e8c70027278364c72c",
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://groups.google.com/g/golang-dev/c/qfPIly0X7aU",
+              "https://nvd.nist.gov/vuln/detail/CVE-2022-32149",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "",
+            "Description": "An attacker may cause a denial of service by crafting an Accept-Language header which ParseAcceptLanguage will take significant time to parse.",
+            "InstalledVersion": "v0.3.3",
+            "FixedVersion": "0.3.8",
+            "PkgName": "golang.org/x/text",
+            "Severity": "UNKNOWN",
+            "VulnerabilityID": "GHSA-69ch-w2m2-3vjp",
+            "References": [
+              "https://go.dev/cl/442235",
+              "https://go.dev/issue/56152",
+              "https://groups.google.com/g/golang-announce/c/-hjNw559_tE/m/KlGTfid5CAAJ",
+              "https://pkg.go.dev/vuln/GO-2022-1059"
+            ]
+          },
+          {
+            "Title": "kubernetes: Incomplete fix for CVE-2019-11250 allows for token leak in logs when logLevel \u003e= 9",
+            "Description": "In Kubernetes, if the logging level is set to at least 9, authorization and bearer tokens will be written to log files. This can occur both in API server logs and client tool output like kubectl. This affects \u003c= v1.19.3, \u003c= v1.18.10, \u003c= v1.17.13, \u003c v1.20.0-alpha2.",
+            "InstalledVersion": "v0.19.2",
+            "FixedVersion": "0.20.0-alpha.2",
+            "PkgName": "k8s.io/client-go",
+            "Severity": "MEDIUM",
+            "VulnerabilityID": "CVE-2020-8565",
+            "References": [
+              "https://access.redhat.com/security/cve/CVE-2020-8565",
+              "https://github.com/kubernetes/kubernetes/commit/e99df0e5a75eb6e86123b56d53e9b7ca0fd00419",
+              "https://github.com/kubernetes/kubernetes/issues/95623",
+              "https://github.com/kubernetes/kubernetes/pull/95316",
+              "https://groups.google.com/g/kubernetes-announce/c/ScdmyORnPDk",
+              "https://groups.google.com/g/kubernetes-security-discuss/c/vm-HcrFUOCs/m/36utxAM5CwAJ",
+              "https://nvd.nist.gov/vuln/detail/CVE-2020-8565",
+              "https://pkg.go.dev/vuln/GO-2021-0064"
+            ]
+          }
+        ]
+      }
+    ],
+    "RecommendationOnly": false
+  }
+]

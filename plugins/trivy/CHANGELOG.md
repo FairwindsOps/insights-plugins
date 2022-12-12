@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.24.3
+* Bugfix image recommendation that had integer short sha's as Tag 
+
 ## 0.24.2
 * Add DockerImage to internal model
 

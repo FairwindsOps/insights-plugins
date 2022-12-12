@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -42,7 +42,7 @@ func main() {
 	}
 
 	if *auditOutputFile != "" {
-		err := ioutil.WriteFile(*auditOutputFile, []byte(outputBytes), 0644)
+		err := os.WriteFile(*auditOutputFile, []byte(outputBytes), 0644)
 		if err != nil {
 			logrus.Fatalf("Error writing output to file: %v", err)
 		}
