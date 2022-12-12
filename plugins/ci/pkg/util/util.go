@@ -1,6 +1,9 @@
 package util
 
-import "strings"
+import (
+	"encoding/json"
+	"strings"
+)
 
 func ExtractMetadata(obj map[string]interface{}) (string, string, string, string) {
 	kind, _ := obj["kind"].(string)
@@ -42,7 +45,7 @@ func RemoveTokensAndPassword(s string) string {
 	// based on x-access-token
 	index := strings.Index(s, "x-access-token")
 	index2 := strings.Index(s, "@github.com")
-	if index > 0 || index2 > 0 {
+	if index > 0 && index2 > 0 {
 		return strings.ReplaceAll(s, s[index+15:index2], "<TOKEN>")
 	}
 
@@ -63,4 +66,9 @@ func RemoveTokensAndPassword(s string) string {
 	}
 
 	return s
+}
+
+func PrettyPrint(i interface{}) string {
+	s, _ := json.Marshal(i)
+	return string(s)
 }
