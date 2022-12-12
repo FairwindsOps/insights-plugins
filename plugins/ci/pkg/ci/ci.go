@@ -16,8 +16,8 @@ import (
 	"strings"
 
 	trivymodels "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v3"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
@@ -45,6 +45,14 @@ type CIScan struct {
 	repoBaseFolder string // . or /app/repository/{repoName}
 	configFolder   string
 	config         *models.Configuration
+}
+
+type insightsReportConfig struct {
+	EnabledOnAutoDiscovery *bool
+}
+
+type insightsReportsConfig struct {
+	AutoScan map[string]insightsReportConfig
 }
 
 // Create a new CI instance based on flag cloneRepo
@@ -76,6 +84,8 @@ func NewCIScan() (*CIScan, error) {
 		config:         config,
 	}
 
+	logrus.Infof("Reports config is opa: %v, polaris: %v, pluto: %v, trivy: %v, tfsec: %v", ci.OPAEnabled(), ci.PolarisEnabled(), ci.PlutoEnabled(), ci.TrivyEnabled(), ci.TerraformEnabled())
+
 	return &ci, nil
 }
 
@@ -94,27 +104,9 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 			return nil
 		}
 
-		displayFilename, err := filepath.Rel(ci.configFolder, path)
+		displayFilename, helmName, err := ci.getDisplayFilenameAndHelmName(path)
 		if err != nil {
-			return fmt.Errorf("cannot be made relative to basepath: %v", err)
-		}
-		var helmName string
-		for _, helm := range ci.config.Manifests.Helm {
-			if strings.HasPrefix(displayFilename, helm.Name+"/") {
-				parts := strings.Split(displayFilename, "/")
-				parts = parts[2:]
-				displayFilename = strings.Join(parts, "/")
-				if helm.IsLocal() {
-					displayFilename = filepath.Join(helm.Path, displayFilename)
-				} else if helm.IsRemote() {
-					if helm.IsFluxFile() {
-						displayFilename = filepath.Join(helm.FluxFile, displayFilename)
-					} else {
-						displayFilename = filepath.Join(helm.Chart, displayFilename)
-					}
-				}
-				helmName = helm.Name
-			}
+			return err
 		}
 
 		file, err := os.Open(path)
@@ -167,9 +159,9 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 						Namespace: namespace,
 						Filename:  displayFilename,
 						HelmName:  helmName,
-						Containers: funk.Map(containers, func(c models.Container) string {
+						Containers: lo.Map(containers, func(c models.Container, _ int) string {
 							return c.Name
-						}).([]string),
+						}),
 					})
 				}
 			} else {
@@ -190,17 +182,44 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 					Namespace: namespace,
 					Filename:  displayFilename,
 					HelmName:  helmName,
-					Containers: funk.Map(containers, func(c models.Container) string {
+					Containers: lo.Map(containers, func(c models.Container, _ int) string {
 						return c.Name
-					}).([]string),
+					}),
 				})
-
 			}
-
 		}
 		return nil
 	})
-	return images, resources, err
+	if err != nil {
+		return nil, nil, err
+	}
+	return images, resources, nil
+}
+
+func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, error) {
+	var displayFilename, helmName string
+	displayFilename, err := filepath.Rel(ci.configFolder, path)
+	if err != nil {
+		return "", "", fmt.Errorf("cannot be made relative to basepath: %v", err)
+	}
+	for _, helm := range ci.config.Manifests.Helm {
+		if strings.HasPrefix(displayFilename, helm.Name+"/") {
+			parts := strings.Split(displayFilename, "/")
+			parts = parts[2:]
+			displayFilename = strings.Join(parts, "/")
+			if helm.IsLocal() {
+				displayFilename = filepath.Join(helm.Path, displayFilename)
+			} else if helm.IsRemote() {
+				if helm.IsFluxFile() {
+					displayFilename = filepath.Join(helm.FluxFile, displayFilename)
+				} else {
+					displayFilename = filepath.Join(helm.Chart, displayFilename)
+				}
+			}
+			helmName = helm.Name
+		}
+	}
+	return displayFilename, helmName, err
 }
 
 func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
@@ -215,7 +234,7 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 	}
 	podSpec := getPodSpec(yamlNode)
 	images := getImages(podSpec.(map[string]interface{}))
-	return funk.Map(images, func(c models.Container) trivymodels.Image {
+	return lo.Map(images, func(c models.Container, _ int) trivymodels.Image {
 		return trivymodels.Image{
 			Name: c.Image,
 			Owner: trivymodels.Resource{
@@ -224,7 +243,7 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 				Name:      owner.Name,
 			},
 		}
-	}).([]trivymodels.Image), images
+	}), images
 }
 
 // getPodSpec looks inside arbitrary YAML for a PodSpec
@@ -377,7 +396,10 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 			return "", "", nil, err
 		}
 	}
-	config.SetDefaults()
+	err = config.SetDefaults()
+	if err != nil {
+		return "", "", nil, err
+	}
 	config.SetPathDefaults()
 	logrus.Infof("Running with configuration %#v", config)
 	err = config.CheckForErrors()
@@ -437,12 +459,24 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 			return "", "", nil, err
 		}
 
+		// this is how we support enabling/disabling reports on auto-discovery (when no fairwinds-insights.yaml file is found)
+		if strings.TrimSpace(os.Getenv("REPORTS_CONFIG")) != "" {
+			err := unmarshalAndOverrideConfig(config)
+			if err != nil {
+				return "", "", nil, err
+			}
+		}
+
 		err := createFileFromConfig(baseRepoPath, configFileName, *config)
 		if err != nil {
 			return "", "", nil, err
 		}
 	}
-	config.SetDefaults()
+	err = config.SetDefaults()
+	if err != nil {
+		return "", "", nil, err
+	}
+
 	err = config.SetMountedPathDefaults(basePath, baseRepoPath)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("Could not set set path defaults correctly: %v", err)
@@ -459,6 +493,34 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 	}
 
 	return filepath.Join(baseRepoPath, "../"), baseRepoPath, config, nil
+}
+
+func unmarshalAndOverrideConfig(config *models.Configuration) error {
+	var insightsReportConfig insightsReportsConfig
+	err := json.Unmarshal([]byte(os.Getenv("REPORTS_CONFIG")), &insightsReportConfig)
+	if err != nil {
+		return fmt.Errorf("unable to parse auto-scan reports config: %v", err)
+	}
+	overrideReportsEnabled(config, insightsReportConfig)
+	return nil
+}
+
+func overrideReportsEnabled(cfg *models.Configuration, reportConfig insightsReportsConfig) {
+	if rCfg, ok := reportConfig.AutoScan["opa"]; ok {
+		cfg.Reports.OPA.Enabled = rCfg.EnabledOnAutoDiscovery
+	}
+	if rCfg, ok := reportConfig.AutoScan["polaris"]; ok {
+		cfg.Reports.Polaris.Enabled = rCfg.EnabledOnAutoDiscovery
+	}
+	if rCfg, ok := reportConfig.AutoScan["pluto"]; ok {
+		cfg.Reports.Pluto.Enabled = rCfg.EnabledOnAutoDiscovery
+	}
+	if rCfg, ok := reportConfig.AutoScan["trivy"]; ok {
+		cfg.Reports.Trivy.Enabled = rCfg.EnabledOnAutoDiscovery
+	}
+	if rCfg, ok := reportConfig.AutoScan["tfsec"]; ok {
+		cfg.Reports.TFSec.Enabled = rCfg.EnabledOnAutoDiscovery
+	}
 }
 
 func readConfigurationFromFile(configFilePath string) (*models.Configuration, error) {
@@ -519,11 +581,12 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		if ci.SkipTrivyManifests() {
 			manifestImagesToScan = []trivymodels.Image{}
 		}
-		trivyReport, err := ci.GetTrivyReport(manifestImagesToScan)
+		dockerImages := getDockerImages(ci.config.Images.Docker)
+		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
 		if err != nil {
 			return nil, fmt.Errorf("Error while running Trivy: %v", err)
 		}
-		reports = append(reports, &trivyReport)
+		reports = append(reports, trivyReport)
 	}
 
 	workloadReport, err := ci.GetWorkloadReport(resources)
@@ -549,13 +612,26 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	}
 
 	if ci.TerraformEnabled() {
-		terraformReports, err := ci.ProcessTerraformPaths()
+		terraformReports, areTerraformResults, err := ci.ProcessTerraformPaths()
 		if err != nil {
 			return nil, fmt.Errorf("while processing Terraform: %w", err)
 		}
-		reports = append(reports, &terraformReports)
+		if areTerraformResults {
+			logrus.Debugln("the Terraform report contains results")
+			reports = append(reports, &terraformReports)
+		}
 	}
 	return reports, nil
+}
+
+func getDockerImages(dockerImagesStr []string) []trivymodels.DockerImage {
+	dockerImages := []trivymodels.DockerImage{}
+	for _, v := range dockerImagesStr {
+		dockerImages = append(dockerImages, trivymodels.DockerImage{
+			Name: v,
+		})
+	}
+	return dockerImages
 }
 
 func (ci *CIScan) SendAndPrintResults(reports []*models.ReportInfo) error {
@@ -602,6 +678,14 @@ func (ci *CIScan) printScannedFilesInfo() {
 		fmt.Println("Helm charts scanned:")
 		for i, h := range ci.config.Manifests.Helm {
 			fmt.Printf("\t[%d/%d] - %s/%s\n", i+1, s, h.Path, h.Name)
+		}
+	}
+
+	s = len(ci.config.Terraform.Paths)
+	if s > 0 {
+		fmt.Println("Terraform files scanned:")
+		for i, p := range ci.config.Terraform.Paths {
+			fmt.Printf("\t[%d/%d] - %s\n", i+1, s, p)
 		}
 	}
 }

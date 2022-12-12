@@ -43,8 +43,5 @@ func TestAutoDetection(t *testing.T) {
 			Paths: []string{"testdata/repo1/terraform"},
 		},
 	}
-	truth := true
-	expected.Reports.TFSec.Enabled = &truth // Set here because models.reportsConfig is not exported
-
 	assert.Equal(t, expected, *cfg)
 }

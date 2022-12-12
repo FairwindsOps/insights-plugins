@@ -17,37 +17,44 @@ func (ci *CIScan) TerraformEnabled() bool {
 	return *ci.config.Reports.TFSec.Enabled
 }
 
-func (ci *CIScan) ProcessTerraformPaths() (models.ReportInfo, error) {
+func (ci *CIScan) ProcessTerraformPaths() (report models.ReportInfo, areResults bool, err error) {
 	logrus.Infof("processing %d Terraform paths", len(ci.config.Terraform.Paths))
+	if len(ci.config.Terraform.Paths) == 0 {
+		return models.ReportInfo{}, false, nil
+	}
 	var reportProperties models.TFSecReportProperties
 	for _, terraformPath := range ci.config.Terraform.Paths {
 		results, err := ci.ProcessTerraformPath(terraformPath)
 		if err != nil {
-			return models.ReportInfo{}, err
+			return models.ReportInfo{}, false, err
 		}
 		if len(results) > 0 {
 			reportProperties.Items = append(reportProperties.Items, results...)
 		}
 	}
+	if len(reportProperties.Items) == 0 {
+		logrus.Infoln("no Terraform results were returned")
+		return models.ReportInfo{}, false, nil
+	}
 	TFSecVersion, err := commands.Exec("tfsec", "-v")
 	if err != nil {
-		return models.ReportInfo{}, fmt.Errorf("cannot get the version of tfsec: %w", err)
+		return models.ReportInfo{}, false, fmt.Errorf("cannot get the version of tfsec: %w", err)
 	}
 	TFSecVersion = strings.TrimPrefix(TFSecVersion, "v")
-	report := models.ReportInfo{
+	file, err := json.MarshalIndent(reportProperties, "", " ")
+	if err != nil {
+		return report, false, fmt.Errorf("while encoding report output: %w", err)
+	}
+	report = models.ReportInfo{
 		Report:   "tfsec",
 		Version:  TFSecVersion,
 		Filename: "tfsec.json",
 	}
-	file, err := json.MarshalIndent(reportProperties, "", " ")
-	if err != nil {
-		return report, fmt.Errorf("while encoding report output: %w", err)
-	}
 	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), file, 0644)
 	if err != nil {
-		return report, fmt.Errorf("while writing report output: %w", err)
+		return report, false, fmt.Errorf("while writing report output: %w", err)
 	}
-	return report, nil
+	return report, true, nil
 }
 
 func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResult, error) {
@@ -71,7 +78,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	}
 	logrus.Infof("%d tfsec results for path %s", len(output.Items), terraformPath)
 	logrus.Debugf("Removing the base repository path %q from the file name of each tfsec result", ci.repoBaseFolder)
-	for i, _ := range output.Items {
+	for i := range output.Items {
 		newFileName := output.Items[i].Location.FileName
 		newFileName = strings.TrimPrefix(newFileName, ci.repoBaseFolder+"/") // trim base folder as-is
 		absRepoBaseFolder, err := filepath.Abs(ci.repoBaseFolder)            // Also attempt to trim the absolute version of the same path
@@ -83,7 +90,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		output.Items[i].Location.FileName = newFileName
 	}
 	logrus.Debugf("Preppending the scanned path %q to any file name of tfsec results for a Terraform module", ci.repoBaseFolder)
-	for i, _ := range output.Items {
+	for i := range output.Items {
 		if strings.HasPrefix(output.Items[i].Location.FileName, "terraform-aws-modules/") {
 			newFileName := filepath.Join(terraformPath, output.Items[i].Location.FileName)
 			output.Items[i].Location.FileName = newFileName

@@ -20,10 +20,13 @@ type gitInfo struct {
 	repoName      string
 }
 
-// cmdExecutor was extracted to be able to test this function - as the main implementation execute real commands on the given path
-type cmdExecutor func(dir string, cmd *exec.Cmd, message string) (string, error)
+// cmdInDirExecutor was extracted to be able to test this function - as the main implementation execute real commands on the given path
+type cmdInDirExecutor func(dir string, cmd *exec.Cmd, message string) (string, error)
 
-func getGitInfo(cmdExecutor cmdExecutor, ciRunner models.CIRunnerVal, baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
+// cmdExecutor - extracted for testing purpose
+type cmdExecutor func(cmd *exec.Cmd, message string) (string, error)
+
+func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
 	_, err = cmdExecutor(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", "/insights"), "marking directory as safe")
 	if err != nil {
@@ -94,7 +97,7 @@ func getGitInfo(cmdExecutor cmdExecutor, ciRunner models.CIRunnerVal, baseRepoPa
 			gitCommandFail = true
 		}
 	}
-	logrus.Infof("Origin: %s", util.RemoveToken(origin))
+	logrus.Infof("Origin: %s", util.RemoveTokensAndPassword(origin))
 
 	if gitCommandFail {
 		logGitCIRunnerHint(ciRunner)

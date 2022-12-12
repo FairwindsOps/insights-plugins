@@ -8,13 +8,14 @@ replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20221004151238-ef0e69a26717
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20221004151238-ef0e69a26717
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20221130165317-fa7789b0c4bf
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
+	github.com/samber/lo v1.36.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.0
-	github.com/thoas/go-funk v0.9.2
+	golang.org/x/exp v0.0.0-20221114191408-850992195362
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -68,13 +69,14 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
+	github.com/thoas/go-funk v0.9.2 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/yashtewari/glob-intersection v0.1.0 // indirect
 	golang.org/x/net v0.0.0-20221017152216-f25eb7ecb193 // indirect
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0 // indirect
-	golang.org/x/sys v0.0.0-20221010170243-090e33056c14 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/term v0.0.0-20220919170432-7a66f970e087 // indirect
 	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/time v0.0.0-20220922220347-f3bd1da661af // indirect

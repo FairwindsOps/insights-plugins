@@ -1,5 +1,20 @@
 # Changelog
 
+## 4.1.0
+* Add support for configuring reports when using auto-discovery via `REPORTS_CONFIG` env var
+
+## 4.0.0
+* Enable the tfsec report by default. If `terraform -> paths` are specified, they will be scanned unless `reports -> tfsec -> enabled` is explicitly set to `false` in fairwinds-insights.yaml.
+
+## 3.4.0
+* Support for private images (REGISTRY_CREDENTIALS)
+
+## 3.3.0
+* Support `images.docker` download images inside the plugin
+
+## 3.2.1
+* update trivy
+
 ## 3.2.0
 * Add alternative GIT commands to fetch masterHash
 * Make some GIT commands optional (masterHash, commitMessage, branch and origin)

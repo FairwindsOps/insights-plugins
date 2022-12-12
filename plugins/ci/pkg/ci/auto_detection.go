@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 
 	"github.com/ghodss/yaml" // supports both yaml and json
 )
@@ -69,7 +69,7 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 				return nil
 			}
 
-			if !funk.ContainsString(supportedExtensions, fileExtension[1:]) {
+			if !lo.Contains(supportedExtensions, fileExtension[1:]) {
 				logrus.Debugf("file extension '%s' not supported for file %v", fileExtension, path)
 				return nil
 			}
@@ -106,11 +106,6 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 			Paths: terraformPaths,
 		},
 	}
-	if len(terraformPaths) > 0 {
-		truth := true
-		config.Reports.TFSec.Enabled = &truth
-	}
-
 	return &config, nil
 }
 
