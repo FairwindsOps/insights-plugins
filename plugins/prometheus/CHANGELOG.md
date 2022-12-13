@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.5
+* update alpine to 3.17
+
 ## 1.1.4
 * Update x/text to remove CVE
 

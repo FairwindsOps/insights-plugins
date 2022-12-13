@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.1.10
+* update alpine to 3.17
 ## 0.1.9
 * Add sample goreleaser config and Dockerfile
 

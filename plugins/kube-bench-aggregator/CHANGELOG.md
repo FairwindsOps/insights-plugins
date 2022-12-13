@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.4
+* update alpine to 3.17
+
 ## 0.3.3
 * Update kube-bench to 0.6.10
 

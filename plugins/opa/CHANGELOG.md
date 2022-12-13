@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.2
+* update alpine to 3.17
+
 ## 2.2.1
 * Add docker-socket check opa policy template.
 

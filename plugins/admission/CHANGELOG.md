@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.3
+* update alpine to 3.17
+
 ## 1.8.2
 * Pass the admission request object to the OPA runtime engine
 
