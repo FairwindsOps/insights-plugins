@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.24.4
+* update x/net and alpine
+
 ## 0.24.3
 * Bugfix image recommendation that had integer short sha's as Tag 
 
