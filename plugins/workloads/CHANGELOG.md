@@ -1,11 +1,5 @@
 # Changelog
 
-## 2.4.2
-* update x/net and alpine
-
-## 2.4.1
-* update alpine to 3.17
-
 ## 2.4.0
 * Added ingresses support to workload report
 

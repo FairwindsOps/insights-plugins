@@ -1,11 +1,5 @@
 # Changelog
 
-## 0.4.2
-* update x/net and alpine
-
-## 0.4.1
-* update alpine to 3.17
-
 ## 0.4.0
 * Build docker images for linux/arm64, and update to Go 1.19.1
 
