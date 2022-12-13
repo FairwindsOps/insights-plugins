@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.1.1
+* update x/net and alpine
+
 ## 4.1.0
 * Add support for configuring reports when using auto-discovery via `REPORTS_CONFIG` env var
 

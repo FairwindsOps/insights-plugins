@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.3
+* update x/net and alpine
+
 ## 1.8.2
 * Pass the admission request object to the OPA runtime engine
 
