@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"

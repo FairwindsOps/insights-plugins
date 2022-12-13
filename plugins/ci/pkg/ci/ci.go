@@ -428,7 +428,7 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 	if basePath != "" {
 		logrus.Infof("using basePath of %q from environment LOCAL_BASE_PATH", basePath)
 	} else {
-		basePath := filepath.Join("/app", "repository")
+		basePath = filepath.Join("/app", "repository")
 	}
 	_, repoName := util.GetRepoDetails(repoFullName)
 	baseRepoPath := filepath.Join(basePath, repoName)
@@ -607,12 +607,15 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		dockerImages := getDockerImages(ci.config.Images.Docker)
 		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
 		if err != nil {
-			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
-				ErrorMessage: err.Error(),
-				ErrorContext: "running trivy",
-				Kind:         "InternalOperation",
-				ResourceName: "GetTrivyReport",
-			})
+			/*
+				scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+								ErrorMessage: err.Error(),
+								ErrorContext: "running trivy",
+								Kind:         "InternalOperation",
+								ResourceName: "GetTrivyReport",
+							})
+			*/
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err)
 		} else {
 			reports = append(reports, trivyReport)
 		}
