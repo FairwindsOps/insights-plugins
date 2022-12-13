@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.2
+* update x/net and alpine
+
 ## 0.20.1
 * update alpine to 3.17
 

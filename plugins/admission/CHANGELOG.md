@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.4
+* update x/net and alpine
+
 ## 1.8.3
 * update alpine to 3.17
 
