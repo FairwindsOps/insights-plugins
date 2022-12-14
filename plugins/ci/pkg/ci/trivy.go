@@ -19,6 +19,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	ciutil "github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -29,13 +30,13 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 		return nil, err
 	}
 
-	err = downloadMissingImages(ci.config.Images.FolderName, dockerImages, manifestImages, ci.config.Options.RegistryCredentials)
+	filenameToImageName, err := downloadMissingImages(ci.config.Images.FolderName, dockerImages, manifestImages, ci.config.Options.RegistryCredentials)
 	if err != nil {
 		// return nil, err
 		allErrs = multierror.Append(allErrs, err)
 	}
 
-	allImages, err := mergeImages(ci.config.Images.FolderName, manifestImages)
+	allImages, err := mergeImages(ci.config.Images.FolderName, dockerImages, manifestImages, filenameToImageName)
 	if err != nil {
 		// return nil, err
 		return nil, multierror.Append(allErrs, err)
@@ -66,7 +67,7 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 	return nil, multierror.Append(allErrs, scanErrs).ErrorOrNil()
 }
 
-// filename -> postgres151bullseye.tar
+// filename -> postgres_15_1_bullseye
 // sha 			-> sha256:5918a4f7e04aed7ac69d2b03b9b91345556db38709f9d6354056e3fdd9a8c02f
 // repoTags -> []string{"postgres:15.1-bullseye"}
 type imageCallback func(filename string, sha string, tags []string)
@@ -112,9 +113,9 @@ func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, ma
 	})
 }
 
-func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) (errs error) {
+func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) (map[string]string, error) {
 	allErrs := new(multierror.Error)
-	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres151bullseye
+	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres_15_1_bullseye
 	// Download missing images
 	for _, image := range manifestImages {
 		if image.PullRef != "" {
@@ -160,7 +161,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			Filename:     filepath.Clean(folderPath), // clean() removes potential trailing slash
 		}
 	}
-	return nil
+	return ciutil.ReverseMap(refLookup), nil // postgres_15_1_bullseye -> postgres:15.1-bullseye
 }
 
 func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName string, rc *models.RegistryCredential) (string, error) {
@@ -205,12 +206,12 @@ func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName strin
 }
 
 // mergeImages - at this point, all images are downloaded at folderPath
-func mergeImages(folderPath string, manifestImages []trivymodels.Image) ([]trivymodels.Image, error) {
+func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, filenameToImageName map[string]string) ([]trivymodels.Image, error) {
 	// Untar images, read manifest.json/RepoTags, match tags to YAML
 	logrus.Infof("Extracting details for all images")
 	allImages := []trivymodels.Image{}
 	err := walkImages(folderPath, func(filename string, sha string, repoTags []string) {
-		logrus.Infof("Getting details for image file %s with SHA %s", filename, sha)
+		logrus.Infof("Getting details for image file %s with SHA %s and repoTags %v", filename, sha, repoTags)
 		// If the image was found in a manifest, copy its details over,
 		// namely the Owner info (i.e. the deployment or other controller it is associated with)
 		var image *trivymodels.Image
@@ -221,9 +222,16 @@ func mergeImages(folderPath string, manifestImages []trivymodels.Image) ([]trivy
 			}
 		}
 		if image == nil {
+			var name, ownerName string
+			if n, ok := filenameToImageName[filename]; ok {
+				name = n
+				ownerName = determineOwnerName(n, dockerImages)
+			}
 			image = &trivymodels.Image{
+				Name:    name,
 				PullRef: filename,
 				Owner: trivymodels.Resource{
+					Name: ownerName,
 					Kind: "Image",
 				},
 			}
@@ -252,6 +260,22 @@ func mergeImages(folderPath string, manifestImages []trivymodels.Image) ([]trivy
 		allImages = append(allImages, *image)
 	})
 	return allImages, err
+}
+
+func determineOwnerName(n string, dockerImages []trivymodels.DockerImage) string {
+	// if found on dockerImages, the owner name is `fairwinds-insights.yaml``
+	for _, di := range dockerImages {
+		if di.Name == n {
+			return configFileName
+		}
+	}
+
+	parts := strings.Split(n, ":")
+	if len(parts) > 1 {
+		return parts[0]
+	}
+
+	return ""
 }
 
 // scanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
@@ -441,5 +465,5 @@ var imageFilenameRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
 
 // clearString - removes non-alphanumeric characters
 func clearString(str string) string {
-	return imageFilenameRegex.ReplaceAllString(str, "")
+	return imageFilenameRegex.ReplaceAllString(str, "_")
 }

@@ -1,4 +1,4 @@
-FROM alpine:3.16 as downloader
+FROM alpine:3.17 as downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV trivyVersion=0.35.0
@@ -9,7 +9,7 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s 
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
-FROM alpine:3.16
+FROM alpine:3.17
 WORKDIR /trivy
 RUN apk -U upgrade
 COPY scan ./scan
