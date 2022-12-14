@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.1.10
+* update x/net and alpine
 ## 0.1.9
 * Add sample goreleaser config and Dockerfile
 

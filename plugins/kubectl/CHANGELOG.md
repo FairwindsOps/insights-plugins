@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.1
+* update x/net and alpine
+
 ## 0.20.0
 * Build docker images for linux/arm64, and update to Go 1.19.1
 

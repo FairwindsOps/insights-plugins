@@ -1,7 +1,10 @@
 # Changelog
 
+## 4.1.2
+* Fixes missing image info (name and owner name) when the download of `docker.images` are done inside the CI plugin execution
+
 ## 4.1.1
-* Fixes missing image info (name and owner name) when the download of `docker.images` are done inside the CI plugin execution 
+* update x/net and alpine
 
 ## 4.1.0
 * Add support for configuring reports when using auto-discovery via `REPORTS_CONFIG` env var

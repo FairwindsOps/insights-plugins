@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.5
+* update x/net and alpine
+
 ## 1.1.4
 * Update x/text to remove CVE
 
