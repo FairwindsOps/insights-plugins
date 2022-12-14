@@ -56,7 +56,7 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 	}, nil
 }
 
-// filename -> postgres151bullseye.tar
+// filename -> postgres_15_1_bullseye
 // sha 			-> sha256:5918a4f7e04aed7ac69d2b03b9b91345556db38709f9d6354056e3fdd9a8c02f
 // repoTags -> []string{"postgres:15.1-bullseye"}
 type imageCallback func(filename string, sha string, tags []string)
@@ -103,7 +103,7 @@ func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, ma
 }
 
 func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) (map[string]string, error) {
-	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres151bullseye
+	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres_15_1_bullseye
 	// Download missing images
 	for _, image := range manifestImages {
 		if image.PullRef != "" {
@@ -138,7 +138,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 		image.PullRef = clearString(image.Name)
 		refLookup[image.Name] = image.PullRef
 	}
-	return ciutil.ReverseMap(refLookup), nil // postgres151bullseye -> postgres:15.1-bullseye
+	return ciutil.ReverseMap(refLookup), nil // postgres_15_1_bullseye -> postgres:15.1-bullseye
 }
 
 func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName string, rc *models.RegistryCredential) (string, error) {
@@ -424,5 +424,5 @@ var imageFilenameRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
 
 // clearString - removes non-alphanumeric characters
 func clearString(str string) string {
-	return imageFilenameRegex.ReplaceAllString(str, "")
+	return imageFilenameRegex.ReplaceAllString(str, "_")
 }
