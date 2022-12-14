@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.4
+* update x/net and alpine
+
 ## 0.4.3
 * Update kube-bench to 0.6.10
 

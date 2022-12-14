@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.2
+* update x/net and alpine
+
 ## 2.2.1
 * Add docker-socket check opa policy template.
 

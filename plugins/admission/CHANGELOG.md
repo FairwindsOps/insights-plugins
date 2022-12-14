@@ -1,9 +1,12 @@
 # Changelog
 
-## 1.8.3
+## 1.8.4
 * Fix Polaris mutations with the Insights admission controller, including updating to current Polaris code and its default configuration file (which contains the `mutations` block)
 * Update Polaris to `20221114220502-467d06f4dbca` from `20220512134546-92f0b6e551df`
 * A bump for k8s.io/apimachinery and sigs.k8s.io/controller-runtime while troubleshooting
+
+## 1.8.3
+* update x/net and alpine
 
 ## 1.8.2
 * Pass the admission request object to the OPA runtime engine
