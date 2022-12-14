@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.1.2
+* Fixes missing image info (name and owner name) when the download of `docker.images` are done inside the CI plugin execution
+
 ## 4.1.1
 * update x/net and alpine
 
