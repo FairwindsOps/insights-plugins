@@ -5,12 +5,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const ScanErrorsReportVersion = "0.0.1"
+const (
+	ScanErrorsReportVersion             = "0.0.1"
+	ScanErrorsReportDefaultKind         = "CIErrorWithoutContext"
+	ScanErrorsReportDefaultResourceName = "unknown"
+	ScanErrorsReportDefaultErrorContext = "performing an action in CI"
+)
 
 // ScanErrorResult contains a single error encountered during a scan.
 // This satisfies the GO Error interface, and provides additional error context
 // to be bubbled up into a scan-errors report.
 type ScanErrorsReportResult struct {
+	// IF adding a field to this struct, also update the FillUnsetFields receiver!
 	Kind         string  `json:"kind"`
 	ResourceName string  `json:"resourceName"`
 	ErrorMessage string  `json:"errorMessage"` // error message returned during a scan
@@ -28,12 +34,72 @@ func (r ScanErrorsReportResult) Error() string {
 	return r.ErrorMessage
 }
 
+// FillUnsetFields populates any unset ScanErrorsReportResult fields with
+// those from the parameter.
+// This is useful to provide context only when an upstream error does not
+// already contain any.
+func (r *ScanErrorsReportResult) FillUnsetFields(f ScanErrorsReportResult) {
+	orig := *r
+	var anyChanges bool
+	if r.Kind == "" {
+		anyChanges = true
+		r.Kind = f.Kind
+	}
+	if r.ResourceName == "" {
+		anyChanges = true
+		r.ResourceName = f.ResourceName
+	}
+	if r.ErrorContext == "" {
+		anyChanges = true
+		r.ErrorContext = f.ErrorContext
+	}
+	if r.Filename == "" {
+		anyChanges = true
+		r.Filename = f.Filename
+	}
+	if r.Remediation == "" {
+		anyChanges = true
+		r.Remediation = f.Remediation
+	}
+	if r.Severity == 0.0 {
+		anyChanges = true
+		r.Severity = f.Severity
+	}
+	if r.Category == "" {
+		anyChanges = true
+		r.Category = f.Category
+	}
+	if anyChanges {
+		logrus.Debugf("updated missing fields in %#v, using values from %#v, and final result is: %#v", orig, f, *r)
+	}
+}
+
+// FillUnsetRequiredFieldsWithDefaults populates any unset
+// ScanErrorsReportResult fields that are required, with defaults.
+func (r *ScanErrorsReportResult) FillUnsetRequiredFieldsWithDefaults() {
+	if r.Kind == "" {
+		logrus.Warnf("setting required field Kind to %q for this ScanErrorsReportResult: %#v", ScanErrorsReportDefaultKind, *r)
+		r.Kind = ScanErrorsReportDefaultKind
+	}
+	if r.ResourceName == "" {
+		logrus.Warnf("setting required field ResourceName to %q for this ScanErrorsReportResult: %#v", ScanErrorsReportDefaultResourceName, *r)
+		r.ResourceName = ScanErrorsReportDefaultResourceName
+	}
+	if r.ErrorContext == "" {
+		logrus.Warnf("setting required field ErrorContext to %q for this ScanErrorsReportResult: %#v", ScanErrorsReportDefaultErrorContext, *r)
+		r.ErrorContext = ScanErrorsReportDefaultErrorContext
+	}
+	if r.ErrorMessage == "" {
+		logrus.Errorf("this ScanError lacks an error message and will likely cause a 500 error if submitted to the API: %#v", *r)
+	}
+}
+
 // ScanErrorsReportProperties contains multiple ScanErrorsReportResults.
 type ScanErrorsReportProperties struct {
 	Items []ScanErrorsReportResult `json:"results"`
 }
 
-// ScanErrorsReport contains ScanErrorReportProperties and the report version.
+// ScanErrorsReport contains ScanErrorsReportProperties and the report version.
 type ScanErrorsReport struct {
 	Version string
 	Report  ScanErrorsReportProperties
@@ -41,58 +107,35 @@ type ScanErrorsReport struct {
 
 // AddScanErrorsReportResultFromError type-asserts an Error type into a ScanErrorsReportResult
 // type, and adds it to the slice stored in the ScanErrorsReportProperties
-// receiver.
-func (reportProperties *ScanErrorsReportProperties) AddScanErrorsReportResultFromError(e error) {
+// receiver. Any additional parameters of type ScanErrorsReportResult are used
+// only to fill in missing fields of the first error parameter.
+// For example: AddScanErrorsReportResultFromError(err, err2) will populate
+// any missing fields from err, with values from err2, such as ErrorContext or
+// Remediation.
+func (reportProperties *ScanErrorsReportProperties) AddScanErrorsReportResultFromError(e error, dataForMissingFields ...ScanErrorsReportResult) {
+	logrus.Debugf("processing error for addition to ScanErrorsReport: %#v", e)
 	var newItem ScanErrorsReportResult
 	switch v := e.(type) {
+	case nil:
+		return
 	case *multierror.Error: // multiple results
+		logrus.Debugf("processing a multierror while adding results to ScanErrorsReport: %#v", v)
 		for _, singleErr := range v.Errors {
-			newItem, ok := singleErr.(ScanErrorsReportResult)
-			if !ok {
-				newItem = NewScanErrorsReportResultWithoutContext(singleErr)
-			}
-			reportProperties.Items = append(reportProperties.Items, newItem)
+			reportProperties.AddScanErrorsReportResultFromError(singleErr, dataForMissingFields...)
 		}
+		return
 	case ScanErrorsReportResult: // A single result
-		reportProperties.Items = append(reportProperties.Items, v)
+		newItem = v
 	default:
-		newItem = NewScanErrorsReportResultWithoutContext(e)
-		reportProperties.Items = append(reportProperties.Items, newItem)
+		newItem = ScanErrorsReportResult{
+			ErrorMessage: e.Error(),
+		}
 	}
-	/*
-	   multipleErrs, ok := e.(*multierror.Error)
-	   	if !ok {
-	   		newItem, isOurErrorType := e.(ScanErrorsReportResult)
-	   		if !isOurErrorType {
-	   			// marker
-	   			return
-	   		}
-	   		reportProperties.Items = append(reportProperties.Items, newItem)
-	   		return
-	   	}
-	   	for _, singleErr := range multipleErrs.Errors {
-	   		newItem, ok := singleErr.(ScanErrorsReportResult)
-	   		if !ok {
-	   			// maybe add an item without context or ResourceName?
-	   			return
-	   		}
-	   		reportProperties.Items = append(reportProperties.Items, newItem)
-	   	}
-	*/
+	for _, d := range dataForMissingFields {
+		newItem.FillUnsetFields(d)
+	}
+	newItem.FillUnsetRequiredFieldsWithDefaults()
+	logrus.Debugf("appending this error to ScanErrorsReportProperties: %#v", newItem)
+	reportProperties.Items = append(reportProperties.Items, newItem)
 	return
-}
-
-// NewScanErrorsReportResultWithoutContext accepts an error interface that is NOT
-// our type ScanErrorsReportResult, and logs that there is insufficient
-// context for this error, while returning a ScanErrorsReportResult type with
-// required fields populated (even if inadiquitly).
-func NewScanErrorsReportResultWithoutContext(e error) ScanErrorsReportResult {
-	logrus.Warnf("adding this error to the scan-errors report which does not have sufficient context, please return a ScanErrorsReportResult instead of a standard error: %v", e)
-	r := ScanErrorsReportResult{
-		Kind:         "ErrorWithoutContext",
-		ResourceName: "unknown",
-		ErrorContext: "performing an action in CI",
-		ErrorMessage: e.Error(),
-	}
-	return r
 }

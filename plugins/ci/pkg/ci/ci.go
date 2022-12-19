@@ -607,15 +607,11 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		dockerImages := getDockerImages(ci.config.Images.Docker)
 		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
 		if err != nil {
-			/*
-				scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
-								ErrorMessage: err.Error(),
-								ErrorContext: "running trivy",
-								Kind:         "InternalOperation",
-								ResourceName: "GetTrivyReport",
-							})
-			*/
-			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
+				ErrorContext: "running trivy",
+				Kind:         "InternalOperation",
+				ResourceName: "GetTrivyReport",
+			})
 		} else {
 			reports = append(reports, trivyReport)
 		}
