@@ -173,7 +173,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		if err != nil {
 			return nil, err
 		}
-		fluxValuesFilePath := tempFolder + "flux-helm-values.yaml"
+		fluxValuesFilePath := filepath.Join(tempFolder, "flux-helm-values.yaml")
 		err = os.WriteFile(fluxValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err
@@ -196,7 +196,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		if err != nil {
 			return nil, err
 		}
-		inlineValuesFilePath := tempFolder + "fairwinds-insights-helm-values.yaml"
+		inlineValuesFilePath := filepath.Join(tempFolder, "fairwinds-insights-helm-values.yaml")
 		err = os.WriteFile(inlineValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err
