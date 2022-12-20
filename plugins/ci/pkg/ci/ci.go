@@ -594,8 +594,9 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 				Kind:         "InternalOperation",
 				ResourceName: "GetPolarisReport",
 			})
-		} else {
-			reports = append(reports, &polarisReport)
+		}
+		if polarisReport != nil {
+			reports = append(reports, polarisReport)
 		}
 	}
 
@@ -612,64 +613,59 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 				Kind:         "InternalOperation",
 				ResourceName: "GetTrivyReport",
 			})
-		} else {
+		}
+		if trivyReport != nil {
 			reports = append(reports, trivyReport)
 		}
-	}
-
-	workloadReport, err := ci.GetWorkloadReport(resources)
-	if err != nil {
-		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
-			ErrorMessage: err.Error(),
-			ErrorContext: "aggregating workloads",
-			Kind:         "InternalOperation",
-			ResourceName: "GetWorkloadReport",
-		})
-	} else {
-		reports = append(reports, &workloadReport)
 	}
 
 	if ci.OPAEnabled() {
 		opaReport, err := ci.ProcessOPA(context.Background())
 		if err != nil {
-			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
-				ErrorMessage: err.Error(),
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
 				ErrorContext: "running OPA",
 				Kind:         "InternalOperation",
 				ResourceName: "ProcessOPA",
 			})
-		} else {
-			reports = append(reports, &opaReport)
+		}
+		if opaReport != nil {
+			reports = append(reports, opaReport)
 		}
 	}
 
 	if ci.PlutoEnabled() {
 		plutoReport, err := ci.GetPlutoReport()
 		if err != nil {
-			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
-				ErrorMessage: err.Error(),
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
 				ErrorContext: "running pluto",
 				Kind:         "InternalOperation",
 				ResourceName: "GetPlutoReport",
 			})
-		} else {
-			reports = append(reports, &plutoReport)
+		}
+		if plutoReport != nil {
+			reports = append(reports, plutoReport)
 		}
 	}
 
+	workloadReport, err := ci.GetWorkloadReport(resources)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get workloads report, which is depended on by other reports: %v", err)
+	}
+	if workloadReport != nil {
+		reports = append(reports, workloadReport)
+	}
 	if ci.TerraformEnabled() {
-		terraformReports, areTerraformResults, err := ci.ProcessTerraformPaths()
+		terraformReports, err := ci.ProcessTerraformPaths()
 		if err != nil {
-			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
-				ErrorMessage: err.Error(),
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
 				ErrorContext: "processing terraform",
 				Kind:         "InternalOperation",
 				ResourceName: "ProcessTerraformPaths",
 			})
 		}
-		if areTerraformResults {
+		if terraformReports != nil {
 			logrus.Debugln("the Terraform report contains results")
-			reports = append(reports, &terraformReports)
+			reports = append(reports, terraformReports)
 		}
 	}
 

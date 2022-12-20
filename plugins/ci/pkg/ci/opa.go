@@ -23,7 +23,8 @@ import (
 )
 
 // ProcessOPA runs all checks against the provided Custom Check
-func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
+func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
+	allErrs := new(multierror.Error)
 	report := models.ReportInfo{
 		Report:   "opa",
 		Filename: "opa.json",
@@ -32,9 +33,11 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 
 	instances, checks, err := refreshChecks(*ci.config)
 	if err != nil {
-		return report, err
+		return nil, err
 	}
 	var files []map[string]interface{}
+	var fileNames []string // matches files by index
+
 	actionItems := make([]opa.ActionItem, 0)
 	configFolder := ci.config.Options.TempFolder + "/configuration/"
 	err = filepath.Walk(configFolder, func(path string, info os.FileInfo, err error) error {
@@ -67,6 +70,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 				} else {
 					files = append(files, yamlNode)
 				}
+				fileNames = append(fileNames, strings.TrimPrefix(path, filepath.Clean(configFolder)+"/")) // Clean() is used because Join() also uses Clean()
 			} else {
 				logrus.Warn("Manifest is missing field Kind")
 			}
@@ -75,31 +79,39 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (models.ReportInfo, error) {
 	})
 	if err != nil {
 		logrus.Warn("Unable to walk through configFolder tree")
-		return report, err
+		return nil, err
 	}
 
 	kube.SetFileClient(files)
-	for _, nodeMap := range files {
+	for fileNumber, nodeMap := range files {
 		apiVersion, resourceKind, resourceName, namespace := util.ExtractMetadata(nodeMap)
 		apiGroup := strings.Split(apiVersion, "/")[0]
 		newActionItems, err := processObject(ctx, nodeMap, resourceName, resourceKind, apiGroup, namespace, instances, checks)
 		if err != nil {
-			return report, err
+			// return report, err
+			allErrs = multierror.Append(allErrs, models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "processing OPA checks",
+				Filename:     fileNames[fileNumber],
+			})
 		}
-		actionItems = append(actionItems, newActionItems...)
+		actionItems = append(actionItems, newActionItems...) // There may be AIs despite errors
 	}
+	logrus.Debugf("OPA action items are: %#v", actionItems)
 	results := map[string]interface{}{
 		"ActionItems": actionItems,
 	}
 	bytes, err := json.Marshal(results)
 	if err != nil {
-		return report, err
+		// return report, err
+		return nil, multierror.Append(allErrs, err)
 	}
 	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), bytes, 0644)
 	if err != nil {
-		return report, err
+		// return report, err
+		return nil, multierror.Append(allErrs, err)
 	}
-	return report, nil
+	return &report, allErrs.ErrorOrNil()
 }
 
 type opaChecks struct {
@@ -180,6 +192,8 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 		default:
 			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause CI to be blocked", check.Name, check.Version))
 		}
+		// marker
+		logrus.Infof("action items for check %s are: %#v", check.Name, actionItems)
 	}
 	return actionItems, allErrs
 }
