@@ -150,7 +150,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 	}
 	if len(allErrs.Errors) > 0 {
 		return ciutil.ReverseMap(refLookup), models.ScanErrorsReportResult{
-			ErrorMessage: allErrs.Error(),
+			ErrorMessage: allErrs.Error(), // keep multiple errors combined into a single error / action item
 			ErrorContext: "downloading missing images to be scanned by trivy",
 			Kind:         "InternalOperation",
 			Remediation:  "Please inspect the action item description for signs of why downloading images may have failed.",

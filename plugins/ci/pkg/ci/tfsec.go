@@ -18,7 +18,7 @@ func (ci *CIScan) TerraformEnabled() bool {
 	return *ci.config.Reports.TFSec.Enabled
 }
 
-func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, err error) {
+func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, errs error) {
 	logrus.Infof("processing %d Terraform paths", len(ci.config.Terraform.Paths))
 	if len(ci.config.Terraform.Paths) == 0 {
 		return nil, nil

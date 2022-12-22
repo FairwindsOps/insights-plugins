@@ -424,9 +424,9 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
-	var basePath string = os.Getenv("LOCAL_BASE_PATH")
+	var basePath string = os.Getenv("CI_BASE_PATH")
 	if basePath != "" {
-		logrus.Infof("using basePath of %q from environment LOCAL_BASE_PATH", basePath)
+		logrus.Infof("using basePath of %q from environment CI_BASE_PATH", basePath)
 	} else {
 		basePath = filepath.Join("/app", "repository")
 	}
@@ -554,8 +554,7 @@ func readConfigurationFromReader(configHandler io.Reader) (*models.Configuration
 }
 
 func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
-	var reports []*models.ReportInfo
-	var scanErrorsReportProperties models.ScanErrorsReportProperties
+	var scanErrorsReportProperties models.ScanErrorsReportProperties // errors encountered during scan
 
 	err := ci.ProcessHelmTemplates()
 	if err != nil {
@@ -584,6 +583,8 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		})
 	}
 
+	var reports []*models.ReportInfo
+
 	// Scan manifests with Polaris
 	if ci.PolarisEnabled() {
 		polarisReport, err := ci.GetPolarisReport()
@@ -600,6 +601,13 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		}
 	}
 
+	workloadReport, err := ci.GetWorkloadReport(resources)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get workloads report, which is depended on by other reports: %v", err)
+	}
+	if workloadReport != nil {
+		reports = append(reports, workloadReport)
+	}
 	if ci.TrivyEnabled() {
 		manifestImagesToScan := manifestImages
 		if ci.SkipTrivyManifests() {
@@ -609,7 +617,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
 		if err != nil {
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
-				ErrorContext: "running trivy",
+				ErrorContext: "downloading images and running trivy",
 				Kind:         "InternalOperation",
 				ResourceName: "GetTrivyReport",
 			})
@@ -623,7 +631,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		opaReport, err := ci.ProcessOPA(context.Background())
 		if err != nil {
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
-				ErrorContext: "running OPA",
+				ErrorContext: "processing OPA policies",
 				Kind:         "InternalOperation",
 				ResourceName: "ProcessOPA",
 			})
@@ -647,13 +655,6 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		}
 	}
 
-	workloadReport, err := ci.GetWorkloadReport(resources)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get workloads report, which is depended on by other reports: %v", err)
-	}
-	if workloadReport != nil {
-		reports = append(reports, workloadReport)
-	}
 	if ci.TerraformEnabled() {
 		terraformReports, err := ci.ProcessTerraformPaths()
 		if err != nil {
@@ -674,7 +675,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to process scan errors report items: %w", err)
 		}
-		reports = append(reports, &scanErrorsReport)
+		reports = append(reports, scanErrorsReport)
 	}
 	return reports, nil
 }

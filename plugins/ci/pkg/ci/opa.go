@@ -88,7 +88,6 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 		apiGroup := strings.Split(apiVersion, "/")[0]
 		newActionItems, err := processObject(ctx, nodeMap, resourceName, resourceKind, apiGroup, namespace, instances, checks)
 		if err != nil {
-			// return report, err
 			allErrs = multierror.Append(allErrs, models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
 				ErrorContext: "processing OPA checks",
@@ -103,12 +102,10 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 	}
 	bytes, err := json.Marshal(results)
 	if err != nil {
-		// return report, err
 		return nil, multierror.Append(allErrs, err)
 	}
 	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), bytes, 0644)
 	if err != nil {
-		// return report, err
 		return nil, multierror.Append(allErrs, err)
 	}
 	return &report, allErrs.ErrorOrNil()
@@ -192,8 +189,6 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 		default:
 			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause CI to be blocked", check.Name, check.Version))
 		}
-		// marker
-		logrus.Infof("action items for check %s are: %#v", check.Name, actionItems)
 	}
 	return actionItems, allErrs
 }

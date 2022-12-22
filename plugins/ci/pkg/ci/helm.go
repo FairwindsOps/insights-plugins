@@ -20,30 +20,28 @@ func (ci *CIScan) ProcessHelmTemplates() error {
 	var allErrs *multierror.Error = new(multierror.Error)
 	for _, helm := range ci.config.Manifests.Helm {
 		if helm.IsLocal() && helm.IsRemote() {
-			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
+			allErrs = multierror.Append(allErrs, fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name))
 		}
 		if helm.IsLocal() {
 			err := handleLocalHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
 			if err != nil {
-				// return err
 				allErrs = multierror.Append(allErrs, err)
 			}
 		} else if helm.IsRemote() {
 			if helm.IsFluxFile() {
 				err := handleFluxHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
-					return err
+					allErrs = multierror.Append(allErrs, err)
 				}
 			} else {
 				err := handleRemoteHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
-					// return err
 					allErrs = multierror.Append(allErrs, err)
 				}
 			}
 		} else {
 			logrus.Debugf("cannot determine the type of helm config for: %#v\n", helm)
-			return fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name)
+			allErrs = multierror.Append(allErrs, fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name))
 		}
 	}
 	return allErrs.ErrorOrNil()
@@ -107,7 +105,6 @@ func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion str
 	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, chartName)
 	output, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
 	if err != nil {
-		// return err
 		return models.ScanErrorsReportResult{
 			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
 			ErrorContext: fmt.Sprintf("adding helm repository %q", helm.Repo),
@@ -134,7 +131,6 @@ func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion str
 	}
 	output, err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving %s of pkg %v from repository %v, downloading it locally and unziping it", versionDisplay, chartName, repoName))
 	if err != nil {
-		// return err
 		return models.ScanErrorsReportResult{
 			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
 			ErrorContext: fmt.Sprintf("fetching %s of the helm chart %s from %s", versionDisplay, chartName, repoName),
@@ -147,7 +143,6 @@ func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion str
 
 	helmValuesFiles, err := processHelmValues(helm, fluxValues, tempFolder)
 	if err != nil {
-		// return err
 		return models.ScanErrorsReportResult{
 			ErrorMessage: err.Error(),
 			ErrorContext: "processing helm values files",
@@ -166,7 +161,6 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 
 	helmValuesFiles, err := processHelmValues(helm, nil, tempFolder)
 	if err != nil {
-		// return err
 		return models.ScanErrorsReportResult{
 			ErrorMessage: err.Error(),
 			ErrorContext: "processing helm values files",
@@ -182,7 +176,6 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 	helmPath = filepath.Join(repoPath, helmPath)
 	output, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
-		// return err
 		return models.ScanErrorsReportResult{
 			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
 			ErrorContext: fmt.Sprintf("updating dependencies for helm chart %s", helm.Name),

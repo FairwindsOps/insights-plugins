@@ -14,9 +14,10 @@ const (
 
 // ScanErrorResult contains a single error encountered during a scan.
 // This satisfies the GO Error interface, and provides additional error context
-// to be bubbled up into a scan-errors report.
+// to be included in scan-errors report action items.
 type ScanErrorsReportResult struct {
-	// IF adding a field to this struct, also update the FillUnsetFields receiver!
+	// IF adding a field to this struct, also update the FillUnsetFields
+	// receiver below!
 	Kind         string  `json:"kind"`
 	ResourceName string  `json:"resourceName"`
 	ErrorMessage string  `json:"errorMessage"` // error message returned during a scan
@@ -39,7 +40,7 @@ func (r ScanErrorsReportResult) Error() string {
 // This is useful to provide context only when an upstream error does not
 // already contain any.
 func (r *ScanErrorsReportResult) FillUnsetFields(f ScanErrorsReportResult) {
-	orig := *r
+	original := *r
 	var anyChanges bool
 	if r.Kind == "" {
 		anyChanges = true
@@ -70,12 +71,13 @@ func (r *ScanErrorsReportResult) FillUnsetFields(f ScanErrorsReportResult) {
 		r.Category = f.Category
 	}
 	if anyChanges {
-		logrus.Debugf("updated missing fields in %#v, using values from %#v, and final result is: %#v", orig, f, *r)
+		logrus.Debugf("updated missing fields in %#v, using values from %#v, and final result is: %#v", original, f, *r)
 	}
 }
 
 // FillUnsetRequiredFieldsWithDefaults populates any unset
-// ScanErrorsReportResult fields that are required, with defaults.
+// ScanErrorsReportResult fields that are required by the Insights API, with defaults.
+// This avoids HTTP 500s from the API.
 func (r *ScanErrorsReportResult) FillUnsetRequiredFieldsWithDefaults() {
 	if r.Kind == "" {
 		logrus.Warnf("setting required field Kind to %q for this ScanErrorsReportResult: %#v", ScanErrorsReportDefaultKind, *r)
@@ -105,10 +107,10 @@ type ScanErrorsReport struct {
 	Report  ScanErrorsReportProperties
 }
 
-// AddScanErrorsReportResultFromError type-asserts an Error type into a ScanErrorsReportResult
+// AddScanErrorsReportResultFromError type-asserts an Error interface or multierror type into a ScanErrorsReportResult
 // type, and adds it to the slice stored in the ScanErrorsReportProperties
 // receiver. Any additional parameters of type ScanErrorsReportResult are used
-// only to fill in missing fields of the first error parameter.
+// only to fill in empty fields of the first error parameter.
 // For example: AddScanErrorsReportResultFromError(err, err2) will populate
 // any missing fields from err, with values from err2, such as ErrorContext or
 // Remediation.
@@ -124,7 +126,7 @@ func (reportProperties *ScanErrorsReportProperties) AddScanErrorsReportResultFro
 			reportProperties.AddScanErrorsReportResultFromError(singleErr, dataForMissingFields...)
 		}
 		return
-	case ScanErrorsReportResult: // A single result
+	case ScanErrorsReportResult: // already the desired type
 		newItem = v
 	default:
 		newItem = ScanErrorsReportResult{
