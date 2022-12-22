@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
-	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/polaris"
 	"github.com/fairwindsops/polaris/pkg/mutation"
+	polariswebhook "github.com/fairwindsops/polaris/pkg/webhook"
 	"github.com/sirupsen/logrus"
 	"gomodules.xyz/jsonpatch/v2"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"sigs.k8s.io/yaml"
 )
 
 // Mutator is the entry point for the admission webhook.
@@ -25,12 +26,30 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 }
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
-	results, err := polaris.GetPolarisValidateResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
+	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
 		return nil, err
 	}
-	patches, _ := mutation.GetMutationsAndCommentsFromResult(results)
-	return patches, nil
+	logrus.Debugf("polaris returned %d results during mutation of %s/%s: %v", len(results.Results), req.RequestKind.Kind, req.Name, *results)
+	patches := mutation.GetMutationsFromResult(results)
+	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
+	if err != nil {
+		return nil, err
+	}
+	mutatedYamlStr, err := mutation.ApplyAllMutations(string(originalYaml), patches)
+	if err != nil {
+		return nil, err
+	}
+	mutatedJson, err := yaml.YAMLToJSON([]byte(mutatedYamlStr))
+	if err != nil {
+		return nil, err
+	}
+	returnPatch, err := jsonpatch.CreatePatch(kubeResources.OriginalObjectJSON, mutatedJson)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("the patch to mutate %s/%s is: %v", req.RequestKind.Kind, req.Name, returnPatch)
+	return returnPatch, err
 }
 
 // Handle for Validator to run validation checks.
@@ -44,6 +63,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.Namespace)
 	patches, err := m.mutate(req)
 	if err != nil {
+		logrus.Errorf("got an error getting patches: %v", err)
 		return admission.Errored(403, err)
 	}
 	if patches == nil {
