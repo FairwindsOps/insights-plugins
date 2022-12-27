@@ -3,19 +3,20 @@ package ci
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 
 	"github.com/ghodss/yaml" // supports both yaml and json
 )
 
-var supportedExtensions = []string{"yaml", "yml", "json"}
+var supportedKubeExtensions = []string{"yaml", "yml", "json"}
+var supportedExtensions = []string{"yaml", "yml", "json", "tf"}
 
 type KubernetesManifest struct {
 	ApiVersion *string `json:"apiVersion"` // Affects YAML field names too.
@@ -26,6 +27,7 @@ type KubernetesManifest struct {
 func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 	k8sManifests := []string{}
 	helmFolders := []string{}
+	terraformPaths := []string{}
 
 	err := filepath.Walk(basePath,
 		func(path string, info os.FileInfo, err error) error {
@@ -42,13 +44,20 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 				if err != nil {
 					return err
 				}
-
 				if helmFolder {
 					relPath, err := filepath.Rel(basePath, path)
 					if err != nil {
 						return err
 					}
 					helmFolders = append(helmFolders, relPath)
+					return filepath.SkipDir
+				}
+				terraformFolder, err := isTerraformFolder(path)
+				if err != nil {
+					return err
+				}
+				if terraformFolder {
+					terraformPaths = append(terraformPaths, path)
 					return filepath.SkipDir
 				}
 				logrus.Debugf("this is a directory: %s", info.Name())
@@ -60,7 +69,7 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 				return nil
 			}
 
-			if !funk.ContainsString(supportedExtensions, fileExtension[1:]) {
+			if !lo.Contains(supportedExtensions, fileExtension[1:]) {
 				logrus.Debugf("file extension '%s' not supported for file %v", fileExtension, path)
 				return nil
 			}
@@ -93,8 +102,10 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 			YamlPaths: k8sManifests,
 			Helm:      toHelmConfigs(basePath, helmFolders),
 		},
+		Terraform: models.TerraformConfig{
+			Paths: terraformPaths,
+		},
 	}
-
 	return &config, nil
 }
 
@@ -117,7 +128,7 @@ func getPossibleKubernetesManifest(path string) *KubernetesManifest {
 		logrus.Debugf("Could not open file %s", path)
 		return nil
 	}
-	content, err := ioutil.ReadAll(file)
+	content, err := io.ReadAll(file)
 	if err != nil {
 		logrus.Debugf("Could not read contents from file %s", file.Name())
 		return nil
@@ -136,16 +147,36 @@ func getPossibleKubernetesManifest(path string) *KubernetesManifest {
 }
 
 func isHelmBaseFolder(path string) (bool, error) {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		return false, fmt.Errorf("Could not read dir %s: %v", path, err)
 	}
 
 	for _, file := range files {
-		for _, ext := range supportedExtensions {
+		for _, ext := range supportedKubeExtensions {
 			if file.Name() == "Chart."+ext {
 				return true, nil
 			}
+		}
+	}
+	return false, nil
+}
+
+// isTerraformFOlder returns true if the specified directory contains a file
+// with a .tf extension.
+func isTerraformFolder(path string) (bool, error) {
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return false, fmt.Errorf("Could not read dir %s: %v", path, err)
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		fileExtension := filepath.Ext(file.Name())
+		if strings.EqualFold(fileExtension, ".tf") {
+			logrus.Debugf("Directory %q contains Terraform because a .tf file was found", path)
+			return true, nil
 		}
 	}
 	return false, nil
@@ -186,14 +217,14 @@ func logDuplicatedHelmConfigNames(arr []models.HelmConfig) {
 
 // tries to extract name from Chart.yaml file, return chart (dir name) as fallback
 func tryFetchNameFromChartFile(baseFolder, chart string) string {
-	for _, ext := range supportedExtensions {
+	for _, ext := range supportedKubeExtensions {
 		f := "Chart." + ext
 		file, err := os.Open(filepath.Join(baseFolder, chart, f))
 		if err != nil {
 			logrus.Debugf("Could not open file %s: %v", f, err)
 			continue
 		}
-		content, err := ioutil.ReadAll(file)
+		content, err := io.ReadAll(file)
 		if err != nil {
 			logrus.Warnf("Could not read %s: %v", f, err)
 			continue
@@ -218,7 +249,7 @@ func tryFetchNameFromChartFile(baseFolder, chart string) string {
 
 // tries to discover the default values file, returns empty str if not found
 func tryDiscoverValuesFile(baseFolder, path string) string {
-	for _, ext := range supportedExtensions {
+	for _, ext := range supportedKubeExtensions {
 		f := "values." + ext
 		possibleValuesFile := filepath.Join(baseFolder, path, f)
 		if _, err := os.Stat(possibleValuesFile); errors.Is(err, os.ErrNotExist) {

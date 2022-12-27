@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.2.2
+* update x/net and alpine
+
+## 2.2.1
+* Add docker-socket check opa policy template.
+
+## 2.2.0
+* Add support for `insightsinfo("admissionRequest")` that exposes the admission request
+
+## 2.1.2
+* Update x/text to remove CVE
+
+## 2.1.1
+* Update to go 1.19
+
+## 2.1.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 2.0.18
+* upgrade plugins on build
+
+## 2.0.17
+* Update dependencies
+
 ## 2.0.16
 * support HPA v2beta1 for local files
 

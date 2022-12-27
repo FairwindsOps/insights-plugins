@@ -1,0 +1,122 @@
+[
+  {
+    "Name": "registry.k8s.io/ingress-nginx/kube-webhook-certgen@sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47",
+    "ID": "registry.k8s.io/ingress-nginx/kube-webhook-certgen@sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47",
+    "PullRef": "registry.k8s.io/ingress-nginx/kube-webhook-certgen@sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47",
+    "Owner": {
+      "Kind": "Job",
+      "Namespace": "ingress-nginx",
+      "Name": "ingress-nginx-admission-create",
+      "Container": "create"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "registry.k8s.io/ingress-nginx/controller@sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974",
+    "ID": "registry.k8s.io/ingress-nginx/controller@sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974",
+    "PullRef": "registry.k8s.io/ingress-nginx/controller@sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974",
+    "Owner": {
+      "Kind": "Deployment",
+      "Namespace": "ingress-nginx",
+      "Name": "ingress-nginx-controller",
+      "Container": "controller"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "quay.io/fairwinds/insights-uploader:0.4",
+    "ID": "quay.io/fairwinds/insights-uploader@sha256:5527b17293f8949fbedb72aa5d3e10c1fe3ba145140229758cfb1f862a0c3e91",
+    "PullRef": "quay.io/fairwinds/insights-uploader@sha256:5527b17293f8949fbedb72aa5d3e10c1fe3ba145140229758cfb1f862a0c3e91",
+    "Owner": {
+      "Kind": "CronJob",
+      "Namespace": "insights-agent",
+      "Name": "trivy",
+      "Container": "insights-uploader"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "quay.io/fairwinds/insights-uploader:0.4",
+    "ID": "quay.io/fairwinds/insights-uploader@sha256:702ad99d8dda3577617885a0875b50e53d0b15703edbac3b55b32112dc1715e8",
+    "PullRef": "quay.io/fairwinds/insights-uploader@sha256:702ad99d8dda3577617885a0875b50e53d0b15703edbac3b55b32112dc1715e8",
+    "Owner": {
+      "Kind": "CronJob",
+      "Namespace": "insights-agent",
+      "Name": "trivy",
+      "Container": "insights-uploader"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "quay.io/jetstack/cert-manager-controller:v1.10.0",
+    "ID": "quay.io/jetstack/cert-manager-controller@sha256:bdacfee1ec9bc2b93d46eeb9cac3abc842813b60ba522848c551cb846384c367",
+    "PullRef": "quay.io/jetstack/cert-manager-controller@sha256:bdacfee1ec9bc2b93d46eeb9cac3abc842813b60ba522848c551cb846384c367",
+    "Owner": {
+      "Kind": "Deployment",
+      "Namespace": "cert-manager",
+      "Name": "cert-manager",
+      "Container": "cert-manager-controller"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "quay.io/jetstack/cert-manager-cainjector:v1.10.0",
+    "ID": "quay.io/jetstack/cert-manager-cainjector@sha256:a19dc8e0044e291e8a474e8da20740c4a09770d0011be4cfe001245b9790a87c",
+    "PullRef": "quay.io/jetstack/cert-manager-cainjector@sha256:a19dc8e0044e291e8a474e8da20740c4a09770d0011be4cfe001245b9790a87c",
+    "Owner": {
+      "Kind": "Deployment",
+      "Namespace": "cert-manager",
+      "Name": "cert-manager-cainjector",
+      "Container": "cert-manager-cainjector"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "quay.io/jetstack/cert-manager-webhook:v1.10.0",
+    "ID": "quay.io/jetstack/cert-manager-webhook@sha256:2ab7b1370983e99550ae3d7ea5f1c357b5a5f6910a608ac5e441ae727ab3f4ea",
+    "PullRef": "quay.io/jetstack/cert-manager-webhook@sha256:2ab7b1370983e99550ae3d7ea5f1c357b5a5f6910a608ac5e441ae727ab3f4ea",
+    "Owner": {
+      "Kind": "Deployment",
+      "Namespace": "cert-manager",
+      "Name": "cert-manager-webhook",
+      "Container": "cert-manager-webhook"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "quay.io/fairwinds/fw-trivy:0.22",
+    "ID": "quay.io/fairwinds/fw-trivy@sha256:beef3733ea81ab94e5f06a70fed73e0020e134d4ff85f4f5d9dee4135c1f4cbb",
+    "PullRef": "quay.io/fairwinds/fw-trivy@sha256:beef3733ea81ab94e5f06a70fed73e0020e134d4ff85f4f5d9dee4135c1f4cbb",
+    "Owner": {
+      "Kind": "CronJob",
+      "Namespace": "insights-agent",
+      "Name": "trivy",
+      "Container": "trivy"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "quay.io/fairwinds/workloads:2.3",
+    "ID": "quay.io/fairwinds/workloads@sha256:6b1148b3f06445c2bebcaa80755b5f860ad433496dd973c4a048c4f180074da7",
+    "PullRef": "quay.io/fairwinds/workloads@sha256:6b1148b3f06445c2bebcaa80755b5f860ad433496dd973c4a048c4f180074da7",
+    "Owner": {
+      "Kind": "CronJob",
+      "Namespace": "insights-agent",
+      "Name": "workloads",
+      "Container": "workloads"
+    },
+    "RecommendationOnly": false
+  },
+  {
+    "Name": "k8s.gcr.io/coredns/coredns:v1.8.0",
+    "ID": "sha256:1a1f05a2cd7c2fbfa7b45b21128c8a4880c003ca482460081dc12d76bfa863e8",
+    "PullRef": "k8s.gcr.io/coredns/coredns:v1.8.0",
+    "Owner": {
+      "Kind": "Deployment",
+      "Namespace": "kube-system",
+      "Name": "coredns",
+      "Container": "coredns"
+    },
+    "RecommendationOnly": false
+  }
+]

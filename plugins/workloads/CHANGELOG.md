@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.4.1
+* update x/net and alpine
+
+## 2.4.0
+* Added ingresses support to workload report
+
+## 2.3.4
+* Update x/text to remove CVE
+
+## 2.3.3
+* update controller-utils to 0.3.0
+
+## 2.3.2
+* Fix for top-level controllers with no pod info
+
+## 2.3.1
+* Update to go 1.19
+
+## 2.3.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 2.2.15
+* upgrade plugins on build
+
+## 2.2.14
+* Update dependencies
+
 ## 2.2.13
 * update to go 1.18 and update packages
 

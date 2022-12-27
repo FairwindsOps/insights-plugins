@@ -1,11 +1,14 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ScoreOutOfBoundsMessage is the message for the error when the score returned by Insights is out of bounds.
@@ -30,16 +33,22 @@ type ReportInfo struct {
 
 // Configuration is a struct representing the config options for Insights CI/CD
 type Configuration struct {
-	Images    imageConfig    `yaml:"images"`
-	Manifests ManifestConfig `yaml:"manifests"`
-	Options   optionConfig   `yaml:"options"`
-	Reports   reportsConfig  `yaml:"reports"`
+	Images    imageConfig     `yaml:"images"`
+	Manifests ManifestConfig  `yaml:"manifests"`
+	Terraform TerraformConfig `yaml:"terraform"`
+	Options   optionConfig    `yaml:"options"`
+	Reports   reportsConfig   `yaml:"reports"`
 }
 
 // ManifestConfig is a struct representing the config options for Manifests
 type ManifestConfig struct {
 	YamlPaths []string     `yaml:"yaml"`
 	Helm      []HelmConfig `yaml:"helm"`
+}
+
+// TerraformConfig is a struct representing the config options for Terraform
+type TerraformConfig struct {
+	Paths []string `yaml:"paths"`
 }
 
 // HelmConfig is the configuration for helm.
@@ -70,6 +79,7 @@ func (hc *HelmConfig) IsFluxFile() bool {
 type reportsConfig struct {
 	Polaris reportConfig `yaml:"polaris"`
 	Pluto   reportConfig `yaml:"pluto"`
+	TFSec   tfSecConfig  `yaml:"tfsec"`
 	Trivy   trivyConfig  `yaml:"trivy"`
 	OPA     reportConfig `yaml:"opa"`
 }
@@ -78,21 +88,78 @@ type reportConfig struct {
 	Enabled *bool `yaml:"enabled"`
 }
 
+type tfSecConfig struct {
+	Enabled *bool `yaml:"enabled"`
+}
+
 type trivyConfig struct {
 	Enabled       *bool `yaml:"enabled"`
 	SkipManifests *bool `yaml:"skipManifests"`
 }
 
+type CIRunnerVal string
+
+const (
+	GithubActions CIRunnerVal = "github-actions"
+	CircleCI      CIRunnerVal = "circle-ci"
+	Gitlab        CIRunnerVal = "gitlab"
+	Travis        CIRunnerVal = "travis"
+	AzureDevops   CIRunnerVal = "azure-devops"
+)
+
+type RegistryCredential struct {
+	Domain   string `yaml:"domain"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+}
+
+func (rc RegistryCredential) String() string {
+	return fmt.Sprintf("domain: %s, username: %s, password: %s", rc.Domain, rc.Username, strings.Map(func(r rune) rune { return '*' }, rc.Password))
+}
+
+type RegistryCredentials []RegistryCredential
+
+func (rc RegistryCredentials) Validate() error {
+	// make sure there is no duplicated domain
+	domains := map[string]struct{}{}
+	for _, v := range rc {
+		domains[v.Domain] = struct{}{}
+	}
+	if len(rc) > len(domains) {
+		return errors.New("duplicated domains found in registry credentials list")
+	}
+	return nil
+}
+
+func (rc RegistryCredentials) FindCredentialForImage(imageName string) *RegistryCredential {
+	parts := strings.Split(imageName, "/")
+	domain := "docker.io"
+	if len(parts) == 3 {
+		// quay.io/fedora/httpd:version1.0
+		domain = parts[0]
+	}
+
+	for _, v := range rc {
+		if v.Domain == domain {
+			return &v
+		}
+	}
+
+	return nil
+}
+
 type optionConfig struct {
-	SetExitCode            bool   `yaml:"setExitCode"`
-	BaseBranch             string `yaml:"baseBranch"`
-	NewActionItemThreshold int    `yaml:"newActionItemThreshold"`
-	SeverityThreshold      string `yaml:"severityThreshold"`
-	TempFolder             string `yaml:"tempFolder"`
-	Hostname               string `yaml:"hostname"`
-	Organization           string `yaml:"organization"`
-	JUnitOutput            string `yaml:"junitOutput"`
-	RepositoryName         string `yaml:"repositoryName"`
+	SetExitCode            bool                `yaml:"setExitCode"`
+	BaseBranch             string              `yaml:"baseBranch"`
+	NewActionItemThreshold int                 `yaml:"newActionItemThreshold"`
+	SeverityThreshold      string              `yaml:"severityThreshold"`
+	TempFolder             string              `yaml:"tempFolder"`
+	Hostname               string              `yaml:"hostname"`
+	Organization           string              `yaml:"organization"`
+	JUnitOutput            string              `yaml:"junitOutput"`
+	RepositoryName         string              `yaml:"repositoryName"`
+	RegistryCredentials    RegistryCredentials `yaml:"-"`
+	CIRunner               CIRunnerVal         `yaml:"-"`
 }
 
 type imageConfig struct {
@@ -184,9 +251,11 @@ func (c *Configuration) SetPathDefaults() {
 
 // SetDefaults sets configuration defaults
 //
-// it should follow the order:
-// - file content > env. variables > default
-func (c *Configuration) SetDefaults() {
+// it should respect the order:
+// - config. file content > env. variables > default
+func (c *Configuration) SetDefaults() error {
+	c.Options.CIRunner = CIRunnerVal(strings.TrimSpace(os.Getenv("CI_RUNNER"))) // only set via env. variable
+
 	if c.Options.BaseBranch == "" {
 		baseBranch := strings.TrimSpace(os.Getenv("BASE_BRANCH"))
 		if baseBranch != "" {
@@ -196,16 +265,10 @@ func (c *Configuration) SetDefaults() {
 		}
 	}
 	if c.Options.Organization == "" {
-		orgName := strings.TrimSpace(os.Getenv("ORG_NAME"))
-		if orgName != "" {
-			c.Options.Organization = orgName
-		}
+		c.Options.Organization = strings.TrimSpace(os.Getenv("ORG_NAME"))
 	}
 	if c.Options.RepositoryName == "" {
-		repoName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
-		if repoName != "" {
-			c.Options.RepositoryName = repoName
-		}
+		c.Options.RepositoryName = strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	}
 	if c.Options.Hostname == "" {
 		hostname := strings.TrimSpace(os.Getenv("HOSTNAME"))
@@ -238,6 +301,24 @@ func (c *Configuration) SetDefaults() {
 	if c.Reports.Trivy.SkipManifests == nil {
 		c.Reports.Trivy.SkipManifests = &falsehood
 	}
+	if c.Reports.TFSec.Enabled == nil {
+		c.Reports.TFSec.Enabled = &truth
+	}
+
+	registryCredentialsJSON := strings.TrimSpace(os.Getenv("REGISTRY_CREDENTIALS")) // only set via env. variable
+	if registryCredentialsJSON != "" {
+		var registryCredentials RegistryCredentials
+		err := json.Unmarshal([]byte(registryCredentialsJSON), &registryCredentials)
+		if err != nil {
+			return fmt.Errorf("could not parse registry credentials: %w", err)
+		}
+		if err := registryCredentials.Validate(); err != nil {
+			return fmt.Errorf("registryCredentials is not valid: %w", err)
+		}
+		c.Options.RegistryCredentials = registryCredentials
+		logrus.Infof("loaded %d registry credentials", len(registryCredentials))
+	}
+	return nil
 }
 
 // CheckForErrors checks to make sure the configuration is valid

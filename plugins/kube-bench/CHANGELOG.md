@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.4
+* update x/net and alpine
+
+## 0.4.3
+* Update kube-bench to 0.6.10
+
+## 0.4.2
+* Update x/text to remove CVE
+
+## 0.4.1
+* Update to go 1.19
+
+## 0.4.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 0.3.17
+* Update dependencies
+
 ## 0.3.16
 * update packages
 

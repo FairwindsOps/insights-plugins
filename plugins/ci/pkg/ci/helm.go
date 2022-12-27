@@ -3,7 +3,7 @@ package ci
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -55,7 +55,7 @@ func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder stri
 		return fmt.Errorf("Unable to open file %v: %v", helm.FluxFile, err)
 	}
 
-	fluxFileContent, err := ioutil.ReadAll(fluxFile)
+	fluxFileContent, err := io.ReadAll(fluxFile)
 	if err != nil {
 		return fmt.Errorf("Unable to read file %v: %v", helm.FluxFile, err)
 	}
@@ -126,7 +126,7 @@ func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion str
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm, chartDownloadPath, helmValuesFiles, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, "", chartDownloadPath, helmValuesFiles, tempFolder, configFolder)
 }
 
 func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
@@ -138,10 +138,11 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 	if err != nil {
 		return err
 	}
-	return doHandleLocalHelmChart(helm, filepath.Join(baseRepoFolder, helm.Path), helmValuesFiles, tempFolder, configFolder)
+	return doHandleLocalHelmChart(helm, baseRepoFolder, helm.Path, helmValuesFiles, tempFolder, configFolder)
 }
 
-func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
+func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
+	helmPath = filepath.Join(repoPath, helmPath)
 	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
 		return err
@@ -149,7 +150,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, helmPath string, helmValuesF
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
-		helmValuesFileArgs = append(helmValuesFileArgs, "-f", vf)
+		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
 	}
 	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
 	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
@@ -173,7 +174,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 			return nil, err
 		}
 		fluxValuesFilePath := tempFolder + "flux-helm-values.yaml"
-		err = ioutil.WriteFile(fluxValuesFilePath, yaml, 0644)
+		err = os.WriteFile(fluxValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +197,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 			return nil, err
 		}
 		inlineValuesFilePath := tempFolder + "fairwinds-insights-helm-values.yaml"
-		err = ioutil.WriteFile(inlineValuesFilePath, yaml, 0644)
+		err = os.WriteFile(inlineValuesFilePath, yaml, 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +210,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CIScan) CopyYaml() error {
 	for _, yamlPath := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: " + yamlPath)
+		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: "+yamlPath)
 		if err != nil {
 			return err
 		}

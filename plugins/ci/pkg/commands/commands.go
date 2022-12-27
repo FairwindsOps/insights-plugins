@@ -2,8 +2,8 @@ package commands
 
 import (
 	"os/exec"
-	"strings"
 
+	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,9 +13,10 @@ func ExecInDir(dir string, cmd *exec.Cmd, message string) (string, error) {
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error running %s - %s[%v]", removeToken(cmd.String()), string(output), removeToken(err.Error()))
+		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
+		return "", err
 	}
-	return string(output), err
+	return string(output), nil
 }
 
 // ExecWithMessage runs a command and prints errors to Stderr
@@ -23,26 +24,19 @@ func ExecWithMessage(cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Error running %s - %s[%v]", removeToken(cmd.String()), string(output), removeToken(err.Error()))
+		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
+		return "", err
 	}
-	return string(output), err
+	return string(output), nil
 }
 
 // Exec executes a command and returns the results as a string.
 func Exec(command string, args ...string) (string, error) {
 	cmd := exec.Command(command, args...)
-	bytes, err := cmd.CombinedOutput()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logrus.Errorf("Unable to execute command: %s %s[%v]", removeToken(cmd.String()), string(bytes), removeToken(err.Error()))
+		logrus.Errorf("Unable to execute command: %s %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
+		return "", err
 	}
-	return string(bytes), err
-}
-
-func removeToken(s string) string {
-	index := strings.Index(s, "x-access-token")
-	index2 := strings.Index(s, "@github.com")
-	if index < 0 || index2 < 0 {
-		return s
-	}
-	return strings.ReplaceAll(s, s[index+15:index2], "<TOKEN>")
+	return string(output), nil
 }

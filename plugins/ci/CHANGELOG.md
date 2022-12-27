@@ -1,5 +1,84 @@
 # Changelog
 
+## 4.1.2
+* Fixes missing image info (name and owner name) when the download of `docker.images` are done inside the CI plugin execution
+
+## 4.1.1
+* update x/net and alpine
+
+## 4.1.0
+* Add support for configuring reports when using auto-discovery via `REPORTS_CONFIG` env var
+
+## 4.0.0
+* Enable the tfsec report by default. If `terraform -> paths` are specified, they will be scanned unless `reports -> tfsec -> enabled` is explicitly set to `false` in fairwinds-insights.yaml.
+
+## 3.4.0
+* Support for private images (REGISTRY_CREDENTIALS)
+
+## 3.3.0
+* Support `images.docker` download images inside the plugin
+
+## 3.2.1
+* update trivy
+
+## 3.2.0
+* Add alternative GIT commands to fetch masterHash
+* Make some GIT commands optional (masterHash, commitMessage, branch and origin)
+* Add CI_RUNNER env. var support
+* Add hint logs based on CI runner
+
+## 3.1.0
+* Update tfsec, pluto, and polaris to adress additional `x/text` and `x/net` CVEs
+* Bump Helm to 3.10.2
+
+## 3.0.0
+* Add Terraform scanning via a tfsec report
+
+## 2.4.1
+* Temporarily revert terraform scanning
+
+## 2.4.0
+* Add Terraform scanning via a tfsec report
+
+## 2.3.0
+* Update trivy to version 0.34.0
+
+## 2.2.4
+* Update x/text to remove CVE
+
+## 2.2.3
+* Update dependencies
+
+## 2.2.2
+* Update to go 1.19
+
+## 2.2.1
+* Update versions
+
+## 2.2.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 2.1.12
+* Improves logging to show k8s and helm files
+
+## 2.1.11
+* Fix `helm template` command in some environments
+
+## 2.1.10
+* Fix leaking access token in std out.
+
+## 2.1.9
+* upgrade plugins on build
+
+## 2.1.8
+* Fix for missing fields in container manifests
+
+## 2.1.7
+* Update dependencies
+
+## 2.1.6
+* Fix OPA panic if `kind` field is missing
+
 ## 2.1.5
 * update packages
 

@@ -3,11 +3,16 @@ package admission
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	admissionv1 "k8s.io/api/admission/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
@@ -42,9 +47,18 @@ func (w webhookFailurePolicy) String() string {
 
 // Validator is the entry point for the admission webhook.
 type Validator struct {
+	clientset            *kubernetes.Clientset
+	iConfig              models.InsightsConfig
 	decoder              *admission.Decoder
 	config               *models.Configuration
 	webhookFailurePolicy webhookFailurePolicy
+}
+
+func NewValidator(clientset *kubernetes.Clientset, iConfig models.InsightsConfig) *Validator {
+	return &Validator{
+		iConfig:   iConfig,
+		clientset: clientset,
+	}
 }
 
 // SetWebhookFailurePolicy parses a string into one of the
@@ -82,41 +96,50 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
-	var err error
-	var decoded map[string]interface{}
-
-	err = json.Unmarshal(req.Object.Raw, &decoded)
+	username := req.UserInfo.Username
+	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
+		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
+		return true, []string{msg}, nil, nil
+	}
+	var decoded map[string]any
+	err := json.Unmarshal(req.Object.Raw, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
 	}
-
-	ownerReferences, ok := decoded["metadata"].(map[string]interface{})["ownerReferences"].([]interface{})
-
+	ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any)
 	if ok && len(ownerReferences) > 0 {
 		logrus.Infof("Object has an owner - skipping")
 		return true, nil, nil, nil
 	}
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-
-	logrus.Debugf("Processing with config %+v", v.config)
-	metadata, err := getRequestReport(req)
-	if err != nil {
-		logrus.Errorf("Error marshaling admission request")
-		return false, nil, nil, err
+	var namespaceMetadata map[string]any
+	if namespace, ok := decoded["metadata"].(map[string]any)["namespace"].(string); ok && namespace != "" {
+		namespaceMetadata, err = getNamespaceMetadata(v.clientset, namespace)
+		if err != nil {
+			return false, nil, nil, err
+		}
 	}
-	return processInputYAML(ctx, *v.config, req.Object.Raw, decoded, token, req.AdmissionRequest.Name, req.AdmissionRequest.Namespace, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.RequestKind.Group, metadata)
+	return processInputYAML(ctx, v.iConfig, *v.config, decoded, req, namespaceMetadata)
+}
+
+func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (map[string]any, error) {
+	ns, err := clientset.CoreV1().Namespaces().Get(context.Background(), namespace, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"kind":       ns.Kind,
+		"apiVersion": ns.APIVersion,
+		"metadata": map[string]any{
+			"labels":      ns.Labels,
+			"annotations": ns.Annotations,
+		},
+	}, nil
 }
 
 // Handle for Validator to run validation checks.
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s",
-		req.Operation,
-		req.RequestKind.Group,
-		req.RequestKind.Version,
-		req.RequestKind.Kind,
-		req.Name,
-		req.Namespace)
+	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
@@ -129,46 +152,59 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 		}
 	}
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
+	if len(warnings) > 0 {
+		response.Warnings = warnings
+	}
 	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
 	logrus.Infof("%d errors returned: %s", len(errors), strings.Join(errors, ", "))
 	logrus.Infof("Allowed: %t", allowed)
 	return response
 }
 
-func getRequestReport(req admission.Request) (models.ReportInfo, error) {
-	report := models.ReportInfo{
-		Report:  "metadata",
-		Version: "0.1.0",
-	}
-	var err error
-	report.Contents, err = json.Marshal(&req.AdmissionRequest)
-	return report, err
+type MetadataReport struct {
+	admissionv1.AdmissionRequest
+	NamespaceMetadata map[string]any `json:"namespaceMetadata,omitempty"`
 }
 
-func processInputYAML(ctx context.Context, configurationObject models.Configuration, input []byte, decodedObject map[string]interface{}, token, name, namespace, kind, apiGroup string, metaReport models.ReportInfo) (bool, []string, []string, error) {
-	reports := []models.ReportInfo{
-		metaReport,
+func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (models.ReportInfo, error) {
+	metadataReport := MetadataReport{AdmissionRequest: req.AdmissionRequest, NamespaceMetadata: namespaceMetadata}
+	contents, err := json.Marshal(&metadataReport)
+	return models.ReportInfo{
+		Report:   "metadata",
+		Version:  "0.2.0",
+		Contents: contents,
+	}, err
+}
+
+func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config models.Configuration, decoded map[string]any, req admission.Request, namespaceMetadata map[string]any) (bool, []string, []string, error) {
+	logrus.Debugf("Processing with config %+v", config)
+	metadataReport, err := getRequestReport(req, namespaceMetadata)
+	if err != nil {
+		logrus.Errorf("Error marshaling admission request")
+		return false, nil, nil, err
 	}
-	if configurationObject.Reports.Polaris {
+	reports := []models.ReportInfo{metadataReport}
+	if config.Reports.Polaris {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
-		polarisConfig := *configurationObject.Polaris
-		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, input)
+		polarisConfig := *config.Polaris
+		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, req.Object.Raw)
 		if err != nil {
 			return false, nil, nil, err
 		}
 		reports = append(reports, polarisReport)
 	}
-	if configurationObject.Reports.OPA {
+
+	if config.Reports.OPA {
 		logrus.Info("Running OPA")
-		opaReport, err := opa.ProcessOPA(ctx, decodedObject, name, apiGroup, kind, namespace, configurationObject)
+		opaReport, err := opa.ProcessOPA(ctx, decoded, req, config, iConfig)
 		if err != nil {
 			return false, nil, nil, err
 		}
 		reports = append(reports, opaReport)
 	}
 
-	if configurationObject.Reports.Pluto {
+	if config.Reports.Pluto {
 		logrus.Info("Running Pluto")
 		userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
 		userTargetVersions, err := pluto.ParsePlutoTargetVersions(userTargetVersionsStr)
@@ -176,14 +212,14 @@ func processInputYAML(ctx context.Context, configurationObject models.Configurat
 			logrus.Errorf("unable to parse pluto target versions %q: %v", userTargetVersionsStr, err)
 			return false, nil, nil, err
 		}
-		plutoReport, err := pluto.ProcessPluto(input, userTargetVersions)
+		plutoReport, err := pluto.ProcessPluto(req.Object.Raw, userTargetVersions)
 		if err != nil {
 			return false, nil, nil, err
 		}
 		reports = append(reports, plutoReport)
 	}
 
-	results, warnings, errors, err := SendResults(reports, token)
+	results, warnings, errors, err := sendResults(iConfig, reports)
 	if err != nil {
 		return false, nil, nil, err
 	}

@@ -1,5 +1,6 @@
 tags.sh
-
+plugins/*/dist/
+plugins/*/.goreleaser.yml
 # MacOS files
 *.DS_Store
 
@@ -22,3 +23,6 @@ tags.sh
 *.swp
 
 *.tmp
+
+# Plugin binaries
+/plugins/ci/insights-ci

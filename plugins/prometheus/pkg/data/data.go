@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,7 @@ package data
 import (
 	"context"
 	"fmt"
-	"regexp"
+	"strings"
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
@@ -57,28 +57,33 @@ func getRange() prometheusV1.Range {
 func getController(workloads []controller.Workload, podName, namespace string) (name, kind string) {
 	name = podName
 	kind = "Pod"
+	prefixMatchLength := 0
 	for _, workload := range workloads {
 		if workload.TopController.GetNamespace() != namespace {
 			continue
 		}
+
+		workloadName := workload.TopController.GetName()
+		workloadKind := workload.TopController.GetKind()
 		for _, pod := range workload.Pods {
 			if pod.GetName() == podName {
 				// Exact match for a pod, go ahead and return
-				name = workload.TopController.GetName()
-				kind = workload.TopController.GetKind()
+				name = workloadName
+				kind = workloadKind
 				return
 			}
 		}
-		// 5 digit alphanumeric (pod) or strictly numeric segments (cronjob -> job, statefulset). or 9 digit alphanumberic (deployment -> rs)
-		matched, err := regexp.Match(fmt.Sprintf("^%s-([a-z0-9]{5}|[a-z0-9]{9}|[0-9]*)(-[a-z0-9]{5})?$", workload.TopController.GetName()), []byte(podName))
-		if err != nil {
-			logrus.Error(err)
-			return
+
+		isMatch := strings.HasPrefix(podName, workloadName)
+		if !isMatch {
+			continue
 		}
-		if matched {
-			// Weak match for a pod. Don't return yet in case there's a better match.
-			name = workload.TopController.GetName()
-			kind = workload.TopController.GetKind()
+
+		isBetterMatch := len(workloadName) > prefixMatchLength
+		if isBetterMatch {
+			prefixMatchLength = len(workloadName)
+			name = workloadName
+			kind = workloadKind
 		}
 	}
 	return
@@ -167,23 +172,29 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
-	workloads, err := controller.GetAllTopControllers(ctx, dynamicClient, restMapper, "")
+
+	client := controller.Client{
+		Context: ctx,
+		Dynamic: dynamicClient,
+		RESTMapper: restMapper,
+	}
+	workloads, err := client.GetAllTopControllersSummary("")
 	if err != nil {
 		return nil, err
 	}
-	workloadMap := make(map[string]controller.Workload)
-	for _, workload := range workloads {
+	workloadMap := make(map[string]*controller.Workload)
+	for idx, workload := range workloads {
 		for _, pod := range workload.Pods {
-			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = workload
+			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = &workloads[idx]
 		}
 	}
 	for _, val := range combinedRequests {
-		workload, ok := workloadMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]
-		if !ok {
-			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
-		} else {
+		if workload, ok := workloadMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]; ok {
 			val.ControllerName = workload.TopController.GetName()
 			val.ControllerKind = workload.TopController.GetKind()
+		} else {
+			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
+			logrus.Infof("Could not find owner for pod %s in namespace %s, using %s/%s", val.PodName, val.ControllerNamespace, val.ControllerKind, val.ControllerName)
 		}
 		requestArray = append(requestArray, val)
 	}

@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.9.0
+* Fix Polaris mutations with the Insights admission controller, including updating to current Polaris code and its default configuration file (which contains the `mutations` block)
+* Update Polaris to `20221114220502-467d06f4dbca` from `20220512134546-92f0b6e551df`
+* A bump for k8s.io/apimachinery and sigs.k8s.io/controller-runtime while troubleshooting
+
+## 1.8.3
+* update x/net and alpine
+
+## 1.8.2
+* Pass the admission request object to the OPA runtime engine
+
+## 1.8.1
+* Update x/text to remove CVE
+
+## 1.8.0
+* Added support to ignore some services account
+
+## 1.7.1
+* Update to go 1.19
+
+## 1.7.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 1.6.0
+* adds `namespaceMetadata` field to `metadata` report 
+
+## 1.5.6
+* upgrade plugins on build
+
+## 1.5.5
+* Update dependencies
+
 ## 1.5.4
 * update to go 1.18 and update packages
 

@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.24.4
+* update x/net and alpine
+
+## 0.24.3
+* Bugfix image recommendation that had integer short sha's as Tag 
+
+## 0.24.2
+* Add DockerImage to internal model
+
+## 0.24.1
+* update trivy
+
+## 0.24.0
+* Update trivy to version 0.34.0
+
+## 0.23.1
+* Fix a breaking change in #714 
+
+## 0.23.0
+* Use the `ImageID` to get container images instead of `Image`, to address when `ContainerStatuses.Image` only contains a SHA
+
+## 0.22.3
+* Update x/text to remove CVE
+
+## 0.22.2
+* Tune down some debug logs
+
+## 0.22.1
+* Update to go 1.19
+
+## 0.22.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 0.21.2
+* upgrade plugins on build
+## 0.21.1
+* Update dependencies
+
+## 0.21.0
+* Offline support
+
 ## 0.20.2
 * improve image tags recommendations
 

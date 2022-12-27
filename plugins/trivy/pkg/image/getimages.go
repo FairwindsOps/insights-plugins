@@ -96,8 +96,15 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 		}
 
 		for _, containerStatus := range pod.Status.ContainerStatuses {
+			var imageName string
+			if strings.HasPrefix(containerStatus.Image, "sha256") {
+				imageName = strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
+				logrus.Debugf("using an image name %q from the containerStatuses.*.ImageID field, because containerStatuses.*.Image begins with sha256 - %q", imageName, containerStatus.Image)
+			} else {
+				imageName = containerStatus.Image
+			}
 			im := models.Image{
-				Name:  containerStatus.Image,
+				Name:  imageName,
 				ID:    strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://"),
 				Owner: models.Resource(owner),
 			}

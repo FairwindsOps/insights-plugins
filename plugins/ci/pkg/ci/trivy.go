@@ -5,81 +5,180 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
+	"regexp"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
 	trivymodels "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	ciutil "github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
 )
 
-func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.ReportInfo, error) {
-	trivyReport := models.ReportInfo{
-		Report:   "trivy",
-		Filename: "trivy.json",
+func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) (*models.ReportInfo, error) {
+	err := updatePullRef(ci.config.Images.FolderName, dockerImages, manifestImages)
+	if err != nil {
+		return nil, err
 	}
 
-	// Look through image tarballs and mark which ones are already there, by setting image.PullRef
-	logrus.Infof("Looking through images in %s", ci.config.Images.FolderName)
-	err := walkImages(ci.config, func(filename string, sha string, repoTags []string) {
-		for idx := range manifestImages {
-			if manifestImages[idx].PullRef != "" {
-				continue
+	filenameToImageName, err := downloadMissingImages(ci.config.Images.FolderName, dockerImages, manifestImages, ci.config.Options.RegistryCredentials)
+	if err != nil {
+		return nil, err
+	}
+
+	allImages, err := mergeImages(ci.config.Images.FolderName, dockerImages, manifestImages, filenameToImageName)
+	if err != nil {
+		return nil, err
+	}
+
+	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)
+	if err != nil {
+		return nil, err
+	}
+
+	filename := "trivy.json"
+	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, filename), trivyResults, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.ReportInfo{
+		Report:   "trivy",
+		Filename: filename,
+		Version:  trivyVersion,
+	}, nil
+}
+
+// filename -> postgres_15_1_bullseye
+// sha 			-> sha256:5918a4f7e04aed7ac69d2b03b9b91345556db38709f9d6354056e3fdd9a8c02f
+// repoTags -> []string{"postgres:15.1-bullseye"}
+type imageCallback func(filename string, sha string, tags []string)
+
+func walkImages(folderPath string, cb imageCallback) error {
+	err := filepath.Walk(folderPath, func(path string, fileInfo os.FileInfo, err error) error {
+		if err != nil {
+			logrus.Errorf("Error while walking path %s: %v", path, err)
+			return err
+		}
+		if fileInfo.IsDir() {
+			return nil
+		}
+		sha, repoTags, err := getShaAndRepoTags(path)
+		if err != nil {
+			return err
+		}
+		cb(fileInfo.Name(), sha, repoTags)
+		return nil
+	})
+	return err
+}
+
+// updatePullRef looks through image tarballs and mark which ones are already there, by setting image.PullRef
+func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) error {
+	logrus.Infof("Looking through images in %s", folderPath)
+	return walkImages(folderPath, func(filename string, sha string, repoTags []string) {
+		for _, image := range manifestImages {
+			if slices.Contains(repoTags, image.Name) {
+				// already downloaded
+				logrus.Infof("image (manifest) %s already downloaded", image.Name)
+				image.PullRef = filename
 			}
-			for _, tag := range repoTags {
-				if tag == manifestImages[idx].Name {
-					manifestImages[idx].PullRef = filename
-					break
-				}
+		}
+
+		for _, image := range dockerImages {
+			if slices.Contains(repoTags, image.Name) {
+				// already downloaded
+				logrus.Infof("image (docker) %s already downloaded", image.Name)
+				image.PullRef = filename
 			}
 		}
 	})
-	if err != nil {
-		return trivyReport, err
-	}
+}
 
-	refLookup := map[string]string{}
+func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) (map[string]string, error) {
+	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres_15_1_bullseye
 	// Download missing images
-	for idx := range manifestImages {
-		if manifestImages[idx].PullRef != "" {
+	for _, image := range manifestImages {
+		if image.PullRef != "" {
 			continue
 		}
-		if ref, ok := refLookup[manifestImages[idx].Name]; ok {
-			manifestImages[idx].PullRef = ref
+		if ref, ok := refLookup[image.Name]; ok {
+			image.PullRef = ref
 			continue
 		}
-		logrus.Infof("Downloading missing image %s", manifestImages[idx].Name)
-		dockerURL := "docker://" + manifestImages[idx].Name
-		archiveName := "docker-archive:" + ci.config.Images.FolderName + strconv.Itoa(idx)
-		cmd := exec.Command("skopeo", "copy", dockerURL, archiveName)
-		if os.Getenv("SKOPEO_ARGS") != "" {
-			args := []string{"copy"}
-			args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
-			args = append(args, dockerURL, archiveName)
-			cmd = exec.Command("skopeo", args...)
-		}
-		_, err := commands.ExecWithMessage(cmd, "pulling "+manifestImages[idx].Name)
+		rc := registryCredentials.FindCredentialForImage(image.Name)
+		_, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
-			return trivyReport, err
+			return nil, err
 		}
-		manifestImages[idx].PullRef = strconv.Itoa(idx)
-		refLookup[manifestImages[idx].Name] = manifestImages[idx].PullRef
+		image.PullRef = clearString(image.Name)
+		refLookup[image.Name] = image.PullRef
 	}
 
+	for _, image := range dockerImages {
+		if image.PullRef != "" {
+			continue
+		}
+		if ref, ok := refLookup[image.Name]; ok {
+			image.PullRef = ref
+			continue
+		}
+		rc := registryCredentials.FindCredentialForImage(image.Name)
+		_, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
+		if err != nil {
+			return nil, err
+		}
+		image.PullRef = clearString(image.Name)
+		refLookup[image.Name] = image.PullRef
+	}
+	return ciutil.ReverseMap(refLookup), nil // postgres_15_1_bullseye -> postgres:15.1-bullseye
+}
+
+func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName string, rc *models.RegistryCredential) (string, error) {
+	logrus.Infof("Downloading missing image %s", imageName)
+	dockerURL := "docker://" + imageName
+	archiveName := "docker-archive:" + folderPath + clearString(imageName)
+	args := []string{"copy"}
+
+	if rc != nil {
+		if rc.Username == "<token>" {
+			// --src-registry-token string
+			args = append(args, "--src-registry-token")
+			args = append(args, rc.Password)
+		} else {
+			// --src-creds USERNAME[:PASSWORD]
+			args = append(args, "--src-creds")
+			creds := rc.Username
+			if rc.Password != "" {
+				creds += ":" + rc.Password
+			}
+			args = append(args, creds)
+		}
+		logrus.Infof("using credentials: %v", *rc)
+	}
+
+	if os.Getenv("SKOPEO_ARGS") != "" {
+		args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
+	}
+
+	args = append(args, dockerURL, archiveName)
+	return cmdExecutor(exec.Command("skopeo", args...), "pulling "+imageName)
+}
+
+// mergeImages - at this point, all images are downloaded at folderPath
+func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, filenameToImageName map[string]string) ([]trivymodels.Image, error) {
 	// Untar images, read manifest.json/RepoTags, match tags to YAML
 	logrus.Infof("Extracting details for all images")
 	allImages := []trivymodels.Image{}
-	err = walkImages(ci.config, func(filename string, sha string, repoTags []string) {
-		logrus.Infof("Getting details for image file %s with SHA %s", filename, sha)
-
+	err := walkImages(folderPath, func(filename string, sha string, repoTags []string) {
+		logrus.Infof("Getting details for image file %s with SHA %s and repoTags %v", filename, sha, repoTags)
 		// If the image was found in a manifest, copy its details over,
 		// namely the Owner info (i.e. the deployment or other controller it is associated with)
 		var image *trivymodels.Image
@@ -90,15 +189,23 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 			}
 		}
 		if image == nil {
+			var name, ownerName string
+			if n, ok := filenameToImageName[filename]; ok {
+				name = n
+				ownerName = determineOwnerName(n, dockerImages)
+			}
 			image = &trivymodels.Image{
+				Name:    name,
 				PullRef: filename,
 				Owner: trivymodels.Resource{
+					Name: ownerName,
 					Kind: "Image",
 				},
 			}
 		}
 
 		if len(repoTags) == 0 {
+			logrus.Warningf("Could not find repo tags for %s", filename)
 			name := image.Name
 			nameParts := strings.Split(name, ":")
 			if len(nameParts) > 1 {
@@ -109,7 +216,6 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 			} else {
 				image.ID = sha
 			}
-			logrus.Warningf("Could not find repo or tags for %s", filename)
 		} else {
 			repoAndTag := repoTags[0]
 			repo := strings.Split(repoAndTag, ":")[0]
@@ -120,43 +226,23 @@ func (ci *CIScan) GetTrivyReport(manifestImages []trivymodels.Image) (models.Rep
 
 		allImages = append(allImages, *image)
 	})
-	if err != nil {
-		return trivyReport, err
-	}
-	// Scan Images with Trivy
-	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)
-	if err != nil {
-		return trivyReport, err
-	}
-	err = ioutil.WriteFile(filepath.Join(ci.config.Options.TempFolder, trivyReport.Filename), trivyResults, 0644)
-	if err != nil {
-		return trivyReport, err
-	}
-
-	trivyReport.Version = trivyVersion
-	return trivyReport, nil
+	return allImages, err
 }
 
-type imageCallback func(filename string, sha string, tags []string)
+func determineOwnerName(n string, dockerImages []trivymodels.DockerImage) string {
+	// if found on dockerImages, the owner name is `fairwinds-insights.yaml``
+	for _, di := range dockerImages {
+		if di.Name == n {
+			return configFileName
+		}
+	}
 
-func walkImages(config *models.Configuration, cb imageCallback) error {
-	err := filepath.Walk(config.Images.FolderName, func(path string, info os.FileInfo, err error) error {
-		logrus.Info(path)
-		if err != nil {
-			logrus.Errorf("Error while walking path %s: %v", path, err)
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		sha, repoTags, err := getShaAndRepoTags(path)
-		if err != nil {
-			return err
-		}
-		cb(info.Name(), sha, repoTags)
-		return nil
-	})
-	return err
+	parts := strings.Split(n, ":")
+	if len(parts) > 1 {
+		return parts[0]
+	}
+
+	return ""
 }
 
 // scanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
@@ -216,7 +302,7 @@ func getShaAndRepoTags(path string) (string, []string, error) {
 		if header.Name != "manifest.json" {
 			continue
 		}
-		bytes, err := ioutil.ReadAll(tarReader)
+		bytes, err := io.ReadAll(tarReader)
 		if err != nil {
 			return "", nil, err
 		}
@@ -228,8 +314,17 @@ func getShaAndRepoTags(path string) (string, []string, error) {
 		allRepoTags := make([]string, 0)
 		var configFileName string
 		for _, imageDef := range jsonBody {
-			configFileName = imageDef.(map[string]interface{})["Config"].(string)
-			repoTags := imageDef.(map[string]interface{})["RepoTags"].([]interface{})
+			var ok bool
+			configFileName, ok = imageDef.(map[string]interface{})["Config"].(string)
+			if !ok {
+				logrus.Warningf("Found manifest with no Config at %s", path)
+				continue
+			}
+			repoTags, ok := imageDef.(map[string]interface{})["RepoTags"].([]interface{})
+			if !ok {
+				logrus.Warningf("Found manifest with no RepoTags at %s", path)
+				continue
+			}
 			for _, tag := range repoTags {
 				allRepoTags = append(allRepoTags, tag.(string))
 			}
@@ -264,7 +359,7 @@ func getImageSha(path string, configFileName string) (string, error) {
 		if header.Name != configFileName {
 			continue
 		}
-		bytes, err := ioutil.ReadAll(tarReader)
+		bytes, err := io.ReadAll(tarReader)
 		if err != nil {
 			return "", err
 		}
@@ -311,7 +406,7 @@ func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels
 	}()
 
 	report := trivymodels.TrivyResults{}
-	data, err := ioutil.ReadFile(reportFile)
+	data, err := os.ReadFile(reportFile)
 	if err != nil {
 		logrus.Errorf("Error reading report %s: %s", imageID, err)
 		return nil, err
@@ -323,4 +418,11 @@ func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels
 	}
 
 	return &report, nil
+}
+
+var imageFilenameRegex = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
+
+// clearString - removes non-alphanumeric characters
+func clearString(str string) string {
+	return imageFilenameRegex.ReplaceAllString(str, "_")
 }

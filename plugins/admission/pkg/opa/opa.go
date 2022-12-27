@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	opaversion "github.com/fairwindsops/insights-plugins/plugins/opa"
@@ -14,30 +13,31 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
 // ProcessOPA runs all CustomChecks against the provided Kubernetes object.
-func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, configuration models.Configuration) (models.ReportInfo, error) {
+func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, configuration models.Configuration, iConfig models.InsightsConfig) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:  "opa",
 		Version: opaversion.String(),
 	}
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
-	cluster := os.Getenv("FAIRWINDS_CLUSTER")
+	requestInfo := rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: iConfig.Cluster, AdmissionRequest: &req}
 	for _, check := range configuration.OPA.CustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
-			newActionItems, err := ProcessOPAV1(ctx, obj, resourceName, apiGroup, resourceKind, resourceNamespace, check, configuration.OPA.CustomCheckInstances, rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: cluster})
+			newActionItems, err := ProcessOPAV1(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, configuration.OPA.CustomCheckInstances, &requestInfo)
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)
 			}
 		case 2.0:
-			newActionItems, err := ProcessOPAV2(ctx, obj, resourceName, apiGroup, resourceKind, resourceNamespace, check, rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: cluster})
+			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, &requestInfo)
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)
@@ -46,7 +46,7 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause admission control to be blocked", check.Name, check.Version))
 		}
 	}
-	results := map[string]interface{}{
+	results := map[string]any{
 		"ActionItems": actionItems,
 	}
 	bytes, err := json.Marshal(results)
@@ -60,7 +60,7 @@ func ProcessOPA(ctx context.Context, obj map[string]interface{}, resourceName, a
 // ProcessOPAV1 runs a V1 CustomCheck against a Kubernetes object,
 // returning action items and potentially multiple wrapped errors (as returned
 // by multiple instances; CheckSettings associated with a CustomCheck).
-func ProcessOPAV1(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, checkInstances []opa.CheckSetting, insightsInfo rego.InsightsInfo) ([]opa.ActionItem, error) {
+func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, checkInstances []opa.CheckSetting, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
 	for _, instanceObject := range checkInstances {
@@ -94,7 +94,7 @@ func ProcessOPAV1(ctx context.Context, obj map[string]interface{}, resourceName,
 		if !foundTargetInInstance {
 			continue
 		}
-		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &insightsInfo)
+		newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, insightsInfo)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, instanceObject.AdditionalData.Name, err))
 		}
@@ -106,7 +106,7 @@ func ProcessOPAV1(ctx context.Context, obj map[string]interface{}, resourceName,
 // ProcessOPAV2 runs a V2 CustomCheck against a Kubernetes object,
 // returning action items and any error encountered while processing the
 // check.
-func ProcessOPAV2(ctx context.Context, obj map[string]interface{}, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, insightsInfo rego.InsightsInfo) ([]opa.ActionItem, error) {
-	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &insightsInfo)
+func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
+	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, insightsInfo)
 	return newActionItems, err
 }

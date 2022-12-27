@@ -21,6 +21,22 @@ const retryCount = 3
 
 var nonWordRegexp = regexp.MustCompile("\\W+")
 
+var registryPassword = os.Getenv("REGISTRY_PASSWORD")
+var registryUser = os.Getenv("REGISTRY_USER")
+var registryCertDir = os.Getenv("REGISTRY_CERT_DIR")
+
+func init() {
+	passwordFile := os.Getenv("REGISTRY_PASSWORD_FILE")
+	if passwordFile != "" {
+		logrus.Infof("Reading registry password from %s", passwordFile)
+		content, err := os.ReadFile(passwordFile)
+		if err != nil {
+			panic(err)
+		}
+		registryPassword = string(content)
+	}
+}
+
 // GetLastReport returns the last report for Trivy from Fairwinds Insights
 func GetLastReport() (*models.MinimizedReport, error) {
 	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") + "/data/trivy/latest.json"
@@ -66,7 +82,10 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 	for pullRef := range reportByRef {
 		semaphore <- true
 		go func(pullRef string) {
-			defer func() { <-semaphore }()
+			defer func() {
+				logrus.Infof("Finished scanning %s", pullRef)
+				<-semaphore
+			}()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
 				r, err := ScanImage(extraFlags, pullRef)
@@ -80,11 +99,13 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 	for i := 0; i < cap(semaphore); i++ {
 		semaphore <- true
 	}
+	logrus.Infof("Finished scanning all images")
 	return ConvertTrivyResultsToImageReport(images, reportByRef, ignoreErrors)
 }
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
 func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
+	logrus.Infof("Converting results to image report")
 	allReports := []models.ImageReport{}
 	for _, i := range images {
 		image := i
@@ -124,6 +145,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 			RecommendationOnly: image.RecommendationOnly,
 		})
 	}
+	logrus.Infof("Done converting results to image report")
 	return allReports
 }
 
@@ -138,11 +160,41 @@ func getOsArch(imageCfg models.TrivyImageConfig) string {
 func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
-	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, pullRef)
+	args := []string{"-d", "image", "--skip-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile}
 	if extraFlags != "" {
-		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, pullRef)
+		args = append(args, extraFlags)
 	}
-	err := util.RunCommand(cmd, "scanning "+pullRef)
+	if os.Getenv("OFFLINE") != "" {
+		args = append(args, "--offline-scan")
+	}
+
+	if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
+		replacements := strings.Split(refReplacements, ";")
+		for _, replacement := range replacements {
+			parts := strings.Split(replacement, ",")
+			if len(parts) != 2 {
+				logrus.Errorf("PULL_REF_REPLACEMENTS is badly formatted, can't interpret %s", replacement)
+				continue
+			}
+			pullRef = strings.ReplaceAll(pullRef, parts[0], parts[1])
+			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
+		}
+	}
+
+	logrus.Infof("Downloading image %s", pullRef)
+	imageFile, err := downloadPullRef(pullRef)
+	if err != nil {
+		logrus.Errorf("Error while downloading image: %v", err)
+		return nil, err
+	}
+	defer func() {
+		logrus.Infof("removing image file %s", imageFile)
+		os.Remove(imageFile)
+	}()
+	args = append(args, "--input", imageFile)
+	cmd := exec.Command("trivy", args...)
+	err = util.RunCommand(cmd, "scanning "+pullRef)
+
 	if err != nil {
 		logrus.Errorf("Error scanning %s: %v", pullRef, err)
 		return nil, err
@@ -163,6 +215,8 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		return nil, err
 	}
 
+	logrus.Infof("Successfully scanned %s", imageID)
+
 	return &report, nil
 }
 
@@ -171,4 +225,27 @@ func GetShaFromID(id string) string {
 		return strings.Split(id, "@")[1]
 	}
 	return id
+}
+
+func downloadPullRef(pullRef string) (string, error) {
+	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
+	dest := TempDir + imageID
+	imageMessage := fmt.Sprintf("image %s", pullRef)
+
+	args := []string{"copy"}
+
+	if registryUser != "" || registryPassword != "" {
+		args = append(args, "--src-creds", registryUser+":"+registryPassword)
+	}
+	if registryCertDir != "" {
+		args = append(args, "--src-cert-dir", registryCertDir)
+	}
+
+	// needed when running locally on mac
+	// args = append(args, "--override-arch", "amd64")
+	// args = append(args, "--override-os", "linux")
+
+	args = append(args, "docker://"+pullRef, "docker-archive:"+dest)
+	err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
+	return dest, err
 }

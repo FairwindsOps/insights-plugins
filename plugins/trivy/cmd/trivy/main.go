@@ -23,12 +23,6 @@ var extraFlags = ""
 
 const outputFile = image.TempDir + "/final-report.json"
 
-type newestVersions struct {
-	repo     string
-	versions []string
-	err      error
-}
-
 /*
  * Downloads the latest trivy report containing  all cluster scans and recommendation
  * Reads all images from the cluster and scan few of them
@@ -36,6 +30,7 @@ type newestVersions struct {
  * Images or images recommendations that no longer belongs to that cluster are filtered out
  */
 func main() {
+	setLogLevel()
 	setEnv()
 	lastReport, err := image.GetLastReport()
 	if err != nil {
@@ -57,17 +52,27 @@ func main() {
 		logrus.Infof("%v - %v", i.ID, i.Name)
 	}
 	clusterImagesToKeep := getClusterImagesToKeep(images, *lastReport, imagesToScan)
+	logrus.Infof("Starting image scans")
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
-	recommendationsToScan := getNewestVersionsToScan(ctx, allReports, imagesToScan)
-	recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
-	recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
-	lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
-	aggregated := append(allReports, recommendationReport...)
+	lastReport.Images = clusterImagesToKeep
+	aggregated := allReports
+	if os.Getenv("NO_RECOMMENDATIONS") == "" {
+		logrus.Infof("Scanning recommendations")
+		recommendationsToScan := image.GetNewestVersionsToScan(ctx, allReports, imagesToScan)
+		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
+		recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
+		logrus.Infof("Done scanning recommendations")
+		recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
+		lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
+		aggregated = append(allReports, recommendationReport...)
+	}
+	logrus.Infof("Done with all scans, minimizing report")
 	minimizedReport := image.Minimize(aggregated, *lastReport)
 	data, err := json.Marshal(minimizedReport)
 	if err != nil {
 		logrus.Fatalf("could not marshal report: %v", err)
 	}
+	logrus.Infof("Writing to file %s", outputFile)
 	err = ioutil.WriteFile(outputFile, data, 0644)
 	if err != nil {
 		logrus.Fatalf("could not write to output file: %v", err)
@@ -75,57 +80,15 @@ func main() {
 	logrus.Info("Finished writing file ", outputFile)
 }
 
-func getNewestVersionsToScan(ctx context.Context, allReports []models.ImageReport, imagesToScan []models.Image) []models.Image {
-	var imageWithVulns []models.ImageReport
-	for _, img := range imagesToScan {
-		imageSha := image.GetShaFromID(img.ID)
-		for _, report := range allReports {
-			reportSha := image.GetShaFromID(report.ID)
-			if report.Name == img.Name && reportSha == imageSha {
-				if len(report.Reports) > 0 {
-					imageWithVulns = append(imageWithVulns, report)
-				}
-			}
+func setLogLevel() {
+	if os.Getenv("LOGRUS_LEVEL") != "" {
+		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+		if err != nil {
+			panic(fmt.Errorf("Invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
 		}
-	}
-	versionsChan := make(chan newestVersions, len(imageWithVulns))
-	for _, i := range imageWithVulns {
-		go getNewestVersions(versionsChan, ctx, i)
-	}
-	newImagesToScan := []models.Image{}
-	for i := 0; i < len(imageWithVulns); i++ {
-		vc := <-versionsChan
-		if vc.err == nil {
-			for _, v := range vc.versions {
-				newImagesToScan = append(newImagesToScan, models.Image{
-					ID:                 fmt.Sprintf("%v:%v", vc.repo, v),
-					Name:               fmt.Sprintf("%v:%v", vc.repo, v),
-					PullRef:            fmt.Sprintf("%v:%v", vc.repo, v),
-					RecommendationOnly: true,
-				})
-			}
-		}
-	}
-	return newImagesToScan
-}
-
-func getNewestVersions(versionsChan chan newestVersions, ctx context.Context, img models.ImageReport) {
-	parts := strings.Split(img.Name, ":")
-	if len(parts) != 2 {
-		return
-	}
-	repo := parts[0]
-	tag := parts[1]
-	versions, err := image.GetNewestVersions(ctx, repo, tag)
-	if err != nil {
-		versionsChan <- newestVersions{
-			err: err,
-		}
-		return
-	}
-	versionsChan <- newestVersions{
-		repo:     repo,
-		versions: versions,
+		logrus.SetLevel(lvl)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
 	}
 }
 
@@ -272,12 +235,14 @@ func setEnv() {
 		}
 	}
 
-	err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
-	if err != nil {
-		panic(err)
+	if os.Getenv("OFFLINE") == "" {
+		err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	err = util.CheckEnvironmentVariables()
+	err := util.CheckEnvironmentVariables()
 	if err != nil {
 		panic(err)
 	}

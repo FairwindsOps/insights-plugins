@@ -73,7 +73,7 @@ final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 queryResults=$(aws athena start-query-execution \
 --query-string \
     "SELECT \
-      line_item_product_code, identity_time_interval, round(sum("line_item_unblended_cost"),2) AS cost, \
+      line_item_product_code, identity_time_interval, sum("line_item_unblended_cost") AS cost, \
       line_item_usage_type, product_memory, product_instance_type, product_vcpu, product_clock_speed, sum(1) AS count \
     FROM \
       "$database"."$table" \
@@ -111,6 +111,6 @@ fi
 done
 
 aws athena get-query-results --query-execution-id $executionId > /output/awscosts-tmp.json
-mv /output/awscosts-tmp.json /output/aws-costs.json
+mv /output/awscosts-tmp.json /output/awscosts.json
 
-echo "Saved aws costs file in /output/aws-costs.json"
+echo "Saved aws costs file in /output/awscosts.json"

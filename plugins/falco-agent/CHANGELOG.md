@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.4
+* update x/net and alpine
+
+## 0.2.3
+* Update x/text to remove CVE
+
+## 0.2.2
+* Update dependencies
+
+## 0.2.1
+* Update to go 1.19
+
+## 0.2.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 0.1.14
+* upgrade plugins on build
+
+## 0.1.13
+* Update dependencies
+
 ## 0.1.12
 * update to go 1.18 and update packages
 

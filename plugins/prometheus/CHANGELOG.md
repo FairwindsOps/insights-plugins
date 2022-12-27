@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.1.5
+* update x/net and alpine
+
+## 1.1.4
+* Update x/text to remove CVE
+
+## 1.1.3
+* update controller-utils to 0.3.0
+
+## 1.1.2
+* Update to go 1.19
+
+## 1.1.1
+* improve pod owner matching
+
+## 1.1.0
+* Build docker images for linux/arm64, and update to Go 1.19.1
+
+## 1.0.7
+* upgrade plugins on build
+
+## 1.0.6
+* Update dependencies
+
 ## 1.0.5
 * update to go 1.18 and update packages
 
