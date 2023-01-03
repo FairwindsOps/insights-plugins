@@ -150,6 +150,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
+		logrus.Infof("adding %s to helmValuesFileArgs", filepath.Join(repoPath, vf))
 		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
 	}
 	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
@@ -201,6 +202,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		if err != nil {
 			return nil, err
 		}
+		logrus.Infof("added %s to valuesFileNames", inlineValuesFilePath)
 		valuesFileNames = append(valuesFileNames, inlineValuesFilePath)
 	}
 	logrus.Debugf("returning processed Helm values and values-files as these Helm values file names: %v for Helm configuration: %#v\n", valuesFileNames, helm)
