@@ -143,6 +143,7 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 
 func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
 	helmPath = filepath.Join(repoPath, helmPath)
+	logrus.Infof("repoPath: %s and helmPath: %s", repoPath, helmPath)
 	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
 		return err
@@ -150,7 +151,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
-		logrus.Infof("repoPath: %s and vf: %s", repoPath, vf)
+		logrus.Infof("vf: %s", vf)
 		logrus.Infof("adding %s to helmValuesFileArgs", filepath.Join(repoPath, vf))
 		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
 	}
