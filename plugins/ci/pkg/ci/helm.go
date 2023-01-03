@@ -141,9 +141,8 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 	return doHandleLocalHelmChart(helm, baseRepoFolder, helm.Path, helmValuesFiles, tempFolder, configFolder)
 }
 
-func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []string, tempFolder, configFolder string) error {
+func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []FilePath, tempFolder, configFolder string) error {
 	helmPath = filepath.Join(repoPath, helmPath)
-	logrus.Infof("repoPath: %s and helmPath: %s", repoPath, helmPath)
 	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
 		return err
@@ -151,9 +150,11 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
-		logrus.Infof("vf: %s", vf)
-		logrus.Infof("adding %s to helmValuesFileArgs", filepath.Join(repoPath, vf))
-		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
+		if vf.tmp {
+			helmValuesFileArgs = append(helmValuesFileArgs, "-f", vf.path)
+		} else {
+			helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf.path))
+		}
 	}
 	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
 	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
@@ -163,9 +164,14 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 	return nil
 }
 
+type FilePath struct {
+	path string
+	tmp  bool
+}
+
 // processHelmValues returns a slice of HElm values files after processing values and values-files from a models.HelmConfig and the
 // fluxValues parameter. Any Helm values are written to a file.
-func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}, tempFolder string) (valuesFileNames []string, err error) {
+func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}, tempFolder string) (valuesFiles []FilePath, err error) {
 	hasValuesFile := helm.ValuesFile != ""
 	hasValuesFiles := len(helm.ValuesFiles) > 0
 	hasValues := len(helm.Values) > 0
@@ -181,17 +187,17 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		if err != nil {
 			return nil, err
 		}
-		valuesFileNames = append(valuesFileNames, fluxValuesFilePath)
+		valuesFiles = append(valuesFiles, FilePath{path: fluxValuesFilePath, tmp: true})
 	}
 	if hasValuesFile {
-		valuesFileNames = append(valuesFileNames, helm.ValuesFile)
+		valuesFiles = append(valuesFiles, FilePath{path: helm.ValuesFile})
 	}
 	if hasValuesFiles {
 		if hasValuesFile {
 			logrus.Warnf("Both ValuesFile and ValuesFiles are present in Helm configuration %q, it is recommended to list all values files in the ValuesFiles list", helm.Name)
 		}
-		for _, i := range helm.ValuesFiles {
-			valuesFileNames = append(valuesFileNames, i)
+		for _, vf := range helm.ValuesFiles {
+			valuesFiles = append(valuesFiles, FilePath{path: vf})
 		}
 	}
 	if hasValues {
@@ -204,11 +210,11 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		if err != nil {
 			return nil, err
 		}
-		logrus.Infof("added %s to valuesFileNames", inlineValuesFilePath)
-		valuesFileNames = append(valuesFileNames, inlineValuesFilePath)
+		logrus.Infof("added %s to valuesFiles", inlineValuesFilePath)
+		valuesFiles = append(valuesFiles, FilePath{path: inlineValuesFilePath, tmp: true})
 	}
-	logrus.Debugf("returning processed Helm values and values-files as these Helm values file names: %v for Helm configuration: %#v\n", valuesFileNames, helm)
-	return valuesFileNames, nil
+	logrus.Debugf("returning processed Helm values and values-files as these Helm values file names: %v for Helm configuration: %#v\n", valuesFiles, helm)
+	return valuesFiles, nil
 }
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
