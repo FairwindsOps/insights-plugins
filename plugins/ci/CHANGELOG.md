@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.1.3
+* Fixes when setting `helm.values` causes tmp filename to get mangled
+
 ## 4.1.2
 * Fixes missing image info (name and owner name) when the download of `docker.images` are done inside the CI plugin execution
 
