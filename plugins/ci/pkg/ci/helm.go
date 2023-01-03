@@ -141,7 +141,7 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 	return doHandleLocalHelmChart(helm, baseRepoFolder, helm.Path, helmValuesFiles, tempFolder, configFolder)
 }
 
-func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []FilePath, tempFolder, configFolder string) error {
+func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []helmValuesFile, tempFolder, configFolder string) error {
 	helmPath = filepath.Join(repoPath, helmPath)
 	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
@@ -164,14 +164,14 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 	return nil
 }
 
-type FilePath struct {
+type helmValuesFile struct {
 	path string
-	tmp  bool
+	tmp  bool // tmp files are files created from inline values definition
 }
 
 // processHelmValues returns a slice of HElm values files after processing values and values-files from a models.HelmConfig and the
 // fluxValues parameter. Any Helm values are written to a file.
-func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}, tempFolder string) (valuesFiles []FilePath, err error) {
+func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}, tempFolder string) (valuesFiles []helmValuesFile, err error) {
 	hasValuesFile := helm.ValuesFile != ""
 	hasValuesFiles := len(helm.ValuesFiles) > 0
 	hasValues := len(helm.Values) > 0
@@ -187,17 +187,17 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 		if err != nil {
 			return nil, err
 		}
-		valuesFiles = append(valuesFiles, FilePath{path: fluxValuesFilePath, tmp: true})
+		valuesFiles = append(valuesFiles, helmValuesFile{path: fluxValuesFilePath, tmp: true})
 	}
 	if hasValuesFile {
-		valuesFiles = append(valuesFiles, FilePath{path: helm.ValuesFile})
+		valuesFiles = append(valuesFiles, helmValuesFile{path: helm.ValuesFile})
 	}
 	if hasValuesFiles {
 		if hasValuesFile {
 			logrus.Warnf("Both ValuesFile and ValuesFiles are present in Helm configuration %q, it is recommended to list all values files in the ValuesFiles list", helm.Name)
 		}
 		for _, vf := range helm.ValuesFiles {
-			valuesFiles = append(valuesFiles, FilePath{path: vf})
+			valuesFiles = append(valuesFiles, helmValuesFile{path: vf})
 		}
 	}
 	if hasValues {
@@ -211,7 +211,7 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 			return nil, err
 		}
 		logrus.Infof("added %s to valuesFiles", inlineValuesFilePath)
-		valuesFiles = append(valuesFiles, FilePath{path: inlineValuesFilePath, tmp: true})
+		valuesFiles = append(valuesFiles, helmValuesFile{path: inlineValuesFilePath, tmp: true})
 	}
 	logrus.Debugf("returning processed Helm values and values-files as these Helm values file names: %v for Helm configuration: %#v\n", valuesFiles, helm)
 	return valuesFiles, nil
