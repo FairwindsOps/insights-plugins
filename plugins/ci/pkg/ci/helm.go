@@ -150,6 +150,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 
 	var helmValuesFileArgs []string
 	for _, vf := range helmValuesFiles {
+		logrus.Infof("repoPath: %s and vf: %s", repoPath, vf)
 		logrus.Infof("adding %s to helmValuesFileArgs", filepath.Join(repoPath, vf))
 		helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf))
 	}
