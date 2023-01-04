@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.4
+* update go modules
+
 ## 0.4.3
 * update x/net and alpine
 

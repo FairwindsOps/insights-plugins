@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.1.4
+* update go modules
+
 ## 4.1.3
 * Fixes when using `helm.values` causes tmp filepath to get mangled
 
