@@ -3,24 +3,24 @@ package kube
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/fairwindsops/controller-utils/pkg/controller"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"github.com/sirupsen/logrus"
-	"github.com/fairwindsops/controller-utils/pkg/controller"
 )
 
 type Client struct {
-	context context.Context
-	restMapper meta.RESTMapper
-	dynamic dynamic.Interface
+	context     context.Context
+	restMapper  meta.RESTMapper
+	dynamic     dynamic.Interface
 	Controllers controller.Client
 }
 
@@ -77,16 +77,15 @@ func GetKubeClient() (*Client, error) {
 	}
 	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
 	ctx := context.TODO()
-	client := Client {
-		context: ctx,
-		dynamic: dynamicClient,
+	client := Client{
+		context:    ctx,
+		dynamic:    dynamicClient,
 		restMapper: restMapper,
 	}
 	client.Controllers = controller.Client{
-		Context: ctx,
-		Dynamic: dynamicClient,
+		Context:    ctx,
+		Dynamic:    dynamicClient,
 		RESTMapper: restMapper,
 	}
 	return &client, nil
 }
-

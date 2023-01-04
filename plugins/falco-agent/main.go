@@ -16,4 +16,3 @@ func main() {
 	logrus.Infof("starting server at http://0.0.0.0:%d", port)
 	logrus.Fatal(s.ListenAndServe())
 }
-
