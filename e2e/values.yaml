@@ -9,6 +9,9 @@ kube-bench:
       memory: 64Mi
       cpu: 1m
 
+falco:
+  enabled: true
+
 opa:
   enabled: true
   resources:
@@ -62,7 +65,7 @@ kube-hunter:
   enabled: false
 
 right-sizer:
-  enabled: true 
+  enabled: true
   updateMemoryLimits:
     enabled: true
     minOOMs: 2

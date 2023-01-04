@@ -61,7 +61,12 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	controller, err := controller.GetTopController(ctx, dynamicClient, restMapper, *pod, nil)
+	client := controller.Client{
+		Context: ctx,
+		Dynamic: dynamicClient,
+		RESTMapper: restMapper,
+	}
+	controller, err := client.GetTopController(*pod, nil)
 	if err != nil {
 		logrus.Errorf("Error retrieving Top Controller using podname: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
