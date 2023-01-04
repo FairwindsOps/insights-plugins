@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-
 )
 
 func CreateServer(port int) (*http.Server, error) {

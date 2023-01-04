@@ -60,4 +60,3 @@ func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
 	}
 	return
 }
-

@@ -11,8 +11,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/data"
+	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/kube"
 )
 
 const outputfolder = "/output"
