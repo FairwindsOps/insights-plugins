@@ -54,11 +54,7 @@ func GetPodFromUnstructured(u *unstructured.Unstructured) (*corev1.Pod, error) {
 func GetKubeClient() (*Client, error) {
 	var restMapper meta.RESTMapper
 	var dynamicClient dynamic.Interface
-<<<<<<< HEAD
 	kubeConf, configError := config.GetConfig()
-=======
-	kubeConf, configError := ctrl.GetConfig()
->>>>>>> ea737e9b36826f1fcc317278696f43ee55aa519c
 	if configError != nil {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
 		return nil, configError
@@ -76,16 +72,7 @@ func GetKubeClient() (*Client, error) {
 		return nil, err
 	}
 
-<<<<<<< HEAD
 	restMapper = restmapper.NewDynamicRESTMapper(kubeConf)
-=======
-	resources, err := restmapper.GetAPIGroupResources(api.Discovery())
-	if err != nil {
-		logrus.Errorf("Error getting API Group resources: %v", err)
-		return nil, err
-	}
-	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
->>>>>>> ea737e9b36826f1fcc317278696f43ee55aa519c
 	ctx := context.TODO()
 	client := Client{
 		context:    ctx,
