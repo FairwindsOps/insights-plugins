@@ -3,6 +3,7 @@ set -eo pipefail
 
 go version
 go clean -modcache
+failed=0
 for d in ./plugins/*/ ; do
     echo -e "\n\n\n\n$d"
     if [[ $SKIP == *"$d"* ]]; then
@@ -21,7 +22,15 @@ for d in ./plugins/*/ ; do
         echo -e "\ntidying"
         go mod tidy
         echo -e "\ntesting"
-        go test ./...
+        if ! go test ./...; then
+          echo "TESTS FAILED FOR $name"
+          failed=1
+        fi
     fi
     cd ../..
 done
+
+if [[ $failed -eq 1 ]]; then
+  echo "Some tests failed. See above"
+  exit 1
+fi
