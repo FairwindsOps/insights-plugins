@@ -242,7 +242,12 @@ func GetControllerFromPod(kubeClientResources KubeClientResources, pod *core.Pod
 		Object: objectAsMap,
 	}
 
-	topController, err := fwControllerUtils.GetTopController(context.TODO(), kubeClientResources.DynamicClient, kubeClientResources.RESTMapper, unstructuredPod, nil)
+	client := fwControllerUtils.Client{
+		Context: context.TODO(),
+		Dynamic: kubeClientResources.DynamicClient,
+		RESTMapper: kubeClientResources.RESTMapper,
+	}
+	topController, err := client.GetTopController(unstructuredPod, nil)
 	if err != nil {
 		return nil, err
 	}
