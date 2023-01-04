@@ -2,10 +2,10 @@ FROM alpine:3.17 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV tfsecVersion=1.28.1
-ENV trivyVersion=0.35.0
-ENV polarisVersion=7.2.0
+ENV trivyVersion=0.36.0
+ENV polarisVersion=7.2.1
 ENV plutoVersion=5.11.2
-ENV helmVersion=3.10.2
+ENV helmVersion=3.10.3
 
 # Bash and openssl are  required by the Helm script.
 RUN apk update && apk --no-cache add curl bash openssl ca-certificates
