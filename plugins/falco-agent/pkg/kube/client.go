@@ -5,6 +5,7 @@ import (
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"github.com/fairwindsops/controller-utils/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -13,10 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"k8s.io/client-go/restmapper"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type Client struct {
@@ -52,27 +50,24 @@ func GetPodFromUnstructured(u *unstructured.Unstructured) (*corev1.Pod, error) {
 }
 
 func GetKubeClient() (*Client, error) {
-	var restMapper meta.RESTMapper
-	var dynamicClient dynamic.Interface
 	kubeConf, configError := config.GetConfig()
 	if configError != nil {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
 		return nil, configError
 	}
 
-	api, err := kubernetes.NewForConfig(kubeConf)
-	if err != nil {
-		logrus.Errorf("Error creating Kubernetes client: %v", err)
-		return nil, err
-	}
-
-	dynamicClient, err = dynamic.NewForConfig(kubeConf)
+	dynamicClient, err := dynamic.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Dynamic client: %v", err)
 		return nil, err
 	}
 
-	restMapper = restmapper.NewDynamicRESTMapper(kubeConf)
+	restMapper, err := apiutil.NewDynamicRESTMapper(kubeConf)
+	if err != nil {
+		logrus.Errorf("Error creating RESTMapper: %v", err)
+		return nil, err
+	}
+
 	ctx := context.TODO()
 	client := Client{
 		context:    ctx,
