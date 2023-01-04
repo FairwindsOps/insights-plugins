@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,18 +9,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fairwindsops/controller-utils/pkg/controller"
-	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/data"
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
+
+	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/kube"
+	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/data"
 )
 
 const outputfolder = "/output"
 
-func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) {
+func inputDataHandler(w http.ResponseWriter, r *http.Request) {
+	client, err := kube.GetKubeClient()
+	if err != nil {
+		logrus.Errorf("Error getting kube client: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -55,18 +58,13 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 		return
 	}
 
-	pod, err := data.GetPodByPodName(ctx, dynamicClient, restMapper, namespace, podName)
+	pod, err := client.GetPodByPodName(namespace, podName)
 	if err != nil {
 		logrus.Errorf("Error retrieving pod using podname: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	client := controller.Client{
-		Context: ctx,
-		Dynamic: dynamicClient,
-		RESTMapper: restMapper,
-	}
-	controller, err := client.GetTopController(*pod, nil)
+	controller, err := client.Controllers.GetTopController(*pod, nil)
 	if err != nil {
 		logrus.Errorf("Error retrieving Top Controller using podname: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -77,9 +75,7 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 	falcoOutput.ControllerNamespace = namespace
 	falcoOutput.PodName = podName
 
-	var pd corev1.Pod
-	err = runtime.DefaultUnstructuredConverter.
-		FromUnstructured(pod.UnstructuredContent(), &pd)
+	pd, err := kube.GetPodFromUnstructured(pod)
 	if err != nil {
 		logrus.Errorf("Error Converting Pod: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
