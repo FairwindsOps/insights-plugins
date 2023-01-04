@@ -3,6 +3,7 @@ package kube
 import (
 	"context"
 
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -13,8 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/restmapper"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 type Client struct {
@@ -52,7 +52,7 @@ func GetPodFromUnstructured(u *unstructured.Unstructured) (*corev1.Pod, error) {
 func GetKubeClient() (*Client, error) {
 	var restMapper meta.RESTMapper
 	var dynamicClient dynamic.Interface
-	kubeConf, configError := ctrl.GetConfig()
+	kubeConf, configError := config.GetConfig()
 	if configError != nil {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
 		return nil, configError
@@ -70,12 +70,7 @@ func GetKubeClient() (*Client, error) {
 		return nil, err
 	}
 
-	resources, err := restmapper.GetAPIGroupResources(api.Discovery())
-	if err != nil {
-		logrus.Errorf("Error getting API Group resources: %v", err)
-		return nil, err
-	}
-	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
+	restMapper = restmapper.NewDynamicRESTMapper(kubeConf)
 	ctx := context.TODO()
 	client := Client{
 		context:    ctx,
