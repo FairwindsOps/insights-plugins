@@ -1,4 +1,6 @@
 # Changelog
+## 0.3.0
+* update dependencies and refactor a bit
 
 ## 0.2.5
 * update go modules
