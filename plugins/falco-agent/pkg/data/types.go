@@ -2,8 +2,6 @@ package data
 
 import (
 	"time"
-
-	"github.com/falcosecurity/falcosidekick/types"
 )
 
 type OutputFormat struct {
@@ -19,7 +17,7 @@ type FalcoOutput struct {
 	ControllerKind      string
 	UUID                string                 `json:"uuid,omitempty"`
 	Output              string                 `json:"output"`
-	Priority            types.PriorityType     `json:"priority"`
+	Priority            int                    `json:"priority"`
 	Rule                string                 `json:"rule"`
 	Time                time.Time              `json:"time"`
 	OutputFields        map[string]interface{} `json:"output_fields"`
