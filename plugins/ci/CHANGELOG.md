@@ -1,7 +1,13 @@
 # Changelog
 
-## 4.3.0
+## 4.2.0
 * CI scanning will continue when an error is encountered, such as templating a Helm chart into Kubernetes manifests. These errors will be reflected as Insights action items, in a new `ScanErrors` report type.
+
+## 4.1.4
+* update go modules
+
+## 4.1.3
+* Fixes when using `helm.values` causes tmp filepath to get mangled
 
 ## 4.1.2
 * Fixes missing image info (name and owner name) when the download of `docker.images` are done inside the CI plugin execution
