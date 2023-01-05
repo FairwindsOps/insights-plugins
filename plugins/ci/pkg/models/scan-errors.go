@@ -22,7 +22,7 @@ type ScanErrorsReportResult struct {
 	ResourceName string  `json:"resourceName"`
 	ErrorMessage string  `json:"errorMessage"` // error message returned during a scan
 	ErrorContext string  `json:"errorContext"` // where were we / what was happening when the error occurred
-	Filename     string  // filename being scanned that relates to this error
+	Filename     string  `json:"filename"`     // filename being scanned that relates to this error
 	Remediation  string  `json:"remediation"`
 	Severity     float64 `json:"severity"`
 	Category     string  `json:"category"`
