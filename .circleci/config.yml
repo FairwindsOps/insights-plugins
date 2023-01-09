@@ -18,11 +18,17 @@ commands:
     description: Sets environment variables for this job.
     steps:
     - run: ./.circleci/scripts/env.sh
-
   set_tags:
     description: Figures out which plugins have been changed etc
     steps:
     - run: ./.circleci/set_tags.sh
+  set_vault:
+    description: Install and configure vault using shared insights-release vault script 
+    steps:
+      - run: git clone git@github.com:FairwindsOps/insights-release.git
+      - run: ./insights-release/.circleci/scripts/vault.sh
+      - rok8s/get_vault_env:
+          vault_path: repo/global/env
 
   goreleaser:
     description: Build binaries and build/push docker Images depending on the git branch
@@ -36,6 +42,7 @@ commands:
     - install_goreleaser_dependencies
     - set_environment_variables
     - set_tags
+    - set_vault
     - run:
         name: Build Plugin Docker Images
         command: |
