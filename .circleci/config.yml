@@ -23,19 +23,9 @@ commands:
     steps:
     - run: ./.circleci/set_tags.sh
   set_vault:
-    description: Install and configure vault using shared insights-release vault script 
+    description: Install and configure vault 
     steps:
-      - add_ssh_keys:
-          fingerprints:
-            - "65:39:35:3a:60:3c:54:30:30:a1:4e:7d:c5:bb:b6:88"
-      - run:
-          command: |
-            if test -f "/home/zap/.ssh/config"; then
-              echo "copying over zap SSH stuff"
-              cp /home/zap/.ssh/* /root/.ssh/
-            fi
-      - run: git clone git@github.com:FairwindsOps/insights-release.git
-      - run: ./insights-release/.circleci/scripts/vault.sh
+      - run: ./.circleci/scripts/vault.sh
       - rok8s-scripts/get_vault_env:
           vault_path: repo/global/env
 
