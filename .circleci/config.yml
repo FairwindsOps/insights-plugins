@@ -39,7 +39,7 @@ commands:
     - run:
         name: Build Plugin Docker Images
         command: |
-          docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
+          docker login quay.io -u="${FAIRWINDS_QUAY_USER}" -p="${FAIRWINDS_QUAY_TOKEN}"
           for plugin in "${CHANGED[@]}"; do
             if [ "${plugin}" == "_template" ] ; then
               continue
