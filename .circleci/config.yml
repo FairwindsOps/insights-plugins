@@ -27,7 +27,7 @@ commands:
     steps:
       - run: git clone git@github.com:FairwindsOps/insights-release.git
       - run: ./insights-release/.circleci/scripts/vault.sh
-      - rok8s/get_vault_env:
+      - rok8s-scripts/get_vault_env:
           vault_path: repo/global/env
 
   goreleaser:
