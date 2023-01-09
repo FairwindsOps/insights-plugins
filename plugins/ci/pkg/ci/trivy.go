@@ -37,7 +37,8 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 
 	allImages, err := mergeImages(ci.config.Images.FolderName, dockerImages, manifestImages, filenameToImageName)
 	if err != nil {
-		return nil, multierror.Append(allErrs, err)
+		logrus.Debugf("error returned while merging images: %v", err)
+		multierror.Append(allErrs, err)
 	}
 
 	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)

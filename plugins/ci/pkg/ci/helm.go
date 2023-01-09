@@ -173,15 +173,16 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 }
 
 func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []helmValuesFile, tempFolder, configFolder string) error {
-	helmPath = filepath.Join(repoPath, helmPath)
-	output, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
+	fullHelmPath := filepath.Join(repoPath, helmPath)
+	cleanHelmPath := filepath.Clean(helmPath) // Remove things like `./`
+	output, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", fullHelmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
 		return models.ScanErrorsReportResult{
 			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
 			ErrorContext: fmt.Sprintf("updating dependencies for helm chart %s", helm.Name),
 			Kind:         "HelmChart",
 			ResourceName: helm.Name,
-			Filename:     helm.Name,
+			Filename:     cleanHelmPath,
 			Remediation:  "Examine the Chart.yaml file for errors in the dependency specification, or invalid dependencies. See also, https://helm.sh/docs/helm/helm_dependency/",
 		}
 	}
@@ -194,7 +195,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 			helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf.path))
 		}
 	}
-	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
+	params := append([]string{"template", helm.Name, fullHelmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
 	output, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
 		return models.ScanErrorsReportResult{
@@ -202,7 +203,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 			ErrorContext: fmt.Sprintf("templating helm chart %s", helm.Name),
 			Kind:         "HelmChart",
 			ResourceName: helm.Name,
-			Filename:     helm.Name,
+			Filename:     cleanHelmPath,
 			Remediation:  "Examine the Helm template, values files, and any inline values that may be specified in fairwinds-insights.yaml, for syntax errors that cause the `helm template` command to fail.",
 		}
 	}
