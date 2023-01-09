@@ -40,6 +40,7 @@ type formFile struct {
 }
 
 type CIScan struct {
+	autoScan       bool
 	token          string
 	baseFolder     string // . or /app/repository
 	repoBaseFolder string // . or /app/repository/{repoName}
@@ -77,6 +78,7 @@ func NewCIScan() (*CIScan, error) {
 	}
 
 	ci := CIScan{
+		autoScan:       cloneRepo,
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
 		baseFolder:     baseFolder,
@@ -581,7 +583,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 		if ci.SkipTrivyManifests() {
 			manifestImagesToScan = []trivymodels.Image{}
 		}
-		dockerImages := getDockerImages(ci.config.Images.Docker)
+		dockerImages := getDockerImages(ci.config.Images.Docker, ci.autoScan)
 		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
 		if err != nil {
 			return nil, fmt.Errorf("Error while running Trivy: %v", err)
@@ -624,12 +626,21 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	return reports, nil
 }
 
-func getDockerImages(dockerImagesStr []string) []trivymodels.DockerImage {
+func hasEnvVar(s string) bool {
+	return strings.Contains(s, "$")
+}
+
+func getDockerImages(dockerImagesStr []string, autoScan bool) []trivymodels.DockerImage {
 	dockerImages := []trivymodels.DockerImage{}
-	for _, v := range dockerImagesStr {
-		dockerImages = append(dockerImages, trivymodels.DockerImage{
-			Name: v,
-		})
+	for _, n := range dockerImagesStr {
+		if hasEnvVar(n) {
+			if autoScan {
+				// only log if on auto-scan, because when running on CI runners - the CI script already have downloaded these images
+				logrus.Warnf("image %s skipped, env. variable substitution is not supported on in-container image download", n)
+			}
+			continue
+		}
+		dockerImages = append(dockerImages, trivymodels.DockerImage{Name: n})
 	}
 	return dockerImages
 }
