@@ -58,6 +58,7 @@ type insightsReportsConfig struct {
 
 // Create a new CI instance based on flag cloneRepo
 func NewCIScan() (*CIScan, error) {
+	// cloneRepo controls if the repository must be cloned from the git provider, but also enables the auto-scan mode
 	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
 	logrus.Infof("cloneRepo: %v", cloneRepo)
 
