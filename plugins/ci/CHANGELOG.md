@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.1.5
+* skip downloading in-container `images.docker` images that has env. variables on their names
+
 ## 4.1.4
 * update go modules
 
