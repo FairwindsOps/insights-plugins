@@ -25,7 +25,7 @@ func ExecWithMessage(cmd *exec.Cmd, message string) (string, error) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
-		return "", err
+		return string(output), err
 	}
 	return string(output), nil
 }
