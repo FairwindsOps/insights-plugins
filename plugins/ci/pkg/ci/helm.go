@@ -11,38 +11,40 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 	"github.com/ghodss/yaml"
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
 // ProcessHelmTemplates turns helm into yaml to be processed by Polaris or the other tools.
 func (ci *CIScan) ProcessHelmTemplates() error {
+	var allErrs *multierror.Error = new(multierror.Error)
 	for _, helm := range ci.config.Manifests.Helm {
 		if helm.IsLocal() && helm.IsRemote() {
-			return fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name)
+			allErrs = multierror.Append(allErrs, fmt.Errorf("Error in helm definition %v - It is not possible to use both 'path' and 'repo' simultaneously", helm.Name))
 		}
 		if helm.IsLocal() {
 			err := handleLocalHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
 			if err != nil {
-				return err
+				allErrs = multierror.Append(allErrs, err)
 			}
 		} else if helm.IsRemote() {
 			if helm.IsFluxFile() {
 				err := handleFluxHelmChart(helm, ci.repoBaseFolder, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
-					return err
+					allErrs = multierror.Append(allErrs, err)
 				}
 			} else {
 				err := handleRemoteHelmChart(helm, ci.config.Options.TempFolder, ci.configFolder)
 				if err != nil {
-					return err
+					allErrs = multierror.Append(allErrs, err)
 				}
 			}
 		} else {
 			logrus.Debugf("cannot determine the type of helm config for: %#v\n", helm)
-			return fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name)
+			allErrs = multierror.Append(allErrs, fmt.Errorf("Could not determine the type of helm config.: %v", helm.Name))
 		}
 	}
-	return nil
+	return allErrs.ErrorOrNil()
 }
 
 func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder string, configFolder string) error {
@@ -101,9 +103,16 @@ func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFold
 
 func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion string, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
 	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, chartName)
-	_, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
+	output, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
 	if err != nil {
-		return err
+		return models.ScanErrorsReportResult{
+			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
+			ErrorContext: fmt.Sprintf("adding helm repository %q", helm.Repo),
+			Kind:         "HelmChart",
+			ResourceName: helm.Name,
+			Filename:     helm.Name,
+			Remediation:  "Verify that the helm repository is valid.",
+		}
 	}
 
 	repoDownloadPath := fmt.Sprintf("%s/downloaded-charts/%s/", tempFolder, repoName)
@@ -112,19 +121,35 @@ func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion str
 	chartFullName := fmt.Sprintf("%s/%s", repoName, chartName)
 	params := []string{"fetch", chartFullName, "--untar", "--destination", repoDownloadPath}
 
+	var versionDisplay string
 	if chartVersion != "" {
 		params = append(params, "--version", chartVersion)
+		versionDisplay = fmt.Sprintf("version %s", chartVersion)
 	} else {
 		logrus.Infof("version for chart %v not found, using latest...", chartFullName)
+		versionDisplay = "the latest version"
 	}
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving pkg %v from repository %v, downloading it locally and unziping it", chartName, repoName))
+	output, err = commands.ExecWithMessage(exec.Command("helm", params...), fmt.Sprintf("Retrieving %s of pkg %v from repository %v, downloading it locally and unziping it", versionDisplay, chartName, repoName))
 	if err != nil {
-		return err
+		return models.ScanErrorsReportResult{
+			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
+			ErrorContext: fmt.Sprintf("fetching %s of the helm chart %s from %s", versionDisplay, chartName, repoName),
+			Kind:         "HelmChart",
+			ResourceName: helm.Name,
+			Filename:     helm.Name,
+			Remediation:  "Verify that this version of the helm chart is available in the helm repository.",
+		}
 	}
 
 	helmValuesFiles, err := processHelmValues(helm, fluxValues, tempFolder)
 	if err != nil {
-		return err
+		return models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "processing helm values files",
+			Kind:         "HelmChart",
+			ResourceName: helm.Name,
+			Filename:     helm.Name,
+		}
 	}
 	return doHandleLocalHelmChart(helm, "", chartDownloadPath, helmValuesFiles, tempFolder, configFolder)
 }
@@ -136,16 +161,30 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 
 	helmValuesFiles, err := processHelmValues(helm, nil, tempFolder)
 	if err != nil {
-		return err
+		return models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "processing helm values files",
+			Kind:         "HelmChart",
+			ResourceName: helm.Name,
+			Filename:     helm.Name,
+		}
 	}
 	return doHandleLocalHelmChart(helm, baseRepoFolder, helm.Path, helmValuesFiles, tempFolder, configFolder)
 }
 
 func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath string, helmValuesFiles []helmValuesFile, tempFolder, configFolder string) error {
-	helmPath = filepath.Join(repoPath, helmPath)
-	_, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", helmPath), "Updating dependencies for "+helm.Name)
+	fullHelmPath := filepath.Join(repoPath, helmPath)
+	cleanHelmPath := filepath.Clean(helmPath) // Remove things like `./`
+	output, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", fullHelmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
-		return err
+		return models.ScanErrorsReportResult{
+			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
+			ErrorContext: fmt.Sprintf("updating dependencies for helm chart %s", helm.Name),
+			Kind:         "HelmChart",
+			ResourceName: helm.Name,
+			Filename:     cleanHelmPath,
+			Remediation:  "Examine the Chart.yaml file for errors in the dependency specification, or invalid dependencies. See also, https://helm.sh/docs/helm/helm_dependency/",
+		}
 	}
 
 	var helmValuesFileArgs []string
@@ -156,10 +195,17 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 			helmValuesFileArgs = append(helmValuesFileArgs, "-f", filepath.Join(repoPath, vf.path))
 		}
 	}
-	params := append([]string{"template", helm.Name, helmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
-	_, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
+	params := append([]string{"template", helm.Name, fullHelmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
+	output, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
-		return err
+		return models.ScanErrorsReportResult{
+			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
+			ErrorContext: fmt.Sprintf("templating helm chart %s", helm.Name),
+			Kind:         "HelmChart",
+			ResourceName: helm.Name,
+			Filename:     cleanHelmPath,
+			Remediation:  "Examine the Helm template, values files, and any inline values that may be specified in fairwinds-insights.yaml, for syntax errors that cause the `helm template` command to fail.",
+		}
 	}
 	return nil
 }
@@ -219,11 +265,16 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CIScan) CopyYaml() error {
+	var numFailures int64
 	for _, yamlPath := range ci.config.Manifests.YamlPaths {
 		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: "+yamlPath)
 		if err != nil {
-			return err
+			numFailures++
+			// The error is already logged by commands.ExecWithMessage
 		}
 	}
-	return nil
+	if numFailures == 0 {
+		return nil
+	}
+	return fmt.Errorf("%d of %d yaml files failed to be copied to the config directory, see logs for the individual error messages", numFailures, len(ci.config.Manifests.YamlPaths))
 }
