@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -9,22 +10,22 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 )
 
-func (ci *CIScan) GetPolarisReport() (models.ReportInfo, error) {
+func (ci *CIScan) GetPolarisReport() (*models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "polaris",
 		Filename: "polaris.json",
 	}
-	// Scan with Polaris
-	_, err := commands.ExecWithMessage(exec.Command("polaris", "audit", "--audit-path", ci.configFolder, "--output-file", filepath.Join(ci.config.Options.TempFolder, report.Filename)), "Audit with Polaris")
-	if err != nil {
-		return report, err
-	}
 	polarisVersion, err := commands.Exec("polaris", "version")
 	if err != nil {
-		return report, err
+		return nil, fmt.Errorf("unable to get polaris version: %v: %v", err, polarisVersion)
 	}
 	report.Version = strings.Split(polarisVersion, ":")[1]
-	return report, nil
+	// Scan with Polaris
+	output, err := commands.ExecWithMessage(exec.Command("polaris", "audit", "--audit-path", ci.configFolder, "--output-file", filepath.Join(ci.config.Options.TempFolder, report.Filename)), "Audit with Polaris")
+	if err != nil {
+		return nil, fmt.Errorf("%v: %s", err, output)
+	}
+	return &report, nil
 }
 
 func (ci *CIScan) PolarisEnabled() bool {

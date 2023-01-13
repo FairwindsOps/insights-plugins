@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.3
+* update go modules
+
 ## 2.2.2
 * update x/net and alpine
 
