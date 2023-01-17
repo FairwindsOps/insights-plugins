@@ -20,9 +20,11 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 	ciutil "github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
+	"github.com/hashicorp/go-multierror"
 )
 
-func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) (*models.ReportInfo, error) {
+func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) (report *models.ReportInfo, errs error) {
+	allErrs := new(multierror.Error)
 	err := updatePullRef(ci.config.Images.FolderName, dockerImages, manifestImages)
 	if err != nil {
 		return nil, err
@@ -30,30 +32,36 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 
 	filenameToImageName, err := downloadMissingImages(ci.config.Images.FolderName, dockerImages, manifestImages, ci.config.Options.RegistryCredentials)
 	if err != nil {
-		return nil, err
+		allErrs = multierror.Append(allErrs, err)
 	}
 
 	allImages, err := mergeImages(ci.config.Images.FolderName, dockerImages, manifestImages, filenameToImageName)
 	if err != nil {
-		return nil, err
+		logrus.Debugf("error returned while merging images: %v", err)
+		multierror.Append(allErrs, err)
 	}
 
 	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)
 	if err != nil {
-		return nil, err
+		return nil, multierror.Append(allErrs, err, models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "running trivy",
+			ResourceName: "unknown",
+		})
 	}
-
-	filename := "trivy.json"
-	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, filename), trivyResults, 0644)
-	if err != nil {
-		return nil, err
+	if trivyResults != nil {
+		filename := "trivy.json"
+		err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, filename), trivyResults, 0644)
+		if err != nil {
+			return nil, multierror.Append(allErrs, err)
+		}
+		return &models.ReportInfo{
+			Report:   "trivy",
+			Filename: filename,
+			Version:  trivyVersion,
+		}, allErrs
 	}
-
-	return &models.ReportInfo{
-		Report:   "trivy",
-		Filename: filename,
-		Version:  trivyVersion,
-	}, nil
+	return nil, allErrs.ErrorOrNil()
 }
 
 // filename -> postgres_15_1_bullseye
@@ -103,6 +111,7 @@ func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, ma
 }
 
 func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) (map[string]string, error) {
+	allErrs := new(multierror.Error)
 	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres_15_1_bullseye
 	// Download missing images
 	for _, image := range manifestImages {
@@ -114,12 +123,13 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			continue
 		}
 		rc := registryCredentials.FindCredentialForImage(image.Name)
-		_, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
+		output, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
-			return nil, err
+			allErrs = multierror.Append(allErrs, fmt.Errorf("%v: %s", err, output))
+		} else {
+			image.PullRef = clearString(image.Name)
+			refLookup[image.Name] = image.PullRef
 		}
-		image.PullRef = clearString(image.Name)
-		refLookup[image.Name] = image.PullRef
 	}
 
 	for _, image := range dockerImages {
@@ -131,12 +141,23 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			continue
 		}
 		rc := registryCredentials.FindCredentialForImage(image.Name)
-		_, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
+		output, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
-			return nil, err
+			allErrs = multierror.Append(allErrs, fmt.Errorf("%v: %s", err, output))
+		} else {
+			image.PullRef = clearString(image.Name)
+			refLookup[image.Name] = image.PullRef
 		}
-		image.PullRef = clearString(image.Name)
-		refLookup[image.Name] = image.PullRef
+	}
+	if len(allErrs.Errors) > 0 {
+		return ciutil.ReverseMap(refLookup), models.ScanErrorsReportResult{
+			ErrorMessage: allErrs.Error(), // keep multiple errors combined into a single error / action item
+			ErrorContext: "downloading missing images to be scanned by trivy",
+			Kind:         "InternalOperation",
+			Remediation:  "Please inspect the action item description for signs of why downloading images may have failed.",
+			ResourceName: "DownloadMissingImages",
+			Filename:     filepath.Clean(folderPath), // clean() removes potential trailing slash
+		}
 	}
 	return ciutil.ReverseMap(refLookup), nil // postgres_15_1_bullseye -> postgres:15.1-bullseye
 }
@@ -169,7 +190,17 @@ func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName strin
 	}
 
 	args = append(args, dockerURL, archiveName)
-	return cmdExecutor(exec.Command("skopeo", args...), "pulling "+imageName)
+	output, err := cmdExecutor(exec.Command("skopeo", args...), "pulling "+imageName)
+	if err != nil {
+		archiveFileName := folderPath + clearString(imageName)
+		logrus.Infof("cleaning up file %q left behind by the failed image-copy for %s", archiveFileName, imageName)
+		removeErr := os.Remove(archiveFileName)
+		if removeErr != nil {
+			logrus.Errorf("unable to remove file %q, this will likely cause the trivy scan to fail for this empty file: %v", archiveFileName, removeErr)
+		}
+		return output, err
+	}
+	return output, nil
 }
 
 // mergeImages - at this point, all images are downloaded at folderPath
@@ -246,10 +277,17 @@ func determineOwnerName(n string, dockerImages []trivymodels.DockerImage) string
 }
 
 // scanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
-func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) ([]byte, string, error) {
-	_, err := commands.ExecWithMessage(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+// Multiple errors may be returned.
+func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) (report []byte, reportVersion string, errs error) {
+	allErrs := new(multierror.Error)
+	trivyVersion, err := commands.Exec("trivy", "--version")
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("unable to get trivy version: %v", err)
+	}
+	trivyVersion = strings.Split(strings.Split(trivyVersion, "\n")[0], " ")[1]
+	output, err := commands.ExecWithMessage(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+	if err != nil {
+		return nil, "", fmt.Errorf("unable to download trivy database, %v: %s", err, output)
 	}
 	reportByRef := map[string]*trivymodels.TrivyResults{}
 	for _, currentImage := range images {
@@ -260,7 +298,14 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		logrus.Infof("Scanning %s from file %s", currentImage.Name, currentImage.PullRef)
 		results, err := ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder, "")
 		if err != nil {
-			return nil, "", err
+			logrus.Errorf("error scanning %s from file %s: %v", currentImage.Name, currentImage.PullRef, err)
+			allErrs = multierror.Append(allErrs, models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "running trivy to scan image",
+				Kind:         "Image",
+				ResourceName: currentImage.Name,
+				Filename:     currentImage.PullRef,
+			})
 		}
 		reportByRef[currentImage.PullRef] = results
 	}
@@ -270,15 +315,10 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 	results := image.Minimize(allReports, trivymodels.MinimizedReport{Images: make([]trivymodels.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]trivymodels.VulnerabilityDetails{}})
 	trivyResults, err := json.Marshal(results)
 	if err != nil {
-		return nil, "", err
+		return nil, "", allErrs.ErrorOrNil()
 	}
 
-	trivyVersion, err := commands.Exec("trivy", "--version")
-	if err != nil {
-		return nil, "", err
-	}
-	trivyVersion = strings.Split(strings.Split(trivyVersion, "\n")[0], " ")[1]
-	return trivyResults, trivyVersion, nil
+	return trivyResults, trivyVersion, allErrs.ErrorOrNil()
 }
 
 // getShaAndRepoTags returns the SHA and repo-tags from a tarball of a an image.

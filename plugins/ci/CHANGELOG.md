@@ -1,7 +1,13 @@
 # Changelog
 
-## 4.1.5
+## 4.2.1
 * update dependencies
+
+## 4.2.0
+* CI scanning will continue when an error is encountered, such as templating a Helm chart into Kubernetes manifests. These errors will be reflected as Insights action items, in a new `ScanErrors` report type.
+
+## 4.1.5
+* skip downloading in-container `images.docker` images that has env. variables on their names
 
 ## 4.1.4
 * update go modules
