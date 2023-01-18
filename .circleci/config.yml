@@ -58,6 +58,7 @@ commands:
   check_version_changed:
     description: Check that version.txt changed if folder changed
     steps:
+    - set_vault
     - run:
         name: Check version.txt
         command: |
@@ -94,6 +95,8 @@ jobs:
   build_and_push_plugins:
     executor: goreleaser
     steps:
+      - checkout
+      - set_vault
       - goreleaser
       - slack/notify:
           event: fail
@@ -105,6 +108,7 @@ jobs:
       - image: cimg/go:1.19
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - set_tags
       - run: go install golang.org/x/lint/golint@latest
@@ -130,6 +134,7 @@ jobs:
       - image: cimg/go:1.19
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - set_tags
       - check_version_changed
@@ -139,6 +144,7 @@ jobs:
       - image: quay.io/reactiveops/ci-images:v11.13.5-alpine
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - run: ./scripts/check-all-versions.sh
       - slack/notify:
@@ -177,6 +183,7 @@ jobs:
     executor: ci-images
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
@@ -217,6 +224,7 @@ jobs:
     executor: ci-images
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-insights-cli.sh
