@@ -1,9 +1,13 @@
 # Changelog
 
+## 4.2.3
+* Revert 4.2.2
+
 ## 4.2.2
 * Update pluto from 5.11.2 to 5.12.0
 * Update Polaris from 7.2.1 to 7.3.0
 * Update Helm from 3.10.3 to 3.11.0
+
 
 ## 4.2.1
 * update dependencies
