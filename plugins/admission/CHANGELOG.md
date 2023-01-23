@@ -1,9 +1,5 @@
 # Changelog
 
-## 1.9.2
-* Update pluto from 5.9 to 5.12
-* Update polaris from 20230104151009-8af436367263 to 20230105172421-bf065f9b5455
-
 ## 1.9.1
 * update go modules
 
