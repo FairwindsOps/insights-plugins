@@ -86,6 +86,10 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	logrus.Debugf("Removing the base repository path %q from the file name of each tfsec result", ci.repoBaseFolder)
 	for i := range reportProperties.Items {
 		newFileName := reportProperties.Items[i].Location.FileName
+		if strings.HasPrefix(reportProperties.Items[i].Location.FileName, "terraform-aws-modules/") {
+			logrus.Debugf("preppending %q to filename %q because it refers to a Terraform module", terraformPath, newFileName)
+			newFileName = filepath.Join(terraformPath, newFileName)
+		}
 		newFileName = strings.TrimPrefix(newFileName, ci.repoBaseFolder+"/") // trim base folder as-is
 		absRepoBaseFolder, err := filepath.Abs(ci.repoBaseFolder)            // Also attempt to trim the absolute version of the same path
 		if err != nil {
@@ -93,14 +97,8 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		} else {
 			newFileName = strings.TrimPrefix(newFileName, absRepoBaseFolder+"/")
 		}
+		logrus.Debugf("updating filename %q to be relative to the repository: %q", reportProperties.Items[i].Location.FileName, newFileName)
 		reportProperties.Items[i].Location.FileName = newFileName
-	}
-	logrus.Debugf("Preppending the scanned path %q to any file name of tfsec results for a Terraform module", ci.repoBaseFolder)
-	for i := range reportProperties.Items {
-		if strings.HasPrefix(reportProperties.Items[i].Location.FileName, "terraform-aws-modules/") {
-			newFileName := filepath.Join(terraformPath, reportProperties.Items[i].Location.FileName)
-			reportProperties.Items[i].Location.FileName = newFileName
-		}
 	}
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, reportProperties)
 	return reportProperties.Items, nil
