@@ -3,12 +3,14 @@ package main
 import (
 	"os"
 
+	civersion "github.com/fairwindsops/insights-plugins/plugins/ci"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/ci"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	setLogLevel()
+	logrus.Infof("CI plugin %s", civersion.String())
 	ciScan, err := ci.NewCIScan()
 	if err != nil {
 		exitWithError(ciScan, "Error creating CI Scan main struct", err)
