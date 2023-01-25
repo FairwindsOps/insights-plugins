@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.7
+* Add network transmit bytes, and network received bytes, to the metrics submitted to Insights.
+* Add ability to output debug logs using the `LOGRUS_LEVEL` environment variable.
+
 ## 1.1.6
 * update go modules
 

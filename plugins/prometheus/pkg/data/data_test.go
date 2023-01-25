@@ -2,8 +2,10 @@ package data
 
 import (
 	"testing"
+	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
+	prometheusV1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -102,4 +104,52 @@ func TestGetController(t *testing.T) {
 	name, kind = getController(workloads, podName, namespace)
 	assert.Equal(t, "asdf2-12a3468", name)
 	assert.Equal(t, "ReplicaSet", kind)
+}
+
+func TestMutateCumulativeValuesToDeltaValues(t *testing.T) {
+	r := prometheusV1.Range{
+		Start: time.Date(2023, time.January, 19, 18, 45, 0, 0, time.UTC),
+		End:   time.Date(2023, time.January, 19, 19, 0, 0, 0, time.UTC),
+		Step:  30000000000,
+	}
+	v := []model.SamplePair{
+		model.SamplePair{Timestamp: 1674153840000, Value: 5},   // TImestamp begins before r.Start
+		model.SamplePair{Timestamp: 1674153870000, Value: 6},   // Timestamp begins before r.Start
+		model.SamplePair{Timestamp: 1674153900000, Value: 6.5}, // timestamp is 18:45:00 UTC
+		model.SamplePair{Timestamp: 1674153930000, Value: 7},
+		model.SamplePair{Timestamp: 1674153960000, Value: 7},
+		model.SamplePair{Timestamp: 1674153990000, Value: 7},
+		model.SamplePair{Timestamp: 1674154020000, Value: 7},
+		model.SamplePair{Timestamp: 1674154050000, Value: 7},
+		model.SamplePair{Timestamp: 1674154080000, Value: 7},
+		model.SamplePair{Timestamp: 1674154110000, Value: 7},
+		model.SamplePair{Timestamp: 1674154140000, Value: 7},
+		model.SamplePair{Timestamp: 1674154170000, Value: 7},
+		model.SamplePair{Timestamp: 1674154200000, Value: 7},
+		model.SamplePair{Timestamp: 1674154230000, Value: 7},
+		model.SamplePair{Timestamp: 1674154260000, Value: 7},
+		model.SamplePair{Timestamp: 1674154290000, Value: 7},
+		model.SamplePair{Timestamp: 1674154320000, Value: 7},
+		model.SamplePair{Timestamp: 1674154350000, Value: 7},
+		model.SamplePair{Timestamp: 1674154380000, Value: 7},
+		model.SamplePair{Timestamp: 1674154410000, Value: 7},
+		// TImestamp skips 18:54:00 through 18:55:30
+		model.SamplePair{Timestamp: 1674154560000, Value: 7},
+		model.SamplePair{Timestamp: 1674154590000, Value: 7},
+		model.SamplePair{Timestamp: 1674154620000, Value: 7},
+		model.SamplePair{Timestamp: 1674154650000, Value: 7},
+		model.SamplePair{Timestamp: 1674154680000, Value: 7},
+		model.SamplePair{Timestamp: 1674154710000, Value: 7},
+		model.SamplePair{Timestamp: 1674154740000, Value: 7},
+		model.SamplePair{Timestamp: 1674154770000, Value: 7},
+		model.SamplePair{Timestamp: 1674154800000, Value: 7}, // timestamp is 19:00:00 UTC
+	}
+	t.Logf("values before mutation are: %#v", v)
+	assert.Equal(t, len(v), 29, "number of prometheus values before mutation")
+	newV, err := cumulitiveValuesToDeltaValues(v, r)
+	assert.NoError(t, err)
+	t.Logf("values afer mutation are: %#v", newV)
+	assert.Equal(t, len(newV), 27, "number of prometheus values after mutation")
+	wantV := []model.SamplePair{model.SamplePair{Timestamp: 1674153900000, Value: 0.5}, model.SamplePair{Timestamp: 1674153930000, Value: 0.5}, model.SamplePair{Timestamp: 1674153960000, Value: 0}, model.SamplePair{Timestamp: 1674153990000, Value: 0}, model.SamplePair{Timestamp: 1674154020000, Value: 0}, model.SamplePair{Timestamp: 1674154050000, Value: 0}, model.SamplePair{Timestamp: 1674154080000, Value: 0}, model.SamplePair{Timestamp: 1674154110000, Value: 0}, model.SamplePair{Timestamp: 1674154140000, Value: 0}, model.SamplePair{Timestamp: 1674154170000, Value: 0}, model.SamplePair{Timestamp: 1674154200000, Value: 0}, model.SamplePair{Timestamp: 1674154230000, Value: 0}, model.SamplePair{Timestamp: 1674154260000, Value: 0}, model.SamplePair{Timestamp: 1674154290000, Value: 0}, model.SamplePair{Timestamp: 1674154320000, Value: 0}, model.SamplePair{Timestamp: 1674154350000, Value: 0}, model.SamplePair{Timestamp: 1674154380000, Value: 0}, model.SamplePair{Timestamp: 1674154410000, Value: 0}, model.SamplePair{Timestamp: 1674154560000, Value: 0}, model.SamplePair{Timestamp: 1674154590000, Value: 0}, model.SamplePair{Timestamp: 1674154620000, Value: 0}, model.SamplePair{Timestamp: 1674154650000, Value: 0}, model.SamplePair{Timestamp: 1674154680000, Value: 0}, model.SamplePair{Timestamp: 1674154710000, Value: 0}, model.SamplePair{Timestamp: 1674154740000, Value: 0}, model.SamplePair{Timestamp: 1674154770000, Value: 0}, model.SamplePair{Timestamp: 1674154800000, Value: 0}}
+	assert.Equal(t, wantV, newV)
 }
