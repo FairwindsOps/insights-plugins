@@ -134,6 +134,12 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	}
 	logrus.Infof("Found %d metrics for network transmit bytes", len(networkTransmit))
 
+	networkReceive, err := getNetworkReceiveBytesIncludingBaseline(ctx, api, r)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("Found %d metrics for network receive bytes", len(networkReceive))
+
 	combinedRequests := make(map[string]CombinedRequest)
 	for _, cpuVal := range cpu {
 		key := getKey(cpuVal)
@@ -190,6 +196,20 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request.Owner = getOwner(networkVal)
 		combinedRequests[key] = request
 	}
+	for _, networkVal := range networkReceive {
+		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
+		if err != nil {
+			logrus.Warnf("while mutating network receive values from cumulitive to deltas: %v", err)
+			continue
+		}
+		networkVal.Values = deltaValues
+		key := getKey(networkVal)
+		request := combinedRequests[key]
+		request.networkReceive = networkVal.Values
+		request.Owner = getOwner(networkVal)
+		combinedRequests[key] = request
+	}
+
 	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
 
 	client := controller.Client{

@@ -48,5 +48,5 @@ type CombinedRequest struct {
 	memoryLimit     model.SampleValue
 	cpuLimit        model.SampleValue
 	networkTransmit []model.SamplePair
-	networkReceived []model.SamplePair
+	networkReceive  []model.SamplePair
 }
