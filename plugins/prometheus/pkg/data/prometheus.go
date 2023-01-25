@@ -102,11 +102,9 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 // an extra minute, to obtain a baseline to be
 // used elsewhere when convert the total values into deltas.
 func getNetworkTransmitBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	// ifetch: This query temporarily limited to a specific pod.
-	// ToDO: SHould we not limit interfaces and combine metrics, or let them all
-	// get processed, or provide a config option to specify the desired
-	// interface (defaulting to eth0)?
-	query := `container_network_transmit_bytes_total{pod="testapp-5f6778868d-wbdj2",interface!="tunl0",interface!="ip6tnl0"}`
+	// This metric will return metrics per network interface. The `without` clause
+	// factors that out.
+	query := `sum without (interface) (container_network_transmit_bytes_total)`
 	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
@@ -121,11 +119,9 @@ func getNetworkTransmitBytesIncludingBaseline(ctx context.Context, api prometheu
 // an extra minute, to obtain a baseline to be
 // used elsewhere when convert the total values into deltas.
 func getNetworkReceiveBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	// ifetch: This query temporarily limited to a specific pod.
-	// ToDO: SHould we not limit interfaces and combine metrics, or let them all
-	// get processed, or provide a config option to specify the desired
-	// interface (defaulting to eth0)?
-	query := `container_network_receive_bytes_total{pod="testapp-5f6778868d-wbdj2",interface!="tunl0",interface!="ip6tnl0"}`
+	// This metric will return metrics per network interface. The `without` clause
+	// factors that out.
+	query := `sum without (interface) (container_network_receive_bytes_total)`
 	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
