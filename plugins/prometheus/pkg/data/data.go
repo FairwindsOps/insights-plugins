@@ -186,7 +186,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	for _, networkVal := range networkTransmit {
 		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
 		if err != nil {
-			logrus.Warnf("while mutating network transmit values from cumulitive to deltas: %v", err)
+			logrus.Warnf("while converting network transmit values from cumulitive to deltas: %v", err)
 			continue
 		}
 		networkVal.Values = deltaValues
@@ -199,7 +199,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	for _, networkVal := range networkReceive {
 		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
 		if err != nil {
-			logrus.Warnf("while mutating network receive values from cumulitive to deltas: %v", err)
+			logrus.Warnf("while converting network receive values from cumulitive to deltas: %v", err)
 			continue
 		}
 		networkVal.Values = deltaValues
@@ -258,7 +258,7 @@ func getOwner(sample *model.SampleStream) Owner {
 // prometheusV1.Range, which will be used as a baseline value to calculate the
 // first delta value.
 func cumulitiveValuesToDeltaValues(v []model.SamplePair, r prometheusV1.Range) ([]model.SamplePair, error) {
-	logrus.Debugf("mutating %d values from cumulitive into delta ones, within the time-range %s - %s", len(v), r.Start, r.End)
+	logrus.Debugf("converting %d values from cumulitive into delta ones, within the time-range %s - %s", len(v), r.Start, r.End)
 	indexOfValuesStartingOriginalRange := -1 // sentinal value
 	for i := len(v) - 1; i >= 0; i-- {
 		logrus.Debugf("index %d is value=%.1f, timestamp=%s", i, v[i].Value, v[i].Timestamp.Time().UTC().String())
@@ -280,6 +280,6 @@ func cumulitiveValuesToDeltaValues(v []model.SamplePair, r prometheusV1.Range) (
 		return nil, fmt.Errorf("deltas could not be created from totals because there were no metrics outside of this prometheus range ot establish a baseline: %#v", r)
 	}
 	v = v[indexOfValuesStartingOriginalRange:]
-	logrus.Debugf("mutated to %d values as index %d was the start of values within the prometheus range", len(v), indexOfValuesStartingOriginalRange)
+	logrus.Debugf("the %d values  will be shrunk by %d as index %d was the start of values within the prometheus range", +1, indexOfValuesStartingOriginalRange)
 	return v, nil
 }

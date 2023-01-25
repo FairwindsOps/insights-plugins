@@ -59,7 +59,7 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			})
 		}
 
-		for _, networkReceive := range value.networkTransmit {
+		for _, networkReceive := range value.networkReceive {
 			timestamp := time.Unix(int64(networkReceive.Timestamp)/1000, 0)
 			stats = append(stats, Statistics{
 				StartTime: timestamp,
