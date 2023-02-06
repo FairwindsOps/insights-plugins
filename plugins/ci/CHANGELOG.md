@@ -1,6 +1,9 @@
 # Changelog
 
 ## 4.2.4
+* Clarify the log message when there have been no tfsec findings after processing all terraform paths.
+
+## 4.2.4
 * Fix removal of the repository path from tfsec result file names, when said result is for a Terraform module. THis bug caused these file names to begin with `/app/repository/{repository name}`.
 * Log the version of the CI plugin.
 
