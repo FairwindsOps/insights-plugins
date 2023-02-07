@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.4
+## 4.2.5
 * Clarify the log message when there have been no tfsec findings after processing all terraform paths.
 
 ## 4.2.4
