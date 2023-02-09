@@ -65,3 +65,9 @@ func TestUnmarshalAndOverrideConfig(t *testing.T) {
 	expected.Reports.Polaris.Enabled = lo.ToPtr(true)
 	assert.Equal(t, expected, cfg)
 }
+
+func TestHasEnvSubstitution(t *testing.T) {
+	assert.True(t, hasEnvVar("161177611123.dkr.ecr.us-east-1.amazonaws.com/fairwinds-insights-api:$CI_SHA1"))
+	assert.False(t, hasEnvVar("161177611123.dkr.ecr.us-east-1.amazonaws.com/fairwinds-insights-api:5541f8d19d1e0a1ae860388c8b25b737773fd6ec"))
+	assert.False(t, hasEnvVar("161177611123.dkr.ecr.us-east-1.amazonaws.com/fairwinds-insights-api:11.0.0"))
+}

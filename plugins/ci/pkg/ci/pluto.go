@@ -8,7 +8,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 )
 
-func (ci *CIScan) GetPlutoReport() (models.ReportInfo, error) {
+func (ci *CIScan) GetPlutoReport() (*models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:   "pluto",
 		Filename: "pluto.json",
@@ -16,14 +16,14 @@ func (ci *CIScan) GetPlutoReport() (models.ReportInfo, error) {
 	// Scan with Pluto
 	plutoResults, err := commands.Exec("pluto", "detect-files", "-d", ci.configFolder, "-o", "json", "--ignore-deprecations", "--ignore-removals")
 	if err != nil {
-		return report, err
+		return nil, err
 	}
 	err = os.WriteFile(filepath.Join(ci.config.Options.TempFolder, report.Filename), []byte(plutoResults), 0644)
 	if err != nil {
-		return report, err
+		return nil, err
 	}
 	report.Version = os.Getenv("plutoVersion")
-	return report, nil
+	return &report, nil
 }
 
 func (ci *CIScan) PlutoEnabled() bool {

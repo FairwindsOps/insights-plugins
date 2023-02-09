@@ -40,6 +40,7 @@ type formFile struct {
 }
 
 type CIScan struct {
+	autoScan       bool
 	token          string
 	baseFolder     string // . or /app/repository
 	repoBaseFolder string // . or /app/repository/{repoName}
@@ -57,6 +58,7 @@ type insightsReportsConfig struct {
 
 // Create a new CI instance based on flag cloneRepo
 func NewCIScan() (*CIScan, error) {
+	// cloneRepo controls if the repository must be cloned from the git provider, but also enables the auto-scan mode
 	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
 	logrus.Infof("cloneRepo: %v", cloneRepo)
 
@@ -77,6 +79,7 @@ func NewCIScan() (*CIScan, error) {
 	}
 
 	ci := CIScan{
+		autoScan:       cloneRepo,
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
 		baseFolder:     baseFolder,
@@ -424,7 +427,12 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 		return "", "", nil, errors.New("IMAGE_VERSION environment variable not set")
 	}
 
-	basePath := filepath.Join("/app", "repository")
+	var basePath string = os.Getenv("CI_BASE_PATH")
+	if basePath != "" {
+		logrus.Infof("using basePath of %q from environment CI_BASE_PATH", basePath)
+	} else {
+		basePath = filepath.Join("/app", "repository")
+	}
 	_, repoName := util.GetRepoDetails(repoFullName)
 	baseRepoPath := filepath.Join(basePath, repoName)
 
@@ -549,20 +557,33 @@ func readConfigurationFromReader(configHandler io.Reader) (*models.Configuration
 }
 
 func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
+	var scanErrorsReportProperties models.ScanErrorsReportProperties // errors encountered during scan
+
 	err := ci.ProcessHelmTemplates()
 	if err != nil {
-		return nil, fmt.Errorf("Error while processing helm templates: %v", err)
+		scanErrorsReportProperties.AddScanErrorsReportResultFromError(err)
 	}
 
 	err = ci.CopyYaml()
 	if err != nil {
-		return nil, fmt.Errorf("Error while copying YAML files: %v", err)
+		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "copying yaml files to configuration directory",
+			Kind:         "InternalOperation",
+			ResourceName: "CopyYaml",
+			Remediation:  "Examine the CI logs to determine why yaml files failed to copy to the configuration directory. Perhaps memory or disk space is low.",
+		})
 	}
 
 	// Scan YAML, find all images/kind/etc
 	manifestImages, resources, err := ci.getAllResources()
 	if err != nil {
-		return nil, fmt.Errorf("Error while extracting images from YAML manifests: %v", err)
+		scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+			ErrorMessage: err.Error(),
+			ErrorContext: "getting all resources from manifest files",
+			Kind:         "InternalOperation",
+			ResourceName: "GetAllResources",
+		})
 	}
 
 	var reports []*models.ReportInfo
@@ -571,65 +592,112 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	if ci.PolarisEnabled() {
 		polarisReport, err := ci.GetPolarisReport()
 		if err != nil {
-			return nil, fmt.Errorf("Error while running Polaris: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(models.ScanErrorsReportResult{
+				ErrorMessage: err.Error(),
+				ErrorContext: "running polaris",
+				Kind:         "InternalOperation",
+				ResourceName: "GetPolarisReport",
+			})
 		}
-		reports = append(reports, &polarisReport)
+		if polarisReport != nil {
+			reports = append(reports, polarisReport)
+		}
 	}
 
+	workloadReport, err := ci.GetWorkloadReport(resources)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get workloads report, which is depended on by other reports: %v", err)
+	}
+	if workloadReport != nil {
+		reports = append(reports, workloadReport)
+	}
 	if ci.TrivyEnabled() {
 		manifestImagesToScan := manifestImages
 		if ci.SkipTrivyManifests() {
 			manifestImagesToScan = []trivymodels.Image{}
 		}
-		dockerImages := getDockerImages(ci.config.Images.Docker)
+		dockerImages := getDockerImages(ci.config.Images.Docker, ci.autoScan)
 		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
 		if err != nil {
-			return nil, fmt.Errorf("Error while running Trivy: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
+				ErrorContext: "downloading images and running trivy",
+				Kind:         "InternalOperation",
+				ResourceName: "GetTrivyReport",
+			})
 		}
-		reports = append(reports, trivyReport)
+		if trivyReport != nil {
+			reports = append(reports, trivyReport)
+		}
 	}
-
-	workloadReport, err := ci.GetWorkloadReport(resources)
-	if err != nil {
-		return nil, fmt.Errorf("Error while aggregating workloads: %v", err)
-	}
-	reports = append(reports, &workloadReport)
 
 	if ci.OPAEnabled() {
 		opaReport, err := ci.ProcessOPA(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("Error while running OPA: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
+				ErrorContext: "processing OPA policies",
+				Kind:         "InternalOperation",
+				ResourceName: "ProcessOPA",
+			})
 		}
-		reports = append(reports, &opaReport)
+		if opaReport != nil {
+			reports = append(reports, opaReport)
+		}
 	}
 
 	if ci.PlutoEnabled() {
 		plutoReport, err := ci.GetPlutoReport()
 		if err != nil {
-			return nil, fmt.Errorf("Error while running Pluto: %v", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
+				ErrorContext: "running pluto",
+				Kind:         "InternalOperation",
+				ResourceName: "GetPlutoReport",
+			})
 		}
-		reports = append(reports, &plutoReport)
+		if plutoReport != nil {
+			reports = append(reports, plutoReport)
+		}
 	}
 
 	if ci.TerraformEnabled() {
-		terraformReports, areTerraformResults, err := ci.ProcessTerraformPaths()
+		terraformReports, err := ci.ProcessTerraformPaths()
 		if err != nil {
-			return nil, fmt.Errorf("while processing Terraform: %w", err)
+			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
+				ErrorContext: "processing terraform",
+				Kind:         "InternalOperation",
+				ResourceName: "ProcessTerraformPaths",
+			})
 		}
-		if areTerraformResults {
+		if terraformReports != nil {
 			logrus.Debugln("the Terraform report contains results")
-			reports = append(reports, &terraformReports)
+			reports = append(reports, terraformReports)
 		}
+	}
+
+	if len(scanErrorsReportProperties.Items) > 0 {
+		scanErrorsReport, err := ci.processScanErrorsReportProperties(scanErrorsReportProperties)
+		if err != nil {
+			return nil, fmt.Errorf("unable to process scan errors report items: %w", err)
+		}
+		reports = append(reports, scanErrorsReport)
 	}
 	return reports, nil
 }
 
-func getDockerImages(dockerImagesStr []string) []trivymodels.DockerImage {
+func hasEnvVar(s string) bool {
+	return strings.Contains(s, "$")
+}
+
+func getDockerImages(dockerImagesStr []string, autoScan bool) []trivymodels.DockerImage {
 	dockerImages := []trivymodels.DockerImage{}
-	for _, v := range dockerImagesStr {
-		dockerImages = append(dockerImages, trivymodels.DockerImage{
-			Name: v,
-		})
+	for _, n := range dockerImagesStr {
+		if hasEnvVar(n) {
+			if autoScan {
+				// only log if on auto-scan, because when running on CI runners - the CI script already have downloaded these images
+				logrus.Warnf("image %s skipped, env. variable substitution is not supported on in-container image download", n)
+			}
+			continue
+		}
+		dockerImages = append(dockerImages, trivymodels.DockerImage{Name: n})
 	}
 	return dockerImages
 }

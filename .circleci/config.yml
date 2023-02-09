@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@4.8
-  rok8s-scripts: fairwinds/rok8s-scripts@11.11.5
+  rok8s-scripts: fairwinds/rok8s-scripts@11
 
 commands:
   install_goreleaser_dependencies:
@@ -18,11 +18,16 @@ commands:
     description: Sets environment variables for this job.
     steps:
     - run: ./.circleci/scripts/env.sh
-
   set_tags:
     description: Figures out which plugins have been changed etc
     steps:
     - run: ./.circleci/set_tags.sh
+  set_vault:
+    description: Install and configure vault 
+    steps:
+      - run: ./.circleci/scripts/vault.sh
+      - rok8s-scripts/get_vault_env:
+          vault_path: repo/global/env
 
   goreleaser:
     description: Build binaries and build/push docker Images depending on the git branch
@@ -36,10 +41,11 @@ commands:
     - install_goreleaser_dependencies
     - set_environment_variables
     - set_tags
+    - set_vault
     - run:
         name: Build Plugin Docker Images
         command: |
-          docker login quay.io -u="${fairwinds_quay_user}" -p="${fairwinds_quay_token}"
+          docker login quay.io -u="${FAIRWINDS_QUAY_USER}" -p="${FAIRWINDS_QUAY_TOKEN}"
           for plugin in "${CHANGED[@]}"; do
             if [ "${plugin}" == "_template" ] ; then
               continue
@@ -52,6 +58,7 @@ commands:
   check_version_changed:
     description: Check that version.txt changed if folder changed
     steps:
+    - set_vault
     - run:
         name: Check version.txt
         command: |
@@ -88,6 +95,8 @@ jobs:
   build_and_push_plugins:
     executor: goreleaser
     steps:
+      - checkout
+      - set_vault
       - goreleaser
       - slack/notify:
           event: fail
@@ -99,6 +108,7 @@ jobs:
       - image: cimg/go:1.19
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - set_tags
       - run: go install golang.org/x/lint/golint@latest
@@ -124,6 +134,7 @@ jobs:
       - image: cimg/go:1.19
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - set_tags
       - check_version_changed
@@ -133,6 +144,7 @@ jobs:
       - image: quay.io/reactiveops/ci-images:v11.13.5-alpine
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - run: ./scripts/check-all-versions.sh
       - slack/notify:
@@ -171,6 +183,7 @@ jobs:
     executor: ci-images
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
@@ -211,6 +224,7 @@ jobs:
     executor: ci-images
     steps:
       - checkout
+      - set_vault
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-insights-cli.sh
