@@ -27,6 +27,8 @@ wait_new_restarts_of_first_container() {
   for n in `seq 1 20` ; do
     sleep 5
     # Restarts from all pods are sumed, in case the ReplicaSet is healing.
+    kubectl get po -l "${label}" $@
+    echo "checking restarts"
     local restarts=$(kubectl get po -l "${label}" $@ -o json \
       | jq '.items[].status.containerStatuses[0].restartCount' \
       | awk '{s+=$1} END {printf "%.0f", s}')
@@ -38,7 +40,7 @@ wait_new_restarts_of_first_container() {
   done
   if [ $new_restarts -lt $expected_new_restarts ] ; then
     >&2 echo "Expected ${expected_new_restarts} new restarts for pods with label ${label}, but got ${new_restarts} new restarts beyond ${initial_restarts} initial restarts"
-echo "${new_restarts}"
+    echo "${new_restarts}"
     return 1
   fi
   echo "${new_restarts}"
