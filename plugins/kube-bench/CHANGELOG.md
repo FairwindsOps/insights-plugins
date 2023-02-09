@@ -1,11 +1,5 @@
 # Changelog
 
-## 0.4.8
-* update dependencies
-
-## 0.4.7
-* update kube-bench to 0.6.11
-
 ## 0.4.6
 * update alpine and go modules
 
