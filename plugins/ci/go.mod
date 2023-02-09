@@ -7,8 +7,8 @@ replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
 replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20230207165622-3ab51c46fbe1
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20230207165622-3ab51c46fbe1
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20230209210927-739847f25553
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20230209210927-739847f25553
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
@@ -93,7 +93,7 @@ require (
 	k8s.io/component-base v0.26.1 // indirect
 	k8s.io/klog/v2 v2.90.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3 // indirect
-	k8s.io/utils v0.0.0-20230202215443-34013725500c // indirect
+	k8s.io/utils v0.0.0-20230209194617-a36077c30491 // indirect
 	sigs.k8s.io/controller-runtime v0.14.4 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
