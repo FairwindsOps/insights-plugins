@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.4.5
-* update go modules
+* update alpine and go modules
 
 ## 0.4.4
 * update go modules

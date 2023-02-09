@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.1.7
-* update go modules
+* update alpine and go modules
 
 ## 1.1.6
 * update go modules

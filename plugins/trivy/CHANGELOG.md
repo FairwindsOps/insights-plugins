@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.24.7
-* update go modules
+* update alpine and go modules
 
 ## 0.24.6
 * update dependencies

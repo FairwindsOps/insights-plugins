@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.3.6
-* update go modules
+* update alpine and go modules
 
 ## 0.3.5
 * update go modules
