@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.2.7
+* update dependencies
+
 ## 4.2.6
 * update alpine and go modules
 
