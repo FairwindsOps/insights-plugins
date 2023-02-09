@@ -27,8 +27,6 @@ wait_new_restarts_of_first_container() {
   for n in `seq 1 20` ; do
     sleep 5
     # Restarts from all pods are sumed, in case the ReplicaSet is healing.
-    >&2 kubectl get po -l "${label}" $@
-    >&2 echo "checking restarts"
     local restarts=$(kubectl get po -l "${label}" $@ -o json \
       | jq '.items[].status.containerStatuses[0].restartCount' \
       | awk '{s+=$1} END {printf "%.0f", s}')
@@ -40,7 +38,7 @@ wait_new_restarts_of_first_container() {
   done
   if [ $new_restarts -lt $expected_new_restarts ] ; then
     >&2 echo "Expected ${expected_new_restarts} new restarts for pods with label ${label}, but got ${new_restarts} new restarts beyond ${initial_restarts} initial restarts"
-    echo "${new_restarts}"
+echo "${new_restarts}"
     return 1
   fi
   echo "${new_restarts}"
@@ -96,15 +94,8 @@ kubectl apply -n insights-agent -f /workspace/plugins/right-sizer/e2e/testworklo
 kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeout=60s --namespace insights-agent
 # Be sure the right-sizer controller is available to see this OOM-kill.
 kubectl wait --for=condition=ready -l app=insights-agent,component=right-sizer pod --timeout=60s --namespace insights-agent
-
-# FIXME: this is overkill
-kubectl create job trigger-oomkill-right-sizer-test-workload-2 -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
-kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload-2 --timeout=40s --namespace insights-agent
-kubectl create job trigger-oomkill-right-sizer-test-workload-3 -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
-kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload-3 --timeout=40s --namespace insights-agent
-kubectl create job trigger-oomkill-right-sizer-test-workload-4 -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
-kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload-4 --timeout=40s --namespace insights-agent
-
+kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
+kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
 # Verify the test workload has a new container restart.
 rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
 if [ ${rightsizer_workload_restarts} -ne 1 ] ; then
