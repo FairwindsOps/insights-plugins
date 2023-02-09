@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.5
+* update go modules
+
 ## 1.3.4
 * update go modules
 

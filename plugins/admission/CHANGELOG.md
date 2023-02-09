@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.4
+* update go modules
+
 ## 1.9.3
 * Revert v1.9.2
 

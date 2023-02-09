@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.3
+* update go modules
+
 ## 2.4.2
 * update go modules
 
