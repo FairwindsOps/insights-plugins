@@ -27,8 +27,8 @@ wait_new_restarts_of_first_container() {
   for n in `seq 1 20` ; do
     sleep 5
     # Restarts from all pods are sumed, in case the ReplicaSet is healing.
-    kubectl get po -l "${label}" $@
-    echo "checking restarts"
+    >&2 kubectl get po -l "${label}" $@
+    >&2 echo "checking restarts"
     local restarts=$(kubectl get po -l "${label}" $@ -o json \
       | jq '.items[].status.containerStatuses[0].restartCount' \
       | awk '{s+=$1} END {printf "%.0f", s}')
