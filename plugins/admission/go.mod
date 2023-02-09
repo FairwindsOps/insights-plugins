@@ -9,8 +9,8 @@ replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 require (
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.13.1
-	github.com/fairwindsops/polaris v0.0.0-20230209162051-80c433478b5f
+	github.com/fairwindsops/pluto/v5 v5.13.2
+	github.com/fairwindsops/polaris v0.0.0-20230209191323-9a678b46e21c
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
 	github.com/thoas/go-funk v0.9.3
@@ -19,7 +19,7 @@ require (
 )
 
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20230207165622-3ab51c46fbe1
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20230209210927-739847f25553
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.9.0
 	github.com/samber/lo v1.37.0
@@ -107,7 +107,7 @@ require (
 	k8s.io/component-base v0.26.1 // indirect
 	k8s.io/klog/v2 v2.90.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20230202010329-39b3636cbaa3 // indirect
-	k8s.io/utils v0.0.0-20230202215443-34013725500c // indirect
+	k8s.io/utils v0.0.0-20230209194617-a36077c30491 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 )

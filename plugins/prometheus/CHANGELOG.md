@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.8
+* update dependencies
+
 ## 1.1.7
 * update alpine and go modules
 
