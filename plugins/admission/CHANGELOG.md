@@ -1,8 +1,5 @@
 # Changelog
 
-## 1.9.5
-* update dependencies
-
 ## 1.9.4
 * update alpine and go modules
 

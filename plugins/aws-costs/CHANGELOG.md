@@ -1,8 +1,5 @@
 # Changelog
 
-## 1.1.2
-* update dependencies
-
 ## 1.1.1
 * update AWS cli
 
