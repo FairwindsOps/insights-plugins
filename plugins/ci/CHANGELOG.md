@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.2.9
+* Restore command standard-error being returned and reflected in CI logs and scan-error report action items, from PR #754.
+
 ## 4.2.8
 * Fix STDOUT parsing
 
