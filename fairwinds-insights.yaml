@@ -1,7 +1,7 @@
 options:
   organization: fairwinds-production
   baseBranch: main
-# images will be added dynamically
+# run ./scripts/scan-all.sh to regenerate
 images:
   docker:
     - quay.io/fairwinds/polaris:7.3
