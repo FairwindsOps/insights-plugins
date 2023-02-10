@@ -19,6 +19,12 @@ for d in ./plugins/*/ ; do
     images+=($name)
 done
 
+echo -e "images:" >> ./fairwinds-insights.yaml
+echo -e "  docker:" >> ./fairwinds-insights.yaml
+for name in "${images[@]}"; do
+  echo -e "    - $name" >> ./fairwinds-insights.yaml
+done
+
 for name in "${images[@]}"; do
     echo "scanning $name"
     docker pull $name
