@@ -1,5 +1,8 @@
 # Changelog
 
+## 4.2.8
+* Fix STDOUT parsing
+
 ## 4.2.7
 * update dependencies
 
