@@ -67,7 +67,7 @@ if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" ||
   exit 1
 fi
 
-initial_date_time=$(date -u -d '1 day ago' +"%Y-%m-%d %H:00:00.000")
+initial_date_time=$(date -u -d '5 day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 
 queryResults=$(aws athena start-query-execution \
