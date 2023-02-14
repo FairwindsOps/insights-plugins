@@ -29,7 +29,7 @@ database=''
 table=''
 timeout='60'
 workgroup=''
-days='5'
+days=''
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
     flag=${flag##-}
@@ -67,6 +67,13 @@ while [ ! $# -eq 0 ]; do
     shift
     shift
 done
+if [[ "$days" = "" && "$AWS_COSTS_DAYS" != "" ]]; then
+  days=$AWS_COSTS_DAYS
+fi
+echo "xxx = $days"
+if [[ "$days" = "" ]]; then
+  days='5'
+fi
 if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
   usage
   exit 1
