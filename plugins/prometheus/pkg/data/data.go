@@ -16,6 +16,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -183,41 +184,17 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request.memoryLimit = memVal.Values[0].Value
 		combinedRequests[key] = request
 	}
-	for _, networkVal := range networkTransmit {
-		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
-		if err != nil {
-			logrus.Warnf("while converting network transmit values from cumulitive to deltas: %v", err)
-			continue
-		}
-		networkVal.Values = deltaValues
-		key := getKey(networkVal)
-		request := combinedRequests[key]
-		request.networkTransmit = networkVal.Values
-		request.Owner = getOwner(networkVal)
-		combinedRequests[key] = request
-	}
-	for _, networkVal := range networkReceive {
-		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
-		if err != nil {
-			logrus.Warnf("while converting network receive values from cumulitive to deltas: %v", err)
-			continue
-		}
-		networkVal.Values = deltaValues
-		key := getKey(networkVal)
-		request := combinedRequests[key]
-		request.networkReceive = networkVal.Values
-		request.Owner = getOwner(networkVal)
-		combinedRequests[key] = request
-	}
 
-	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
-
+	// Information about pods is required to lookup the number of containers
+	// each pod has, to manipulate per-pod network metrics to appear to be
+	// per-container.
 	client := controller.Client{
 		Context:    ctx,
 		Dynamic:    dynamicClient,
 		RESTMapper: restMapper,
 	}
-	workloads, err := client.GetAllTopControllersSummary("")
+	// workloads, err := client.GetAllTopControllersSummary("")
+	workloads, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
 		return nil, err
 	}
@@ -227,6 +204,45 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = &workloads[idx]
 		}
 	}
+
+	for _, networkVal := range networkTransmit {
+		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
+		if err != nil {
+			logrus.Warnf("while converting network transmit values from cumulitive to deltas: %v", err)
+			continue
+		}
+		networkVal.Values = deltaValues
+	}
+
+	networkTransmit = adjustMetricsForMultiContainerPods(networkTransmit, workloadMap)
+	for _, networkVal := range networkTransmit {
+		key := getKey(networkVal)
+		request := combinedRequests[key]
+		request.networkTransmit = networkVal.Values
+		request.Owner = getOwner(networkVal)
+		combinedRequests[key] = request
+	}
+
+	for _, networkVal := range networkReceive {
+		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
+		if err != nil {
+			logrus.Warnf("while converting network receive values from cumulitive to deltas: %v", err)
+			continue
+		}
+		networkVal.Values = deltaValues
+	}
+
+	networkReceive = adjustMetricsForMultiContainerPods(networkReceive, workloadMap)
+	for _, networkVal := range networkReceive {
+		key := getKey(networkVal)
+		request := combinedRequests[key]
+		request.networkReceive = networkVal.Values
+		request.Owner = getOwner(networkVal)
+		combinedRequests[key] = request
+	}
+
+	requestArray := make([]CombinedRequest, 0, len(combinedRequests))
+
 	for _, val := range combinedRequests {
 		if workload, ok := workloadMap[fmt.Sprintf("%s/%s", val.ControllerNamespace, val.PodName)]; ok {
 			val.ControllerName = workload.TopController.GetName()
@@ -250,6 +266,83 @@ func getOwner(sample *model.SampleStream) Owner {
 		PodName:             string(sample.Metric["pod"]),
 		Container:           string(sample.Metric["container"]),
 	}
+}
+
+// adjustMetricsForMultiContainerPods splits values for any metrics
+// which have more than one container. The original values
+// will be divided by the number of containers, with any remainder assigned to
+// the first container.
+// For example, a pod with 3 containers, and a
+// metric value of 10, will be converted to 3 metrics. The metric for the
+// first container will have value 4, and the second and third metrics will
+// each have a value of 3.
+// The supplied map of Kubernetes workloads is used to determine the number of
+// containers and their names, for pods referenced in each metric. The map is
+// keyed on a string `{namespace}/{podName}`.
+func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[string]*controller.Workload) model.Matrix {
+	newMetrics := make(model.Matrix, 0)
+	for _, sample := range metrics {
+		podKey := fmt.Sprintf("%s/%s", sample.Metric["namespace"], sample.Metric["pod"])
+		workload, foundPod := workloadMap[podKey]
+		if !foundPod {
+			logrus.Warnf("cannot split metrics across the pod's containers, no workload was found for %q", podKey)
+			continue
+		}
+		podContainers := workload.PodSpec.Containers
+		numContainers := len(podContainers)
+		if numContainers == 1 {
+			logrus.Debugf("assigning pod-metrics for pod %s to its only container, %s", podKey, podContainers[0].Name)
+			sample.Metric["container"] = model.LabelValue(podContainers[0].Name)
+			newMetrics = append(newMetrics, sample)
+			continue
+		} else {
+			logrus.Debugf("splitting pod-metric values for pod %s across its %d containers", podKey, len(podContainers))
+			sample.Metric["container"] = model.LabelValue(podContainers[0].Name)
+			origValues := make([]model.SampleValue, len(sample.Values))
+			for i, v := range sample.Values {
+				origValues[i] = v.Value
+			}
+			splitValues := make([]model.SampleValue, len(sample.Values))
+			// Divide values by the number of containers, and set metric values for the first container to the equal split + any
+			// remainder.
+			for i, v := range origValues {
+				vFloat := float64(v)
+				remainder := math.Mod(vFloat, float64(numContainers))
+				equalSplit := math.Floor(vFloat / float64(numContainers))
+				var newValue float64
+				var newValueDescr string
+				if remainder > 0.0 {
+					newValue = equalSplit + remainder
+					newValueDescr = "the equal split and remainder"
+				} else {
+					newValue = equalSplit
+					newValueDescr = "the equal split"
+				}
+				sample.Values[i].Value = model.SampleValue(newValue)
+				logrus.Debugf("splitting metric %.1f across %d containers: metric index=%d, remainder=%.1f, equal split=%.1f", vFloat, numContainers, i, remainder, equalSplit)
+				logrus.Debugf("setting the new value for the first container (%s) of %s to %s, new value=%.1f, time=%s, metric index=%d", sample.Metric["container"], podKey, newValueDescr, newValue, sample.Values[i].Timestamp, i)
+				splitValues[i] = model.SampleValue(equalSplit) // Save the equal splits to populate additional containers' values.
+			}
+			newMetrics = append(newMetrics, sample)                                             // first container
+			for containerIndex := 1; containerIndex <= len(podContainers)-1; containerIndex++ { // Iterate the rest of the containers
+				newSample := &model.SampleStream{}
+				newSample.Metric = make(model.Metric)
+				for k, v := range sample.Metric { // Copy key=values from the first container
+					newSample.Metric[k] = v
+				}
+				newSample.Metric["container"] = model.LabelValue(podContainers[containerIndex].Name)
+				newSample.Values = make([]model.SamplePair, len(splitValues))
+				for i, v := range sample.Values {
+					newSample.Values[i].Timestamp = v.Timestamp // keep timestamp from original value
+					newSample.Values[i].Value = splitValues[i]  // Use equally split value associated with this index
+					logrus.Debugf("setting the new value for container #%d (%s) of %s to %.1f, orig value=%.1f, time=%s, metric index=%d", containerIndex+1, newSample.Metric["container"], podKey, splitValues[i], origValues[i], newSample.Values[i].Timestamp, i)
+				}
+				newMetrics = append(newMetrics, newSample)
+			}
+		}
+	}
+	logrus.Infof("Added %d new metrics while splitting metrics per container for pod with more than one container", len(newMetrics)-len(metrics))
+	return newMetrics
 }
 
 // cumulitiveValuesToDeltaValues converts the slice of model.SamplePair from
