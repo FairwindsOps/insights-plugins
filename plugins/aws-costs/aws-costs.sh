@@ -16,7 +16,8 @@ usage: awscosts \
   --tagvalue <tag value> \
   --catalog <catalog> \
   --workgroup <workgroup> \
-  [--timeout <time in seconds>]
+  [--timeout <time in seconds>] \
+  [--days <number of days to query, default is 5>]
 
 This script runs aws costs for Fairwinds Insights.
 EOF
@@ -28,6 +29,7 @@ database=''
 table=''
 timeout='60'
 workgroup=''
+days='5'
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
     flag=${flag##-}
@@ -51,6 +53,9 @@ while [ ! $# -eq 0 ]; do
         catalog)
             catalog=${2}
             ;;
+        days)
+            days=${2}
+            ;;
         workgroup)
             workgroup=${2}
             ;;
@@ -62,12 +67,12 @@ while [ ! $# -eq 0 ]; do
     shift
     shift
 done
-if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" ]]; then
+if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
   usage
   exit 1
 fi
 
-initial_date_time=$(date -u -d '5 day ago' +"%Y-%m-%d %H:00:00.000")
+initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 
 queryResults=$(aws athena start-query-execution \
