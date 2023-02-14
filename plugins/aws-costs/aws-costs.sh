@@ -70,7 +70,6 @@ done
 if [[ "$days" = "" && "$AWS_COSTS_DAYS" != "" ]]; then
   days=$AWS_COSTS_DAYS
 fi
-echo "xxx = $days"
 if [[ "$days" = "" ]]; then
   days='5'
 fi
