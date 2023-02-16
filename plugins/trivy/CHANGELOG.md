@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.8
+* update dependencies
+
+## 0.24.7
+* update alpine and go modules
+
 ## 0.24.6
 * update dependencies
 

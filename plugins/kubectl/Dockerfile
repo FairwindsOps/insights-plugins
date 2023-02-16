@@ -1,4 +1,4 @@
-FROM alpine:3.17
+FROM alpine:20230208
 ARG TARGETARCH
 ARG TARGETOS
 RUN apk -U upgrade

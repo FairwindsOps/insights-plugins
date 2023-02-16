@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.4
+* update dependencies
+
+## 2.4.3
+* update alpine and go modules
+
 ## 2.4.2
 * update go modules
 

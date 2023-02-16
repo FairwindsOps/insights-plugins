@@ -1,4 +1,10 @@
 # Changelog
+
+## 2.2.6
+* update dependencies
+
+## 2.2.5
+* update alpine and go modules
 ## 2.2.4
 * Add an ingress host conlict example in v2
 

@@ -44,7 +44,7 @@ func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, errs error
 		allErrsCombined = fmt.Errorf("%v", allErrs.Error()) // return string representation from the multierror
 	}
 	if len(reportProperties.Items) == 0 {
-		logrus.Infoln("no Terraform results were returned")
+		logrus.Infof("there were no tfsec findings after processing %d paths\n", len(ci.config.Terraform.Paths))
 		return nil, allErrsCombined
 	}
 	file, err := json.MarshalIndent(reportProperties, "", " ")
