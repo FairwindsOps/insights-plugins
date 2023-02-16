@@ -193,7 +193,8 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		Dynamic:    dynamicClient,
 		RESTMapper: restMapper,
 	}
-	// workloads, err := client.GetAllTopControllersSummary("")
+	// This used to use client.GetAllTopControllersSummary(), which I believe
+	// was a bug introduced when we upgraded controller-utils?
 	workloads, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
 		return nil, err
@@ -281,8 +282,9 @@ func getOwner(sample *model.SampleStream) Owner {
 // first container will have value 1.5, and the second and third metrics will
 // each have a value of 0.
 //
-// The supplied map of Kubernetes workloads is used to determine the number of
-// containers and their names, for pods referenced in each metric. The map is
+// The specified map of Kubernetes workloads is used to determine the number of
+// containers and their names, for pods referenced in each metric. The map
+// should be
 // keyed on a string `{namespace}/{podName}`.
 func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[string]*controller.Workload) model.Matrix {
 	newMetrics := make(model.Matrix, 0)

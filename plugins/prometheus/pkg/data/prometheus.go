@@ -100,9 +100,9 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 // container_network_transmit_bytes_total, which is a cumulative (total) metric.
 // the specified prometheus range will have its start-time expanded to include
 // an extra minute, to obtain a baseline to be
-// used elsewhere when convert the total values into deltas.
+// used elsewhere when converting the total values into deltas.
 func getNetworkTransmitBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	// This metric will return metrics per network interface. The `without` clause
+	// This metric will return distinct metrics per network interface. The `without` clause
 	// factors that out.
 	query := `sum without (interface) (container_network_transmit_bytes_total)`
 	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
@@ -117,16 +117,16 @@ func getNetworkTransmitBytesIncludingBaseline(ctx context.Context, api prometheu
 // container_network_receive_bytes_total, which is a cumulative (total) metric.
 // the specified prometheus range will have its start-time expanded to include
 // an extra minute, to obtain a baseline to be
-// used elsewhere when convert the total values into deltas.
+// used elsewhere when converting the total values into deltas.
 func getNetworkReceiveBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
-	// This metric will return metrics per network interface. The `without` clause
+	// This metric will return distinct metrics per network interface. The `without` clause
 	// factors that out.
 	query := `sum without (interface) (container_network_receive_bytes_total)`
 	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
 	}
-	logrus.Debugf("returning network transmit bytes values: %v", spew.Sprintf("%v", values))
+	logrus.Debugf("returning network receive bytes values: %v", spew.Sprintf("%v", values))
 	return values, nil
 }
 
