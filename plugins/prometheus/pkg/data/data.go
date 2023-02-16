@@ -341,7 +341,7 @@ func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[st
 			}
 		}
 	}
-	logrus.Infof("Added %d new metrics while splitting metrics per container for pod with more than one container", len(newMetrics)-len(metrics))
+	logrus.Infof("Added %d new metrics while splitting metrics of multi-container pods", len(newMetrics)-len(metrics))
 	return newMetrics
 }
 
@@ -373,6 +373,6 @@ func cumulitiveValuesToDeltaValues(v []model.SamplePair, r prometheusV1.Range) (
 		return nil, fmt.Errorf("deltas could not be created from totals because there were no metrics outside of this prometheus range ot establish a baseline: %#v", r)
 	}
 	v = v[indexOfValuesStartingOriginalRange:]
-	logrus.Debugf("the %d values  will be shrunk by %d as index %d was the start of values within the prometheus range", +1, indexOfValuesStartingOriginalRange)
+	logrus.Debugf("the %d values will be shrunk by %d as index %d was the start of values within the prometheus range", len(v), indexOfValuesStartingOriginalRange+1, indexOfValuesStartingOriginalRange)
 	return v, nil
 }
