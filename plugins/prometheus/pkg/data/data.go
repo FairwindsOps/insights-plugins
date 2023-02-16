@@ -269,13 +269,18 @@ func getOwner(sample *model.SampleStream) Owner {
 }
 
 // adjustMetricsForMultiContainerPods splits values for any metrics
-// which have more than one container. The original values
+// whos pod has more than one container. The original values
 // will be divided by the number of containers, with any remainder assigned to
 // the first container.
+//
 // For example, a pod with 3 containers, and a
 // metric value of 10, will be converted to 3 metrics. The metric for the
 // first container will have value 4, and the second and third metrics will
 // each have a value of 3.
+// A metric value of 1.5, will be converted to 3 metrics. The metric for the
+// first container will have value 1.5, and the second and third metrics will
+// each have a value of 0.
+//
 // The supplied map of Kubernetes workloads is used to determine the number of
 // containers and their names, for pods referenced in each metric. The map is
 // keyed on a string `{namespace}/{podName}`.
@@ -303,8 +308,8 @@ func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[st
 				origValues[i] = v.Value
 			}
 			splitValues := make([]model.SampleValue, len(sample.Values))
-			// Divide values by the number of containers, and set metric values for the first container to the equal split + any
-			// remainder.
+			// Divide values by the number of containers, and set metric values for
+			// the first container to the equal split + remainder
 			for i, v := range origValues {
 				vFloat := float64(v)
 				remainder := math.Mod(vFloat, float64(numContainers))
@@ -323,8 +328,9 @@ func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[st
 				logrus.Debugf("setting the new value for the first container (%s) of %s to %s, new value=%.1f, time=%s, metric index=%d", sample.Metric["container"], podKey, newValueDescr, newValue, sample.Values[i].Timestamp, i)
 				splitValues[i] = model.SampleValue(equalSplit) // Save the equal splits to populate additional containers' values.
 			}
-			newMetrics = append(newMetrics, sample)                                             // first container
-			for containerIndex := 1; containerIndex <= len(podContainers)-1; containerIndex++ { // Iterate the rest of the containers
+			newMetrics = append(newMetrics, sample) // first container
+			// ITerate the rest of the containers and create new metrics for them.
+			for containerIndex := 1; containerIndex <= len(podContainers)-1; containerIndex++ {
 				newSample := &model.SampleStream{}
 				newSample.Metric = make(model.Metric)
 				for k, v := range sample.Metric { // Copy key=values from the first container
