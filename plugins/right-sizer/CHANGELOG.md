@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.7
+* update alpine and x/net
+
 ## 0.4.6
 * update dependencies
 
