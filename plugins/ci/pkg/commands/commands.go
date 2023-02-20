@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"bytes"
+	"fmt"
 	"os/exec"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
@@ -11,35 +13,44 @@ import (
 func ExecInDir(dir string, cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	cmd.Dir = dir
-	// TODO: grab stderr for error logging
-	output, err := cmd.Output()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
+		stdoutAndStderr := fmt.Sprintf("%s\n%s", string(stdout.Bytes()), string(stderr.Bytes()))
+		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(stdoutAndStderr), util.RemoveTokensAndPassword(err.Error()))
 		return "", err
 	}
-	return string(output), nil
+	return string(stdout.Bytes()), nil
 }
 
 // ExecWithMessage runs a command and prints errors to Stderr
 func ExecWithMessage(cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
-	// TODO: grab stderr for error logging
-	output, err := cmd.Output()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
-		return string(output), err
+		stdoutAndStderr := fmt.Sprintf("%s\n%s", string(stdout.Bytes()), string(stderr.Bytes()))
+		logrus.Errorf("Error running %s - %s[%v]", util.RemoveTokensAndPassword(cmd.String()), stdoutAndStderr, util.RemoveTokensAndPassword(err.Error()))
+		return stdoutAndStderr, err
 	}
-	return string(output), nil
+	return string(stdout.Bytes()), nil
 }
 
 // Exec executes a command and returns the results as a string.
 func Exec(command string, args ...string) (string, error) {
 	cmd := exec.Command(command, args...)
-	// TODO: grab stderr for error logging
-	output, err := cmd.Output()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		logrus.Errorf("Unable to execute command: %s %s[%v]", util.RemoveTokensAndPassword(cmd.String()), string(output), util.RemoveTokensAndPassword(err.Error()))
+		stdoutAndStderr := fmt.Sprintf("%s\n%s", string(stdout.Bytes()), string(stderr.Bytes()))
+		logrus.Errorf("Unable to execute command: %s %s[%v]", util.RemoveTokensAndPassword(cmd.String()), stdoutAndStderr, util.RemoveTokensAndPassword(err.Error()))
 		return "", err
 	}
-	return string(output), nil
+	return string(stdout.Bytes()), nil
 }

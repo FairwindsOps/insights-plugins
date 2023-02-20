@@ -1,4 +1,4 @@
-FROM alpine:20230208
+FROM alpine:3.17
 WORKDIR /usr/local/bin
 RUN apk -U upgrade
 RUN apk --no-cache add ca-certificates
