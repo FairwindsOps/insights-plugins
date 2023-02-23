@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.7
+* update alpine and x/net
+
 ## 2.2.6
 * update dependencies
 
