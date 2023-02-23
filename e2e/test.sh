@@ -119,7 +119,7 @@ check-jsonschema --schemafile plugins/kube-bench/results.schema output/kube-benc
 echo "Testing trivy"
 check-jsonschema --schemafile plugins/trivy/results.schema output/trivy.json || (cat output/trivy.json && exit 1)
 echo "Testing rbac-reporter"
-#check-jsonschema --schemafile plugins/rbac-reporter/results.schema output/rbac-reporter.json || (cat output/rbac-reporter.json && exit 1)
+check-jsonschema --schemafile plugins/rbac-reporter/results.schema output/rbac-reporter.json || (cat output/rbac-reporter.json && exit 1)
 echo "Testing Workloads"
 check-jsonschema --schemafile plugins/workloads/results.schema output/workloads.json || (cat output/workloads.json && exit 1)
 # The second right-sizer OOM-kill is triggered this late, to capitolize
