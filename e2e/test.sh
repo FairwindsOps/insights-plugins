@@ -115,13 +115,13 @@ kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insig
 kubectl get jobs --namespace insights-agent
 
 echo "Testing kube-bench"
-jsonschema -i output/kube-bench.json plugins/kube-bench/results.schema || (cat output/kube-bench.json && exit 1)
+check-jsonschema --schemafile plugins/kube-bench/results.schema output/kube-bench.json || (cat output/kube-bench.json && exit 1)
 echo "Testing trivy"
-jsonschema -i output/trivy.json plugins/trivy/results.schema || (cat output/trivy.json && exit 1)
+check-jsonschema --schemafile plugins/trivy/results.schema output/trivy.json || (cat output/trivy.json && exit 1)
 echo "Testing rbac-reporter"
-#jsonschema -i output/rbac-reporter.json plugins/rbac-reporter/results.schema || (cat output/rbac-reporter.json && exit 1)
+check-jsonschema --schemafile plugins/rbac-reporter/results.schema output/rbac-reporter.json || (cat output/rbac-reporter.json && exit 1)
 echo "Testing Workloads"
-jsonschema -i output/workloads.json plugins/workloads/results.schema || (cat output/workloads.json && exit 1)
+check-jsonschema --schemafile plugins/workloads/results.schema output/workloads.json || (cat output/workloads.json && exit 1)
 # The second right-sizer OOM-kill is triggered this late, to capitolize
 # on the time it takes for other CronJob checks to complete.
 # This allows the test workload to settle; avoid CrashLoopBackOff.
