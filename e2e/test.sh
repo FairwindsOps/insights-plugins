@@ -95,7 +95,8 @@ kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeou
 # Be sure the right-sizer controller is available to see this OOM-kill.
 kubectl wait --for=condition=ready -l app=insights-agent,component=right-sizer pod --timeout=60s --namespace insights-agent
 kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
-kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
+# ifetch, 2023-02-23: disabling the kubectl wait because the OOMKill was happening before wait_new_restarts_of_first_container could run.
+#kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
 # Verify the test workload has a new container restart.
 rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
 if [ ${rightsizer_workload_restarts} -ne 1 ] ; then
