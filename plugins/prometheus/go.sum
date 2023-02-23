@@ -33,6 +33,10 @@ github.com/evanphx/json-patch/v5 v5.6.0 h1:b91NhWfaz02IuVxO9faSllyAtNXHMPkC5J8sJ
 github.com/evanphx/json-patch/v5 v5.6.0/go.mod h1:G79N1coSVB93tBe7j6PhzjmR3/2VvlbKOFpnXhI9Bw4=
 github.com/fairwindsops/controller-utils v0.3.0 h1:otfA6HZ7oVzF690AdGwVU4+6Q5Uie6G6oOF7MBT+L4g=
 github.com/fairwindsops/controller-utils v0.3.0/go.mod h1:Plr++8B/A+TlhbVBG0sNhToaaQKo7LoFNIfdKi58vpM=
+github.com/fairwindsops/controller-utils v0.3.1-0.20230223144906-eed5bc553857 h1:wn/AWLT7GlnbTfulHoZWeHxZCcTKuPgVDzwdpJgiBAg=
+github.com/fairwindsops/controller-utils v0.3.1-0.20230223144906-eed5bc553857/go.mod h1:0VBok4GWGJrCp4EU38PIbjLfvo6O6jJO3FID8u84FNg=
+github.com/fairwindsops/controller-utils v0.3.1-0.20230223145059-6a4314df0412 h1:OosaopIbdSFzRpkFIs1Jd45PZUVs7SKhGu/pvjlD0Tw=
+github.com/fairwindsops/controller-utils v0.3.1-0.20230223145059-6a4314df0412/go.mod h1:0VBok4GWGJrCp4EU38PIbjLfvo6O6jJO3FID8u84FNg=
 github.com/flowstack/go-jsonschema v0.1.1/go.mod h1:yL7fNggx1o8rm9RlgXv7hTBWxdBM0rVwpMwimd3F3N0=
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=

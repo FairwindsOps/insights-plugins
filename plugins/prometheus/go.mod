@@ -3,7 +3,7 @@ module github.com/fairwindsops/insights-plugins/plugins/prometheus
 go 1.19
 
 require (
-	github.com/fairwindsops/controller-utils v0.3.0
+	github.com/fairwindsops/controller-utils v0.3.1-0.20230223145059-6a4314df0412
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.39.0
 	github.com/sirupsen/logrus v1.9.0
