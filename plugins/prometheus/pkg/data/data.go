@@ -182,6 +182,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("Found %d workloads in the cluster", len(workloads))
 	workloadMap := make(map[string]*controller.Workload)
 	for idx, workload := range workloads {
 		for _, pod := range workload.Pods {
