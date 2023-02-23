@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.10
+* Add debug logs
+
 ## 1.1.9
 * update alpine and x/net
 
