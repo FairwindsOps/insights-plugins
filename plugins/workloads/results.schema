@@ -50,7 +50,7 @@
                 "beta.kubernetes.io/os",
                 "kubernetes.io/arch",
                 "kubernetes.io/hostname",
-                "kubernetes.io/os",
+                "kubernetes.io/os"
               ]
             },
             "Annotations": {
