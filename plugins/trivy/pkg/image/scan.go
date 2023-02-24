@@ -243,7 +243,9 @@ func downloadPullRef(pullRef string) (string, error) {
 		args = append(args, "--dest-tls-verify", "false")
 		args = append(args, "--tls-verify", "false")
 	}
+	skipLog := false
 	if registryUser != "" || registryPassword != "" {
+		skipLog = true
 		args = append(args, "--src-creds", registryUser+":"+registryPassword)
 	}
 	if registryCertDir != "" {
@@ -255,7 +257,9 @@ func downloadPullRef(pullRef string) (string, error) {
 	// args = append(args, "--override-os", "linux")
 
 	args = append(args, "docker://"+pullRef, "docker-archive:"+dest)
-	
+	if !skipLog {
+		logrus.Infof("Running command: skopeo %s", strings.Join(args, " "))
+	}
 	err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
 	return dest, err
 }
