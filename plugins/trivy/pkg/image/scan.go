@@ -233,7 +233,13 @@ func downloadPullRef(pullRef string) (string, error) {
 	imageMessage := fmt.Sprintf("image %s", pullRef)
 
 	args := []string{"copy"}
-
+	
+	if os.Getenv("SKOPEO_ARGS") != "" {
+		args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
+	}
+	if os.Getenv("TRIVY_INSECURE") != "" {
+		args = append(args, "--src-tls-verify", "false")
+	}
 	if registryUser != "" || registryPassword != "" {
 		args = append(args, "--src-creds", registryUser+":"+registryPassword)
 	}
