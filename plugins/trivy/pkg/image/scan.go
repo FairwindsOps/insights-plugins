@@ -239,8 +239,8 @@ func downloadPullRef(pullRef string) (string, error) {
 	}
 	if os.Getenv("TRIVY_INSECURE") != "" {
 		logrus.Warn("Skipping TLS verification for Skopeo")
-		args = append(args, "--src-tls-verify", "false")
-		args = append(args, "--dest-tls-verify", "false")
+		args = append(args, "--src-tls-verify=false")
+		args = append(args, "--dest-tls-verify=false")
 	}
 	skipLog := false
 	if registryUser != "" || registryPassword != "" {
