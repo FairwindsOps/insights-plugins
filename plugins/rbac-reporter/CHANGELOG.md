@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.8
+* updated rbac schema
+## 1.3.7
+* update alpine and x/net
+
 ## 1.3.6
 * update dependencies
 

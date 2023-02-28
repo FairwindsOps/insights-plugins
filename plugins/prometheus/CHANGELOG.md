@@ -1,15 +1,17 @@
 # Changelog
 
-## 1.1.9
+## 1.2.0
 * Add network transmit bytes, and network received bytes, to the metrics submitted to Insights.
 * Add ability to output debug logs using the `LOGRUS_LEVEL` environment variable.
+
+## 1.1.9
+* update alpine and x/net
 
 ## 1.1.8
 * update dependencies
 
 ## 1.1.7
 * update alpine and go modules
->>>>>>> main
 
 ## 1.1.6
 * update go modules

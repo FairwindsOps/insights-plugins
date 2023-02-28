@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.6
+* updated workload schema
+
+## 2.4.5
+* update alpine and x/net
+
 ## 2.4.4
 * update dependencies
 
