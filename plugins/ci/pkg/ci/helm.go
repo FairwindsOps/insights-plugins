@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/commands"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
@@ -266,8 +267,13 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 // CopyYaml adds all Yaml found in a given spot into the manifest folder.
 func (ci *CIScan) CopyYaml() error {
 	var numFailures int64
+	cmd, recursive, relative := "cp", "-r", "--parents"
+	if runtime.GOOS == "darwin" {
+		cmd, relative, relative = "rsync", "-r", "-R"
+	}
+
 	for _, yamlPath := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: "+yamlPath)
+		_, err := commands.ExecWithMessage(exec.Command(cmd, recursive, relative, filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: "+yamlPath)
 		if err != nil {
 			numFailures++
 			// The error is already logged by commands.ExecWithMessage
