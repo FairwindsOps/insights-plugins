@@ -193,8 +193,6 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		Dynamic:    dynamicClient,
 		RESTMapper: restMapper,
 	}
-	// This used to use client.GetAllTopControllersSummary(), which I believe
-	// was a bug introduced when we upgraded controller-utils?
 	workloads, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
 		return nil, err
