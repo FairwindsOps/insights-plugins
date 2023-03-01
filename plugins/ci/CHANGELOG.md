@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.0.0
+* Fixed bug where relative path were not preserved on filename field for yaml manifest files 
+
 ## 4.2.0
 * CI scanning will continue when an error is encountered, such as templating a Helm chart into Kubernetes manifests. These errors will be reflected as Insights action items, in a new `ScanErrors` report type.
 
