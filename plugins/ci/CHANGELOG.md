@@ -1,7 +1,41 @@
 # Changelog
 
 ## 5.0.0
-* Fixed bug where relative path were not preserved on filename field for yaml manifest files 
+* Fixes bug where relative path were not preserved on filename field for yaml manifest files.
+
+## 4.2.10
+* update alpine and x/net
+
+## 4.2.9
+* Restore command standard-error being returned and reflected in CI logs and scan-error report action items, from PR #754.
+
+## 4.2.8
+* Fix STDOUT parsing
+
+## 4.2.7
+* update dependencies
+
+## 4.2.6
+* update alpine and go modules
+
+## 4.2.5
+* Clarify the log message when there have been no tfsec findings after processing all terraform paths.
+
+## 4.2.4
+* Fix removal of the repository path from tfsec result file names, when said result is for a Terraform module. THis bug caused these file names to begin with `/app/repository/{repository name}`.
+* Log the version of the CI plugin.
+
+## 4.2.3
+* Revert 4.2.2
+
+## 4.2.2
+* Update pluto from 5.11.2 to 5.12.0
+* Update Polaris from 7.2.1 to 7.3.0
+* Update Helm from 3.10.3 to 3.11.0
+
+
+## 4.2.1
+* update dependencies
 
 ## 4.2.0
 * CI scanning will continue when an error is encountered, such as templating a Helm chart into Kubernetes manifests. These errors will be reflected as Insights action items, in a new `ScanErrors` report type.

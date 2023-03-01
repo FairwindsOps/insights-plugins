@@ -50,7 +50,6 @@
               "required": [
                 "name",
                 "namespace",
-                "selfLink",
                 "uid",
                 "resourceVersion",
                 "creationTimestamp",
@@ -149,7 +148,6 @@
               "required": [
                 "name",
                 "namespace",
-                "selfLink",
                 "uid",
                 "resourceVersion",
                 "creationTimestamp",
@@ -257,7 +255,6 @@
               },
               "required": [
                 "name",
-                "selfLink",
                 "uid",
                 "resourceVersion",
                 "creationTimestamp",

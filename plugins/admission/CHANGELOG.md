@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.9.6
+* update alpine and x/net
+
+## 1.9.5
+* update dependencies
+
+## 1.9.4
+* update alpine and go modules
+
+## 1.9.3
+* Revert v1.9.2
+
+## 1.9.2
+* Update pluto from 5.9 to 5.12
+* Update polaris from 20230104151009-8af436367263 to 20230105172421-bf065f9b5455
+
 ## 1.9.1
 * update go modules
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.8
+* update alpine and x/net
+
+## 0.3.7
+* update dependencies
+
+## 0.3.6
+* update alpine and go modules
+
 ## 0.3.5
 * update go modules
 

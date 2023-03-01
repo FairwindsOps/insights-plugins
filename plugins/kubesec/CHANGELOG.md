@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.3
+* update alpine and x/net
+
+## 1.4.2
+* update dependencies
+
 ## 1.4.1
 * update x/net and alpine
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.2.7
+* update alpine and x/net
+
+## 2.2.6
+* update dependencies
+
+## 2.2.5
+* update alpine and go modules
+## 2.2.4
+* Add an ingress host conlict example in v2
+
 ## 2.2.3
 * update go modules
 
