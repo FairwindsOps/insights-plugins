@@ -222,6 +222,16 @@ func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, er
 			helmName = helm.Name
 		}
 	}
+
+	if strings.HasPrefix(displayFilename, ci.baseFolder) {
+		// /app/repository/folder/file1.yaml -> folder/file1.yaml
+		relDisplayFilename, err := filepath.Rel(ci.baseFolder, displayFilename)
+		if err != nil {
+			logrus.Errorf("cannot be made relative to baseFolder: %v", err)
+			return displayFilename, helmName, err
+		}
+		return relDisplayFilename, helmName, err
+	}
 	return displayFilename, helmName, err
 }
 
