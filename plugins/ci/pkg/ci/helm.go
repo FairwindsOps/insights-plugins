@@ -287,6 +287,6 @@ func createDestinationFolderIfNotExists(configFolder, relYamlPath string) (strin
 	// from file ./specific_folder/file1.yaml should create the dir {configFolder}/specific_folder if not yet exists
 	relFileDir, _ := filepath.Split(relYamlPath)
 	targetFolder := filepath.Join(configFolder, relFileDir)
-	_, err := commands.ExecWithMessage(exec.Command("mkdir", "-p", targetFolder), "creating destination sub-folder for file : "+relYamlPath)
+	_, err := commands.ExecWithMessage(exec.Command("mkdir", "-p", targetFolder), "creating destination folder: "+targetFolder)
 	return targetFolder, err
 }
