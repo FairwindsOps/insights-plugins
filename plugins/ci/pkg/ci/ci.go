@@ -222,17 +222,6 @@ func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, er
 			helmName = helm.Name
 		}
 	}
-
-	if strings.HasPrefix(displayFilename, ci.repoBaseFolder) {
-		// /app/repository/repo1/folder/file1.yaml -> folder/file1.yaml
-		relDisplayFilename, err := filepath.Rel(ci.repoBaseFolder, displayFilename)
-		if err != nil {
-			logrus.Errorf("cannot be made relative to repoBaseFolder: %v", err)
-			return displayFilename, helmName, err
-		}
-		logrus.Debugf("displayName from %s to %s", displayFilename, relDisplayFilename)
-		return relDisplayFilename, helmName, err
-	}
 	return displayFilename, helmName, err
 }
 
