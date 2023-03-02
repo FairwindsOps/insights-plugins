@@ -267,7 +267,11 @@ func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}
 func (ci *CIScan) CopyYaml() error {
 	var numFailures int64
 	for _, yamlPath := range ci.config.Manifests.YamlPaths {
-		_, err := commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), ci.configFolder), "Copying yaml file to config folder: "+yamlPath)
+		destFolder, err := createDestinationFolderIfNotExists(ci.configFolder, yamlPath)
+		if err != nil {
+			numFailures++
+		}
+		_, err = commands.ExecWithMessage(exec.Command("cp", "-r", filepath.Join(ci.repoBaseFolder, yamlPath), destFolder), "Copying yaml file to config folder: "+yamlPath)
 		if err != nil {
 			numFailures++
 			// The error is already logged by commands.ExecWithMessage
@@ -277,4 +281,12 @@ func (ci *CIScan) CopyYaml() error {
 		return nil
 	}
 	return fmt.Errorf("%d of %d yaml files failed to be copied to the config directory, see logs for the individual error messages", numFailures, len(ci.config.Manifests.YamlPaths))
+}
+
+func createDestinationFolderIfNotExists(configFolder, relYamlPath string) (string, error) {
+	// from file ./specific_folder/file1.yaml should create the dir {configFolder}/specific_folder if not yet exists
+	relFileDir, _ := filepath.Split(relYamlPath)
+	targetFolder := filepath.Join(configFolder, relFileDir)
+	_, err := commands.ExecWithMessage(exec.Command("mkdir", "-p", targetFolder), "creating destination folder: "+targetFolder)
+	return targetFolder, err
 }
