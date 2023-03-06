@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,6 +46,26 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 				Value:      int64(cpu.Value * 1000),
 				Request:    int64(value.cpuRequest * 1000),
 				LimitValue: int64(value.cpuLimit * 1000),
+			})
+		}
+
+		for _, networkTransmit := range value.networkTransmit {
+			timestamp := time.Unix(int64(networkTransmit.Timestamp)/1000, 0)
+			stats = append(stats, Statistics{
+				StartTime: timestamp,
+				Owner:     value.Owner,
+				Metric:    "NetworkTransmit",
+				Value:     int64(networkTransmit.Value),
+			})
+		}
+
+		for _, networkReceive := range value.networkReceive {
+			timestamp := time.Unix(int64(networkReceive.Timestamp)/1000, 0)
+			stats = append(stats, Statistics{
+				StartTime: timestamp,
+				Owner:     value.Owner,
+				Metric:    "NetworkReceive",
+				Value:     int64(networkReceive.Value),
 			})
 		}
 
