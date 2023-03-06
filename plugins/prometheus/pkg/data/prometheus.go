@@ -15,7 +15,10 @@ package data
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	prometheusV1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
@@ -91,4 +94,59 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 		return model.Matrix{}, err
 	}
 	return values.(model.Matrix), err
+}
+
+// getNetworkTransmitBytesIncludingBaseline queries prometheus for
+// container_network_transmit_bytes_total, which is a cumulative (total) metric.
+// the specified prometheus range will have its start-time expanded to include
+// an extra minute, to obtain a baseline to be
+// used elsewhere when converting the total values into deltas.
+func getNetworkTransmitBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
+	// This metric will return distinct metrics per network interface. The `without` clause
+	// factors that out.
+	query := `sum without (interface) (container_network_transmit_bytes_total)`
+	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	logrus.Debugf("returning network transmit bytes values: %v", spew.Sprintf("%v", values))
+	return values, nil
+}
+
+// getNetworkReceiveBytesIncludingBaseline queries prometheus for
+// container_network_receive_bytes_total, which is a cumulative (total) metric.
+// the specified prometheus range will have its start-time expanded to include
+// an extra minute, to obtain a baseline to be
+// used elsewhere when converting the total values into deltas.
+func getNetworkReceiveBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
+	// This metric will return distinct metrics per network interface. The `without` clause
+	// factors that out.
+	query := `sum without (interface) (container_network_receive_bytes_total)`
+	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	logrus.Debugf("returning network receive bytes values: %v", spew.Sprintf("%v", values))
+	return values, nil
+}
+
+// queryIncludingExtraLeadingMinuteOfData queries prometheus while extending
+// the beginning of the prometheus range to include an extra minute of
+// metrics. This is useful to obtain a baseline metric when converting total;
+// cumulitive metrics to ddelta metrics.
+func queryIncludingExtraLeadingMinuteOfData(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, query string) (model.Matrix, error) {
+	if query == "" {
+		return model.Matrix{}, fmt.Errorf("query cannot be empty")
+	}
+	adjustedR := r
+	adjustedR.Start = adjustedR.Start.Add(-60 * time.Second) // adjust by a full minute to not scue all results
+	logrus.Debugf("adjusted the start of the prometheus range from %s to %s, to collect a baseline for query %q", r.Start.String(), adjustedR.Start.String(), query)
+	values, warnings, err := api.QueryRange(ctx, query, adjustedR)
+	for _, warning := range warnings {
+		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values.(model.Matrix), nil
 }
