@@ -348,6 +348,10 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	}
 
 	client := http.DefaultClient
+	if os.Getenv("UPLOAD_SKIP_SSL_VALIDATION") == "true" {
+		transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		client = http.Client{Transport: transport}
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warn("Unable to Post results to Insights")
