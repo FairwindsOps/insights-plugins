@@ -11,7 +11,7 @@ import (
 func TestAddScanErrorsReportResultFromAnError(t *testing.T) {
 	want := ScanErrorsReportProperties{
 		Items: []ScanErrorsReportResult{
-			ScanErrorsReportResult{
+			{
 				ErrorMessage: "text from a standard error",
 				// The following are defaults if required fields are unset.
 				ErrorContext: "performing an action in CI",
@@ -28,7 +28,7 @@ func TestAddScanErrorsReportResultFromAnError(t *testing.T) {
 func TestAddScanErrorsReportResultFromAScanErrorsReportResultWithAnAdditionalResultToAddContext(t *testing.T) {
 	want := ScanErrorsReportProperties{
 		Items: []ScanErrorsReportResult{
-			ScanErrorsReportResult{
+			{
 				ErrorMessage: "an error with additional context",
 				ErrorContext: "context from the error",
 				Kind:         "deployment",
@@ -62,7 +62,7 @@ func TestAddScanErrorsReportResultFromAScanErrorsReportResultWithAnAdditionalRes
 func TestAddScanErrorsReportResultFromAMultiError(t *testing.T) {
 	want := ScanErrorsReportProperties{
 		Items: []ScanErrorsReportResult{
-			ScanErrorsReportResult{
+			{
 				ErrorMessage: "an error with additional context",
 				ErrorContext: "context from the first error",
 				Kind:         "deployment",
@@ -72,7 +72,7 @@ func TestAddScanErrorsReportResultFromAMultiError(t *testing.T) {
 				Category:     "Security",
 				Filename:     "deployment.yaml",
 			},
-			ScanErrorsReportResult{
+			{
 				ErrorMessage: "another error with additional context",
 				ErrorContext: "context from the second error",
 				Kind:         "statefulset",
@@ -82,7 +82,7 @@ func TestAddScanErrorsReportResultFromAMultiError(t *testing.T) {
 				Category:     "Security",
 				Filename:     "statefulset.yaml",
 			},
-			ScanErrorsReportResult{
+			{
 				ErrorMessage: "a third error with additional context",
 				ErrorContext: "a general; fallthrough context", // from toPopulateMissingFields
 				Kind:         "CIErrorWithoutContext",          // a default for a required value
