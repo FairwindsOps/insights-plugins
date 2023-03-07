@@ -69,6 +69,16 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			})
 		}
 
+		for _, storageCapacity := range value.storageCapacity {
+			timestamp := time.Unix(int64(storageCapacity.Timestamp)/1000, 0)
+			stats = append(stats, Statistics{
+				StartTime: timestamp,
+				Owner:     value.Owner,
+				Metric:    "StorageCapacity",
+				Value:     int64(storageCapacity.Value),
+			})
+		}
+
 	}
 
 	return stats
