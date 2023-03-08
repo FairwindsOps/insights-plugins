@@ -475,5 +475,5 @@ func TestStorageCapacity(t *testing.T) {
 	// remainder of the divided value.
 	assert.Equal(t, model.SampleValue(954437178.0), adjustedMetrics[0].Values[0].Value, "the metric value for pod1 and container name container1forpod1")
 	assert.Equal(t, model.SampleValue(954437177.0), adjustedMetrics[1].Values[0].Value, "the metric value for pod1 and container name container2forpod1")
-	assert.Equal(t, model.SampleValue(954437177.0), adjustedMetrics[1].Values[0].Value, "the metric value for pod1 and container name container2forpod1")
+	assert.Equal(t, model.SampleValue(954437177.0), adjustedMetrics[2].Values[0].Value, "the metric value for pod1 and container name container3forpod1")
 }
