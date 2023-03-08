@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.1
+## 1.3.0
 * Add storage capacity to the metrics submitted to Insights.
 
 ## 1.2.0
