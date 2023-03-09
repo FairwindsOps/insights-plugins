@@ -349,7 +349,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	}
 
 	client := http.DefaultClient
-	if os.Getenv("UPLOAD_SKIP_SSL_VALIDATION") == "true" {
+	if os.Getenv("SKIP_SSL_VALIDATION") == "true" {
 		transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 		client = &http.Client{Transport: transport}
 	}
