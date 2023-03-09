@@ -2,6 +2,7 @@ package ci
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -127,6 +128,10 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	req.Header.Set("Authorization", "Bearer "+token)
 	client := http.DefaultClient
+	if os.Getenv("SKIP_SSL_VALIDATION") {
+		transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		client = &http.Client{Transport: transport}
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warnf("Unable to Get Checks from Insights(%s)", configurationObject.Options.Hostname)
