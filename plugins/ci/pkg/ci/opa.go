@@ -128,7 +128,7 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	req.Header.Set("Authorization", "Bearer "+token)
 	client := http.DefaultClient
-	if os.Getenv("SKIP_SSL_VALIDATION") {
+	if os.Getenv("SKIP_SSL_VALIDATION") == "true" {
 		transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 		client = &http.Client{Transport: transport}
 	}
