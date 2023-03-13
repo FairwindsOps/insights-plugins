@@ -2,12 +2,9 @@ module github.com/fairwindsops/insights-plugins/plugins/prometheus
 
 go 1.19
 
-// Temporary for development:
-replace github.com/fairwindsops/controller-utils => ../../../controller-utils
-
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/fairwindsops/controller-utils v0.3.0
+	github.com/fairwindsops/controller-utils v0.3.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.39.0
 	github.com/sirupsen/logrus v1.9.0
