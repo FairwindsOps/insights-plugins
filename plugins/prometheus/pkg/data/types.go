@@ -49,4 +49,5 @@ type CombinedRequest struct {
 	cpuLimit        model.SampleValue
 	networkTransmit []model.SamplePair
 	networkReceive  []model.SamplePair
+	storageCapacity []model.SamplePair
 }
