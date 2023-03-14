@@ -110,8 +110,10 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 	for _, i := range images {
 		image := i
 		id := fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID))
+		logrus.Infof("converting %s", id)
 		if t, ok := reportResultByRef[image.PullRef]; !ok || t == nil {
 			if !ignoreErrors {
+				logrus.Infof("adding %s despite error", id)
 				allReports = append(allReports, models.ImageReport{
 					Name:               image.Name,
 					ID:                 id,
@@ -122,6 +124,8 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 					Namespace:          image.Owner.Namespace,
 					RecommendationOnly: image.RecommendationOnly,
 				})
+			} else {
+				logrus.Infof("skipping error for %s", id)
 			}
 			continue
 		}
@@ -132,6 +136,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 				id = trivyResult.Metadata.RepoDigests[0]
 			}
 		}
+		logrus.Infof("adding %s", id)
 		allReports = append(allReports, models.ImageReport{
 			ID:                 id,
 			Name:               image.Name,
