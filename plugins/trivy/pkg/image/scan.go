@@ -74,6 +74,7 @@ func GetLastReport() (*models.MinimizedReport, error) {
 // ScanImages will download the set of images given and scan them with Trivy.
 func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string, ignoreErrors bool) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
+	logrus.Infof("images: %#v\n", images)
 	reportByRef := map[string]*models.TrivyResults{}
 	for _, image := range images {
 		reportByRef[image.PullRef] = nil
@@ -89,23 +90,27 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
 				r, err := ScanImage(extraFlags, pullRef)
+				logrus.Infof("did scan for %s", pullRef, r)
 				reportByRef[pullRef] = r
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
 				}
+				logrus.Infof("scan failed for %s", pullRef)
 			}
 		}(pullRef)
 	}
 	for i := 0; i < cap(semaphore); i++ {
 		semaphore <- true
 	}
-	logrus.Infof("Finished scanning all images")
+	logrus.Infof("Finished scanning %d images", len(images))
+	logrus.Infof("images: %#v\n", images)
 	return ConvertTrivyResultsToImageReport(images, reportByRef, ignoreErrors)
 }
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
 func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
-	logrus.Infof("Converting results to image report")
+	logrus.Infof("Converting results to image report for %d images", len(images))
+	logrus.Infof("images: %#v\n", images)
 	allReports := []models.ImageReport{}
 	for _, i := range images {
 		image := i
