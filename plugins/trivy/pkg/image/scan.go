@@ -90,7 +90,7 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
 				r, err := ScanImage(extraFlags, pullRef)
-				logrus.Infof("did scan for %s", pullRef, r)
+				logrus.Infof("did scan for %s, %v", pullRef, r)
 				reportByRef[pullRef] = r
 				if err == nil || err.Error() == util.UnknownOSMessage {
 					break
