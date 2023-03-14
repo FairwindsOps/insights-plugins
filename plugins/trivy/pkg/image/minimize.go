@@ -5,6 +5,7 @@ package image
 
 import (
 	"time"
+	"fmt"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/thoas/go-funk"
