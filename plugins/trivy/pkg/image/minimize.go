@@ -35,6 +35,7 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 			LastScan:           &timestamp,
 			RecommendationOnly: imageDetails.RecommendationOnly,
 		}
+		fmt.Println("created details", imageDetails.ID, imageDetails.Name)
 		for _, vulnList := range imageDetails.Reports {
 			vulnRefList := models.VulnerabilityRefList{
 				Target: vulnList.Target,
@@ -69,5 +70,6 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 			delete(outputReport.Vulnerabilities, vulnID)
 		}
 	}
+	fmt.Printf("Output report: %#v", outputReport)
 	return outputReport
 }
