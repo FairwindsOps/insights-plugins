@@ -1,4 +1,6 @@
 # Changelog
+## 0.24.10
+* Add debug info
 
 ## 0.24.9
 * update alpine and x/net
