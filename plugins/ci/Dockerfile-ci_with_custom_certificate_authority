@@ -1,0 +1,13 @@
+# This Dockerfile demonstrates how to create a custom Insights CI image,
+# including a self-signed certificate authority.
+
+# Replace the `latest` below, with a tag from
+#   https://quay.io/repository/fairwinds/insights-ci?tab=tags
+FROM quay.io/fairwinds/insights-ci:latest
+# This myca.crt file represents your certificate authority.
+COPY myca.crt //ssl-cert-file/ca.crt
+# The SSL_CERT_FILE environment variable causes the above file to be used by
+# our `ci` plugin, when communicating with the Insights API.
+# Go binaries continue to also use the system-provided certificate authorities.
+ENV SSL_CERT_FILE=/ssl-cert-file/ca.crt
+
