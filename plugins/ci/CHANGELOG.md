@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.0.1
+* Add a Dockerfile example to build a custom image including a certificate authority, which will be used when the ci plugin communicates with a self-hosted Insights API.
+
 ## 5.0.0
 * Fixes bug where relative path were not preserved on filename field for yaml manifest files.
 
