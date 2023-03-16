@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFullMatchingPipeline(t *testing.T) {
-	origReport := []models.ImageDetailsWithRefs{{
+func getOrigReportForTest() []models.ImageDetailsWithRefs {
+	return []models.ImageDetailsWithRefs{{
 		ID: "quay.io/fairwinds/sample-1@sha256:abcde",
 		Name: "quay.io/fairwinds/sample-1:1.2.3",
 		RecommendationOnly: false,
@@ -25,8 +25,10 @@ func TestFullMatchingPipeline(t *testing.T) {
 		Name: "quay.io/fairwinds/sample-2:5.0",
 		RecommendationOnly: true,
 	}}
+}
 
-	inCluster := []models.Image{{
+func TestInClusterMatches(t *testing.T) {
+	inClusterAll := []models.Image{{
 		ID: "quay.io/fairwinds/sample-1@sha256:abcde",
 		Name: "quay.io/fairwinds/sample-1:1.2.3",
 		RecommendationOnly: false,
@@ -36,16 +38,32 @@ func TestFullMatchingPipeline(t *testing.T) {
 		RecommendationOnly: false,
 	}}
 
-	toScan := []models.Image{{
-		ID: "quay.io/fairwinds/sample-1@sha256:abcde",
-		Name: "quay.io/fairwinds/sample-1:1.2.3",
+	inClusterReduced := []models.Image{{
+		ID: "quay.io/fairwinds/sample-2@sha256:12345",
+		Name: "quay.io/fairwinds/sample-2:4.5",
 		RecommendationOnly: false,
 	}}
 
-	matching := GetMatchingImages(origReport, inCluster, false)
-	assert.Equal(t, len(origReport), len(matching))
+	matching := GetMatchingImages(getOrigReportForTest(), inClusterAll, false)
+	assert.Equal(t, 4, len(matching))
 
-	matching = GetUnmatchingImages(origReport, toScan, false)
+	matching = GetMatchingImages(getOrigReportForTest(), inClusterReduced, false)
 	assert.Equal(t, 3, len(matching))
 	assert.Equal(t, "quay.io/fairwinds/sample-2:4.5", matching[0].Name)
 }
+
+func TestToScanMatches(t *testing.T) {
+	toScan := []models.Image{{
+		ID: "quay.io/fairwinds/sample-2@sha256:12345",
+		Name: "quay.io/fairwinds/sample-2:4.5",
+		RecommendationOnly: false,
+	}}
+
+	matching := GetUnmatchingImages(getOrigReportForTest(), []models.Image{}, false)
+	assert.Equal(t, 4, len(matching))
+
+	matching = GetUnmatchingImages(getOrigReportForTest(), toScan, false)
+	assert.Equal(t, 3, len(matching))
+	assert.Equal(t, "quay.io/fairwinds/sample-1:1.2.3", matching[0].Name)
+}
+
