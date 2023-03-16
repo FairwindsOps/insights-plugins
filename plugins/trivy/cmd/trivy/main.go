@@ -52,6 +52,9 @@ func main() {
 		logrus.Infof("%v - %v", i.Name, i.ID)
 	}
 	logrus.Infof("Latest report has %d images", len(lastReport.Images))
+	for _, i := range imagesToScan {
+		logrus.Infof("%v - %v", i.Name, i.ID)
+	}
 	// Remove any images from the report that are no longer in the cluster
 	lastReport.Images = image.GetMatchingImages(lastReport.Images, images, false)
 	logrus.Infof("%d images after removing images no longer in cluster", len(lastReport.Images))

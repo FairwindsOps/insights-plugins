@@ -1,6 +1,7 @@
 package image
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -33,6 +34,7 @@ func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image,
 	isMatch := convertImagesToMap(toMatch)
 	isRepoMatch:= imagesRepositoryMap(toMatch)
 	for _, im := range baseImages {
+		fmt.Println("im", im.Name)
 		if !isRecommendation {
 			imageSha := GetShaFromID(im.ID)
 			if im.RecommendationOnly || isMatch[imageSha] == match {
@@ -50,20 +52,13 @@ func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image,
 	return filtered
 }
 
-func GetUnscannedImagesToScan(images []models.Image, lastReportImages []models.ImageDetailsWithRefs, maxScans int) []models.Image {
+func GetUnscannedImagesToScan(imagesInCluster []models.Image, lastReportImages []models.ImageDetailsWithRefs, maxScans int) []models.Image {
 	alreadyAdded := map[string]bool{}
+	alreadyScanned := convertImagesWithRefsToMap(lastReportImages)
 	imagesToScan := make([]models.Image, 0)
-	for _, img := range images {
+	for _, img := range imagesInCluster {
 		imageSha := GetShaFromID(img.ID)
-		found := false
-		for _, report := range lastReportImages {
-			reportSha := GetShaFromID(report.ID)
-			if report.Name == img.Name && reportSha == imageSha {
-				found = true
-				break
-			}
-		}
-		if !found && !alreadyAdded[imageSha] {
+		if !alreadyScanned[imageSha] && !alreadyAdded[imageSha] {
 			imagesToScan = append(imagesToScan, img)
 			alreadyAdded[imageSha] = true
 		}
@@ -125,6 +120,15 @@ func GetRecommendationImagesToKeep(images []models.Image, lastReport models.Mini
 }
 
 func convertImagesToMap(list []models.Image) map[string]bool {
+	m := map[string]bool{}
+	for _, img := range list {
+		sha := GetShaFromID(img.ID)
+		m[sha] = true
+	}
+	return m
+}
+
+func convertImagesWithRefsToMap(list []models.ImageDetailsWithRefs) map[string]bool {
 	m := map[string]bool{}
 	for _, img := range list {
 		sha := GetShaFromID(img.ID)
