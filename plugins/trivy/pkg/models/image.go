@@ -120,7 +120,7 @@ func (i Image) GetUniqueID() string {
 	if i.ID != "" {
 		return i.ID
 	} else {
-		return i.Name
+		return i.Name + "@" // FIXME: this is kind of a hack. This is what image IDs end up looking like in the report if there's no ID reported by k8s (e.g. image couldn't pull)
 	}
 }
 
@@ -129,7 +129,7 @@ func (i ImageDetailsWithRefs) GetUniqueID() string {
 	if i.ID != "" {
 		return i.ID
 	} else {
-		return i.Name
+		return i.Name + "@" // FIXME: this is kind of a hack. This is what image IDs end up looking like in the report if there's no ID reported by k8s (e.g. image couldn't pull)
 	}
 }
 
