@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.24.10
+* Fix for rolling scans when there are a lot of errors
+
 ## 0.24.9
 * update alpine and x/net
 
