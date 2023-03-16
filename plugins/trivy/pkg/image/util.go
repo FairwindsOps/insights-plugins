@@ -8,19 +8,6 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 )
 
-func imagesRepositoryMap(list []models.Image) map[string]bool {
-	m := map[string]bool{}
-	for _, img := range list {
-		parts := strings.Split(img.Name, ":")
-		if len(parts) == 2 {
-			key := GetRecommendationKey(parts[0], GetSpecificToken(parts[1]))
-			m[key] = true
-		}
-	}
-	return m
-}
-
-
 func GetMatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
   return getImages(baseImages, toMatch, isRecommendation, true)
 }
@@ -105,3 +92,16 @@ func convertImagesWithRefsToMap(list []models.ImageDetailsWithRefs) map[string]b
 	}
 	return m
 }
+
+func imagesRepositoryMap(list []models.Image) map[string]bool {
+	m := map[string]bool{}
+	for _, img := range list {
+		parts := strings.Split(img.Name, ":")
+		if len(parts) == 2 {
+			key := GetRecommendationKey(parts[0], GetSpecificToken(parts[1]))
+			m[key] = true
+		}
+	}
+	return m
+}
+
