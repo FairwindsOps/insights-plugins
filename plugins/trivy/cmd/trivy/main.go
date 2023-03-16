@@ -41,33 +41,41 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Infof("Listing images from cluster:")
+	logrus.Infof("Found %d images in cluster. All images:", len(images))
 	for _, i := range images {
-		logrus.Infof("%v - %v", i.ID, i.Name)
+		logrus.Infof("%v - %v", i.Name, i.ID)
 	}
 	imagesToScan := getUnscannedImagesToScan(images, lastReport.Images)
+	unscannedCount := len(imagesToScan)
+	logrus.Infof("Found %d images that have never been scanned", unscannedCount)
 	imagesToScan = getImagesToRescan(images, *lastReport, imagesToScan)
+	logrus.Infof("Will rescan %d additional images", len(imagesToScan) - unscannedCount)
 	logrus.Infof("Listing images to be scanned:")
 	for _, i := range imagesToScan {
-		logrus.Infof("%v - %v", i.ID, i.Name)
+		logrus.Infof("%v - %v", i.Name, i.ID)
 	}
-	clusterImagesToKeep := getClusterImagesToKeep(images, *lastReport, imagesToScan)
+	// Remove any images from the report that are no longer in the cluster
+	lastReport.Images = getMatchingImages(lastReport.Images, images, false)
+	// Remove any images from the report that we're going to re-scan now
+	lastReport.Images = getUnmatchingImages(lastReport.Images, imagesToScan, false)
+	// Remove any recommendations from the report that no longer have a corresponding image in the cluster
+	lastReport.Images = getMatchingImages(lastReport.Images, images, true)
+
 	logrus.Infof("Starting image scans")
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
-	lastReport.Images = clusterImagesToKeep
-	aggregated := allReports
+
 	if os.Getenv("NO_RECOMMENDATIONS") == "" {
 		logrus.Infof("Scanning recommendations")
 		recommendationsToScan := image.GetNewestVersionsToScan(ctx, allReports, imagesToScan)
+		// Remove any recommendations from the report that we're going to re-scan now
+		lastReport.Images = getUnmatchingImages(lastReport.Images, recommendationsToScan, true)
 		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
 		recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
 		logrus.Infof("Done scanning recommendations")
-		recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
-		lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
-		aggregated = append(allReports, recommendationReport...)
+		allReports = append(allReports, recommendationReport...)
 	}
 	logrus.Infof("Done with all scans, minimizing report")
-	minimizedReport := image.Minimize(aggregated, *lastReport)
+	minimizedReport := image.Minimize(allReports, *lastReport)
 	data, err := json.Marshal(minimizedReport)
 	if err != nil {
 		logrus.Fatalf("could not marshal report: %v", err)
@@ -116,23 +124,36 @@ func getUnscannedImagesToScan(images []models.Image, lastReportImages []models.I
 	return imagesToScan
 }
 
-func getClusterImagesToKeep(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image) []models.ImageDetailsWithRefs {
-	imagesToKeep := make([]models.ImageDetailsWithRefs, 0)
-	scanned := convertImagesToMap(imagesToScan)
-	for _, report := range lastReport.Images {
-		reportSha := image.GetShaFromID(report.ID)
-		if !report.RecommendationOnly {
-			for _, img := range images {
-				imageSha := image.GetShaFromID(img.ID)
-				if report.Name == img.Name && reportSha == imageSha && !scanned[imageSha] {
-					imagesToKeep = append(imagesToKeep, report)
-					break
-				}
+func getMatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
+  return getImages(baseImages, toMatch, isRecommendation, true)
+}
+
+func getUnmatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
+  return getImages(baseImages, toMatch, isRecommendation, false)
+}
+
+func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool, match bool) []models.ImageDetailsWithRefs {
+	filtered := make([]models.ImageDetailsWithRefs, 0)
+	isMatch := convertImagesToMap(toMatch)
+	isRepoMatch:= imagesRepositoryMap(toMatch)
+	for _, im := range baseImages {
+		if !isRecommendation {
+			imageSha := image.GetShaFromID(im.ID)
+			if im.RecommendationOnly || isMatch[imageSha] == match {
+				filtered = append(filtered, im)
+			}
+		} else {
+			// For recommendations, we match only on repo name, not on full image ID
+			parts := strings.Split(im.Name, ":")
+			key := image.GetRecommendationKey(parts[0], image.GetSpecificToken(parts[1]))
+			if !im.RecommendationOnly || isRepoMatch[key] == match{
+				filtered = append(filtered, im)
 			}
 		}
 	}
-	return imagesToKeep
+	return filtered
 }
+
 
 func getImagesToRescan(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image) []models.Image {
 	sort.Slice(lastReport.Images, func(a, b int) bool {
