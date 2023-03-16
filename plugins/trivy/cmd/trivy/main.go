@@ -33,28 +33,29 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	logrus.Infof("Latest report has %d images", len(lastReport.Images))
+	for _, i := range lastReport.Images {
+		logrus.Debugf("%v - %v", i.Name, i.ID)
+	}
 	ctx := context.Background()
 	images, err := image.GetImages(ctx)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Infof("Found %d images in cluster. All images:", len(images))
+	logrus.Infof("Found %d images in cluster", len(images))
 	for _, i := range images {
-		logrus.Infof("%v - %v", i.Name, i.ID)
+		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
+
 	imagesToScan := image.GetUnscannedImagesToScan(images, lastReport.Images, numberToScan)
 	unscannedCount := len(imagesToScan)
 	logrus.Infof("Found %d images that have never been scanned", unscannedCount)
 	imagesToScan = image.GetImagesToRescan(images, *lastReport, imagesToScan, numberToScan)
 	logrus.Infof("Will rescan %d additional images", len(imagesToScan) - unscannedCount)
-	logrus.Infof("Listing images to be scanned:")
 	for _, i := range imagesToScan {
-		logrus.Infof("%v - %v", i.Name, i.ID)
+		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
-	logrus.Infof("Latest report has %d images", len(lastReport.Images))
-	for _, i := range lastReport.Images {
-		logrus.Infof("%v - %v", i.Name, i.ID)
-	}
+
 	// Remove any images from the report that are no longer in the cluster
 	lastReport.Images = image.GetMatchingImages(lastReport.Images, images, false)
 	logrus.Infof("%d images after removing images no longer in cluster", len(lastReport.Images))
