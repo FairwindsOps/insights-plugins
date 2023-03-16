@@ -36,8 +36,7 @@ func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image,
 	for _, im := range baseImages {
 		fmt.Println("im", im.Name)
 		if !isRecommendation {
-			imageSha := GetShaFromID(im.ID)
-			if im.RecommendationOnly || isMatch[imageSha] == match {
+			if im.RecommendationOnly || isMatch[im.GetUniqueID()] == match {
 				filtered = append(filtered, im)
 			}
 		} else {
@@ -57,10 +56,9 @@ func GetUnscannedImagesToScan(imagesInCluster []models.Image, lastReportImages [
 	alreadyScanned := convertImagesWithRefsToMap(lastReportImages)
 	imagesToScan := make([]models.Image, 0)
 	for _, img := range imagesInCluster {
-		imageSha := GetShaFromID(img.ID)
-		if !alreadyScanned[imageSha] && !alreadyAdded[imageSha] {
+		if !alreadyScanned[img.GetUniqueID()] && !alreadyAdded[img.GetUniqueID()] {
 			imagesToScan = append(imagesToScan, img)
-			alreadyAdded[imageSha] = true
+			alreadyAdded[img.GetUniqueID()] = true
 		}
 	}
 	if len(imagesToScan) > maxScans {
@@ -74,11 +72,11 @@ func GetImagesToRescan(images []models.Image, lastReport models.MinimizedReport,
 		return lastReport.Images[a].LastScan == nil || lastReport.Images[b].LastScan != nil && lastReport.Images[a].LastScan.Before(*lastReport.Images[b].LastScan)
 	})
 	for _, report := range lastReport.Images {
-		reportSha := GetShaFromID(report.ID)
+		reportID := report.GetUniqueID()
 		if !report.RecommendationOnly {
 			for _, img := range images {
-				imageSha := GetShaFromID(img.ID)
-				if report.Name == img.Name && reportSha == imageSha {
+				imageID := img.GetUniqueID()
+				if report.Name == img.Name && reportID == imageID {
 					if len(imagesToScan) < maxScans {
 						imagesToScan = append(imagesToScan, img)
 						break
@@ -92,38 +90,10 @@ func GetImagesToRescan(images []models.Image, lastReport models.MinimizedReport,
 	return imagesToScan
 }
 
-func GetRecommendationImagesToKeep(images []models.Image, lastReport models.MinimizedReport, recommendationsToScan []models.Image) []models.ImageDetailsWithRefs {
-	imagesToKeep := make([]models.ImageDetailsWithRefs, 0)
-	sort.Slice(lastReport.Images, func(a, b int) bool {
-		return lastReport.Images[a].LastScan == nil || lastReport.Images[b].LastScan != nil && lastReport.Images[a].LastScan.Before(*lastReport.Images[b].LastScan)
-	})
-	newRecommendations := convertImagesToMap(recommendationsToScan)
-	clusterImagesMap := imagesRepositoryMap(images)
-	for _, report := range lastReport.Images {
-		reportSha := GetShaFromID(report.ID)
-		// We must keep images recommendations for those still in the cluster but not scanned at this time
-		if report.RecommendationOnly {
-			parts := strings.Split(report.Name, ":")
-			if len(parts) == 2 {
-				key := GetRecommendationKey(parts[0], GetSpecificToken(parts[1]))
-				// Add old recommendations only if we have the images they are for still running in the cluster
-				if _, found := clusterImagesMap[key]; found {
-					// Add old recommendations only if we have not scanned for new recommendations
-					if _, found := newRecommendations[reportSha]; !found {
-						imagesToKeep = append(imagesToKeep, report)
-					}
-				}
-			}
-		}
-	}
-	return imagesToKeep
-}
-
 func convertImagesToMap(list []models.Image) map[string]bool {
 	m := map[string]bool{}
 	for _, img := range list {
-		sha := GetShaFromID(img.ID)
-		m[sha] = true
+		m[img.GetUniqueID()] = true
 	}
 	return m
 }
@@ -131,8 +101,7 @@ func convertImagesToMap(list []models.Image) map[string]bool {
 func convertImagesWithRefsToMap(list []models.ImageDetailsWithRefs) map[string]bool {
 	m := map[string]bool{}
 	for _, img := range list {
-		sha := GetShaFromID(img.ID)
-		m[sha] = true
+		m[img.GetUniqueID()] = true
 	}
 	return m
 }

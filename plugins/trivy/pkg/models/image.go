@@ -114,3 +114,22 @@ type VulnerabilityInstance struct {
 	VulnerabilityID  string
 	FixedVersion     string
 }
+
+// GetUniqueID returns a unique ID for the image
+func (i Image) GetUniqueID() string {
+	if i.ID != "" {
+		return i.ID
+	} else {
+		return i.Name
+	}
+}
+
+// GetUniqueID returns a unique ID for the image
+func (i ImageDetailsWithRefs) GetUniqueID() string {
+	if i.ID != "" {
+		return i.ID
+	} else {
+		return i.Name
+	}
+}
+
