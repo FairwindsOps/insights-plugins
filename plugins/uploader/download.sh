@@ -69,6 +69,7 @@ results=$(curl -X GET $url \
   -H "Authorization: Bearer ${FAIRWINDS_TOKEN//[$'\t\r\n']}" \
   -H "Accept: application/x-yaml" \
   -o $file \
+  $CURL_EXTRA_ARGS \
   --fail 2>&1) || status=$?
 if [ $status -ne 0 ]
 then
