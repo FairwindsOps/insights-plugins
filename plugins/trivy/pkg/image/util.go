@@ -21,7 +21,6 @@ func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image,
 	isMatch := convertImagesToMap(toMatch)
 	isRepoMatch:= imagesRepositoryMap(toMatch)
 	for _, im := range baseImages {
-		fmt.Println("im", im.Name)
 		if !isRecommendation {
 			if im.RecommendationOnly || isMatch[im.GetUniqueID()] == match {
 				filtered = append(filtered, im)
