@@ -1,4 +1,7 @@
 # Changelog
+
+## 0.24.11
+* update dependencies
 ## 0.24.10
 * Allow insecure TLS for trivy using TRIVY_INSECURE env var
 

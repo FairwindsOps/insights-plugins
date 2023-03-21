@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.0.2
+* update dependencies
+
 ## 5.0.1
 * Support for insecure TLS override in uploader
 
