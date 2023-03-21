@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
+	pluginmodels "github.com/fairwindsops/insights-plugins/plugins/prometheus/pkg/models"
 	"github.com/prometheus/client_golang/api"
 	prometheusV1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -186,13 +187,19 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	}
 
 	// Information about pods is required to lookup the number of containers
-	// each pod has, to manipulate per-pod network metrics to appear to be
+	// to manipulate per-pod network metrics to appear to be
 	// per-container.
 	client := controller.Client{
 		Context:    ctx,
 		Dynamic:    dynamicClient,
 		RESTMapper: restMapper,
 	}
+	storage, err := pluginmodels.NewStorageInfoFromCluster(&client)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("fetched %d PersistentVolumeClaim resources from in-cluster", storage.NumPVCs())
+
 	workloads, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
 		return nil, err
@@ -200,8 +207,30 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	workloadMap := make(map[string]*controller.Workload)
 	for idx, workload := range workloads {
 		for _, pod := range workload.Pods {
-			workloadMap[fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())] = &workloads[idx]
+			podKey := fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())
+			workloadMap[podKey] = &workloads[idx]
+			podSpec, err := controller.GetPodSpec(pod.UnstructuredContent())
+			if err != nil {
+				logrus.Warnf("cannot convert unstructured pod %s into PodSpec to process its volumes: %v", podKey, err)
+				continue
+			}
+			for _, volume := range podSpec.Volumes {
+				logrus.Debugf("processing volume for pod %s: %#v\n", podKey, volume)
+				if volume.PersistentVolumeClaim != nil && storage.NumPVCs() > 0 {
+					storage.AddPVCRef(volume.PersistentVolumeClaim.ClaimName, podKey)
+				}
+			}
 		}
+	}
+	logrus.Debugf("PersistentVolumeClaims with pod references are: %v", storage.PVCsAsString())
+	storageCapacity := storage.ManufactureMetrics(r)
+	storageCapacity = adjustMetricsForMultiContainerPods(storageCapacity, workloadMap)
+	for _, storageVal := range storageCapacity {
+		key := getKey(storageVal)
+		request := combinedRequests[key]
+		request.storageCapacity = storageVal.Values
+		request.Owner = getOwner(storageVal)
+		combinedRequests[key] = request
 	}
 
 	for _, networkVal := range networkTransmit {
