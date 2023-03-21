@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.0.1
+* Support for insecure TLS override in uploader
+
 ## 5.0.0
 * Fixes bug where relative path were not preserved on filename field for yaml manifest files.
 

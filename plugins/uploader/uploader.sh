@@ -94,6 +94,7 @@ do
                 -H "X-Fairwinds-Agent-Version: `cat version.txt`" \
                 -H "X-Fairwinds-Report-Version: ${version}" \
                 -H "X-Fairwinds-Agent-Chart-Version: $FAIRWINDS_AGENT_CHART_VERSION" \
+                $CURL_EXTRA_ARGS \
                 --fail
             if [ -n "$DEBUG" ]
             then
@@ -114,6 +115,7 @@ do
       -H "X-Fairwinds-Agent-Version: `cat version.txt`" \
       -H "X-Fairwinds-Report-Version: ${version}" \
       -H "X-Fairwinds-Agent-Chart-Version: $FAIRWINDS_AGENT_CHART_VERSION" \
+      $CURL_EXTRA_ARGS \
       --fail
     set -x
     exit 0
