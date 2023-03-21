@@ -1,4 +1,4 @@
-FROM amazon/aws-cli:2.9.22
+FROM amazon/aws-cli:2.11.4
 
 RUN yum install jq -y
 RUN yum update -y
