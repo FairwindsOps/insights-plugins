@@ -95,7 +95,8 @@ kubectl wait --for=condition=ready -l app=right-sizer-test-workload pod --timeou
 # Be sure the right-sizer controller is available to see this OOM-kill.
 kubectl wait --for=condition=ready -l app=insights-agent,component=right-sizer pod --timeout=60s --namespace insights-agent
 kubectl create job trigger-oomkill-right-sizer-test-workload -n insights-agent --image=curlimages/curl -- curl http://right-sizer-test-workload:8080
-kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
+# ifetch, 2023-02-23: disabling the kubectl wait because the OOMKill was happening before wait_new_restarts_of_first_container could run.
+#kubectl wait --for=condition=complete job/trigger-oomkill-right-sizer-test-workload --timeout=40s --namespace insights-agent
 # Verify the test workload has a new container restart.
 rightsizer_workload_restarts=$(wait_new_restarts_of_first_container app=right-sizer-test-workload 1 -n insights-agent)
 if [ ${rightsizer_workload_restarts} -ne 1 ] ; then
@@ -114,13 +115,13 @@ kubectl wait --for=condition=complete job/trivy --timeout=480s --namespace insig
 kubectl get jobs --namespace insights-agent
 
 echo "Testing kube-bench"
-jsonschema -i output/kube-bench.json plugins/kube-bench/results.schema || (cat output/kube-bench.json && exit 1)
+check-jsonschema --schemafile plugins/kube-bench/results.schema output/kube-bench.json || (cat output/kube-bench.json && exit 1)
 echo "Testing trivy"
-jsonschema -i output/trivy.json plugins/trivy/results.schema || (cat output/trivy.json && exit 1)
+check-jsonschema --schemafile plugins/trivy/results.schema output/trivy.json || (cat output/trivy.json && exit 1)
 echo "Testing rbac-reporter"
-jsonschema -i output/rbac-reporter.json plugins/rbac-reporter/results.schema || (cat output/rbac-reporter.json && exit 1)
+check-jsonschema --schemafile plugins/rbac-reporter/results.schema output/rbac-reporter.json || (cat output/rbac-reporter.json && exit 1)
 echo "Testing Workloads"
-jsonschema -i output/workloads.json plugins/workloads/results.schema || (cat output/workloads.json && exit 1)
+check-jsonschema --schemafile plugins/workloads/results.schema output/workloads.json || (cat output/workloads.json && exit 1)
 # The second right-sizer OOM-kill is triggered this late, to capitolize
 # on the time it takes for other CronJob checks to complete.
 # This allows the test workload to settle; avoid CrashLoopBackOff.

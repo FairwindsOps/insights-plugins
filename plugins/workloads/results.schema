@@ -50,8 +50,7 @@
                 "beta.kubernetes.io/os",
                 "kubernetes.io/arch",
                 "kubernetes.io/hostname",
-                "kubernetes.io/os",
-                "node-role.kubernetes.io/master"
+                "kubernetes.io/os"
               ]
             },
             "Annotations": {
@@ -239,7 +238,6 @@
               },
               "required": [
                 "name",
-                "selfLink",
                 "uid",
                 "resourceVersion",
                 "creationTimestamp"

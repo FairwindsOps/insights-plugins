@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+* Added days parameter to AWS costs
+
 ## 1.1.3
 * increased query period from 1 to 5 days
 

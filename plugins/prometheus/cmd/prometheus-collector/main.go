@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -32,6 +33,7 @@ import (
 const outputFile = "/output/prometheus-metrics.json"
 
 func main() {
+	setLogLevel()
 	address := os.Getenv("PROMETHEUS_ADDRESS")
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
 	client, err := data.GetClient(address)
@@ -59,6 +61,18 @@ func main() {
 		panic(err)
 	}
 	logrus.Infof("Done!")
+}
+
+func setLogLevel() {
+	if os.Getenv("LOGRUS_LEVEL") != "" {
+		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+		if err != nil {
+			panic(fmt.Errorf("Invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
+		}
+		logrus.SetLevel(lvl)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
 }
 
 func getKubeClient() (dynamic.Interface, meta.RESTMapper, error) {
