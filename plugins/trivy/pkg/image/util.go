@@ -75,6 +75,7 @@ func GetImagesToRescan(images []models.Image, lastReport models.MinimizedReport,
 	return imagesToScan
 }
 
+
 func convertImagesToMap(list []models.Image) map[string]bool {
 	m := map[string]bool{}
 	for _, img := range list {
