@@ -109,7 +109,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 	allReports := []models.ImageReport{}
 	for _, i := range images {
 		image := i
-		id := fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID))
+		id := fmt.Sprintf("%s@%s", image.Name, image.GetSha())
 		if t, ok := reportResultByRef[image.PullRef]; !ok || t == nil {
 			if !ignoreErrors {
 				allReports = append(allReports, models.ImageReport{
@@ -218,13 +218,6 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	logrus.Infof("Successfully scanned %s", imageID)
 
 	return &report, nil
-}
-
-func GetShaFromID(id string) string {
-	if len(strings.Split(id, "@")) > 1 {
-		return strings.Split(id, "@")[1]
-	}
-	return id
 }
 
 func downloadPullRef(pullRef string) (string, error) {

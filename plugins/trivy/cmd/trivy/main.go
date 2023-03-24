@@ -7,12 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
-	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -36,38 +33,55 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
+	logrus.Infof("Latest report has %d images", len(lastReport.Images))
+	for _, i := range lastReport.Images {
+		logrus.Debugf("%v - %v", i.Name, i.ID)
+	}
 	ctx := context.Background()
 	images, err := image.GetImages(ctx)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Infof("Listing images from cluster:")
+	logrus.Infof("Found %d images in cluster", len(images))
 	for _, i := range images {
-		logrus.Infof("%v - %v", i.ID, i.Name)
+		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
-	imagesToScan := getUnscannedImagesToScan(images, lastReport.Images)
-	imagesToScan = getImagesToRescan(images, *lastReport, imagesToScan)
-	logrus.Infof("Listing images to be scanned:")
+
+	imagesToScan := image.GetUnscannedImagesToScan(images, lastReport.Images, numberToScan)
+	unscannedCount := len(imagesToScan)
+	logrus.Infof("Found %d images that have never been scanned", unscannedCount)
+	imagesToScan = image.GetImagesToRescan(images, *lastReport, imagesToScan, numberToScan)
+	logrus.Infof("Will rescan %d additional images", len(imagesToScan) - unscannedCount)
 	for _, i := range imagesToScan {
-		logrus.Infof("%v - %v", i.ID, i.Name)
+		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
-	clusterImagesToKeep := getClusterImagesToKeep(images, *lastReport, imagesToScan)
+
+	// Remove any images from the report that are no longer in the cluster
+	lastReport.Images = image.GetMatchingImages(lastReport.Images, images, false)
+	logrus.Infof("%d images after removing images no longer in cluster", len(lastReport.Images))
+	// Remove any images from the report that we're going to re-scan now
+	lastReport.Images = image.GetUnmatchingImages(lastReport.Images, imagesToScan, false)
+	logrus.Infof("%d images after removing images to be scanned", len(lastReport.Images))
+	// Remove any recommendations from the report that no longer have a corresponding image in the cluster
+	lastReport.Images = image.GetMatchingImages(lastReport.Images, images, true)
+	logrus.Infof("%d images after removing recommendations that don't match", len(lastReport.Images))
+
 	logrus.Infof("Starting image scans")
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
-	lastReport.Images = clusterImagesToKeep
-	aggregated := allReports
+
 	if os.Getenv("NO_RECOMMENDATIONS") == "" {
 		logrus.Infof("Scanning recommendations")
 		recommendationsToScan := image.GetNewestVersionsToScan(ctx, allReports, imagesToScan)
+		// Remove any recommendations from the report that we're going to re-scan now
+		lastReport.Images = image.GetUnmatchingImages(lastReport.Images, recommendationsToScan, true)
+		logrus.Infof("%d images after removing recommendations that will be scanned", len(lastReport.Images))
 		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
 		recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
 		logrus.Infof("Done scanning recommendations")
-		recommendationsToKeep := getRecommendationImagesToKeep(images, *lastReport, recommendationsToScan)
-		lastReport.Images = append(clusterImagesToKeep, recommendationsToKeep...)
-		aggregated = append(allReports, recommendationReport...)
+		allReports = append(allReports, recommendationReport...)
 	}
 	logrus.Infof("Done with all scans, minimizing report")
-	minimizedReport := image.Minimize(aggregated, *lastReport)
+	minimizedReport := image.Minimize(allReports, *lastReport)
 	data, err := json.Marshal(minimizedReport)
 	if err != nil {
 		logrus.Fatalf("could not marshal report: %v", err)
@@ -90,119 +104,6 @@ func setLogLevel() {
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
-}
-
-func getUnscannedImagesToScan(images []models.Image, lastReportImages []models.ImageDetailsWithRefs) []models.Image {
-	alreadyAdded := map[string]bool{}
-	imagesToScan := make([]models.Image, 0)
-	for _, img := range images {
-		imageSha := image.GetShaFromID(img.ID)
-		found := false
-		for _, report := range lastReportImages {
-			reportSha := image.GetShaFromID(report.ID)
-			if report.Name == img.Name && reportSha == imageSha {
-				found = true
-				break
-			}
-		}
-		if !found && !alreadyAdded[imageSha] {
-			imagesToScan = append(imagesToScan, img)
-			alreadyAdded[imageSha] = true
-		}
-	}
-	if len(imagesToScan) > numberToScan {
-		imagesToScan = imagesToScan[:numberToScan]
-	}
-	return imagesToScan
-}
-
-func getClusterImagesToKeep(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image) []models.ImageDetailsWithRefs {
-	imagesToKeep := make([]models.ImageDetailsWithRefs, 0)
-	scanned := convertImagesToMap(imagesToScan)
-	for _, report := range lastReport.Images {
-		reportSha := image.GetShaFromID(report.ID)
-		if !report.RecommendationOnly {
-			for _, img := range images {
-				imageSha := image.GetShaFromID(img.ID)
-				if report.Name == img.Name && reportSha == imageSha && !scanned[imageSha] {
-					imagesToKeep = append(imagesToKeep, report)
-					break
-				}
-			}
-		}
-	}
-	return imagesToKeep
-}
-
-func getImagesToRescan(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image) []models.Image {
-	sort.Slice(lastReport.Images, func(a, b int) bool {
-		return lastReport.Images[a].LastScan == nil || lastReport.Images[b].LastScan != nil && lastReport.Images[a].LastScan.Before(*lastReport.Images[b].LastScan)
-	})
-	for _, report := range lastReport.Images {
-		reportSha := image.GetShaFromID(report.ID)
-		if !report.RecommendationOnly {
-			for _, img := range images {
-				imageSha := image.GetShaFromID(img.ID)
-				if report.Name == img.Name && reportSha == imageSha {
-					if len(imagesToScan) < numberToScan {
-						imagesToScan = append(imagesToScan, img)
-						break
-					} else {
-						return imagesToScan
-					}
-				}
-			}
-		}
-	}
-	return imagesToScan
-}
-
-func getRecommendationImagesToKeep(images []models.Image, lastReport models.MinimizedReport, recommendationsToScan []models.Image) []models.ImageDetailsWithRefs {
-	imagesToKeep := make([]models.ImageDetailsWithRefs, 0)
-	sort.Slice(lastReport.Images, func(a, b int) bool {
-		return lastReport.Images[a].LastScan == nil || lastReport.Images[b].LastScan != nil && lastReport.Images[a].LastScan.Before(*lastReport.Images[b].LastScan)
-	})
-	newRecommendations := convertImagesToMap(recommendationsToScan)
-	clusterImagesMap := imagesRepositoryMap(images)
-	for _, report := range lastReport.Images {
-		reportSha := image.GetShaFromID(report.ID)
-		// We must keep images recommendations for those still in the cluster but not scanned at this time
-		if report.RecommendationOnly {
-			parts := strings.Split(report.Name, ":")
-			if len(parts) == 2 {
-				key := image.GetRecommendationKey(parts[0], image.GetSpecificToken(parts[1]))
-				// Add old recommendations only if we have the images they are for still running in the cluster
-				if _, found := clusterImagesMap[key]; found {
-					// Add old recommendations only if we have not scanned for new recommendations
-					if _, found := newRecommendations[reportSha]; !found {
-						imagesToKeep = append(imagesToKeep, report)
-					}
-				}
-			}
-		}
-	}
-	return imagesToKeep
-}
-
-func convertImagesToMap(list []models.Image) map[string]bool {
-	m := map[string]bool{}
-	for _, img := range list {
-		sha := image.GetShaFromID(img.ID)
-		m[sha] = true
-	}
-	return m
-}
-
-func imagesRepositoryMap(list []models.Image) map[string]bool {
-	m := map[string]bool{}
-	for _, img := range list {
-		parts := strings.Split(img.Name, ":")
-		if len(parts) == 2 {
-			key := image.GetRecommendationKey(parts[0], image.GetSpecificToken(parts[1]))
-			m[key] = true
-		}
-	}
-	return m
 }
 
 func setEnv() {
