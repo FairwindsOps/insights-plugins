@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.25.0
+* Fix for rolling scans when there are a lot of errors
+
 ## 0.24.10
 * Allow insecure TLS for trivy using TRIVY_INSECURE env var
 

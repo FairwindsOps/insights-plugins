@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type DockerImage struct {
 	Name    string // paulbouwer/hello-kubernetes:1.7
@@ -114,3 +117,41 @@ type VulnerabilityInstance struct {
 	VulnerabilityID  string
 	FixedVersion     string
 }
+
+func getShaFromID(id string) string {
+	if len(strings.Split(id, "@")) > 1 {
+		return strings.Split(id, "@")[1]
+	}
+	return id
+}
+
+func (i Image) GetSha() string {
+	return getShaFromID(i.ID)
+}
+
+func (i ImageDetailsWithRefs) GetSha() string {
+	return getShaFromID(i.ID)
+}
+
+func (i ImageReport) GetSha() string {
+	return getShaFromID(i.ID)
+}
+
+func getUniqueID(name string, id string) string {
+	if id != "" {
+		return getShaFromID(id)
+	} else {
+		return name + "@" // FIXME: this is kind of a hack. This is what image IDs end up looking like in the report if there's no ID reported by k8s (e.g. image couldn't pull)
+	}
+}
+
+// GetUniqueID returns a unique ID for the image
+func (i Image) GetUniqueID() string {
+	return getUniqueID(i.Name, i.ID)
+}
+
+// GetUniqueID returns a unique ID for the image
+func (i ImageDetailsWithRefs) GetUniqueID() string {
+	return getUniqueID(i.Name, i.ID)
+}
+
