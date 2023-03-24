@@ -283,8 +283,8 @@ workflows:
           name: End-To-End Test on Kubernetes
           requires:
             - build_and_push_plugins
-          pre_script: e2e/pre.sh
-          script: e2e/ci.sh
+          pre_script: test/plugins-e2e/pre.sh
+          script: test/plugins-e2e/ci.sh
           store-artifacts: /workspace/output
       - scan_for_vulnerabilities:
           requires:
