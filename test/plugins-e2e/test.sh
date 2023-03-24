@@ -61,7 +61,7 @@ collect_rightsizer_debug() {
 cd /workspace
 helm repo add fairwinds-incubator https://charts.fairwinds.com/incubator
 helm repo add fairwinds-stable https://charts.fairwinds.com/stable
-python3 -u e2e/testServer.py &> /workspace/py.log &
+python3 -u test/plugins-e2e/testServer.py &> /workspace/py.log &
 pyServer=$!
 
 trap "cat /workspace/py.log && kill $pyServer" EXIT
@@ -76,7 +76,7 @@ source ./tags.sh
 
 helm upgrade --install insights-agent fairwinds-stable/insights-agent \
   --namespace insights-agent \
-  -f e2e/values.yaml \
+  -f test/plugins-e2e/values.yaml \
   --set insights.host="$insightsHost" \
   --set insights.base64token="$(echo -n "Erehwon" | base64)" \
   --set workloads.image.tag="$workloads_tag" \

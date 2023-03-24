@@ -140,9 +140,9 @@ type NewestVersions struct {
 func GetNewestVersionsToScan(ctx context.Context, allReports []models.ImageReport, imagesToScan []models.Image) []models.Image {
 	var imageWithVulns []models.ImageReport
 	for _, img := range imagesToScan {
-		imageSha := GetShaFromID(img.ID)
+		imageSha := img.GetSha()
 		for _, report := range allReports {
-			reportSha := GetShaFromID(report.ID)
+			reportSha := report.GetSha()
 			if report.Name == img.Name && reportSha == imageSha {
 				if len(report.Reports) > 0 {
 					imageWithVulns = append(imageWithVulns, report)
