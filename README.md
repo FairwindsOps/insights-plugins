@@ -24,7 +24,7 @@ Each of these plugins retrieves data from a Kubernetes cluster and sends it to I
 
 * `.circleci` contains the Circle CI configuration.
 * `deploy` contains rok8s-scripts configuration for each plugin
-* `e2e` contains logic for e2e tests
+* `test` contains logic for e2e tests
 * The remaining folders are one folder per plugin
 
 ## Contributing
