@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.9
+* update dependencies
+
 ## 1.3.8
 * updated rbac schema
 ## 1.3.7

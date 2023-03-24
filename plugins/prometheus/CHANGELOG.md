@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.1
+* update dependencies
+
 ## 1.3.0
 * Add storage capacity to the metrics submitted to Insights.
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.7
+* update dependencies
+
 ## 1.9.6
 * update alpine and x/net
 

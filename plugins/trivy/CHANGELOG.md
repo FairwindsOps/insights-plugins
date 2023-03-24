@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.25.1
+* update dependencies
+
 ## 0.25.0
 * Fix for rolling scans when there are a lot of errors
 

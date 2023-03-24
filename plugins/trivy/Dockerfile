@@ -1,7 +1,7 @@
 FROM alpine:3.17 as downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.37.1
+ENV trivyVersion=0.38.3
 RUN apk update && apk add curl
 
 ENV kubectlVersion=1.27.0-alpha.1
