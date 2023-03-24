@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+* update dependencies
+
 ## 1.2.0
 * Added days parameter to AWS costs
 
