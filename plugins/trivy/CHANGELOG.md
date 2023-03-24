@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.24.11
+## 0.25.0
 * Fix for rolling scans when there are a lot of errors
 
 ## 0.24.10
