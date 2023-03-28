@@ -88,7 +88,11 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 			return ai.(map[string]interface{})["Failure"].(bool)
 		}), actionItemToString).([]string)
 	}
-
+	if message, ok := resultMap["Message"]; ok {
+		if str, stringOK := message.(string); stringOK && len(message.(string)) > 0 {
+			warnings = append(warnings, str)
+		}
+	}
 	logrus.Infof("Completed request %t", passed)
 	return
 }
