@@ -1,4 +1,6 @@
 # Changelog
+## 0.5.0
+* add `CURL_EXTRA_ARGS` option
 
 ## 0.4.3
 * update alpine and x/net

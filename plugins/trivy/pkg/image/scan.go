@@ -109,7 +109,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 	allReports := []models.ImageReport{}
 	for _, i := range images {
 		image := i
-		id := fmt.Sprintf("%s@%s", image.Name, GetShaFromID(image.ID))
+		id := fmt.Sprintf("%s@%s", image.Name, image.GetSha())
 		if t, ok := reportResultByRef[image.PullRef]; !ok || t == nil {
 			if !ignoreErrors {
 				allReports = append(allReports, models.ImageReport{
@@ -220,21 +220,24 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	return &report, nil
 }
 
-func GetShaFromID(id string) string {
-	if len(strings.Split(id, "@")) > 1 {
-		return strings.Split(id, "@")[1]
-	}
-	return id
-}
-
 func downloadPullRef(pullRef string) (string, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	dest := TempDir + imageID
 	imageMessage := fmt.Sprintf("image %s", pullRef)
 
 	args := []string{"copy"}
-
+	
+	if os.Getenv("SKOPEO_ARGS") != "" {
+		args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
+	}
+	if os.Getenv("TRIVY_INSECURE") != "" {
+		logrus.Warn("Skipping TLS verification for Skopeo")
+		args = append(args, "--src-tls-verify=false")
+		args = append(args, "--dest-tls-verify=false")
+	}
+	skipLog := false
 	if registryUser != "" || registryPassword != "" {
+		skipLog = true
 		args = append(args, "--src-creds", registryUser+":"+registryPassword)
 	}
 	if registryCertDir != "" {
@@ -246,6 +249,9 @@ func downloadPullRef(pullRef string) (string, error) {
 	// args = append(args, "--override-os", "linux")
 
 	args = append(args, "docker://"+pullRef, "docker-archive:"+dest)
+	if !skipLog {
+		logrus.Infof("Running command: skopeo %s", strings.Join(args, " "))
+	}
 	err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
 	return dest, err
 }

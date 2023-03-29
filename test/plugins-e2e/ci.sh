@@ -2,5 +2,5 @@ set -eo pipefail
 cd /workspace
 . /workspace/env.sh
 apk add python3
-pip3 install jsonschema
-bash ./e2e/test.sh
+pip3 install check-jsonschema
+bash ./test/plugins-e2e/test.sh

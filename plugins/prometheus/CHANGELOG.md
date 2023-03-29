@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1
+* update dependencies
+
+## 1.3.0
+* Add storage capacity to the metrics submitted to Insights.
+
+## 1.2.0
+* Add network transmit bytes, and network received bytes, to the metrics submitted to Insights.
+* Add ability to output debug logs using the `LOGRUS_LEVEL` environment variable.
+
 ## 1.1.9
 * update alpine and x/net
 
