@@ -14,14 +14,17 @@ commands:
     # Register other docker platforms, to build arm64.
     # This shouldn't be needed, why TBD.
     - run: docker run --privileged --rm tonistiigi/binfmt --install all
+
   set_environment_variables:
     description: Sets environment variables for this job.
     steps:
     - run: ./.circleci/scripts/env.sh
+
   set_tags:
     description: Figures out which plugins have been changed etc
     steps:
     - run: ./.circleci/set_tags.sh
+
   set_vault:
     description: Install and configure vault 
     steps:
@@ -260,6 +263,16 @@ jobs:
                 ]
             }
 
+  ci_plugin_e2e:
+    executor: ci-images
+    steps:
+      - checkout
+      - setup_remote_docker
+      - set_vault
+      - set_environment_variables
+      - set_tags
+      - run: ./.circleci/scripts/ci-plugin-e2e-test.sh
+
 workflows:
   version: 2
   release:
@@ -292,6 +305,10 @@ workflows:
           filters:
             branches:
               only: main
+      - ci_plugin_e2e:
+          requires:
+            - build_and_push_plugins
+            
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities

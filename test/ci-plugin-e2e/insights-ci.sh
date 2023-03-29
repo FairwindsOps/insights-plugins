@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1003
-set -xeo pipefail
+set -e
 
-version=0.1.0
-image_version=0.4
+script_version=5.0
+hostname=https://stable-main.k8s.insights.fairwinds.com
+image_version=$CI_SHA1
 
 # Based on https://gist.github.com/pkuczynski/8665367
 # https://github.com/jasperes/bash-yaml MIT license
@@ -50,12 +51,39 @@ parse_yaml() {
             { print }'
     ) < "$yaml_file"
 }
+
 create_variables() {
     local yaml_file="$1"
     local prefix="$2"
     eval "$(parse_yaml "$yaml_file" "$prefix")"
 }
 
+detect_and_set_ci_runner() {
+  if [[ -n "${GITHUB_ACTIONS}" ]]; then
+    ci_runner="github-actions"
+  elif [[ -n "${CIRCLECI}" ]]; then
+    ci_runner="circle-ci"
+  elif [[ -n "${GITLAB_CI}" ]]; then
+    ci_runner="gitlab"
+  elif [[ -n "${TRAVIS}" ]]; then
+    ci_runner="travis"
+  elif [[ -n "${TF_BUILD}" ]]; then
+    ci_runner="azure-devops"
+  fi
+}
+
+print_ci_variables() {
+  if [[ -n "${ci_runner}" ]]; then
+    echo "CI runner ${ci_runner} detected"
+  else
+    echo "no CI runner detected"
+  fi
+}
+
+detect_and_set_ci_runner
+print_ci_variables
+
+echo "Running version $image_version of CI script"
 create_variables fairwinds-insights.yaml fairwinds_
 
 fairwinds_images_folder=${fairwinds_images_folder:='./_insightsTempImages'}
@@ -72,12 +100,37 @@ for img in ${fairwinds_images_docker[@]}; do
     fi
 done
 
+docker pull quay.io/fairwinds/insights-ci:$image_version
+
 docker create --name insights-ci \
-  -e FAIRWINDS_TOKEN=$FAIRWINDS_TOKEN \
-  -e SCRIPT_VERSION=$version \
+  -e SCRIPT_VERSION=$script_version \
+  -e IMAGE_VERSION=$image_version \
+  -e HOSTNAME=$hostname \
+  -e CI_RUNNER=$ci_runner \
+  -e FAIRWINDS_TOKEN \
+  -e MASTER_HASH \
+  -e CURRENT_HASH \
+  -e COMMIT_MESSAGE \
+  -e BRANCH_NAME \
+  -e BASE_BRANCH \
+  -e REPOSITORY_NAME \
+  -e ORIGIN_URL \
+  -e SKOPEO_ARGS \
   quay.io/fairwinds/insights-ci:$image_version
 
 docker cp . insights-ci:/insights
+
+# tries to interpolate variables, save new file content and override docker content and remove file
+if command -v envsubst &> /dev/null
+then
+    echo "interpolating environment variables into fairwinds-insights.yaml"
+    echo "$(envsubst < fairwinds-insights.yaml)" > fairwinds-insights-interpolated.yaml
+    docker cp fairwinds-insights-interpolated.yaml insights-ci:/insights/fairwinds-insights.yaml
+    rm fairwinds-insights-interpolated.yaml
+else
+    echo "envsubst command not found... interpolating environment variables into fairwinds-insights.yaml is not possible"
+fi
+
 failed=0
 docker start -a insights-ci || failed=1
 
