@@ -1,0 +1,29 @@
+options:
+  organization: acme-co
+  setExitCode: false
+  hostname: https://stable-main.k8s.insights.fairwinds.com
+  repositoryName: foo
+
+images:
+  docker:
+    - alpine:3.12.1
+
+manifests:
+  yaml:
+    - ./passing.yaml
+    - ./failing.yaml
+  helm:
+    - name: staging
+      path: ./chart/
+      valuesFile: ./chart/values.yaml
+
+exemptions:
+  - filename: failing.yaml
+    report: polaris
+    checks:
+    - notReadOnlyRootFilesystem
+  - report: trivy
+
+terraform:
+  paths:
+    - ./terraform/
