@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.9
+* Update dependencies
+
 ## 1.9.8
 * Show message from admission request
 
