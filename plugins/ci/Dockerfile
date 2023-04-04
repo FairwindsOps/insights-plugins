@@ -4,7 +4,7 @@ ARG TARGETOS
 ENV tfsecVersion=1.28.1
 ENV trivyVersion=0.39.0
 ENV polarisVersion=7.4.1
-ENV plutoVersion=5.16.
+ENV plutoVersion=5.16.0
 ENV helmVersion=3.11.2
 
 # Bash and openssl are  required by the Helm script.
