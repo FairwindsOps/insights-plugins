@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.9
+* Update image repo for noisy-neighbor, used by E2E test workload.
+
 ## 0.4.8
 * update dependencies
 
