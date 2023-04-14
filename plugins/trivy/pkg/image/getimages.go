@@ -17,9 +17,14 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 )
 
-namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
-namespaceBlocklist = append(strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ","), namespaceBlocklist...)
-namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+var namespaceBlocklist []string
+var namespaceAllowlist []string
+
+func init() {
+	namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
+	namespaceBlocklist = append(strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ","), namespaceBlocklist...)
+	namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+}
 
 func namespaceIsBlocked(ns string) bool {
 	for _, namespace := range namespaceBlocklist {
