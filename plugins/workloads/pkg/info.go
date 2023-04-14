@@ -119,7 +119,12 @@ func formatContainer(container corev1.Container, containerStatus corev1.Containe
 			Memory: container.Resources.Limits.Memory().String(),
 		},
 	}
-
+	if container.Resources.Requests.Cpu().IsZero() && !container.Resources.Limits.Cpu().IsZero() {
+		resources.Requests.CPU = resources.Limits.CPU
+	}
+	if container.Resources.Requests.Memory().IsZero() && !container.Resources.Limits.Memory().IsZero() {
+		resources.Requests.Memory = resources.Limits.Memory
+	}
 	containerResult := ContainerResult{
 		Name:         container.Name,
 		Image:        container.Image,
