@@ -28,7 +28,7 @@ func init() {
 
 func namespaceIsBlocked(ns string) bool {
 	for _, namespace := range namespaceBlocklist {
-		if ns == strings.Trim(strings.ToLower(namespace)) {
+		if ns == strings.TrimSpace(strings.ToLower(namespace)) {
 			return true
 		}
 	}
@@ -36,7 +36,7 @@ func namespaceIsBlocked(ns string) bool {
 		return false
 	}
 	for _, namespace := range namespaceBlocklist {
-		if ns == strings.Trim(strings.ToLower(namespace)) {
+		if ns == strings.TrimSpace(strings.ToLower(namespace)) {
 			return false
 		}
 	}
