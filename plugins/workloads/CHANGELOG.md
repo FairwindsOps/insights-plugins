@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.8
+* workloads request set to limits if requests is not set
+
 ## 2.4.7
 * update dependencies
 
