@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.26.0
+* Add namespace allowlist
+
 ## 0.25.2
 * Update dependencies
 
