@@ -35,7 +35,7 @@ func namespaceIsBlocked(ns string) bool {
 	if len(namespaceAllowlist) == 0 {
 		return false
 	}
-	for _, namespace := range namespaceBlocklist {
+	for _, namespace := range namespaceAllowlist {
 		if ns == strings.TrimSpace(strings.ToLower(namespace)) {
 			return false
 		}
