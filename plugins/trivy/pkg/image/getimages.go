@@ -21,9 +21,15 @@ var namespaceBlocklist []string
 var namespaceAllowlist []string
 
 func init() {
-	namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
-	namespaceBlocklist = append(strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ","), namespaceBlocklist...)
-	namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_BLOCKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
+		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+	}
 	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
 }
 
