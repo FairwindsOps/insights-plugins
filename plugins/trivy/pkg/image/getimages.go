@@ -24,6 +24,7 @@ func init() {
 	namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
 	namespaceBlocklist = append(strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ","), namespaceBlocklist...)
 	namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
 }
 
 func namespaceIsBlocked(ns string) bool {
@@ -79,6 +80,7 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 	images := []models.Image{}
 	for _, pod := range pods.Items {
 		if namespaceIsBlocked(pod.ObjectMeta.Namespace) {
+			logrus.Debugf("Namespace %s blocked", pod.ObjectMeta.Namespace)
 			continue
 		}
 		owner := models.Resource{
