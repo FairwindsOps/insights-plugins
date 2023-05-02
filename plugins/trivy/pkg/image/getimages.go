@@ -17,6 +17,39 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 )
 
+var namespaceBlocklist []string
+var namespaceAllowlist []string
+
+func init() {
+	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_BLOCKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
+		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+	}
+	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
+}
+
+func namespaceIsBlocked(ns string) bool {
+	for _, namespace := range namespaceBlocklist {
+		if ns == strings.TrimSpace(strings.ToLower(namespace)) {
+			return true
+		}
+	}
+	if len(namespaceAllowlist) == 0 {
+		return false
+	}
+	for _, namespace := range namespaceAllowlist {
+		if ns == strings.TrimSpace(strings.ToLower(namespace)) {
+			return false
+		}
+	}
+	return true
+}
+
 // GetImages returns the images in the current cluster.
 func GetImages(ctx context.Context) ([]models.Image, error) {
 	kubeConf, configError := ctrl.GetConfig()
@@ -51,16 +84,9 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 	// will exist under the same owner.
 	found := map[string]bool{}
 	images := []models.Image{}
-	namespaceBlacklist := strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
 	for _, pod := range pods.Items {
-		foundNamespace := false
-		for _, namespace := range namespaceBlacklist {
-			if pod.ObjectMeta.Namespace == strings.ToLower(namespace) {
-				foundNamespace = true
-				break
-			}
-		}
-		if foundNamespace {
+		if namespaceIsBlocked(pod.ObjectMeta.Namespace) {
+			logrus.Debugf("Namespace %s blocked", pod.ObjectMeta.Namespace)
 			continue
 		}
 		owner := models.Resource{

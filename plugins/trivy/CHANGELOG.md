@@ -1,4 +1,12 @@
 # Changelog
+## 0.26.1
+* Fix issue when allowlist is not set
+
+## 0.26.0
+* Add namespace allowlist
+
+## 0.25.2
+* Update dependencies
 
 ## 0.25.1
 * update dependencies
