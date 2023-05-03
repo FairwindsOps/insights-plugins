@@ -115,7 +115,6 @@ func get30sIncreaseMetric(ctx context.Context, api prometheusV1.API, r prometheu
 	if err != nil {
 		return model.Matrix{}, err
 	}
-	logrus.Debugf("returning %s bytes values: %v", metric, spew.Sprintf("%v", values))
 
 	//adjusting values to 30s
 	var adjusted model.Matrix
@@ -131,6 +130,7 @@ func get30sIncreaseMetric(ctx context.Context, api prometheusV1.API, r prometheu
 		}
 		adjusted = append(adjusted, matrix)
 	}
+	logrus.Debugf("returning %s bytes values: %v", metric, spew.Sprintf("%v", adjusted))
 	return adjusted, nil
 }
 
