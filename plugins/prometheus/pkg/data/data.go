@@ -260,7 +260,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 			val.ControllerKind = workload.TopController.GetKind()
 		} else {
 			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
-			//logrus.Infof("Could not find owner for pod %s in namespace %s, using %s/%s", val.PodName, val.ControllerNamespace, val.ControllerKind, val.ControllerName)
+			logrus.Infof("Could not find owner for pod %s in namespace %s, using %s/%s", val.PodName, val.ControllerNamespace, val.ControllerKind, val.ControllerName)
 		}
 		requestArray = append(requestArray, val)
 	}
@@ -302,7 +302,7 @@ func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[st
 		podKey := fmt.Sprintf("%s/%s", sample.Metric["namespace"], sample.Metric["pod"])
 		workload, foundPod := workloadMap[podKey]
 		if !foundPod {
-			//logrus.Warnf("cannot split metrics across the pod's containers, no workload was found for %q", podKey)
+			logrus.Warnf("cannot split metrics across the pod's containers, no workload was found for %q", podKey)
 			continue
 		}
 		podContainers := workload.PodSpec.Containers
