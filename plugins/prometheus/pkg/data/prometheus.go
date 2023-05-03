@@ -96,50 +96,71 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 	return values.(model.Matrix), err
 }
 
-// getNetworkTransmitBytesIncludingBaseline queries prometheus for
+// getNetworkTransmitBytes queries prometheus for
 // container_network_transmit_bytes_total, which is a cumulative (total) metric.
-// the specified prometheus range will have its start-time expanded to include
-// an extra minute, to obtain a baseline to be
-// used elsewhere when converting the total values into deltas.
-func getNetworkTransmitBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
+func getNetworkTransmitBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
 	// This metric will return distinct metrics per network interface. The `without` clause
 	// factors that out.
-	query := `sum without (interface) (container_network_transmit_bytes_total)`
-	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
+	query := fmt.Sprintf(`increase(container_network_transmit_bytes_total{interface="eth0"}[%dm])`, minutes)
+	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
 	}
 	logrus.Debugf("returning network transmit bytes values: %v", spew.Sprintf("%v", values))
-	return values, nil
+
+	//adjusted values to 30s
+	var adjusted model.Matrix
+	for _, r := range values {
+		matrix := &model.SampleStream{
+			Metric: r.Metric,
+		}
+		matrix.Values = []model.SamplePair{}
+		if len(r.Values) > 0 {
+			newValue := r.Values[len(r.Values)-1]
+			newValue.Value = model.SampleValue((float64(newValue.Value)) / float64(2*minutes))
+			matrix.Values = append(matrix.Values, newValue)
+		}
+		adjusted = append(adjusted, matrix)
+	}
+	return adjusted, nil
 }
 
 // getNetworkReceiveBytesIncludingBaseline queries prometheus for
 // container_network_receive_bytes_total, which is a cumulative (total) metric.
-// the specified prometheus range will have its start-time expanded to include
-// an extra minute, to obtain a baseline to be
-// used elsewhere when converting the total values into deltas.
-func getNetworkReceiveBytesIncludingBaseline(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
+func getNetworkReceiveBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
 	// This metric will return distinct metrics per network interface. The `without` clause
 	// factors that out.
-	query := `sum without (interface) (container_network_receive_bytes_total)`
-	values, err := queryIncludingExtraLeadingMinuteOfData(ctx, api, r, query)
+	query := fmt.Sprintf(`increase(container_network_receive_bytes_total{interface="eth0"}[%dm])`, minutes)
+	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
 	}
 	logrus.Debugf("returning network receive bytes values: %v", spew.Sprintf("%v", values))
-	return values, nil
+
+	//adjusted values to 30s
+	var adjusted model.Matrix
+	for _, r := range values {
+		matrix := &model.SampleStream{
+			Metric: r.Metric,
+		}
+		matrix.Values = []model.SamplePair{}
+		if len(r.Values) > 0 {
+			newValue := r.Values[len(r.Values)-1]
+			newValue.Value = model.SampleValue((float64(newValue.Value)) / float64(2*minutes))
+			matrix.Values = append(matrix.Values, newValue)
+		}
+		adjusted = append(adjusted, matrix)
+	}
+	return adjusted, nil
+
 }
 
-// queryIncludingExtraLeadingMinuteOfData queries prometheus while extending
-// the beginning of the prometheus range to include an extra minute of
-// metrics. This is useful to obtain a baseline metric when converting total;
-// cumulitive metrics to ddelta metrics.
-func queryIncludingExtraLeadingMinuteOfData(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, query string) (model.Matrix, error) {
+func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, query string) (model.Matrix, error) {
 	if query == "" {
 		return model.Matrix{}, fmt.Errorf("query cannot be empty")
 	}
 	adjustedR := r
-	adjustedR.Start = adjustedR.Start.Add(-60 * time.Second) // adjust by a full minute to not scue all results
+	adjustedR.Start = adjustedR.End.Add(-360 * time.Second)
 	logrus.Debugf("adjusted the start of the prometheus range from %s to %s, to collect a baseline for query %q", r.Start.String(), adjustedR.Start.String(), query)
 	values, warnings, err := api.QueryRange(ctx, query, adjustedR)
 	for _, warning := range warnings {

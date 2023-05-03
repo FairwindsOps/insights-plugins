@@ -130,18 +130,41 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	}
 	logrus.Infof("Found %d metrics for cpuLimits", len(cpuLimits))
 
-	networkTransmit, err := getNetworkTransmitBytesIncludingBaseline(ctx, api, r)
+	lastMinutesAvg := 5
+	networkTransmit, err := getNetworkTransmitBytes(ctx, api, r, lastMinutesAvg)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for network transmit bytes", len(networkTransmit))
 
-	networkReceive, err := getNetworkReceiveBytesIncludingBaseline(ctx, api, r)
+	networkReceive, err := getNetworkReceiveBytes(ctx, api, r, lastMinutesAvg)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for network receive bytes", len(networkReceive))
 
+	total := 0.0
+	count := 0
+	for _, x := range networkReceive {
+		if len(x.Values) > 0 {
+			last := x.Values[len(x.Values)-1]
+			//fmt.Println(last.Value, x.Metric["pod"])
+			total = total + float64(last.Value)
+		}
+		count++
+	}
+	fmt.Println("TOTAL rec1==========", int64(total)*120*24/(1024*1024*1024), count)
+	total = 0.0
+	count = 0
+	for _, x := range networkTransmit {
+		if len(x.Values) > 0 {
+			last := x.Values[len(x.Values)-1]
+			//fmt.Println(last.Value, x.Metric["pod"])
+			total = total + float64(last.Value)
+		}
+		count++
+	}
+	fmt.Println("TOTAL trans1==========", int64(total)*120*24/(1024*1024*1024), count)
 	combinedRequests := make(map[string]CombinedRequest)
 	for _, cpuVal := range cpu {
 		key := getKey(cpuVal)
@@ -233,15 +256,6 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 
-	for _, networkVal := range networkTransmit {
-		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
-		if err != nil {
-			logrus.Warnf("while converting network transmit values from cumulitive to deltas: %v", err)
-			continue
-		}
-		networkVal.Values = deltaValues
-	}
-
 	networkTransmit = adjustMetricsForMultiContainerPods(networkTransmit, workloadMap)
 	for _, networkVal := range networkTransmit {
 		key := getKey(networkVal)
@@ -249,15 +263,6 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request.networkTransmit = networkVal.Values
 		request.Owner = getOwner(networkVal)
 		combinedRequests[key] = request
-	}
-
-	for _, networkVal := range networkReceive {
-		deltaValues, err := cumulitiveValuesToDeltaValues(networkVal.Values, r)
-		if err != nil {
-			logrus.Warnf("while converting network receive values from cumulitive to deltas: %v", err)
-			continue
-		}
-		networkVal.Values = deltaValues
 	}
 
 	networkReceive = adjustMetricsForMultiContainerPods(networkReceive, workloadMap)
@@ -277,10 +282,22 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 			val.ControllerKind = workload.TopController.GetKind()
 		} else {
 			val.ControllerName, val.ControllerKind = getController(workloads, val.PodName, val.ControllerNamespace)
-			logrus.Infof("Could not find owner for pod %s in namespace %s, using %s/%s", val.PodName, val.ControllerNamespace, val.ControllerKind, val.ControllerName)
+			//logrus.Infof("Could not find owner for pod %s in namespace %s, using %s/%s", val.PodName, val.ControllerNamespace, val.ControllerKind, val.ControllerName)
 		}
 		requestArray = append(requestArray, val)
 	}
+	totalrec := 0.0
+	totaltrans := 0.0
+	for _, x := range requestArray {
+		for _, y := range x.networkReceive {
+			totalrec = totalrec + float64(y.Value)
+		}
+		for _, y := range x.networkTransmit {
+			totaltrans = totaltrans + float64(y.Value)
+		}
+	}
+	fmt.Println("TOTAL rec========", int64(totalrec)*120*24/(1024*1024*1024))
+	fmt.Println("TOTAL trans======", int64(totaltrans)*120*24/(1024*1024*1024))
 	return requestArray, nil
 }
 
@@ -319,7 +336,7 @@ func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[st
 		podKey := fmt.Sprintf("%s/%s", sample.Metric["namespace"], sample.Metric["pod"])
 		workload, foundPod := workloadMap[podKey]
 		if !foundPod {
-			logrus.Warnf("cannot split metrics across the pod's containers, no workload was found for %q", podKey)
+			//logrus.Warnf("cannot split metrics across the pod's containers, no workload was found for %q", podKey)
 			continue
 		}
 		podContainers := workload.PodSpec.Containers
