@@ -31,6 +31,7 @@ import (
 )
 
 const urlFormat = "%s/v0/organizations/%s/clusters/%s/data/metrics"
+const minutesToCalculateNetworkIncrease = 5
 
 // GetClient returns a Prometheus API client for a given address
 func GetClient(address string) (prometheusV1.API, error) {
@@ -130,14 +131,13 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	}
 	logrus.Infof("Found %d metrics for cpuLimits", len(cpuLimits))
 
-	lastMinutesAvg := 5
-	networkTransmit, err := get30sNetworkTransmitBytes(ctx, api, r, lastMinutesAvg)
+	networkTransmit, err := get30sNetworkTransmitBytes(ctx, api, r, minutesToCalculateNetworkIncrease)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for network transmit bytes", len(networkTransmit))
 
-	networkReceive, err := get30sNetworkReceiveBytes(ctx, api, r, lastMinutesAvg)
+	networkReceive, err := get30sNetworkReceiveBytes(ctx, api, r, minutesToCalculateNetworkIncrease)
 	if err != nil {
 		return nil, err
 	}
