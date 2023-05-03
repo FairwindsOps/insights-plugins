@@ -396,35 +396,3 @@ func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[st
 	logrus.Infof("Added %d new metrics while splitting metrics of multi-container pods", len(newMetrics)-len(metrics))
 	return newMetrics
 }
-
-// cumulitiveValuesToDeltaValues converts the slice of model.SamplePair from
-// total; cumulitive values, into delta ones. This expects the slice of
-// SamplePair to have at least one value outside of the time range specified by the
-// prometheusV1.Range, which will be used as a baseline value to calculate the
-// first delta value.
-func cumulitiveValuesToDeltaValues(v []model.SamplePair, r prometheusV1.Range) ([]model.SamplePair, error) {
-	logrus.Debugf("converting %d values from cumulitive into delta ones, within the time-range %s - %s", len(v), r.Start, r.End)
-	indexOfValuesStartingOriginalRange := -1 // sentinal value
-	for i := len(v) - 1; i >= 0; i-- {
-		logrus.Debugf("index %d is value=%.1f, timestamp=%s", i, v[i].Value, v[i].Timestamp.Time().UTC().String())
-		if v[i].Timestamp.Time().After(r.End) { // timestamp after the prometheus range
-			logrus.Debugf("ignoring index %d (value %.1f) because its time %s is later than the prometheus range %s", i, v[i].Value, v[i].Timestamp.String(), r.End.String())
-			continue
-		}
-		if v[i].Timestamp.Time().Before(r.Start) { // timestamp before the prometheus range
-			logrus.Debugf("index %d is the base value used to calculate subsequent deltas, because it falls outside the prometheus range beginning at %s", i, r.Start.String())
-			indexOfValuesStartingOriginalRange = i + 1
-			break
-		}
-		if i >= 1 { // avoid panic if i-1 is < 0
-			v[i].Value = v[i].Value - v[i-1].Value
-			logrus.Debugf("the new delta value for index %d is %.1f", i, v[i].Value)
-		}
-	}
-	if indexOfValuesStartingOriginalRange == -1 { // never found a base value for all other delta values
-		return nil, fmt.Errorf("deltas could not be created from totals because there were no metrics outside of this prometheus range ot establish a baseline: %#v", r)
-	}
-	v = v[indexOfValuesStartingOriginalRange:]
-	logrus.Debugf("the %d values will be shrunk by %d as index %d was the start of values within the prometheus range", len(v), indexOfValuesStartingOriginalRange+1, indexOfValuesStartingOriginalRange)
-	return v, nil
-}
