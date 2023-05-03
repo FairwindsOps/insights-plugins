@@ -131,13 +131,13 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	logrus.Infof("Found %d metrics for cpuLimits", len(cpuLimits))
 
 	lastMinutesAvg := 5
-	networkTransmit, err := getNetworkTransmitBytes(ctx, api, r, lastMinutesAvg)
+	networkTransmit, err := get30sNetworkTransmitBytes(ctx, api, r, lastMinutesAvg)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for network transmit bytes", len(networkTransmit))
 
-	networkReceive, err := getNetworkReceiveBytes(ctx, api, r, lastMinutesAvg)
+	networkReceive, err := get30sNetworkReceiveBytes(ctx, api, r, lastMinutesAvg)
 	if err != nil {
 		return nil, err
 	}

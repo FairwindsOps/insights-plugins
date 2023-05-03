@@ -24,6 +24,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	containerNetworkReceiveBytesTotal  = "container_network_receive_bytes_total"
+	containerNetworkTransmitBytesTotal = "container_network_transmit_bytes_total"
+)
+
 func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
 	query := `container_memory_usage_bytes{image!="", container!="POD", container!=""}`
 	values, warnings, err := api.QueryRange(ctx, query, r)
@@ -96,48 +101,23 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 	return values.(model.Matrix), err
 }
 
-// getNetworkTransmitBytes queries prometheus for
-// container_network_transmit_bytes_total, which is a cumulative (total) metric.
-func getNetworkTransmitBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
-	// This metric will return distinct metrics per network interface. The `without` clause
-	// factors that out.
-	query := fmt.Sprintf(`increase(container_network_transmit_bytes_total{interface="eth0"}[%dm])`, minutes)
-	values, err := queryPrometheus(ctx, api, r, query)
-	if err != nil {
-		return model.Matrix{}, err
-	}
-	logrus.Debugf("returning network transmit bytes values: %v", spew.Sprintf("%v", values))
-
-	//adjusted values to 30s
-	var adjusted model.Matrix
-	for _, r := range values {
-		matrix := &model.SampleStream{
-			Metric: r.Metric,
-		}
-		matrix.Values = []model.SamplePair{}
-		if len(r.Values) > 0 {
-			newValue := r.Values[len(r.Values)-1]
-			newValue.Value = model.SampleValue((float64(newValue.Value)) / float64(2*minutes))
-			matrix.Values = append(matrix.Values, newValue)
-		}
-		adjusted = append(adjusted, matrix)
-	}
-	return adjusted, nil
+func get30sNetworkReceiveBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
+	return get30sIncreaseMetric(ctx, api, r, containerNetworkReceiveBytesTotal, minutes)
 }
 
-// getNetworkReceiveBytesIncludingBaseline queries prometheus for
-// container_network_receive_bytes_total, which is a cumulative (total) metric.
-func getNetworkReceiveBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
-	// This metric will return distinct metrics per network interface. The `without` clause
-	// factors that out.
-	query := fmt.Sprintf(`increase(container_network_receive_bytes_total{interface="eth0"}[%dm])`, minutes)
+func get30sNetworkTransmitBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
+	return get30sIncreaseMetric(ctx, api, r, containerNetworkTransmitBytesTotal, minutes)
+}
+
+func get30sIncreaseMetric(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, metric string, minutes int) (model.Matrix, error) {
+	query := fmt.Sprintf(`increase(%s{interface="eth0"}[%dm])`, metric, minutes)
 	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
 	}
-	logrus.Debugf("returning network receive bytes values: %v", spew.Sprintf("%v", values))
+	logrus.Debugf("returning %s bytes values: %v", metric, spew.Sprintf("%v", values))
 
-	//adjusted values to 30s
+	//adjusting values to 30s
 	var adjusted model.Matrix
 	for _, r := range values {
 		matrix := &model.SampleStream{
@@ -146,13 +126,12 @@ func getNetworkReceiveBytes(ctx context.Context, api prometheusV1.API, r prometh
 		matrix.Values = []model.SamplePair{}
 		if len(r.Values) > 0 {
 			newValue := r.Values[len(r.Values)-1]
-			newValue.Value = model.SampleValue((float64(newValue.Value)) / float64(2*minutes))
+			newValue.Value = model.SampleValue((float64(newValue.Value)) / float64(2*minutes)) // 30s adjustment /2 /minutes
 			matrix.Values = append(matrix.Values, newValue)
 		}
 		adjusted = append(adjusted, matrix)
 	}
 	return adjusted, nil
-
 }
 
 func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, query string) (model.Matrix, error) {
