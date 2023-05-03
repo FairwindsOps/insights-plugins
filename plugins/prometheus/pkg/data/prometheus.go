@@ -160,7 +160,7 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 		return model.Matrix{}, fmt.Errorf("query cannot be empty")
 	}
 	adjustedR := r
-	adjustedR.Start = adjustedR.End.Add(-360 * time.Second)
+	adjustedR.Start = adjustedR.End.Add(-60 * time.Second)
 	logrus.Debugf("adjusted the start of the prometheus range from %s to %s, to collect a baseline for query %q", r.Start.String(), adjustedR.Start.String(), query)
 	values, warnings, err := api.QueryRange(ctx, query, adjustedR)
 	for _, warning := range warnings {

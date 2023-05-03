@@ -143,28 +143,6 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	}
 	logrus.Infof("Found %d metrics for network receive bytes", len(networkReceive))
 
-	total := 0.0
-	count := 0
-	for _, x := range networkReceive {
-		if len(x.Values) > 0 {
-			last := x.Values[len(x.Values)-1]
-			//fmt.Println(last.Value, x.Metric["pod"])
-			total = total + float64(last.Value)
-		}
-		count++
-	}
-	fmt.Println("TOTAL rec1==========", int64(total)*120*24/(1024*1024*1024), count)
-	total = 0.0
-	count = 0
-	for _, x := range networkTransmit {
-		if len(x.Values) > 0 {
-			last := x.Values[len(x.Values)-1]
-			//fmt.Println(last.Value, x.Metric["pod"])
-			total = total + float64(last.Value)
-		}
-		count++
-	}
-	fmt.Println("TOTAL trans1==========", int64(total)*120*24/(1024*1024*1024), count)
 	combinedRequests := make(map[string]CombinedRequest)
 	for _, cpuVal := range cpu {
 		key := getKey(cpuVal)
@@ -286,18 +264,6 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		}
 		requestArray = append(requestArray, val)
 	}
-	totalrec := 0.0
-	totaltrans := 0.0
-	for _, x := range requestArray {
-		for _, y := range x.networkReceive {
-			totalrec = totalrec + float64(y.Value)
-		}
-		for _, y := range x.networkTransmit {
-			totaltrans = totaltrans + float64(y.Value)
-		}
-	}
-	fmt.Println("TOTAL rec========", int64(totalrec)*120*24/(1024*1024*1024))
-	fmt.Println("TOTAL trans======", int64(totaltrans)*120*24/(1024*1024*1024))
 	return requestArray, nil
 }
 
