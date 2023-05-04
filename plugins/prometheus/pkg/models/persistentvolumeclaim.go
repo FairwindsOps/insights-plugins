@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
@@ -141,54 +140,29 @@ func (s *StorageInfo) AddPVCRef(PVCName, podKey string) {
 // specified in the prometheusV1.Range.
 func (s *StorageInfo) ManufactureMetrics(r prometheusV1.Range) model.Matrix {
 	newMetrics := make(model.Matrix, 0)
-	for _, PVC := range s.pvcs {
-		for refIndex, ref := range PVC.refs { // Iterate pods (namespace/name) that reference this PVC
+	for _, pvc := range s.pvcs {
+		for _, ref := range pvc.refs { // Iterate pods (namespace/name) that reference this PVC
 			refFields := strings.Split(ref, "/") // split namespace and pod-name to include in metrics
 			if len(refFields) < 2 {
-				logrus.Warnf("cannot split PersistentVolumeClaim ref %q by slash, to get namespace and name, this PersistentVolumeClaim reference will not have metrics", ref)
+				logrus.Infof("cannot split PersistentVolumeClaim ref %q by slash, to get namespace and name, this PersistentVolumeClaim reference will not have metrics", ref)
 				continue
 			}
 			newSample := &model.SampleStream{}
 			newSample.Metric = make(model.Metric)
 			newSample.Metric["namespace"] = model.LabelValue(refFields[0])
 			newSample.Metric["pod"] = model.LabelValue(refFields[1])
-			// `newSample.Metric[container]` is populated elsewhere by a call to
-			// adjustMetricsForMultiContainerPods().
-			var refMetricValue int64
-			totalCapacityForPod := float64(s.totalCapacityPerPod[ref])
-			numRefsFloat := float64(PVC.numRefs())
-			if PVC.numRefs() == 1 {
-				refMetricValue = s.totalCapacityPerPod[ref]
-			} else if refIndex == 0 { // first pod that uses this PVC
-				refMetricValue = int64(math.Floor(totalCapacityForPod/numRefsFloat) + math.Mod(totalCapacityForPod, numRefsFloat)) // total divided by number of pod-references + the remainder
-			} else {
-				refMetricValue = int64(math.Floor(totalCapacityForPod / numRefsFloat)) // Division without remainder.
+			refMetricValue := int64(float64(s.totalCapacityPerPod[ref]))
+			newSample.Values = []model.SamplePair{
+				{
+					Timestamp: model.Time(r.Start.UnixMilli()),
+					Value:     model.SampleValue(refMetricValue),
+				},
 			}
-			newSample.Values = useThisValueForEveryStepInRange(model.SampleValue(refMetricValue), r)
 			newMetrics = append(newMetrics, newSample)
-			logrus.Debugf("using value %d for storage-capacity metric pod=%s, PVC=%s", refMetricValue, ref, PVC.name)
+			logrus.Debugf("using value %d for storage-capacity metric pod=%s, PVC=%s", refMetricValue, ref, pvc.name)
 		}
 	}
 	return newMetrics
-}
-
-// useThisValueForEveryStepInRange reflects a single value in a slice of
-// metrics. This returns a slice of model.SamplePair with
-// one element for each time-step of the prometheusV1.Range, and all values
-// set to the specified model.SampleValue.
-func useThisValueForEveryStepInRange(v model.SampleValue, r prometheusV1.Range) []model.SamplePair {
-	numStepsInRange := int(r.End.Sub(r.Start).Seconds() / r.Step.Seconds()) // number of time-steps between the start and end time
-	values := make([]model.SamplePair, numStepsInRange)
-	logrus.Debugf("setting value %.1f for all %d steps in the prometheus range %s-%s\n", v, numStepsInRange, r.Start, r.End)
-	t := r.Start
-	for i := 0; i <= numStepsInRange-1; i++ {
-		values[i] = model.SamplePair{
-			Timestamp: model.Time(t.UnixMilli()), // Convert from time.Time to the prometheus model.Time
-			Value:     v,
-		}
-		t = t.Add(r.Step) // advance the time-step for the next loop iteration.
-	}
-	return values
 }
 
 // capacityString2Int uses a resource.Quantity type to convert a capacity with
