@@ -101,11 +101,11 @@ func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (mo
 	return values.(model.Matrix), err
 }
 
-func get30sNetworkReceiveBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
+func getNetworkReceiveBytesFor30s(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
 	return get30sIncreaseMetric(ctx, api, r, containerNetworkReceiveBytesTotal, minutes)
 }
 
-func get30sNetworkTransmitBytes(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
+func getNetworkTransmitBytesFor30s(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, minutes int) (model.Matrix, error) {
 	return get30sIncreaseMetric(ctx, api, r, containerNetworkTransmitBytesTotal, minutes)
 }
 

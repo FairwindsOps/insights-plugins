@@ -144,7 +144,7 @@ func (s *StorageInfo) ManufactureMetrics(r prometheusV1.Range) model.Matrix {
 		for _, ref := range pvc.refs { // Iterate pods (namespace/name) that reference this PVC
 			refFields := strings.Split(ref, "/") // split namespace and pod-name to include in metrics
 			if len(refFields) < 2 {
-				logrus.Infof("cannot split PersistentVolumeClaim ref %q by slash, to get namespace and name, this PersistentVolumeClaim reference will not have metrics", ref)
+				logrus.Warnf("cannot split PersistentVolumeClaim ref %q by slash, to get namespace and name, this PersistentVolumeClaim reference will not have metrics", ref)
 				continue
 			}
 			newSample := &model.SampleStream{}
