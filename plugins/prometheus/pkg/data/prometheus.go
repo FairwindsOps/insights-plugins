@@ -121,10 +121,10 @@ func get30sIncreaseMetric(ctx context.Context, api prometheusV1.API, r prometheu
 	for _, r := range values {
 		matrix := &model.SampleStream{
 			Metric: r.Metric,
+			Values: []model.SamplePair{},
 		}
-		matrix.Values = []model.SamplePair{}
-		if len(r.Values) > 0 {
-			newValue := r.Values[len(r.Values)-1]
+		for _, v := range r.Values {
+			newValue := v
 			newValue.Value = model.SampleValue((float64(newValue.Value)) / float64(2*minutes)) // 30s adjustment /2 /minutes
 			matrix.Values = append(matrix.Values, newValue)
 		}
@@ -139,7 +139,7 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 		return model.Matrix{}, fmt.Errorf("query cannot be empty")
 	}
 	adjustedR := r
-	adjustedR.Start = adjustedR.End.Add(-60 * time.Second)
+	adjustedR.Start = adjustedR.Start.Add(-60 * time.Second) // adjust by a full minute
 	logrus.Debugf("adjusted the start of the prometheus range from %s to %s, to collect a baseline for query %q", r.Start.String(), adjustedR.Start.String(), query)
 	values, warnings, err := api.QueryRange(ctx, query, adjustedR)
 	for _, warning := range warnings {

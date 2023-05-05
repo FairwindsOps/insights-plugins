@@ -151,13 +151,9 @@ func (s *StorageInfo) ManufactureMetrics(r prometheusV1.Range) model.Matrix {
 			newSample.Metric = make(model.Metric)
 			newSample.Metric["namespace"] = model.LabelValue(refFields[0])
 			newSample.Metric["pod"] = model.LabelValue(refFields[1])
-			refMetricValue := int64(float64(s.totalCapacityPerPod[ref]))
-			newSample.Values = []model.SamplePair{
-				{
-					Timestamp: model.Time(r.Start.UnixMilli()),
-					Value:     model.SampleValue(refMetricValue),
-				},
-			}
+			totalCapacityForPod := float64(s.totalCapacityPerPod[ref])
+			refMetricValue := int64(totalCapacityForPod)
+			newSample.Values = useThisValueForEveryStepInRange(model.SampleValue(refMetricValue), r)
 			newMetrics = append(newMetrics, newSample)
 			logrus.Debugf("using value %d for storage-capacity metric pod=%s, PVC=%s", refMetricValue, ref, pvc.name)
 		}
@@ -178,4 +174,23 @@ func capacityString2Int(capacityStr string) (capacityInt int64, err error) {
 	}
 	logrus.Debugf("parsed capacity %q as %d bytes", capacityStr, capacityInt)
 	return capacityInt, nil
+}
+
+// useThisValueForEveryStepInRange reflects a single value in a slice of
+// metrics. This returns a slice of model.SamplePair with
+// one element for each time-step of the prometheusV1.Range, and all values
+// set to the specified model.SampleValue.
+func useThisValueForEveryStepInRange(v model.SampleValue, r prometheusV1.Range) []model.SamplePair {
+	numStepsInRange := int(r.End.Sub(r.Start).Seconds() / r.Step.Seconds()) // number of time-steps between the start and end time
+	values := make([]model.SamplePair, numStepsInRange)
+	logrus.Debugf("setting value %.1f for all %d steps in the prometheus range %s-%s\n", v, numStepsInRange, r.Start, r.End)
+	t := r.Start
+	for i := 0; i <= numStepsInRange-1; i++ {
+		values[i] = model.SamplePair{
+			Timestamp: model.Time(t.UnixMilli()), // Convert from time.Time to the prometheus model.Time
+			Value:     v,
+		}
+		t = t.Add(r.Step) // advance the time-step for the next loop iteration.
+	}
+	return values
 }
