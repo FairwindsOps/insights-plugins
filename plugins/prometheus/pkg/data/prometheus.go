@@ -16,7 +16,6 @@ package data
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	prometheusV1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -138,10 +137,7 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	if query == "" {
 		return model.Matrix{}, fmt.Errorf("query cannot be empty")
 	}
-	adjustedR := r
-	adjustedR.Start = adjustedR.Start.Add(-60 * time.Second) // adjust by a full minute
-	logrus.Debugf("adjusted the start of the prometheus range from %s to %s, to collect a baseline for query %q", r.Start.String(), adjustedR.Start.String(), query)
-	values, warnings, err := api.QueryRange(ctx, query, adjustedR)
+	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
 	}
