@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.3.4
+* Prometheus bug fix
 ## 1.3.3
 * storage metric bug fix
 ## 1.3.2
