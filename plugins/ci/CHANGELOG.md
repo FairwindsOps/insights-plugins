@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.0.4
+* Add some debug logs for Trivy, as well as fallback names
+
 ## 5.0.3
 * Update dependencies
 

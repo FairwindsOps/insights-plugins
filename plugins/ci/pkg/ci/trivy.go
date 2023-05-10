@@ -40,6 +40,10 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 		logrus.Debugf("error returned while merging images: %v", err)
 		multierror.Append(allErrs, err)
 	}
+	logrus.Debugf("Will scan the following images:")
+	for _, im := range allImages {
+		logrus.Debugf("  %s", im.Name)
+	}
 
 	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)
 	if err != nil {
@@ -116,6 +120,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 	// Download missing images
 	for _, image := range manifestImages {
 		if image.PullRef != "" {
+			logrus.Warningf("No PullRef found for manifest image %s", image.Name)
 			continue
 		}
 		if ref, ok := refLookup[image.Name]; ok {
@@ -123,8 +128,10 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			continue
 		}
 		rc := registryCredentials.FindCredentialForImage(image.Name)
+		logrus.Infof("Downloading image found in manifest: %s", image.Name)
 		output, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
+			logrus.Errorf("Error while downloading manifest image %s", image.Name)
 			allErrs = multierror.Append(allErrs, fmt.Errorf("%v: %s", err, output))
 		} else {
 			image.PullRef = clearString(image.Name)
@@ -134,6 +141,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 
 	for _, image := range dockerImages {
 		if image.PullRef != "" {
+			logrus.Warningf("No PullRef found for image in fairwinds-insights.yaml %s", image.Name)
 			continue
 		}
 		if ref, ok := refLookup[image.Name]; ok {
@@ -141,13 +149,19 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			continue
 		}
 		rc := registryCredentials.FindCredentialForImage(image.Name)
+		logrus.Infof("Downloading image found in fairwinds-insights.yaml: %s", image.Name)
 		output, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
+			logrus.Errorf("Error while downloading image in fairwinds-insights.yaml: %s", image.Name)
 			allErrs = multierror.Append(allErrs, fmt.Errorf("%v: %s", err, output))
 		} else {
 			image.PullRef = clearString(image.Name)
 			refLookup[image.Name] = image.PullRef
 		}
+	}
+	logrus.Debugf("Reference map:")
+	for k, v := range refLookup {
+		logrus.Debugf("  %s -> %s", k, v)
 	}
 	if len(allErrs.Errors) > 0 {
 		return ciutil.ReverseMap(refLookup), models.ScanErrorsReportResult{
@@ -224,6 +238,15 @@ func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, mani
 			if n, ok := filenameToImageName[filename]; ok {
 				name = n
 				ownerName = determineOwnerName(n, dockerImages)
+			} else {
+				logrus.Warningf("No image name found for file %s. Falling back to fairwinds-insights.yaml", filename)
+				for _, fwiIm := range dockerImages {
+					if cleanImage(fwiIm.Name) == filename {
+						name = fwiIm.Name
+						logrus.Warningf("Found fallback name %s for %s", fwiIm.Name, filename)
+						break
+					}
+				}
 			}
 			image = &trivymodels.Image{
 				Name:    name,
