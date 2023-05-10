@@ -241,7 +241,7 @@ func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, mani
 			} else {
 				logrus.Warningf("No image name found for file %s. Falling back to fairwinds-insights.yaml", filename)
 				for _, fwiIm := range dockerImages {
-					if cleanImage(fwiIm.Name) == filename {
+					if clearString(fwiIm.Name) == filename {
 						name = fwiIm.Name
 						logrus.Warningf("Found fallback name %s for %s", fwiIm.Name, filename)
 						break
