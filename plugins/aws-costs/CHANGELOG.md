@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.2
+* Added new fields line_item_usage_amount, line_item_operation, product_product_family
+
 ## 1.2.1
 * update dependencies
 
