@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
@@ -141,8 +140,8 @@ func (s *StorageInfo) AddPVCRef(PVCName, podKey string) {
 // specified in the prometheusV1.Range.
 func (s *StorageInfo) ManufactureMetrics(r prometheusV1.Range) model.Matrix {
 	newMetrics := make(model.Matrix, 0)
-	for _, PVC := range s.pvcs {
-		for refIndex, ref := range PVC.refs { // Iterate pods (namespace/name) that reference this PVC
+	for _, pvc := range s.pvcs {
+		for _, ref := range pvc.refs { // Iterate pods (namespace/name) that reference this PVC
 			refFields := strings.Split(ref, "/") // split namespace and pod-name to include in metrics
 			if len(refFields) < 2 {
 				logrus.Warnf("cannot split PersistentVolumeClaim ref %q by slash, to get namespace and name, this PersistentVolumeClaim reference will not have metrics", ref)
@@ -152,24 +151,29 @@ func (s *StorageInfo) ManufactureMetrics(r prometheusV1.Range) model.Matrix {
 			newSample.Metric = make(model.Metric)
 			newSample.Metric["namespace"] = model.LabelValue(refFields[0])
 			newSample.Metric["pod"] = model.LabelValue(refFields[1])
-			// `newSample.Metric[container]` is populated elsewhere by a call to
-			// adjustMetricsForMultiContainerPods().
-			var refMetricValue int64
 			totalCapacityForPod := float64(s.totalCapacityPerPod[ref])
-			numRefsFloat := float64(PVC.numRefs())
-			if PVC.numRefs() == 1 {
-				refMetricValue = s.totalCapacityPerPod[ref]
-			} else if refIndex == 0 { // first pod that uses this PVC
-				refMetricValue = int64(math.Floor(totalCapacityForPod/numRefsFloat) + math.Mod(totalCapacityForPod, numRefsFloat)) // total divided by number of pod-references + the remainder
-			} else {
-				refMetricValue = int64(math.Floor(totalCapacityForPod / numRefsFloat)) // Division without remainder.
-			}
+			refMetricValue := int64(totalCapacityForPod)
 			newSample.Values = useThisValueForEveryStepInRange(model.SampleValue(refMetricValue), r)
 			newMetrics = append(newMetrics, newSample)
-			logrus.Debugf("using value %d for storage-capacity metric pod=%s, PVC=%s", refMetricValue, ref, PVC.name)
+			logrus.Debugf("using value %d for storage-capacity metric pod=%s, PVC=%s", refMetricValue, ref, pvc.name)
 		}
 	}
 	return newMetrics
+}
+
+// capacityString2Int uses a resource.Quantity type to convert a capacity with
+// units (5 Gi) into bytes.
+func capacityString2Int(capacityStr string) (capacityInt int64, err error) {
+	capacityQuantity, err := resource.ParseQuantity(capacityStr)
+	if err != nil {
+		return 0, fmt.Errorf("unable to convert the capacity string %q to a resource.Quantity: %v", capacityStr, err)
+	}
+	capacityInt, ok := capacityQuantity.AsInt64()
+	if !ok {
+		return 0, fmt.Errorf("unable to get the integer form of a capacity %q via a resource.Quantity type %#v", capacityStr, capacityQuantity)
+	}
+	logrus.Debugf("parsed capacity %q as %d bytes", capacityStr, capacityInt)
+	return capacityInt, nil
 }
 
 // useThisValueForEveryStepInRange reflects a single value in a slice of
@@ -189,19 +193,4 @@ func useThisValueForEveryStepInRange(v model.SampleValue, r prometheusV1.Range) 
 		t = t.Add(r.Step) // advance the time-step for the next loop iteration.
 	}
 	return values
-}
-
-// capacityString2Int uses a resource.Quantity type to convert a capacity with
-// units (5 Gi) into bytes.
-func capacityString2Int(capacityStr string) (capacityInt int64, err error) {
-	capacityQuantity, err := resource.ParseQuantity(capacityStr)
-	if err != nil {
-		return 0, fmt.Errorf("unable to convert the capacity string %q to a resource.Quantity: %v", capacityStr, err)
-	}
-	capacityInt, ok := capacityQuantity.AsInt64()
-	if !ok {
-		return 0, fmt.Errorf("unable to get the integer form of a capacity %q via a resource.Quantity type %#v", capacityStr, capacityQuantity)
-	}
-	logrus.Debugf("parsed capacity %q as %d bytes", capacityStr, capacityInt)
-	return capacityInt, nil
 }
