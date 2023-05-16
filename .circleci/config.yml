@@ -309,6 +309,9 @@ workflows:
       - scan_for_vulnerabilities:
           requires:
             - build_and_push_plugins
+          filters:
+            branches:
+              only: main
       - ci_plugin_e2e:
           requires:
             - build_and_push_plugins
