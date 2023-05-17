@@ -19,7 +19,19 @@ for d in ./plugins/*/ ; do
     images+=($name)
 done
 
+echo "regenerating image list in fairwinds-insights.yaml"
+sed -i -n '/images:/q;p' fairwinds-insights.yaml
+echo -e "images:" >> ./fairwinds-insights.yaml
+echo -e "  docker:" >> ./fairwinds-insights.yaml
 for name in "${images[@]}"; do
+  echo -e "    - $name" >> ./fairwinds-insights.yaml
+done
+
+echo "scanning all images"
+for name in "${images[@]}"; do
+    if [[ $SKIP_TRIVY == "true" ]]; then
+      break
+    fi
     echo "scanning $name"
     docker pull $name
 

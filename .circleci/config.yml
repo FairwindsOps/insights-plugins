@@ -191,8 +191,14 @@ jobs:
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
       - run: ./scripts/scan-all.sh
+      - run: |
+          if ! git diff --exit-code fairwinds-insights.yaml; then
+            echo "Please run `SKIP_TRIVY=true ./scripts/scan-all.sh` to regenerate fairwinds-insights.yaml"
+            exit 1
+          fi
       - slack/notify:
           event: fail
+          branch_pattern: main
           custom: |
             {
                 "text": "One or more images in insights-plugins have vulnerabilities",
@@ -208,6 +214,7 @@ jobs:
             }
       - slack/notify:
           event: pass
+          branch_pattern: main
           custom: |
             {
                 "text": "All images in insights-plugins are clean",
@@ -302,9 +309,6 @@ workflows:
       - scan_for_vulnerabilities:
           requires:
             - build_and_push_plugins
-          filters:
-            branches:
-              only: main
       - ci_plugin_e2e:
           requires:
             - build_and_push_plugins
