@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 
+	workloads "github.com/fairwindsops/insights-plugins/plugins/workloads/pkg"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -21,22 +23,18 @@ func main() {
 
 	dynamic, restMapper, kube, clusterName, err := getKubeClient()
 	if err != nil {
-		panic(err)
+		logrus.Fatalf("Error fetching Kubernetes client %v", err)
 	}
-
 	logrus.Info("connected to kube")
 
-	resources, err := CreateResourceProviderFromAPI(ctx, dynamic, restMapper, kube, clusterName)
-
+	resources, err := workloads.CreateResourceProviderFromAPI(ctx, dynamic, restMapper, kube, clusterName)
 	if err != nil {
 		logrus.Fatalf("Error fetching Kubernetes resources %v", err)
 	}
 	logrus.Info("got resources")
 
 	var outputBytes []byte
-
 	outputBytes, err = json.MarshalIndent(resources, "", "  ")
-
 	if err != nil {
 		logrus.Fatalf("Error marshalling audit: %v", err)
 	}
@@ -50,32 +48,25 @@ func main() {
 }
 
 func getKubeClient() (dynamic.Interface, meta.RESTMapper, kubernetes.Interface, string, error) {
-	var restMapper meta.RESTMapper
-	var dynamicClient dynamic.Interface
-	var kube kubernetes.Interface
-	kubeConf, configError := ctrl.GetConfig()
-	if configError != nil {
-		logrus.Errorf("Error fetching KubeConfig: %v", configError)
-		return dynamicClient, restMapper, kube, kubeConf.Host, configError
+	kubeConf, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, nil, nil, "", fmt.Errorf("fetching KubeConfig: %w", err)
 	}
 
 	kube, err := kubernetes.NewForConfig(kubeConf)
 	if err != nil {
-		logrus.Errorf("Error creating Kubernetes client: %v", err)
-		return dynamicClient, restMapper, kube, kubeConf.Host, err
+		return nil, nil, nil, "", fmt.Errorf("creating Kubernetes client: %w", err)
 	}
 
-	dynamicClient, err = dynamic.NewForConfig(kubeConf)
+	dynamicClient, err := dynamic.NewForConfig(kubeConf)
 	if err != nil {
-		logrus.Errorf("Error creating Dynamic client: %v", err)
-		return dynamicClient, restMapper, kube, kubeConf.Host, err
+		return nil, nil, nil, "", fmt.Errorf("creating Dynamic client: %v", err)
 	}
 
 	resources, err := restmapper.GetAPIGroupResources(kube.Discovery())
 	if err != nil {
-		logrus.Errorf("Error getting API Group resources: %v", err)
-		return dynamicClient, restMapper, kube, kubeConf.Host, err
+		return nil, nil, nil, "", fmt.Errorf("getting API Group resources: %v", err)
 	}
-	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
+	restMapper := restmapper.NewDiscoveryRESTMapper(resources)
 	return dynamicClient, restMapper, kube, kubeConf.Host, nil
 }
