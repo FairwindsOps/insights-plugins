@@ -60,12 +60,12 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, kubernetes.Interface, 
 
 	dynamicClient, err := dynamic.NewForConfig(kubeConf)
 	if err != nil {
-		return nil, nil, nil, "", fmt.Errorf("creating Dynamic client: %v", err)
+		return nil, nil, nil, "", fmt.Errorf("creating Dynamic client: %w", err)
 	}
 
 	resources, err := restmapper.GetAPIGroupResources(kube.Discovery())
 	if err != nil {
-		return nil, nil, nil, "", fmt.Errorf("getting API Group resources: %v", err)
+		return nil, nil, nil, "", fmt.Errorf("getting API Group resources: %w", err)
 	}
 	restMapper := restmapper.NewDiscoveryRESTMapper(resources)
 	return dynamicClient, restMapper, kube, kubeConf.Host, nil
