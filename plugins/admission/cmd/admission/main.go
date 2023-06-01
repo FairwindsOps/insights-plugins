@@ -123,6 +123,10 @@ func main() {
 		CertDir:                "/opt/cert",
 		HealthProbeBindAddress: ":8081",
 		Port:                   int(webhookPort),
+		WebhookServer: webhook.NewServer(webhook.Options{
+			CertName: "tls.crt",
+			KeyName:  "tls.key",
+		}),
 	})
 	if err != nil {
 		exitWithError("Unable to set up overall controller manager", err)
@@ -148,9 +152,6 @@ func main() {
 		time.Sleep(time.Second * 10)
 		panic("Cert does not exist")
 	}
-	server := mgr.GetWebhookServer()
-	server.CertName = "tls.crt"
-	server.KeyName = "tls.key"
 
 	mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: handler})
 	mgr.GetWebhookServer().Register("/mutate", &webhook.Admission{Handler: &mutatorHandler})
