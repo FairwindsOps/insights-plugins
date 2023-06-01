@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.10
+* exposing workloads package version
+
 ## 2.4.9
 * refactoring to make workloads a package
 
