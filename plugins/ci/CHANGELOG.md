@@ -1,7 +1,7 @@
 # Changelog
 
 ## 5.0.4
-* Update polaris from 7.4.1 to 8.0.0
+* Update dependencies
 
 ## 5.0.3
 * Update dependencies
