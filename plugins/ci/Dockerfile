@@ -1,4 +1,4 @@
-FROM alpine:3.17 AS downloader
+FROM alpine:3.18 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV tfsecVersion=1.28.1
@@ -17,7 +17,7 @@ RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVers
 
 RUN DESIRED_VERSION=$helmVersion curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
-FROM alpine:3.17
+FROM alpine:3.18
 WORKDIR /insights
 RUN apk -U upgrade
 RUN apk add --no-cache skopeo git libc6-compat
