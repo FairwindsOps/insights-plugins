@@ -1,4 +1,8 @@
 # Changelog
+
+## 0.26.2
+* update dependencies
+
 ## 0.26.1
 * Fix issue when allowlist is not set
 
