@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.10
+* update dependencies
+
 ## 0.4.9
 * update dependencies
 
