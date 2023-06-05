@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.1.0
+* Update dependencies
+
 ## 5.0.4
 * Update dependencies
 
