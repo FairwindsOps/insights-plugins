@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.1
+* Fix webhook server `cert-dir` and `port` after `sigs.k8s.io/controller-runtime` upgrade
+
 ## 1.10.0
 * Update dependencies (polaris 8.0.0)
 
