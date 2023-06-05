@@ -120,10 +120,10 @@ func main() {
 	}
 
 	mgr, err := manager.New(k8sCfg, manager.Options{
-		CertDir:                "/opt/cert",
 		HealthProbeBindAddress: ":8081",
-		Port:                   int(webhookPort),
 		WebhookServer: webhook.NewServer(webhook.Options{
+			Port:     int(webhookPort),
+			CertDir:  "/opt/cert",
 			CertName: "tls.crt",
 			KeyName:  "tls.key",
 		}),
