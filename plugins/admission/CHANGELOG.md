@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.0
+* Update dependencies (polaris 8.0.0)
+
 ## 1.9.9
 * Update dependencies
 
