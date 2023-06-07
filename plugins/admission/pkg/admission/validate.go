@@ -32,6 +32,11 @@ const (
 	webhookFailurePolicyFail   = iota
 )
 
+// Admission webhooks can optionally return warning messages that are returned to
+// therequesting client in HTTP Warning headers with a warning code of 299
+// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#response
+const httpStatusMiscPersistentWarning = 299
+
 func (w webhookFailurePolicy) String() string {
 	var result string
 	switch w {
@@ -154,6 +159,13 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
 	if len(warnings) > 0 {
 		response.Warnings = warnings
+		response.Result.Code = httpStatusMiscPersistentWarning
+	}
+	if len(errors) > 0 {
+		// add errors to warnings for increased readability in command-line
+		for _, errString := range errors {
+			response.Warnings = append(response.Warnings, fmt.Sprintf("[Blocked] %s", errString))
+		}
 	}
 	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
 	logrus.Infof("%d errors returned: %s", len(errors), strings.Join(errors, ", "))
