@@ -66,7 +66,8 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 	// TODO: we're deduping by owner, which works in most cases, but might cause us
 	// to miss certain images. E.g. mid-release, the new pods and the old pods
 	// will exist under the same owner.
-	images := map[string]models.Image{}
+	keyToImage := map[string]models.Image{}
+	imageOwners := map[string]map[models.Resource]struct{}{}
 	for _, pod := range pods.Items {
 		if namespaceIsBlocked(pod.ObjectMeta.Namespace, namespaceBlocklist, namespaceAllowlist) {
 			logrus.Debugf("Namespace %s blocked", pod.ObjectMeta.Namespace)
@@ -117,19 +118,28 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 				imagePullRef = imageName
 			}
 			owner.Container = containerStatus.Name
-			key := imageName + "/" + imageID
-			if entry, ok := images[key]; ok {
-				entry.Owners = append(entry.Owners, owner)
-				images[key] = entry // update ref
+			imgKey := imageName + "/" + imageID
+			if imageOwners[imgKey] == nil {
+				imageOwners[imgKey] = map[models.Resource]struct{}{}
+			}
+			imageOwners[imgKey][owner] = struct{}{}
+			if _, found := keyToImage[imgKey]; found {
 				continue
 			}
-			images[key] = models.Image{
+			keyToImage[imgKey] = models.Image{
 				ID:      imageID,
 				Name:    imageName,
-				Owners:  []models.Resource{owner},
 				PullRef: imagePullRef,
 			}
 		}
 	}
-	return lo.Values(images), nil
+
+	// add owners to images
+	for key, image := range keyToImage {
+		if owners, ok := imageOwners[key]; ok {
+			image.Owners = lo.Keys(owners)
+			keyToImage[key] = image
+		}
+	}
+	return lo.Values(keyToImage), nil
 }

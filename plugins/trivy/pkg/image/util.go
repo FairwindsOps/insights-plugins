@@ -103,3 +103,26 @@ func imagesRepositoryMap(list []models.Image) map[string]bool {
 	}
 	return m
 }
+
+func UpdateOwnersReferenceOnMatchingImages(baseImages []v2.ImageDetailsWithRefs, clusterImages []models.Image) []v2.ImageDetailsWithRefs {
+	imageKeyToMap := map[string][]models.Resource{}
+	for _, i := range clusterImages {
+		imageKeyToMap[i.GetUniqueID()] = i.Owners
+	}
+
+	for i, img := range baseImages {
+		if owners, ok := imageKeyToMap[img.GetUniqueID()]; ok {
+			v2owners := []v2.Resource{}
+			for _, o := range owners {
+				v2owners = append(v2owners, v2.Resource{
+					Name:      o.Name,
+					Kind:      o.Kind,
+					Namespace: o.Namespace,
+					Container: o.Container,
+				})
+			}
+			baseImages[i].Owners = v2owners
+		}
+	}
+	return baseImages
+}
