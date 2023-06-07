@@ -38,31 +38,29 @@ func init() {
 }
 
 // GetLastReport returns the last report for Trivy from Fairwinds Insights
-func GetLastReport() (*models.MinimizedReport, error) {
-	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") + "/data/trivy/latest.json"
+func GetLastReport(host, org, cluster, token string) (*models.MinimizedReport, error) {
+	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/trivy/latest.json", host, org, cluster)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("FAIRWINDS_TOKEN"))
+	req.Header.Set("Authorization", "Bearer "+token)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == 404 {
+	if resp.StatusCode == http.StatusNotFound {
 		return &models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}}, nil
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Bad Status code on get last report: %d", resp.StatusCode)
 	}
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-
 	var jsonResp models.MinimizedReport
 	err = json.Unmarshal(responseBody, &jsonResp)
 	if err != nil {
@@ -226,7 +224,7 @@ func downloadPullRef(pullRef string) (string, error) {
 	imageMessage := fmt.Sprintf("image %s", pullRef)
 
 	args := []string{"copy"}
-	
+
 	if os.Getenv("SKOPEO_ARGS") != "" {
 		args = append(args, strings.Split(os.Getenv("SKOPEO_ARGS"), ",")...)
 	}

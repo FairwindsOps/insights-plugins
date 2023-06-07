@@ -8,17 +8,17 @@ import (
 )
 
 func GetMatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
-  return getImages(baseImages, toMatch, isRecommendation, true)
+	return getImages(baseImages, toMatch, isRecommendation, true)
 }
 
 func GetUnmatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
-  return getImages(baseImages, toMatch, isRecommendation, false)
+	return getImages(baseImages, toMatch, isRecommendation, false)
 }
 
 func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool, match bool) []models.ImageDetailsWithRefs {
 	filtered := make([]models.ImageDetailsWithRefs, 0)
 	isMatch := convertImagesToMap(toMatch)
-	isRepoMatch:= imagesRepositoryMap(toMatch)
+	isRepoMatch := imagesRepositoryMap(toMatch)
 	for _, im := range baseImages {
 		if !isRecommendation {
 			if im.RecommendationOnly || isMatch[im.GetUniqueID()] == match {
@@ -28,7 +28,7 @@ func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image,
 			// For recommendations, we match only on repo name, not on full image ID
 			parts := strings.Split(im.Name, ":")
 			key := GetRecommendationKey(parts[0], GetSpecificToken(parts[1]))
-			if !im.RecommendationOnly || isRepoMatch[key] == match{
+			if !im.RecommendationOnly || isRepoMatch[key] == match {
 				filtered = append(filtered, im)
 			}
 		}
@@ -75,7 +75,6 @@ func GetImagesToRescan(images []models.Image, lastReport models.MinimizedReport,
 	return imagesToScan
 }
 
-
 func convertImagesToMap(list []models.Image) map[string]bool {
 	m := map[string]bool{}
 	for _, img := range list {
@@ -103,4 +102,3 @@ func imagesRepositoryMap(list []models.Image) map[string]bool {
 	}
 	return m
 }
-

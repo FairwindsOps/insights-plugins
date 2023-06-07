@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
@@ -16,7 +17,7 @@ import (
 
 var maxConcurrentScans = 5
 var numberToScan = 10
-var extraFlags = ""
+var extraFlags string
 
 const outputFile = image.TempDir + "/final-report.json"
 
@@ -27,9 +28,16 @@ const outputFile = image.TempDir + "/final-report.json"
  * Images or images recommendations that no longer belongs to that cluster are filtered out
  */
 func main() {
-	setLogLevel()
+	setLogLevel(os.Getenv("LOGRUS_LEVEL"))
 	setEnv()
-	lastReport, err := image.GetLastReport()
+
+	host := os.Getenv("FAIRWINDS_INSIGHTS_HOST")
+	org := os.Getenv("FAIRWINDS_ORG")
+	cluster := os.Getenv("FAIRWINDS_CLUSTER")
+	token := os.Getenv("FAIRWINDS_TOKEN")
+	noRecommendations := os.Getenv("NO_RECOMMENDATIONS")
+
+	lastReport, err := image.GetLastReport(host, org, cluster, token)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -38,7 +46,9 @@ func main() {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
 	ctx := context.Background()
-	images, err := image.GetImages(ctx)
+	namespaceBlocklist, namespaceAllowlist := getNamespaceBlocklistAllowlistFromEnv()
+	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
+	images, err := image.GetImages(ctx, namespaceBlocklist, namespaceAllowlist)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -51,7 +61,7 @@ func main() {
 	unscannedCount := len(imagesToScan)
 	logrus.Infof("Found %d images that have never been scanned", unscannedCount)
 	imagesToScan = image.GetImagesToRescan(images, *lastReport, imagesToScan, numberToScan)
-	logrus.Infof("Will rescan %d additional images", len(imagesToScan) - unscannedCount)
+	logrus.Infof("Will rescan %d additional images", len(imagesToScan)-unscannedCount)
 	for _, i := range imagesToScan {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
@@ -69,7 +79,7 @@ func main() {
 	logrus.Infof("Starting image scans")
 	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
 
-	if os.Getenv("NO_RECOMMENDATIONS") == "" {
+	if noRecommendations == "" {
 		logrus.Infof("Scanning recommendations")
 		recommendationsToScan := image.GetNewestVersionsToScan(ctx, allReports, imagesToScan)
 		// Remove any recommendations from the report that we're going to re-scan now
@@ -94,11 +104,25 @@ func main() {
 	logrus.Info("Finished writing file ", outputFile)
 }
 
-func setLogLevel() {
-	if os.Getenv("LOGRUS_LEVEL") != "" {
-		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+func getNamespaceBlocklistAllowlistFromEnv() ([]string, []string) {
+	var namespaceBlocklist, namespaceAllowlist []string
+	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_BLOCKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
+		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+	}
+	return namespaceBlocklist, namespaceAllowlist
+}
+
+func setLogLevel(logLevel string) {
+	if logLevel != "" {
+		lvl, err := logrus.ParseLevel(logLevel)
 		if err != nil {
-			panic(fmt.Errorf("Invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
+			panic(fmt.Errorf("Invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", logLevel, err))
 		}
 		logrus.SetLevel(lvl)
 	} else {

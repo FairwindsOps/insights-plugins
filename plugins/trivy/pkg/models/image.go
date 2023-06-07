@@ -154,4 +154,3 @@ func (i Image) GetUniqueID() string {
 func (i ImageDetailsWithRefs) GetUniqueID() string {
 	return getUniqueID(i.Name, i.ID)
 }
-

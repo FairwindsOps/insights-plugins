@@ -3,7 +3,6 @@ package image
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -17,23 +16,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 )
 
-var namespaceBlocklist []string
-var namespaceAllowlist []string
-
-func init() {
-	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
-		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
-	}
-	if os.Getenv("NAMESPACE_BLOCKLIST") != "" {
-		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ",")
-	}
-	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
-		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
-	}
-	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
-}
-
-func namespaceIsBlocked(ns string) bool {
+func namespaceIsBlocked(ns string, namespaceBlocklist, namespaceAllowlist []string) bool {
 	for _, namespace := range namespaceBlocklist {
 		if ns == strings.TrimSpace(strings.ToLower(namespace)) {
 			return true
@@ -51,7 +34,7 @@ func namespaceIsBlocked(ns string) bool {
 }
 
 // GetImages returns the images in the current cluster.
-func GetImages(ctx context.Context) ([]models.Image, error) {
+func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []string) ([]models.Image, error) {
 	kubeConf, configError := ctrl.GetConfig()
 	if configError != nil {
 		return nil, fmt.Errorf("Error fetching KubeConfig: %v", configError)
@@ -85,7 +68,7 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 	found := map[string]bool{}
 	images := []models.Image{}
 	for _, pod := range pods.Items {
-		if namespaceIsBlocked(pod.ObjectMeta.Namespace) {
+		if namespaceIsBlocked(pod.ObjectMeta.Namespace, namespaceBlocklist, namespaceAllowlist) {
 			logrus.Debugf("Namespace %s blocked", pod.ObjectMeta.Namespace)
 			continue
 		}
