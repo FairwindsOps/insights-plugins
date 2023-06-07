@@ -33,7 +33,7 @@ const (
 )
 
 // Admission webhooks can optionally return warning messages that are returned to
-// therequesting client in HTTP Warning headers with a warning code of 299
+// the requesting client in HTTP Warning headers with a warning code of 299
 // Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#response
 const httpStatusMiscPersistentWarning = 299
 
