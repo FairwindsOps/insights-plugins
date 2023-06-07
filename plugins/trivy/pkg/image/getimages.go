@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -65,8 +66,7 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 	// TODO: we're deduping by owner, which works in most cases, but might cause us
 	// to miss certain images. E.g. mid-release, the new pods and the old pods
 	// will exist under the same owner.
-	found := map[string]bool{}
-	images := []models.Image{}
+	images := map[string]models.Image{}
 	for _, pod := range pods.Items {
 		if namespaceIsBlocked(pod.ObjectMeta.Namespace, namespaceBlocklist, namespaceAllowlist) {
 			logrus.Debugf("Namespace %s blocked", pod.ObjectMeta.Namespace)
@@ -101,7 +101,6 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 				break
 			}
 			owners = getParents.GetOwnerReferences()
-
 		}
 
 		for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -112,24 +111,25 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 			} else {
 				imageName = containerStatus.Image
 			}
-			im := models.Image{
-				Name:  imageName,
-				ID:    strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://"),
-				Owner: models.Resource(owner),
+			imageID := strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
+			imagePullRef := imageID
+			if imagePullRef == "" || strings.HasPrefix(imagePullRef, "sha256:") {
+				imagePullRef = imageName
 			}
-			im.PullRef = im.ID
-			if im.PullRef == "" || strings.HasPrefix(im.PullRef, "sha256:") {
-				im.PullRef = im.Name
-			}
-			im.Owner.Container = containerStatus.Name
-			key := im.Owner.Namespace + "/" + im.Owner.Kind + "/" + im.Owner.Name + "/" + im.Owner.Container + "/" + im.Name + "/" + im.ID
-			if _, ok := found[key]; ok {
+			owner.Container = containerStatus.Name
+			key := imageName + "/" + imageID
+			if entry, ok := images[key]; ok {
+				entry.Owners = append(entry.Owners, owner)
+				images[key] = entry // update ref
 				continue
 			}
-			found[key] = true
-
-			images = append(images, im)
+			images[key] = models.Image{
+				ID:      imageID,
+				Name:    imageName,
+				Owners:  []models.Resource{owner},
+				PullRef: imagePullRef,
+			}
 		}
 	}
-	return images, nil
+	return lo.Values(images), nil
 }
