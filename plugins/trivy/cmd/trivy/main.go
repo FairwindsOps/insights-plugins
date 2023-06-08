@@ -66,7 +66,7 @@ func main() {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
 
-	// Owners info from report might be out-of-date, we need to update it using the latest info from cluster
+	// Owners info from latest report might be out-of-date, we need to update it using the cluster info
 	lastReport.Images = image.UpdateOwnersReferenceOnMatchingImages(lastReport.Images, images)
 	// Remove any images from the report that are no longer in the cluster
 	lastReport.Images = image.GetMatchingImages(lastReport.Images, images, false)
