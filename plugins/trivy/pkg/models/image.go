@@ -2,6 +2,7 @@ package models
 
 import (
 	"strings"
+	"time"
 )
 
 type DockerImage struct {
@@ -97,4 +98,57 @@ func GetUniqueID(name string, id string) string {
 	} else {
 		return name + "@" // FIXME: this is kind of a hack. This is what image IDs end up looking like in the report if there's no ID reported by k8s (e.g. image couldn't pull)
 	}
+}
+
+// MinimizedReport is the results in a compressed format.
+type MinimizedReport struct {
+	Images          []ImageDetailsWithRefs
+	Vulnerabilities map[string]VulnerabilityDetails
+}
+
+// ImageDetailsWithRefs is the results of a scan for a resource with the vulnerabilities replaced with references.
+type ImageDetailsWithRefs struct {
+	ID                 string
+	Name               string
+	OSArch             string
+	Owners             []Resource
+	OwnerName          string  // deprecated - use Owners.Name
+	OwnerKind          string  // deprecated - use Owners.Kind
+	OwnerContainer     *string // deprecated - use Owners.Container
+	Namespace          string  // deprecated - use Owners.Namespace
+	LastScan           *time.Time
+	Report             []VulnerabilityRefList
+	RecommendationOnly bool
+}
+
+// VulnerabilityRefList is a list of vulnerability references.
+type VulnerabilityRefList struct {
+	Target          string
+	Vulnerabilities []VulnerabilityInstance
+}
+
+// VulnerabilityDetails are the details of a vulnerability itself.
+type VulnerabilityDetails struct {
+	Title           string
+	Description     string
+	Severity        string
+	VulnerabilityID string
+	References      []string
+}
+
+// VulnerabilityInstance is a single instance of a given vulnerability
+type VulnerabilityInstance struct {
+	InstalledVersion string
+	PkgName          string
+	VulnerabilityID  string
+	FixedVersion     string
+}
+
+func (i ImageDetailsWithRefs) GetSha() string {
+	return GetShaFromID(i.ID)
+}
+
+// GetUniqueID returns a unique ID for the image
+func (i ImageDetailsWithRefs) GetUniqueID() string {
+	return GetUniqueID(i.Name, i.ID)
 }

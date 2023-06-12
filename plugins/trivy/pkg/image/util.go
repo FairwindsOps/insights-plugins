@@ -5,19 +5,18 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
-	v2 "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models/v2"
 )
 
-func GetMatchingImages(baseImages []v2.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []v2.ImageDetailsWithRefs {
+func GetMatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
 	return getImages(baseImages, toMatch, isRecommendation, true)
 }
 
-func GetUnmatchingImages(baseImages []v2.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []v2.ImageDetailsWithRefs {
+func GetUnmatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
 	return getImages(baseImages, toMatch, isRecommendation, false)
 }
 
-func getImages(baseImages []v2.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool, match bool) []v2.ImageDetailsWithRefs {
-	filtered := make([]v2.ImageDetailsWithRefs, 0)
+func getImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool, match bool) []models.ImageDetailsWithRefs {
+	filtered := make([]models.ImageDetailsWithRefs, 0)
 	isMatch := convertImagesToMap(toMatch)
 	isRepoMatch := imagesRepositoryMap(toMatch)
 	for _, im := range baseImages {
@@ -37,7 +36,7 @@ func getImages(baseImages []v2.ImageDetailsWithRefs, toMatch []models.Image, isR
 	return filtered
 }
 
-func GetUnscannedImagesToScan(imagesInCluster []models.Image, lastReportImages []v2.ImageDetailsWithRefs, maxScans int) []models.Image {
+func GetUnscannedImagesToScan(imagesInCluster []models.Image, lastReportImages []models.ImageDetailsWithRefs, maxScans int) []models.Image {
 	alreadyAdded := map[string]bool{}
 	alreadyScanned := convertImagesWithRefsToMap(lastReportImages)
 	imagesToScan := make([]models.Image, 0)
@@ -53,7 +52,7 @@ func GetUnscannedImagesToScan(imagesInCluster []models.Image, lastReportImages [
 	return imagesToScan
 }
 
-func GetImagesToRescan(images []models.Image, lastReport v2.MinimizedReport, imagesToScan []models.Image, maxScans int) []models.Image {
+func GetImagesToRescan(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image, maxScans int) []models.Image {
 	sort.Slice(lastReport.Images, func(a, b int) bool {
 		return lastReport.Images[a].LastScan == nil || lastReport.Images[b].LastScan != nil && lastReport.Images[a].LastScan.Before(*lastReport.Images[b].LastScan)
 	})
@@ -84,7 +83,7 @@ func convertImagesToMap(list []models.Image) map[string]bool {
 	return m
 }
 
-func convertImagesWithRefsToMap(list []v2.ImageDetailsWithRefs) map[string]bool {
+func convertImagesWithRefsToMap(list []models.ImageDetailsWithRefs) map[string]bool {
 	m := map[string]bool{}
 	for _, img := range list {
 		m[img.GetUniqueID()] = true
@@ -104,7 +103,7 @@ func imagesRepositoryMap(list []models.Image) map[string]bool {
 	return m
 }
 
-func UpdateOwnersReferenceOnMatchingImages(baseImages []v2.ImageDetailsWithRefs, clusterImages []models.Image) []v2.ImageDetailsWithRefs {
+func UpdateOwnersReferenceOnMatchingImages(baseImages []models.ImageDetailsWithRefs, clusterImages []models.Image) []models.ImageDetailsWithRefs {
 	imageKeyToMap := map[string][]models.Resource{}
 	for _, i := range clusterImages {
 		imageKeyToMap[i.GetUniqueID()] = i.Owners
@@ -112,9 +111,9 @@ func UpdateOwnersReferenceOnMatchingImages(baseImages []v2.ImageDetailsWithRefs,
 
 	for i, img := range baseImages {
 		if owners, ok := imageKeyToMap[img.GetUniqueID()]; ok {
-			v2owners := []v2.Resource{}
+			v2owners := []models.Resource{}
 			for _, o := range owners {
-				v2owners = append(v2owners, v2.Resource{
+				v2owners = append(v2owners, models.Resource{
 					Name:      o.Name,
 					Kind:      o.Kind,
 					Namespace: o.Namespace,

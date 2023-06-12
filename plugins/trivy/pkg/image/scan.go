@@ -1,7 +1,6 @@
 package image
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,11 +11,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
-	v1 "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models/v1"
-	v2 "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models/v2"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
-	"github.com/jinzhu/copier"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,7 +38,7 @@ func init() {
 }
 
 // GetLastReport returns the last report for Trivy from Fairwinds Insights
-func GetLastReport(host, org, cluster, token string) (*v2.MinimizedReport, error) {
+func GetLastReport(host, org, cluster, token string) (*models.MinimizedReport, error) {
 	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/trivy/latest.json", host, org, cluster)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -57,7 +52,7 @@ func GetLastReport(host, org, cluster, token string) (*v2.MinimizedReport, error
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return &v2.MinimizedReport{Images: make([]v2.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]v2.VulnerabilityDetails{}}, nil
+		return &models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}}, nil
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Bad Status code on get last report: %d", resp.StatusCode)
@@ -66,66 +61,42 @@ func GetLastReport(host, org, cluster, token string) (*v2.MinimizedReport, error
 	if err != nil {
 		return nil, err
 	}
-	return unmarshalBodyToV2(body)
+	return unmarshalBody(body)
 }
 
-// should support both V1 and V2 adapting as needed
-func unmarshalBodyToV2(body []byte) (*v2.MinimizedReport, error) {
-	decoder := json.NewDecoder(bytes.NewBuffer(body))
-	decoder.DisallowUnknownFields()
-	var v1Report v1.MinimizedReport
-	err := decoder.Decode(&v1Report)
+func unmarshalBody(body []byte) (*models.MinimizedReport, error) {
+	var report models.MinimizedReport
+	err := json.Unmarshal(body, &report)
 	if err != nil {
-		logrus.Warnf("Error unmarshaling to V1: %v", err)
-		// try V2
-		decoder := json.NewDecoder(bytes.NewBuffer(body))
-		decoder.DisallowUnknownFields()
-		var v2Report v2.MinimizedReport
-		err := decoder.Decode(&v2Report)
-		if err != nil {
-			return nil, err
-		}
-		return &v2Report, nil
+		return nil, err
 	}
-	return adaptV1ToV2(&v1Report)
+	fixOwners(&report)
+	return &report, nil
 }
 
-func adaptV1ToV2(v1 *v1.MinimizedReport) (*v2.MinimizedReport, error) {
-	var vulns map[string]v2.VulnerabilityDetails
-	copier.Copy(&vulns, &v1.Vulnerabilities) // we can use copier here as the structs match
-	return &v2.MinimizedReport{
-		Images:          convertToV2Images(v1.Images),
-		Vulnerabilities: vulns,
-	}, nil
+// fixOwners adapt older owners fields to the new ones
+func fixOwners(report *models.MinimizedReport) {
+	for i := range report.Images {
+		img := &report.Images[i]
+		if hasDeprecatedOwner(*img) {
+			var container string
+			if img.OwnerContainer != nil {
+				container = *img.OwnerContainer
+			}
+			img.Owners = []models.Resource{
+				{
+					Name:      img.OwnerName,
+					Kind:      img.OwnerKind,
+					Namespace: img.Namespace,
+					Container: container,
+				},
+			}
+		}
+	}
 }
 
-func convertToV2Images(v1Images []v1.ImageDetailsWithRefs) []v2.ImageDetailsWithRefs {
-	images := make([]v2.ImageDetailsWithRefs, 0)
-	for _, img := range v1Images {
-		var report []v2.VulnerabilityRefList
-		copier.Copy(&report, &img.Report) // we can use copier here as the structs match
-
-		var owners []v2.Resource
-		if len(img.OwnerName) != 0 {
-			owners = append(owners, v2.Resource{
-				Kind:      img.OwnerKind,
-				Namespace: img.Namespace,
-				Name:      img.OwnerName,
-				Container: lo.FromPtr(img.OwnerContainer),
-			})
-		}
-
-		images = append(images, v2.ImageDetailsWithRefs{
-			ID:                 img.ID,
-			Name:               img.Name,
-			OSArch:             img.OSArch,
-			Owners:             owners,
-			LastScan:           img.LastScan,
-			RecommendationOnly: img.RecommendationOnly,
-			Report:             report,
-		})
-	}
-	return images
+func hasDeprecatedOwner(img models.ImageDetailsWithRefs) bool {
+	return len(img.OwnerName) != 0 || len(img.OwnerKind) != 0 || len(img.Namespace) != 0
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.

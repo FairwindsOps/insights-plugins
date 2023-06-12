@@ -4,12 +4,11 @@ import (
 	"testing"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
-	v2 "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models/v2"
 	"github.com/stretchr/testify/assert"
 )
 
-func getOrigReportForTest() []v2.ImageDetailsWithRefs {
-	return []v2.ImageDetailsWithRefs{{
+func getOrigReportForTest() []models.ImageDetailsWithRefs {
+	return []models.ImageDetailsWithRefs{{
 		ID:                 "quay.io/fairwinds/sample-1@sha256:abcde",
 		Name:               "quay.io/fairwinds/sample-1:1.2.3",
 		RecommendationOnly: false,

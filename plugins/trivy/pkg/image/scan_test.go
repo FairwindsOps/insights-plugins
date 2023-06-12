@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShouldBeAbleToReadV1AndConvertToV2(t *testing.T) {
-	v1Body, err := os.ReadFile("testdata/v1/latest.json")
+func TestShouldBeAbleToReadOldReports(t *testing.T) {
+	v1Body, err := os.ReadFile("testdata/v0.26/latest.json")
 	assert.NoError(t, err)
 
-	v2, err := unmarshalBodyToV2(v1Body)
+	v2, err := unmarshalBody(v1Body)
 	assert.NoError(t, err)
 	assert.Equal(t, 28, len(v2.Images))
 	assert.Equal(t, 467, len(v2.Vulnerabilities))
@@ -25,11 +25,11 @@ func TestShouldBeAbleToReadV1AndConvertToV2(t *testing.T) {
 	}
 }
 
-func TestUnmarshalBodyToV2(t *testing.T) {
-	v2Body, err := os.ReadFile("testdata/v2/latest.json")
+func TestUnmarshalBody(t *testing.T) {
+	v2Body, err := os.ReadFile("testdata/v0.27/latest.json")
 	assert.NoError(t, err)
 
-	v2, err := unmarshalBodyToV2(v2Body)
+	v2, err := unmarshalBody(v2Body)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(v2.Images))
 	assert.Equal(t, 467, len(v2.Vulnerabilities))

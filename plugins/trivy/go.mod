@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/google/go-containerregistry v0.13.0
-	github.com/jinzhu/copier v0.3.5
 	github.com/samber/lo v1.38.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
