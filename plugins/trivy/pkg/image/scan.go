@@ -78,7 +78,7 @@ func unmarshalBody(body []byte) (*models.MinimizedReport, error) {
 func fixOwners(report *models.MinimizedReport) {
 	for i := range report.Images {
 		img := &report.Images[i]
-		if hasDeprecatedOwner(*img) {
+		if hasDeprecatedOwnerFields(*img) {
 			var container string
 			if img.OwnerContainer != nil {
 				container = *img.OwnerContainer
@@ -95,7 +95,7 @@ func fixOwners(report *models.MinimizedReport) {
 	}
 }
 
-func hasDeprecatedOwner(img models.ImageDetailsWithRefs) bool {
+func hasDeprecatedOwnerFields(img models.ImageDetailsWithRefs) bool {
 	return len(img.OwnerName) != 0 || len(img.OwnerKind) != 0 || len(img.Namespace) != 0
 }
 
