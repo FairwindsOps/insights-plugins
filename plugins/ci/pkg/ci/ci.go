@@ -241,10 +241,12 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 	return lo.Map(images, func(c models.Container, _ int) trivymodels.Image {
 		return trivymodels.Image{
 			Name: c.Image,
-			Owner: trivymodels.Resource{
-				Kind:      owner.Kind,
-				Container: c.Name,
-				Name:      owner.Name,
+			Owners: []trivymodels.Resource{
+				{
+					Kind:      owner.Kind,
+					Container: c.Name,
+					Name:      owner.Name,
+				},
 			},
 		}
 	}), images
