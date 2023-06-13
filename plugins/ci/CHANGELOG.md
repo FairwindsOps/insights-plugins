@@ -2,6 +2,7 @@
 
 ## 5.1.1
 * Update go libraries
+* Update trivy/opa version
 
 ## 5.1.0
 * Update dependencies (polaris 8.0.0)
