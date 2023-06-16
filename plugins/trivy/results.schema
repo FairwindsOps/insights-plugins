@@ -50,7 +50,7 @@
                     },
                     "Owners": {
                         "$id": "#/properties/Images/items/properties/Owners",
-                        "type": "array",
+                        "type": ["array", "null"],
                         "items": { "$ref": "#/definitions/Owner" }
                     },
                     "OwnerName": {
@@ -63,7 +63,7 @@
                     },
                     "OwnerContainer": {
                         "$id": "#/properties/Images/items/properties/OwnerContainer",
-                        "type": "string"
+                        "type": ["string", "null"]
                     },
                     "Namespace": {
                         "$id": "#/properties/Images/items/properties/Namespace",
