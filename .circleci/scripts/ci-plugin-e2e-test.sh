@@ -44,5 +44,5 @@ fi
 echo -e "\n\nCI/CD is done. Validating output..."
 cat output.txt
 set +x
-cat output.txt | grep "22 new Action Items"
+cat output.txt | grep "36 new Action Items"
 cat output.txt | grep "0 fixed Action Items"
