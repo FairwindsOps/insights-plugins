@@ -21,9 +21,9 @@ type Image struct {
 
 // Resource represents a Kubernetes resource
 type Resource struct {
+	Name      string
 	Kind      string
 	Namespace string
-	Name      string
 	Container string
 }
 

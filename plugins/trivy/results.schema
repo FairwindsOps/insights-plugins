@@ -1,6 +1,18 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
     "type": "object",
+    "definitions": {
+        "Owner": {
+            "type": "object",
+            "properties": {
+                "Name": { "type": "string" },
+                "Kind": { "type": "string" },
+                "Namespace": { "type": "string" },
+                "Container": { "type": "string" }
+            },
+            "additionalProperties": false
+        }
+    },
     "required": [
         "Images",
         "Vulnerabilities"
@@ -35,6 +47,11 @@
                     "OSArch": {
                         "$id": "#/properties/Images/items/properties/OSArch",
                         "type": "string"
+                    },
+                    "Owners": {
+                        "$id": "#/properties/Images/items/properties/Owners",
+                        "type": "array",
+                        "items": { "$ref": "#/definitions/Owner" }
                     },
                     "OwnerName": {
                         "$id": "#/properties/Images/items/properties/OwnerName",
