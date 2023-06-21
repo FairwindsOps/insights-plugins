@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.27.0
+* Add support to multiple owners to images
+
 ## 0.26.2
 * update dependencies
 

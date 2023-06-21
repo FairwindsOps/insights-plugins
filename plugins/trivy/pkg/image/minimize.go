@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
-	"github.com/thoas/go-funk"
 )
 
 // Minimize compresses the format of the Trivy report to de-duplicate information about vulnerabilities.
@@ -23,14 +22,20 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 		}
 	}
 	for _, imageDetails := range images {
+		var owners []models.Resource
+		for _, owner := range imageDetails.Owners {
+			owners = append(owners, models.Resource{
+				Kind:      owner.Kind,
+				Namespace: owner.Namespace,
+				Name:      owner.Name,
+				Container: owner.Container,
+			})
+		}
 		imageDetailsWithRefs := models.ImageDetailsWithRefs{
 			ID:                 imageDetails.ID,
 			Name:               imageDetails.Name,
 			OSArch:             imageDetails.OSArch,
-			OwnerName:          imageDetails.OwnerName,
-			OwnerKind:          imageDetails.OwnerKind,
-			OwnerContainer:     imageDetails.OwnerContainer,
-			Namespace:          imageDetails.Namespace,
+			Owners:             owners,
 			Report:             []models.VulnerabilityRefList{},
 			LastScan:           &timestamp,
 			RecommendationOnly: imageDetails.RecommendationOnly,
@@ -57,12 +62,7 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 			}
 			imageDetailsWithRefs.Report = append(imageDetailsWithRefs.Report, vulnRefList)
 		}
-		found := funk.Find(outputReport.Images, func(image models.ImageDetailsWithRefs) bool {
-			return image.Namespace == imageDetailsWithRefs.Namespace && image.OwnerKind == imageDetailsWithRefs.OwnerKind && image.OwnerName == imageDetailsWithRefs.OwnerName && image.Name == imageDetailsWithRefs.Name
-		})
-		if found == nil {
-			outputReport.Images = append(outputReport.Images, imageDetailsWithRefs)
-		}
+		outputReport.Images = append(outputReport.Images, imageDetailsWithRefs)
 	}
 	for vulnID := range outputReport.Vulnerabilities {
 		if !vulnerabilityExists[vulnID] {
