@@ -231,20 +231,18 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 	if kind == "" || name == "" {
 		return nil, nil
 	}
-	owner := trivymodels.Resource{
-		Kind:      kind,
-		Name:      name,
-		Namespace: namespace,
-	}
 	podSpec := getPodSpec(yamlNode)
 	images := getImages(podSpec.(map[string]interface{}))
 	return lo.Map(images, func(c models.Container, _ int) trivymodels.Image {
 		return trivymodels.Image{
 			Name: c.Image,
-			Owner: trivymodels.Resource{
-				Kind:      owner.Kind,
-				Container: c.Name,
-				Name:      owner.Name,
+			Owners: []trivymodels.Resource{
+				{
+					Kind:      kind,
+					Container: c.Name,
+					Name:      name,
+					Namespace: namespace,
+				},
 			},
 		}
 	}), images

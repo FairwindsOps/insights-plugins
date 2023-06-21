@@ -228,9 +228,11 @@ func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, mani
 			image = &trivymodels.Image{
 				Name:    name,
 				PullRef: filename,
-				Owner: trivymodels.Resource{
-					Name: ownerName,
-					Kind: "Image",
+				Owners: []trivymodels.Resource{
+					{
+						Name: ownerName,
+						Kind: "Image",
+					},
 				},
 			}
 		}
@@ -252,7 +254,7 @@ func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, mani
 			repo := strings.Split(repoAndTag, ":")[0]
 			image.ID = fmt.Sprintf("%s@%s", repo, sha)
 			image.Name = repoAndTag
-			image.Owner.Name = repo // This name is used for the filename in the Insights UI
+			image.Owners[0].Name = repo // This name is used for the filename in the Insights UI
 		}
 
 		allImages = append(allImages, *image)
