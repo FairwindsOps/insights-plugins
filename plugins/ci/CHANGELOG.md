@@ -1,7 +1,11 @@
 # Changelog
 
-## 5.1.1
+## 5.1.2
 * Bump polaris version to 8.2.3
+
+## 5.1.1
+* Update go libraries
+* Update trivy/opa version
 
 ## 5.1.0
 * Update dependencies (polaris 8.0.0)

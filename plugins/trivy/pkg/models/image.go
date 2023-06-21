@@ -15,15 +15,15 @@ type Image struct {
 	Name               string // paulbouwer/hello-kubernetes:1.7
 	ID                 string // paulbouwer/hello-kubernetes@sha256:93b15e948cae979539e152659edfd16549e3009140cc8a9ea2b91ffbd80a07f6
 	PullRef            string // paulbouwerhellokubernetes17
-	Owner              Resource
+	Owners             []Resource
 	RecommendationOnly bool
 }
 
 // Resource represents a Kubernetes resource
 type Resource struct {
+	Name      string
 	Kind      string
 	Namespace string
-	Name      string
 	Container string
 }
 
@@ -33,10 +33,7 @@ type ImageReport struct {
 	Name               string
 	OSArch             string
 	PullRef            string
-	OwnerKind          string
-	OwnerName          string
-	OwnerContainer     *string
-	Namespace          string
+	Owners             []Resource
 	Reports            []VulnerabilityList `json:"Report"`
 	RecommendationOnly bool
 }
@@ -86,10 +83,11 @@ type ImageDetailsWithRefs struct {
 	ID                 string
 	Name               string
 	OSArch             string
-	OwnerName          string
-	OwnerKind          string
-	OwnerContainer     *string
-	Namespace          string
+	Owners             []Resource
+	OwnerName          string  // deprecated - use Owners.Name
+	OwnerKind          string  // deprecated - use Owners.Kind
+	OwnerContainer     *string // deprecated - use Owners.Container
+	Namespace          string  // deprecated - use Owners.Namespace
 	LastScan           *time.Time
 	Report             []VulnerabilityRefList
 	RecommendationOnly bool
@@ -129,12 +127,13 @@ func (i Image) GetSha() string {
 	return getShaFromID(i.ID)
 }
 
-func (i ImageDetailsWithRefs) GetSha() string {
+func (i ImageReport) GetSha() string {
 	return getShaFromID(i.ID)
 }
 
-func (i ImageReport) GetSha() string {
-	return getShaFromID(i.ID)
+// GetUniqueID returns a unique ID for the image
+func (i Image) GetUniqueID() string {
+	return getUniqueID(i.Name, i.ID)
 }
 
 func getUniqueID(name string, id string) string {
@@ -145,13 +144,11 @@ func getUniqueID(name string, id string) string {
 	}
 }
 
-// GetUniqueID returns a unique ID for the image
-func (i Image) GetUniqueID() string {
-	return getUniqueID(i.Name, i.ID)
+func (i ImageDetailsWithRefs) GetSha() string {
+	return getShaFromID(i.ID)
 }
 
 // GetUniqueID returns a unique ID for the image
 func (i ImageDetailsWithRefs) GetUniqueID() string {
 	return getUniqueID(i.Name, i.ID)
 }
-

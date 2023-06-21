@@ -3,9 +3,9 @@ package image
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -17,23 +17,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 )
 
-var namespaceBlocklist []string
-var namespaceAllowlist []string
-
-func init() {
-	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
-		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
-	}
-	if os.Getenv("NAMESPACE_BLOCKLIST") != "" {
-		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ",")
-	}
-	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
-		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
-	}
-	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
-}
-
-func namespaceIsBlocked(ns string) bool {
+func namespaceIsBlocked(ns string, namespaceBlocklist, namespaceAllowlist []string) bool {
 	for _, namespace := range namespaceBlocklist {
 		if ns == strings.TrimSpace(strings.ToLower(namespace)) {
 			return true
@@ -51,7 +35,7 @@ func namespaceIsBlocked(ns string) bool {
 }
 
 // GetImages returns the images in the current cluster.
-func GetImages(ctx context.Context) ([]models.Image, error) {
+func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []string) ([]models.Image, error) {
 	kubeConf, configError := ctrl.GetConfig()
 	if configError != nil {
 		return nil, fmt.Errorf("Error fetching KubeConfig: %v", configError)
@@ -82,10 +66,10 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 	// TODO: we're deduping by owner, which works in most cases, but might cause us
 	// to miss certain images. E.g. mid-release, the new pods and the old pods
 	// will exist under the same owner.
-	found := map[string]bool{}
-	images := []models.Image{}
+	keyToImage := map[string]models.Image{}
+	imageOwners := map[string]map[models.Resource]struct{}{}
 	for _, pod := range pods.Items {
-		if namespaceIsBlocked(pod.ObjectMeta.Namespace) {
+		if namespaceIsBlocked(pod.ObjectMeta.Namespace, namespaceBlocklist, namespaceAllowlist) {
 			logrus.Debugf("Namespace %s blocked", pod.ObjectMeta.Namespace)
 			continue
 		}
@@ -118,7 +102,6 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 				break
 			}
 			owners = getParents.GetOwnerReferences()
-
 		}
 
 		for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -129,24 +112,34 @@ func GetImages(ctx context.Context) ([]models.Image, error) {
 			} else {
 				imageName = containerStatus.Image
 			}
-			im := models.Image{
-				Name:  imageName,
-				ID:    strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://"),
-				Owner: models.Resource(owner),
+			imageID := strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
+			imagePullRef := imageID
+			if imagePullRef == "" || strings.HasPrefix(imagePullRef, "sha256:") {
+				imagePullRef = imageName
 			}
-			im.PullRef = im.ID
-			if im.PullRef == "" || strings.HasPrefix(im.PullRef, "sha256:") {
-				im.PullRef = im.Name
+			owner.Container = containerStatus.Name
+			imgKey := imageName + "/" + imageID
+			if imageOwners[imgKey] == nil {
+				imageOwners[imgKey] = map[models.Resource]struct{}{}
 			}
-			im.Owner.Container = containerStatus.Name
-			key := im.Owner.Namespace + "/" + im.Owner.Kind + "/" + im.Owner.Name + "/" + im.Owner.Container + "/" + im.Name + "/" + im.ID
-			if _, ok := found[key]; ok {
+			imageOwners[imgKey][owner] = struct{}{}
+			if _, found := keyToImage[imgKey]; found {
 				continue
 			}
-			found[key] = true
-
-			images = append(images, im)
+			keyToImage[imgKey] = models.Image{
+				ID:      imageID,
+				Name:    imageName,
+				PullRef: imagePullRef,
+			}
 		}
 	}
-	return images, nil
+
+	// add owners to images
+	for key, image := range keyToImage {
+		if owners, ok := imageOwners[key]; ok {
+			image.Owners = lo.Keys(owners)
+			keyToImage[key] = image
+		}
+	}
+	return lo.Values(keyToImage), nil
 }
