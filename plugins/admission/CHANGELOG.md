@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.3
+* Update dependencies (polaris 8.2.3 and pluto 5.17.0)
+
 ## 1.10.2
 * Display warnings for items that would have blocked when admission is in "passive" mode
 * Update alpine base image from `alpine:3.17` to `alpine:3.18`

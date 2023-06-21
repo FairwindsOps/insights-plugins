@@ -9,12 +9,12 @@ replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 require (
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.16.4
-	github.com/fairwindsops/polaris v0.0.0-20230531204118-65c5ff59ca61 // 8.0.0
-	github.com/sirupsen/logrus v1.9.2
+	github.com/fairwindsops/pluto/v5 v5.17.0
+	github.com/fairwindsops/polaris v0.0.0-20230621162544-4b1d6635e06a // 8.2.3
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	github.com/thoas/go-funk v0.9.3
-	k8s.io/apimachinery v0.27.2
+	k8s.io/apimachinery v0.27.3
 	sigs.k8s.io/controller-runtime v0.15.0
 )
 
@@ -24,8 +24,8 @@ require (
 	github.com/rogpeppe/go-internal v1.10.0
 	github.com/samber/lo v1.38.1
 	gomodules.xyz/jsonpatch/v2 v2.3.0
-	k8s.io/api v0.27.2
-	k8s.io/client-go v0.27.2
+	k8s.io/api v0.27.3
+	k8s.io/client-go v0.27.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -81,7 +81,7 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/qri-io/jsonpointer v0.1.1 // indirect
-	github.com/qri-io/jsonschema v0.1.1 // indirect
+	github.com/qri-io/jsonschema v0.1.2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
