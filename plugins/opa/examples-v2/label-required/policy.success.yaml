@@ -6,7 +6,7 @@ metadata:
   namespace: default
   labels:
     # This label will cause the policy to succeed.
-    notapp: myapp
+    app: myapp
 spec:
   replicas: 1
   selector:
