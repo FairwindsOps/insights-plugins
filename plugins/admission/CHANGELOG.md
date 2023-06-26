@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.11.0
+* Update polaris to 8.2.4. This adds new checks and increases severity for others.
+
+This adds the following policies:
+* priorityClassNotSet
+* metadataAndNameMismatched
+* missingPodDisruptionBudget
+* automountServiceAccountToken
+* missingNetworkPolicy
+
+Additionally, Insights Agent 2.20.0 change the default severity to High or Critical for the following existing Polaris policies:
+
+* sensitiveContainerEnvVar
+* sensitiveConfigmapContent
+* clusterrolePodExecAttach
+* rolePodExecAttach
+* clusterrolebindingPodExecAttach
+* rolebindingClusterRolePodExecAttach
+* rolebindingRolePodExecAttach
+* clusterrolebindingClusterAdmin
+* rolebindingClusterAdminClusterRole
+* rolebindingClusterAdminRole
+
+While this provides even more visibility to the state of your Kubernetes health, the Policies that change the default severity to High or Critical may block some Admission Controller requests. If you need to mitigate this impact, Fairwinds recommends creating an Automation Rule that lowers the severity of those policies so it does not trigger blocking behavior. If you need assistance with this, please reach out to support@fairwinds.com.
+
 ## 1.10.2
 * Display warnings for items that would have blocked when admission is in "passive" mode
 * Update alpine base image from `alpine:3.17` to `alpine:3.18`
