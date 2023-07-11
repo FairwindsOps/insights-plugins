@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.2.0
+* Add `reports.goldilocks.enabled` support (default `true`)
+* Add `reports.prometheus-metrics.enabled` support (default `true`)
+
 ## 5.1.2
 * Bump polaris version to 8.2.3
 
