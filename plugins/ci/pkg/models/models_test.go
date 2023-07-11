@@ -20,6 +20,8 @@ func TestSetEmptyDefaults(t *testing.T) {
 	assert.Empty(t, cfg.Options.Organization)
 	assert.Empty(t, cfg.Options.RepositoryName)
 	assert.Empty(t, cfg.Options.CIRunner)
+	assert.True(t, *cfg.Reports.Goldilocks.Enabled)
+	assert.True(t, *cfg.Reports.PrometheusMetrics.Enabled)
 }
 
 func TestSetEnvironmentDefaults(t *testing.T) {

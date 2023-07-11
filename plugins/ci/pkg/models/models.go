@@ -77,11 +77,13 @@ func (hc *HelmConfig) IsFluxFile() bool {
 }
 
 type reportsConfig struct {
-	Polaris reportConfig `yaml:"polaris"`
-	Pluto   reportConfig `yaml:"pluto"`
-	TFSec   tfSecConfig  `yaml:"tfsec"`
-	Trivy   trivyConfig  `yaml:"trivy"`
-	OPA     reportConfig `yaml:"opa"`
+	Polaris           reportConfig `yaml:"polaris"`
+	Pluto             reportConfig `yaml:"pluto"`
+	TFSec             tfSecConfig  `yaml:"tfsec"`
+	Trivy             trivyConfig  `yaml:"trivy"`
+	OPA               reportConfig `yaml:"opa"`
+	PrometheusMetrics reportConfig `yaml:"prometheus-metrics"`
+	Goldilocks        reportConfig `yaml:"goldilocks"`
 }
 
 type reportConfig struct {
@@ -303,6 +305,12 @@ func (c *Configuration) SetDefaults() error {
 	}
 	if c.Reports.TFSec.Enabled == nil {
 		c.Reports.TFSec.Enabled = &truth
+	}
+	if c.Reports.Goldilocks.Enabled == nil {
+		c.Reports.Goldilocks.Enabled = &truth
+	}
+	if c.Reports.PrometheusMetrics.Enabled == nil {
+		c.Reports.PrometheusMetrics.Enabled = &truth
 	}
 
 	registryCredentialsJSON := strings.TrimSpace(os.Getenv("REGISTRY_CREDENTIALS")) // only set via env. variable
