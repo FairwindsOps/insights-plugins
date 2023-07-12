@@ -2,17 +2,16 @@
 set -e
 trap 'echo "Error on Line: $LINENO"' ERR
 echo "Starting kyverno"
-results_file=/output/kyverno.json
+results_file=./output/kyverno.json
 
 json='{"policyReports":[], "clusterPolicyReports":[]}'
 
 KIND="policyreport"
 
 echo "Retrieving namespaces"
-namespaces=$(kubectl get namespaces -o name)
+namespaces=$(kubectl get namespaces -o name | sed 's/namespace\///g')
 IFS=$'\n' namespaces=($namespaces)
-for ns_idx in "${!namespaces[@]}"; do
-  namespace=${namespaces[$ns_idx]#namespace\/}
+for namespace in "${namespaces[@]}"; do
   count=$(kubectl get $KIND -n $namespace -o name | wc -l)
 
   echo "found $count $KIND for namespace $namespace"
