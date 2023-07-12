@@ -1,4 +1,6 @@
 # Changelog
+## 5.1.3
+* Add warning message and prevent panic when we find a podSpec with no containers
 
 ## 5.1.2
 * Bump polaris version to 8.2.3
