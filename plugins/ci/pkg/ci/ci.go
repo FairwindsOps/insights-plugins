@@ -268,7 +268,7 @@ func getImages(podSpec map[string]interface{}) []models.Container {
 		containers, ok := containerField.([]interface{})
 		if !ok {
 			logrus.Warningf("Found a podSpec with no containers: %v", podSpec)
-			return []models.Container{}
+			continue
 		}
 		for _, container := range containers {
 			containerMap := container.(map[string]interface{})
