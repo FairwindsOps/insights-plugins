@@ -1,4 +1,7 @@
 # Changelog
+## 5.1.4
+* Remove warning log
+
 ## 5.1.3
 * Add warning message and prevent panic when we find a podSpec with no containers
 
