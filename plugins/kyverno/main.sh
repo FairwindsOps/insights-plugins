@@ -2,27 +2,40 @@
 set -e
 trap 'echo "Error on Line: $LINENO"' ERR
 echo "Starting kyverno"
-results_file=./output/kyverno.json
+results_file=/output/kyverno.json
 
 json='{"policyReports":[], "clusterPolicyReports":[]}'
 
+# collect policyreports
 KIND="policyreport"
-
 echo "Retrieving namespaces"
 namespaces=$(kubectl get namespaces -o name | sed 's/namespace\///g')
 IFS=$'\n' namespaces=($namespaces)
 for namespace in "${namespaces[@]}"; do
-  count=$(kubectl get $KIND -n $namespace -o name | wc -l)
+  reports=$(kubectl get $KIND -n $namespace -o name | sed "s/$KIND\.wgpolicyk8s\.io\///g")
+  IFS=$'\n' reports=($reports)
 
+  count=${#reports[@]}
   echo "found $count $KIND for namespace $namespace"
 
-  json="$(jq --argjson list "$(kubectl get $KIND -n $namespace -o json)" '.policyReports += [$list.items]' <<< "$json")"
+  for report in "${reports[@]}"; do
+    # to avoid overhead, collect only the last (most recent result) from the policyreport
+    report_json=$(kubectl get $KIND $report -n $namespace -o json | jq '.results |= [.[-1]]')
+    json="$(jq --argjson report_json "$report_json" '.policyReports += [$report_json]' <<< "$json")"
+  done
 done
 
+# collect clusterpolicyreports
 KIND="clusterpolicyreport"
+reports=$(kubectl get $KIND -n $namespace -o name | sed "s/$KIND\.wgpolicyk8s\.io\///g")
+IFS=$'\n' reports=($reports)
 
-count=$(kubectl get $KIND -o name | wc -l)
-echo "found $count $KIND"
-json="$(jq --argjson list "$(kubectl get $KIND -o json)" '.clusterPolicyReports += [$list.items]' <<< "$json")"
+count=${#reports[@]}
+echo "found $count $KIND for namespace $namespace"
+
+for report in "${reports[@]}"; do
+  report_json=$(kubectl get $KIND $report -n $namespace -o json | jq '.results |= [.[-1]]')
+  json="$(jq --argjson report_json "$report_json" '.clusterPolicyReports += [$report_json]' <<< "$json")"
+done
 
 echo $json | jq > $results_file
