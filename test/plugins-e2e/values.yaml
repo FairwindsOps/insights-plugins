@@ -16,6 +16,13 @@ opa:
       memory: 64Mi
       cpu: 1m
 
+kyverno:
+  enabled: true
+  resources:
+    requests:
+      memory: 64Mi
+      cpu: 1m
+
 rbac-reporter:
   enabled: true
   resources:

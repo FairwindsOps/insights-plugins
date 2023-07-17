@@ -1,0 +1,3253 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "policyReports": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labels": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labels"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labelsfoo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labelsfoo"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-pod-probes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-pod-probes"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "severity",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labels": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labels"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labelsfoo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labelsfoo"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-pod-probes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-pod-probes"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "severity",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labels": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labels"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labelsfoo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labelsfoo"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-pod-probes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-pod-probes"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "severity",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labels": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labels"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labelsfoo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labelsfoo"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-pod-probes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-pod-probes"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "severity",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labels": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labels"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labelsfoo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labelsfoo"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-pod-probes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-pod-probes"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "severity",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labels": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labels"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-labelsfoo": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-labelsfoo"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "creationTimestamp": {
+                  "type": "string"
+                },
+                "generation": {
+                  "type": "integer"
+                },
+                "labels": {
+                  "type": "object",
+                  "properties": {
+                    "app.kubernetes.io/managed-by": {
+                      "type": "string"
+                    },
+                    "cpol.kyverno.io/require-pod-probes": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "app.kubernetes.io/managed-by",
+                    "cpol.kyverno.io/require-pod-probes"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "namespace": {
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "type": "string"
+                },
+                "uid": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "creationTimestamp",
+                "generation",
+                "labels",
+                "name",
+                "namespace",
+                "resourceVersion",
+                "uid"
+              ]
+            },
+            "results": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "policy": {
+                      "type": "string"
+                    },
+                    "resources": {
+                      "type": "array",
+                      "items": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "apiVersion": {
+                              "type": "string"
+                            },
+                            "kind": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "namespace": {
+                              "type": "string"
+                            },
+                            "uid": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "apiVersion",
+                            "kind",
+                            "name",
+                            "namespace",
+                            "uid"
+                          ]
+                        }
+                      ]
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "rule": {
+                      "type": "string"
+                    },
+                    "scored": {
+                      "type": "boolean"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "object",
+                      "properties": {
+                        "nanos": {
+                          "type": "integer"
+                        },
+                        "seconds": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "nanos",
+                        "seconds"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "message",
+                    "policy",
+                    "resources",
+                    "result",
+                    "rule",
+                    "scored",
+                    "severity",
+                    "source",
+                    "timestamp"
+                  ]
+                }
+              ]
+            },
+            "summary": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "fail": {
+                  "type": "integer"
+                },
+                "pass": {
+                  "type": "integer"
+                },
+                "skip": {
+                  "type": "integer"
+                },
+                "warn": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "error",
+                "fail",
+                "pass",
+                "skip",
+                "warn"
+              ]
+            }
+          },
+          "required": [
+            "apiVersion",
+            "kind",
+            "metadata",
+            "results",
+            "summary"
+          ]
+        }
+      ]
+    },
+    "clusterPolicyReports": {
+      "type": "array",
+      "items": {}
+    }
+  },
+  "required": [
+    "policyReports",
+    "clusterPolicyReports"
+  ]
+}
