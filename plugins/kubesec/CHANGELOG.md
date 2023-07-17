@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.5
+* Install yq with apk
+
 ## 1.4.4
 * update dependencies
 
