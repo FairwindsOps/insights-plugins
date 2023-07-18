@@ -13,9 +13,9 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
 	github.com/samber/lo v1.38.1
-	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/testify v1.8.1
-	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
+	github.com/sirupsen/logrus v1.9.3
+	github.com/stretchr/testify v1.8.4
+	golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb
 	gopkg.in/yaml.v3 v3.0.1
 )
 
