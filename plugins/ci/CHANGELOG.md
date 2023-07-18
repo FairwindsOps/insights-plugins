@@ -1,6 +1,4 @@
 # Changelog
-## 5.1.3
-* Add warning message and prevent panic when we find a podSpec with no containers
 
 ## 5.2.0
 * Add `reports.goldilocks.enabled` support (default `true`)
