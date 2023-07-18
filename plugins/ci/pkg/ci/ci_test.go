@@ -27,6 +27,10 @@ reports:
     enabled: false
   opa:
     enabled: false
+  prometheus-metrics:
+    enabled: true
+  goldilocks:
+    enabled: false
 
 exemptions:
   - image: 602401143452.dkr.ecr.us-west-2.amazonaws.com/amazon/aws-iam-authenticator:v0.5.2-scratch
@@ -39,6 +43,8 @@ exemptions:
 	assert.Equal(t, "master", cfg.Options.BaseBranch)
 	assert.Equal(t, "FairwindsOps/fairwindsops-infrastructure", cfg.Options.RepositoryName)
 	assert.Empty(t, cfg.Options.CIRunner) // should not be read from file
+	assert.True(t, *cfg.Reports.PrometheusMetrics.Enabled)
+	assert.False(t, *cfg.Reports.Goldilocks.Enabled)
 }
 
 func TestUnmarshalAndOverrideConfig(t *testing.T) {
