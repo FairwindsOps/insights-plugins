@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.27.1
+* update docker
+
 ## 0.27.0
 * Add support to multiple owners to images
 
