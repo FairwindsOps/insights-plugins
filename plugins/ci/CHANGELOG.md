@@ -1,10 +1,11 @@
 # Changelog
-## 5.1.3
-* Add warning message and prevent panic when we find a podSpec with no containers
 
 ## 5.2.0
 * Add `reports.goldilocks.enabled` support (default `true`)
 * Add `reports.prometheus-metrics.enabled` support (default `true`)
+
+## 5.1.3
+* Add warning message and prevent panic when we find a podSpec with no containers
 
 ## 5.1.2
 * Bump polaris version to 8.2.3
