@@ -1,4 +1,7 @@
 # Changelog
+## 0.5.1
+* update dependencies
+
 ## 0.5.0
 * add `CURL_EXTRA_ARGS` option
 
