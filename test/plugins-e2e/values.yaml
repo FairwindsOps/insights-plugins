@@ -17,7 +17,7 @@ opa:
       cpu: 1m
 
 kyverno:
-  enabled: true
+  enabled: false
   resources:
     requests:
       memory: 64Mi
