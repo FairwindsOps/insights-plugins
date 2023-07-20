@@ -14,4 +14,4 @@ RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 COPY main.sh .
 
 USER 1000
-CMD ["main.sh"]
+CMD ["/main.sh"]

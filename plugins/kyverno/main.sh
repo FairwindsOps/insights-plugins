@@ -6,8 +6,9 @@ results_file=/output/kyverno.json
 
 json='{"policyReports":[], "clusterPolicyReports":[]}'
 
-# collect policyreports
+# collect policyreports, exit early if CRD is missing
 KIND="policyreport"
+kubectl get crd "$KIND"s.wgpolicyk8s.io >/dev/null || exit 1
 echo "Retrieving namespaces"
 namespaces=$(kubectl get namespaces -o name | sed 's/namespace\///g')
 IFS=$'\n' namespaces=($namespaces)
@@ -25,8 +26,9 @@ for namespace in "${namespaces[@]}"; do
   done
 done
 
-# collect clusterpolicyreports
+# collect clusterpolicyreports, exit early if CRD is missing
 KIND="clusterpolicyreport"
+kubectl get crd "$KIND"s.wgpolicyk8s.io >/dev/null || exit 1
 reports=$(kubectl get $KIND -n $namespace -o name | sed "s/$KIND\.wgpolicyk8s\.io\///g")
 IFS=$'\n' reports=($reports)
 
