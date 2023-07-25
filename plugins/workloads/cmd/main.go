@@ -23,26 +23,26 @@ func main() {
 
 	dynamic, restMapper, kube, clusterName, err := getKubeClient()
 	if err != nil {
-		logrus.Fatalf("Error fetching Kubernetes client %v", err)
+		logrus.Fatalf("error fetching Kubernetes client: %v", err)
 	}
 	logrus.Info("connected to kube")
 
 	resources, err := workloads.CreateResourceProviderFromAPI(ctx, dynamic, restMapper, kube, clusterName)
 	if err != nil {
-		logrus.Fatalf("Error fetching Kubernetes resources %v", err)
+		logrus.Fatalf("error fetching Kubernetes resources: %v", err)
 	}
 	logrus.Info("got resources")
 
 	var outputBytes []byte
 	outputBytes, err = json.MarshalIndent(resources, "", "  ")
 	if err != nil {
-		logrus.Fatalf("Error marshalling audit: %v", err)
+		logrus.Fatalf("error marshalling audit: %v", err)
 	}
 
 	if *auditOutputFile != "" {
 		err := os.WriteFile(*auditOutputFile, []byte(outputBytes), 0644)
 		if err != nil {
-			logrus.Fatalf("Error writing output to file: %v", err)
+			logrus.Fatalf("error writing output to file: %v", err)
 		}
 	}
 }

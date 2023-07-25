@@ -300,6 +300,12 @@
             "Labels": {
               "type": ["object", "null"]
             },
+            "PodLabels": {
+              "type": ["object", "null"]
+            },
+            "PodAnnotations": {
+              "type": ["object", "null"]
+            },
             "UID": {
               "type": "string"
             },

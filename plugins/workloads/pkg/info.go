@@ -2,10 +2,10 @@ package workloads
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
-	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -19,15 +19,17 @@ const KindIngress = "Ingress"
 
 // ControllerResult provides a wrapper around a PodResult
 type ControllerResult struct {
-	Kind        string
-	Name        string
-	Namespace   string
-	Annotations map[string]string
-	Labels      map[string]string
-	UID         string
-	ParentUID   string
-	PodCount    float64
-	Containers  []ContainerResult
+	Kind           string
+	Name           string
+	Namespace      string
+	Annotations    map[string]string
+	Labels         map[string]string
+	PodLabels      map[string]string
+	PodAnnotations map[string]string
+	UID            string
+	ParentUID      string
+	PodCount       float64
+	Containers     []ContainerResult
 }
 
 type Ingress struct {
@@ -97,15 +99,13 @@ func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
 	return ownerUID
 }
 
-func formatControllers(Kind string, Name string, Namespace string, UID string, ownerReferences []metav1.OwnerReference,
-	Containers []ContainerResult, Annotations map[string]string, Labels map[string]string) ControllerResult {
+func formatControllers(kind, name, namespace, uid string, ownerReferences []metav1.OwnerReference, containers []ContainerResult, annotations, labels, podLabels, podAnnotations map[string]string) ControllerResult {
 	var podCount float64 = 0
-	if Kind == "Pod" {
+	if kind == "Pod" {
 		podCount = 1
 	}
 	ownerUID := getOwnerUID(ownerReferences)
-	controller := ControllerResult{Kind, Name, Namespace, Annotations, Labels, UID, ownerUID, podCount, Containers}
-	return controller
+	return ControllerResult{kind, name, namespace, annotations, labels, podLabels, podAnnotations, uid, ownerUID, podCount, containers}
 }
 
 func formatContainer(container corev1.Container, containerStatus corev1.ContainerStatus, time metav1.Time) ContainerResult {
@@ -142,8 +142,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	interfaces := []ControllerResult{}
 	serverVersion, err := kube.Discovery().ServerVersion()
 	if err != nil {
-		logrus.Errorf("Error fetching Cluster API version %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error fetching Cluster API version: %v", err)
 	}
 
 	client := controller.Client{
@@ -153,20 +152,25 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	}
 	workloads, err := client.GetAllTopControllersSummary("")
 	if err != nil {
-		logrus.Errorf("Error while getting all TopControllers: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error while getting all TopControllers: %v", err)
 	}
 
 	for _, workload := range workloads {
 		topController := workload.TopController
-		var containers []ContainerResult
 
+		var containers []ContainerResult
 		if workload.PodSpec != nil {
 			for _, ctn := range workload.PodSpec.Containers {
 				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp()))
 			}
 		}
-		controller := formatControllers(topController.GetKind(), topController.GetName(), topController.GetNamespace(), string(topController.GetUID()), topController.GetOwnerReferences(), containers, topController.GetAnnotations(), topController.GetLabels())
+
+		var podLabels, podAnnotations map[string]string
+		if workload.PodMetadata != nil {
+			podLabels = workload.PodMetadata.Labels
+			podAnnotations = workload.PodMetadata.Annotations
+		}
+		controller := formatControllers(topController.GetKind(), topController.GetName(), topController.GetNamespace(), string(topController.GetUID()), topController.GetOwnerReferences(), containers, topController.GetAnnotations(), topController.GetLabels(), podLabels, podAnnotations)
 		controller.PodCount = float64(workload.RunningPodCount)
 		interfaces = append(interfaces, controller)
 	}
@@ -174,8 +178,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	// Nodes
 	nodes, err := kube.CoreV1().Nodes().List(ctx, listOpts)
 	if err != nil {
-		logrus.Errorf("Error fetching Nodes %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error fetching Nodes: %v", err)
 	}
 
 	nodesSummaries := make([]NodeSummary, 0)
@@ -194,8 +197,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		}
 		allocated, utilization, err := GetNodeAllocatedResource(ctx, kube, item)
 		if err != nil {
-			logrus.Errorf("Error fetching node allocation: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("error fetching node allocation: %v", err)
 		}
 		node.AllocatedLimits = allocated.Limits
 		node.AllocatedRequests = allocated.Requests
@@ -206,8 +208,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	// Namespaces
 	namespaces, err := kube.CoreV1().Namespaces().List(ctx, listOpts)
 	if err != nil {
-		logrus.Errorf("Error fetching Namespaces %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error fetching Namespaces: %v", err)
 	}
 
 	// Ingresses
@@ -216,8 +217,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		ingressesV1 := kube.NetworkingV1().Ingresses(namespace.Name)
 		list, err := ingressesV1.List(ctx, listOpts)
 		if err != nil {
-			logrus.Errorf("Error fetching ingresses: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("error fetching ingresses: %v", err)
 		}
 		for _, item := range list.Items {
 			ingress := Ingress{
