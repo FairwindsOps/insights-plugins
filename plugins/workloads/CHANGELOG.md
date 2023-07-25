@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.0
+* add `PodLabels` and `PodAnnotations` to report output
+
 ## 2.4.10
 * exposing workloads package version
 
