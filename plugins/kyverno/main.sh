@@ -1,4 +1,32 @@
 #! /bin/bash
+# Additional information on PolicyReport,ClusterPolicyReport: https://kyverno.io/docs/policy-reports/
+
+populate_policy_metadata() {
+  # to avoid overhead, collect only the last (most recent result) from the policyreport
+  report_json=$(kubectl get $KIND $report -n $namespace -o json | jq '.results |= [.[-1]]')
+  policy_name=$(echo $report_json | jq -r '.results[0].policy')
+
+  # use lookup table to minimize control plane load
+  if [[ ! "${policies[*]}" =~ "${policy_name}" ]]; then
+    # determine if report refers to a policy or a clusterpolicy
+    policy_type_expression="clusterpolicy"
+    kubectl get $policy_type_expression $policy_name >/dev/null || policy_type_expression="policy -n $namespace"
+    # retrieve necessary metadata from the associated policy
+    policy_title=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
+    policy_description=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
+    # hydrate the policy title and name
+    report_json="$(jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' <<< "$report_json")"
+
+    policies+=($policy_name)
+    policy_titles["$policy_name"]=$policy_title
+    policy_descriptions["$policy_name"]=$policy_description
+  else
+    policy_title=${policy_titles[$policy_name]}
+    policy_description=${policy_descriptions[$policy_name]}
+    report_json="$(jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' <<< "$report_json")"
+  fi
+}
+
 set -e
 trap 'echo "Error on Line: $LINENO"' ERR
 echo "Starting kyverno"
@@ -12,6 +40,11 @@ kubectl get crd "$KIND"s.wgpolicyk8s.io >/dev/null || exit 1
 echo "Retrieving namespaces"
 namespaces=$(kubectl get namespaces -o name | sed 's/namespace\///g')
 IFS=$'\n' namespaces=($namespaces)
+
+declare -a policies
+declare -a policy_titles
+declare -a policy_descriptions
+
 for namespace in "${namespaces[@]}"; do
   reports=$(kubectl get $KIND -n $namespace -o name | sed "s/$KIND\.wgpolicyk8s\.io\///g")
   IFS=$'\n' reports=($reports)
@@ -20,8 +53,9 @@ for namespace in "${namespaces[@]}"; do
   echo "found $count $KIND for namespace $namespace"
 
   for report in "${reports[@]}"; do
-    # to avoid overhead, collect only the last (most recent result) from the policyreport
-    report_json=$(kubectl get $KIND $report -n $namespace -o json | jq '.results |= [.[-1]]')
+    populate_policy_metadata
+
+    # append the modified policyreport to the output file
     json="$(jq --argjson report_json "$report_json" '.policyReports += [$report_json]' <<< "$json")"
   done
 done
@@ -33,10 +67,18 @@ reports=$(kubectl get $KIND -n $namespace -o name | sed "s/$KIND\.wgpolicyk8s\.i
 IFS=$'\n' reports=($reports)
 
 count=${#reports[@]}
-echo "found $count $KIND for namespace $namespace"
+echo "found $count $KIND"
+
+declare -a policies
+declare -a policy_titles
+declare -a policy_descriptions
 
 for report in "${reports[@]}"; do
-  report_json=$(kubectl get $KIND $report -n $namespace -o json | jq '.results |= [.[-1]]')
+  report_json=$(kubectl get $KIND $report -o json | jq '.results |= [.[-1]]')
+  policy_name=$(echo $report_json | jq -r '.results[0].policy')
+
+  populate_policy_metadata
+
   json="$(jq --argjson report_json "$report_json" '.clusterPolicyReports += [$report_json]' <<< "$json")"
 done
 
