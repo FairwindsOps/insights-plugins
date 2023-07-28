@@ -7,6 +7,10 @@ results_file=/output/kyverno.json
 
 json='{"policyReports":[], "clusterPolicyReports":[]}'
 
+# check for policy and clusterpolicy CRDs
+kubectl get crd policies.kyverno.io >/dev/null || exit 1
+kubectl get crd clusterpolicies.kyverno.io >/dev/null || exit 1
+
 # collect policyreports, exit early if CRD is missing
 KIND="policyreport"
 kubectl get crd "$KIND"s.wgpolicyk8s.io >/dev/null || exit 1
@@ -37,7 +41,7 @@ for namespace in "${namespaces[@]}"; do
       # retrieve necessary metadata from the associated policy
       policy_title=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
       policy_description=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
-      # hydrate the policy title and name
+      # populate the policy title and name
       report_json="$(jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' <<< "$report_json")"
 
       policies+=($policy_name)
