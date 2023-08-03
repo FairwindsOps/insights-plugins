@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/samber/lo"
@@ -43,7 +44,7 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 
 	controllers, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
-		logrus.Fatalf("could not retrieve top controllers with pods: %v", err)
+		return nil, fmt.Errorf("could not retrieve top controllers with pods: %v", err)
 	}
 
 	// TODO: we're deduping by owner, which works in most cases, but might cause us
@@ -68,7 +69,7 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 			var pod corev1.Pod
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(podUnstructuredContent, &pod)
 			if err != nil {
-				logrus.Fatalf("Unable to retrieve structured pod data: %v", err)
+				logrus.Warnf("Unable to retrieve structured pod data: %v", err)
 			}
 
 			for _, containerStatus := range pod.Status.ContainerStatuses {
