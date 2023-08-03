@@ -2,16 +2,16 @@ package image
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func namespaceIsBlocked(ns string, namespaceBlocklist, namespaceAllowlist []string) bool {
@@ -35,10 +35,15 @@ func namespaceIsBlocked(ns string, namespaceBlocklist, namespaceAllowlist []stri
 func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []string) ([]models.Image, error) {
 	kubeClientResources := util.CreateKubeClientResources()
 
-	listOpts := metav1.ListOptions{}
-	pods, err := kubeClientResources.Client.CoreV1().Pods("").List(ctx, listOpts)
+	client := fwControllerUtils.Client{
+		Context:    context.TODO(),
+		Dynamic:    kubeClientResources.DynamicClient,
+		RESTMapper: kubeClientResources.RESTMapper,
+	}
+
+	controllers, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
-		return nil, fmt.Errorf("Error fetching Kubernetes pods: %v", err)
+		logrus.Fatalf("could not retrieve top controllers with pods: %v", err)
 	}
 
 	// TODO: we're deduping by owner, which works in most cases, but might cause us
@@ -46,68 +51,53 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 	// will exist under the same owner.
 	keyToImage := map[string]models.Image{}
 	imageOwners := map[string]map[models.Resource]struct{}{}
-	for _, pod := range pods.Items {
-		if namespaceIsBlocked(pod.ObjectMeta.Namespace, namespaceBlocklist, namespaceAllowlist) {
-			logrus.Debugf("Namespace %s blocked", pod.ObjectMeta.Namespace)
+	for _, controller := range controllers {
+		if namespaceIsBlocked(controller.TopController.GetNamespace(), namespaceBlocklist, namespaceAllowlist) {
+			logrus.Debugf("Namespace %s blocked", controller.TopController.GetNamespace())
 			continue
 		}
+
 		owner := models.Resource{
-			Namespace: pod.ObjectMeta.Namespace,
-			Kind:      "Pod",
-			Name:      pod.ObjectMeta.Name,
-		}
-		owners := pod.ObjectMeta.OwnerReferences
-
-		for len(owners) > 0 {
-			if len(owners) > 1 {
-				logrus.Warnf("More than 1 owner found for Namespace: %s Kind: %s Object: %s", owner.Namespace, owner.Kind, owner.Name)
-			}
-			firstOwner := owners[0]
-			owner.Kind = firstOwner.Kind
-			owner.Name = firstOwner.Name
-			if owner.Kind == "Node" {
-				break
-			}
-			fqKind := schema.FromAPIVersionAndKind(firstOwner.APIVersion, firstOwner.Kind)
-			mapping, err := kubeClientResources.RESTMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
-			if err != nil {
-				logrus.Warnf("Error retrieving mapping %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
-				break
-			}
-			getParents, err := kubeClientResources.DynamicClient.Resource(mapping.Resource).Namespace(pod.ObjectMeta.Namespace).Get(ctx, firstOwner.Name, metav1.GetOptions{})
-			if err != nil {
-				logrus.Warnf("Error retrieving parent object %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
-				break
-			}
-			owners = getParents.GetOwnerReferences()
+			Namespace: controller.TopController.GetNamespace(),
+			Kind:      controller.TopController.GetKind(),
+			Name:      controller.TopController.GetName(),
 		}
 
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			var imageName string
-			if strings.HasPrefix(containerStatus.Image, "sha256") {
-				imageName = strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
-				logrus.Debugf("using an image name %q from the containerStatuses.*.ImageID field, because containerStatuses.*.Image begins with sha256 - %q", imageName, containerStatus.Image)
-			} else {
-				imageName = containerStatus.Image
+		for _, p := range controller.Pods {
+			podUnstructuredContent := p.UnstructuredContent()
+			var pod corev1.Pod
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(podUnstructuredContent, &pod)
+			if err != nil {
+				logrus.Fatalf("Unable to retrieve structured pod data: %v", err)
 			}
-			imageID := strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
-			imagePullRef := imageID
-			if imagePullRef == "" || strings.HasPrefix(imagePullRef, "sha256:") {
-				imagePullRef = imageName
-			}
-			owner.Container = containerStatus.Name
-			imgKey := imageName + "/" + imageID
-			if imageOwners[imgKey] == nil {
-				imageOwners[imgKey] = map[models.Resource]struct{}{}
-			}
-			imageOwners[imgKey][owner] = struct{}{}
-			if _, found := keyToImage[imgKey]; found {
-				continue
-			}
-			keyToImage[imgKey] = models.Image{
-				ID:      imageID,
-				Name:    imageName,
-				PullRef: imagePullRef,
+
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				var imageName string
+				if strings.HasPrefix(containerStatus.Image, "sha256") {
+					imageName = strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
+					logrus.Debugf("using an image name %q from the containerStatuses.*.ImageID field, because containerStatuses.*.Image begins with sha256 - %q", imageName, containerStatus.Image)
+				} else {
+					imageName = containerStatus.Image
+				}
+				imageID := strings.TrimPrefix(containerStatus.ImageID, "docker-pullable://")
+				imagePullRef := imageID
+				if imagePullRef == "" || strings.HasPrefix(imagePullRef, "sha256:") {
+					imagePullRef = imageName
+				}
+				owner.Container = containerStatus.Name
+				imgKey := imageName + "/" + imageID
+				if imageOwners[imgKey] == nil {
+					imageOwners[imgKey] = map[models.Resource]struct{}{}
+				}
+				imageOwners[imgKey][owner] = struct{}{}
+				if _, found := keyToImage[imgKey]; found {
+					continue
+				}
+				keyToImage[imgKey] = models.Image{
+					ID:      imageID,
+					Name:    imageName,
+					PullRef: imagePullRef,
+				}
 			}
 		}
 	}
