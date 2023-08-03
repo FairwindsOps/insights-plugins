@@ -9,12 +9,9 @@ import (
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/restmapper"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 )
 
 func namespaceIsBlocked(ns string, namespaceBlocklist, namespaceAllowlist []string) bool {
@@ -36,29 +33,10 @@ func namespaceIsBlocked(ns string, namespaceBlocklist, namespaceAllowlist []stri
 
 // GetImages returns the images in the current cluster.
 func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []string) ([]models.Image, error) {
-	kubeConf, configError := ctrl.GetConfig()
-	if configError != nil {
-		return nil, fmt.Errorf("Error fetching KubeConfig: %v", configError)
-	}
-
-	api, err := kubernetes.NewForConfig(kubeConf)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating Kubernetes client: %v", err)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(kubeConf)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating Dynamic client: %v", err)
-	}
-
-	resources, err := restmapper.GetAPIGroupResources(api.Discovery())
-	if err != nil {
-		return nil, fmt.Errorf("Error getting API Group resources: %v", err)
-	}
-	restMapper := restmapper.NewDiscoveryRESTMapper(resources)
+	kubeClientResources := util.CreateKubeClientResources()
 
 	listOpts := metav1.ListOptions{}
-	pods, err := api.CoreV1().Pods("").List(ctx, listOpts)
+	pods, err := kubeClientResources.Client.CoreV1().Pods("").List(ctx, listOpts)
 	if err != nil {
 		return nil, fmt.Errorf("Error fetching Kubernetes pods: %v", err)
 	}
@@ -91,12 +69,12 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 				break
 			}
 			fqKind := schema.FromAPIVersionAndKind(firstOwner.APIVersion, firstOwner.Kind)
-			mapping, err := restMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
+			mapping, err := kubeClientResources.RESTMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
 			if err != nil {
 				logrus.Warnf("Error retrieving mapping %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
 				break
 			}
-			getParents, err := dynamicClient.Resource(mapping.Resource).Namespace(pod.ObjectMeta.Namespace).Get(ctx, firstOwner.Name, metav1.GetOptions{})
+			getParents, err := kubeClientResources.DynamicClient.Resource(mapping.Resource).Namespace(pod.ObjectMeta.Namespace).Get(ctx, firstOwner.Name, metav1.GetOptions{})
 			if err != nil {
 				logrus.Warnf("Error retrieving parent object %s of API %s and Kind %s because of error: %v ", firstOwner.Name, firstOwner.APIVersion, firstOwner.Kind, err)
 				break
