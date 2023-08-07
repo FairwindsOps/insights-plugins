@@ -30,7 +30,7 @@ for namespace in "${namespaces[@]}"; do
   echo "found $count $KIND for namespace $namespace"
 
   for report in "${reports[@]}"; do
-    report_json=$(kubectl get $KIND $report -o json | jq '.results |= [.[-1]]')
+    report_json=$(kubectl get $KIND $report -o json)
     policy_name=$(echo $report_json | jq -r '.results[0].policy')
 
     # use lookup table to minimize control plane load
@@ -68,7 +68,7 @@ count=${#reports[@]}
 echo "found $count $KIND"
 
 for report in "${reports[@]}"; do
-  report_json=$(kubectl get $KIND $report -o json | jq '.results |= [.[-1]]')
+  report_json=$(kubectl get $KIND $report -o json)
   policy_name=$(echo $report_json | jq -r '.results[0].policy')
 
   if [[ ! "${policies[*]}" =~ "${policy_name}" ]]; then
