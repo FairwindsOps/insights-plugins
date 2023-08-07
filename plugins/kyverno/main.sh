@@ -30,7 +30,7 @@ for namespace in "${namespaces[@]}"; do
   echo "found $count $KIND for namespace $namespace"
 
   for report in "${reports[@]}"; do
-    report_json=$(kubectl get $KIND $report -o json)
+    report_json=$(kubectl -n $namespace get $KIND $report -o json)
     policy_name=$(echo $report_json | jq -r '.results[0].policy')
 
     # use lookup table to minimize control plane load
@@ -61,13 +61,13 @@ done
 # collect clusterpolicyreports, exit early if CRD is missing
 KIND="clusterpolicyreport"
 kubectl get crd "$KIND"s.wgpolicyk8s.io >/dev/null || exit 1
-reports=$(kubectl get $KIND -n $namespace -o name | sed "s/$KIND\.wgpolicyk8s\.io\///g")
-IFS=$'\n' reports=($reports)
+cpol_reports=$(kubectl get $KIND -n $namespace -o name | sed "s/$KIND\.wgpolicyk8s\.io\///g")
+IFS=$'\n' cpol_reports=($cpol_reports)
 
-count=${#reports[@]}
+count=${#cpol_reports[@]}
 echo "found $count $KIND"
 
-for report in "${reports[@]}"; do
+for report in "${cpol_reports[@]}"; do
   report_json=$(kubectl get $KIND $report -o json)
   policy_name=$(echo $report_json | jq -r '.results[0].policy')
 
