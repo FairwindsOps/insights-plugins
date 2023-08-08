@@ -30,17 +30,18 @@ for namespace in "${namespaces[@]}"; do
   echo "found $count $KIND for namespace $namespace"
 
   for report in "${reports[@]}"; do
-    report_json=$(kubectl -n $namespace get $KIND $report -o json)
+    # remove passed or skipped results to minimize payload and trigger a 'fixed' status for action items
+    report_json=$(kubectl -n $namespace get $KIND $report -o json | jq '. | del( ."results"[] | select(."result" == "pass" or ."result" == "skip") )')
     policy_name=$(echo $report_json | jq -r '.results[0].policy')
 
     # use lookup table to minimize control plane load
-    if [[ ! "${policies[*]}" =~ "${policy_name}" ]]; then
+    if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ "${policy_name}") ]]; then
       # determine if report refers to a policy or a clusterpolicy
-      policy_type_expression="clusterpolicy"
-      kubectl get $policy_type_expression $policy_name >/dev/null || policy_type_expression="policy -n $namespace"
+      policy_type="clusterpolicy"
+      kubectl get $policy_type $policy_name >/dev/null || policy_type="policy"
       # retrieve necessary metadata from the associated policy
-      policy_title=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
-      policy_description=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
+      policy_title=$(kubectl -n $namespace get $policy_type $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
+      policy_description=$(kubectl -n $namespace get $policy_type $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
       # populate the policy title and name
       report_json="$(jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' <<< "$report_json")"
 
@@ -68,16 +69,16 @@ count=${#cpol_reports[@]}
 echo "found $count $KIND"
 
 for report in "${cpol_reports[@]}"; do
-  report_json=$(kubectl get $KIND $report -o json)
+  report_json=$(kubectl get $KIND $report -o json | jq '. | del( ."results"[] | select(."result" == "pass" or ."result" == "skip") )')
   policy_name=$(echo $report_json | jq -r '.results[0].policy')
 
-  if [[ ! "${policies[*]}" =~ "${policy_name}" ]]; then
-    policy_type_expression="clusterpolicy"
+  if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ "${policy_name}") ]]; then
+    policy_type="clusterpolicy"
 
-    kubectl get $policy_type_expression $policy_name >/dev/null || policy_type_expression="policy -n $namespace"
+    kubectl get $policy_type $policy_name >/dev/null || policy_type="policy -n $namespace"
 
-    policy_title=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
-    policy_description=$(kubectl get $policy_type_expression $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
+    policy_title=$(kubectl get $policy_type $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
+    policy_description=$(kubectl get $policy_type $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
 
     report_json="$(jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' <<< "$report_json")"
 
