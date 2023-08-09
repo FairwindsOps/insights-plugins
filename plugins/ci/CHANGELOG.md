@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.2.1
+* Update dependencies 
+
 ## 5.2.0
 * Add `reports.goldilocks.enabled` support (default `true`)
 * Add `reports.prometheus-metrics.enabled` support (default `true`)
