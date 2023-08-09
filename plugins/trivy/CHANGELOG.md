@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.28.0
+* utilize the controller-utils library to correctly gather owner references
+
 ## 0.27.0
 * Add support to multiple owners to images
 
