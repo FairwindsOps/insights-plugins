@@ -3,7 +3,7 @@ package data
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,13 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/fairwindsops/controller-utils/pkg/log"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func isLessThan24hrs(t time.Time) bool {
-	return time.Now().Sub(t) < 24*time.Hour
+	return time.Since(t) < 24*time.Hour
 }
 
 func deleteOlderFile(filePath string) (err error) {
@@ -45,20 +44,27 @@ func readDataFromFile(fileName string) (payload FalcoOutput, err error) {
 
 // Aggregate24hrsData return aggregated report for the past 24 hours
 func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
-	tmpfiles, err := ioutil.ReadDir(dir)
+	tmpfiles, err := os.ReadDir(dir)
 	if err != nil {
 		return
 	}
 
+	var fileStat fs.FileInfo
+
 	for _, file := range tmpfiles {
-		if file.Mode().IsRegular() {
+		if file.Type().Perm().IsRegular() {
 			filename := filepath.Join(dir, file.Name())
-			logrus.Info(filename)
-			if isLessThan24hrs(file.ModTime()) {
+			fileStat, err = os.Stat(filename)
+			if err != nil {
+				return
+			}
+			if isLessThan24hrs(fileStat.ModTime()) {
 				var output FalcoOutput
 				output, err = readDataFromFile(filename)
+				// skip malformed files and continue
 				if err != nil {
-					return
+					logrus.Warnf("Error reading file: %v", err)
+					continue
 				}
 				aggregatedData = append(aggregatedData, output)
 			} else {
@@ -77,7 +83,7 @@ func GetPodByPodName(ctx context.Context, dynamicClient dynamic.Interface, restM
 	fqKind := schema.FromAPIVersionAndKind("v1", "Pod")
 	mapping, err := restMapper.RESTMapping(fqKind.GroupKind(), fqKind.Version)
 	if err != nil {
-		log.GetLogger().Error(err, "Error retrieving mapping", "v1", "Pod")
+		logrus.Error(err, "Error retrieving mapping", "v1", "Pod")
 		return nil, err
 	}
 	pod, err := dynamicClient.Resource(mapping.Resource).Namespace(namespace).Get(ctx, podname, metav1.GetOptions{})
