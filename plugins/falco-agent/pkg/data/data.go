@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
@@ -52,6 +53,7 @@ func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
 	for _, file := range tmpfiles {
 		if file.Mode().IsRegular() {
 			filename := filepath.Join(dir, file.Name())
+			logrus.Info(filename)
 			if isLessThan24hrs(file.ModTime()) {
 				var output FalcoOutput
 				output, err = readDataFromFile(filename)

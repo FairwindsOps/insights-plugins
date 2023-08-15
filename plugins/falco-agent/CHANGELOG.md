@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.9
+* fix json parsing error
+
 ## 0.2.8
 * update dependencies
 

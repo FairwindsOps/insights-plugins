@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -23,13 +24,14 @@ const outputfolder = "/output"
 
 func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) {
 	w.Header().Set("Content-Type", "application/json")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		logrus.Errorf("Error reading body: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	var falcoOutput data.FalcoOutput
+	logrus.Info(falcoOutput)
 
 	err = json.Unmarshal(body, &falcoOutput)
 	if err != nil {
@@ -95,7 +97,7 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 	}
 
 	outputFile := fmt.Sprintf("%s/%s.json", outputfolder, strconv.FormatInt(time.Now().Unix(), 10))
-	err = ioutil.WriteFile(outputFile, []byte(payload), 0644)
+	err = os.WriteFile(outputFile, []byte(payload), 0644)
 	if err != nil {
 		logrus.Errorf("Error writting to file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
