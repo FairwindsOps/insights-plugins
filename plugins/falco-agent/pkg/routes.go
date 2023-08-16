@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -14,11 +13,15 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/data"
 	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/util"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 )
+
+// wrap filesystem calls in an interface so we can mock for testing
+var AppFs = afero.NewOsFs()
 
 const outputfolder = "/output"
 
@@ -95,9 +98,9 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 		return
 	}
 
-	filename := util.UniqueFilename(fmt.Sprintf("%d.json", time.Now().UnixNano()))
+	filename := util.UniqueFilename(AppFs, fmt.Sprintf("%d.json", time.Now().UnixNano()))
 	outputFile := fmt.Sprintf("%s/%s.json", outputfolder, filename)
-	err = os.WriteFile(outputFile, []byte(payload), 0644)
+	err = afero.WriteFile(AppFs, outputFile, []byte(payload), 0644)
 	if err != nil {
 		logrus.Errorf("Error writting to file: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -108,7 +111,7 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 
 func outputDataHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	payload, err := data.Aggregate24hrsData(outputfolder)
+	payload, err := data.Aggregate24hrsData(AppFs, outputfolder)
 	if err != nil {
 		logrus.Errorf("Error while aggregating data: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

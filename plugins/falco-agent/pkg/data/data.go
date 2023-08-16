@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/afero"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
@@ -21,8 +22,8 @@ func isLessThan24hrs(t time.Time) bool {
 	return time.Since(t) < 24*time.Hour
 }
 
-func deleteOlderFile(filePath string) (err error) {
-	err = os.Remove(filePath)
+func deleteOlderFile(fsWrapper afero.Fs, filePath string) (err error) {
+	err = fsWrapper.Remove(filePath)
 	if err != nil {
 		return
 
@@ -30,8 +31,8 @@ func deleteOlderFile(filePath string) (err error) {
 	return
 }
 
-func readDataFromFile(fileName string) (payload FalcoOutput, err error) {
-	data, err := os.ReadFile(fileName)
+func readDataFromFile(fsWrapper afero.Fs, fileName string) (payload FalcoOutput, err error) {
+	data, err := afero.ReadFile(fsWrapper, fileName)
 	if err != nil {
 		return
 	}
@@ -43,7 +44,7 @@ func readDataFromFile(fileName string) (payload FalcoOutput, err error) {
 }
 
 // Aggregate24hrsData return aggregated report for the past 24 hours
-func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
+func Aggregate24hrsData(fsWrapper afero.Fs, dir string) (aggregatedData []FalcoOutput, err error) {
 	tmpfiles, err := os.ReadDir(dir)
 	if err != nil {
 		return
@@ -54,13 +55,13 @@ func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
 	for _, file := range tmpfiles {
 		if file.Type().Perm().IsRegular() {
 			filename := filepath.Join(dir, file.Name())
-			fileStat, err = os.Stat(filename)
+			fileStat, err = fsWrapper.Stat(filename)
 			if err != nil {
 				return
 			}
 			if isLessThan24hrs(fileStat.ModTime()) {
 				var output FalcoOutput
-				output, err = readDataFromFile(filename)
+				output, err = readDataFromFile(fsWrapper, filename)
 				// skip malformed files and continue
 				if err != nil {
 					logrus.Warnf("Error reading file: %v", err)
@@ -68,7 +69,7 @@ func Aggregate24hrsData(dir string) (aggregatedData []FalcoOutput, err error) {
 				}
 				aggregatedData = append(aggregatedData, output)
 			} else {
-				err = deleteOlderFile(filename)
+				err = deleteOlderFile(fsWrapper, filename)
 				if err != nil {
 					return
 				}

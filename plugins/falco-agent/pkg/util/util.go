@@ -2,20 +2,27 @@ package util
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
+
+	"github.com/spf13/afero"
 )
 
 // UniqueFilename returns a timestamp filename in unix nanoseconds,
 // and an optional suffix in the event of collisions
-func UniqueFilename(f string) string {
+func UniqueFilename(fsWrapper afero.Fs, f string) string {
+	// handle empty strings by returning, otherwise this will
+	// not terminate
+	if f == "" {
+		return f
+	}
+
 	uniqueFilename := f
-	_, err := os.Stat(uniqueFilename)
+	_, err := fsWrapper.Stat(uniqueFilename)
 	// while the file exists, we need to find a unique name
-	for err == nil {
-		uniqueFilename = incrementString(uniqueFilename, 0)
-		_, err = os.Stat(uniqueFilename)
+	for i := 0; err == nil; i++ {
+		uniqueFilename = incrementString(uniqueFilename, i)
+		_, err = fsWrapper.Stat(uniqueFilename)
 	}
 
 	return uniqueFilename
@@ -40,6 +47,7 @@ func incrementString(str string, first int) string {
 
 	separator := "_"
 
+	// suffix will always start at 1
 	if first == 0 || first < 0 {
 		first = 1
 	}
@@ -55,6 +63,6 @@ func incrementString(str string, first int) string {
 		inc := i + first
 		return fmt.Sprintf("%s%s%d%s", strSep[0], separator, inc, extension)
 	} else {
-		return fmt.Sprintf("%s%s%d%s", str, separator, first, extension)
+		return fmt.Sprintf("%s%s%d%s", nameWithoutExtension, separator, first, extension)
 	}
 }
