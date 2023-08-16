@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.9
+## 0.3.0
 * avoid filename collisions
 * use afero filesystem wrapper to better support unit tests
 * add some unit tests for new utility functions
