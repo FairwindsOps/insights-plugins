@@ -126,6 +126,7 @@ jobs:
       - run: cd plugins/opa ; go test ./... ; cd ../..
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - run: cd plugins/ci ; go test ./... ; cd ../..
+      - run: cd plugins/falco-agent ; go test ./...; cd ../..
       - run: cd plugins/trivy ; go test ./... ; cd ../..
       - slack/notify:
           event: fail

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -99,7 +100,7 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 	}
 
 	filename := util.UniqueFilename(AppFs, fmt.Sprintf("%d.json", time.Now().UnixNano()))
-	outputFile := fmt.Sprintf("%s/%s.json", outputfolder, filename)
+	outputFile := path.Join(outputfolder, filename)
 	err = afero.WriteFile(AppFs, outputFile, []byte(payload), 0644)
 	if err != nil {
 		logrus.Errorf("Error writting to file: %v", err)
