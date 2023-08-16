@@ -1,7 +1,9 @@
 # Changelog
 
 ## 0.2.9
-* fix json parsing error
+* avoid filename collisions
+* allow malformed files to be skipped in Aggregate24hrsData
+* remove use of deprecated io/ioutil
 
 ## 0.2.8
 * update dependencies

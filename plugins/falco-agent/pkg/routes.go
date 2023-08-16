@@ -7,12 +7,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/data"
+	"github.com/fairwindsops/insights-plugins/plugins/falco-agent/pkg/util"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -95,7 +95,7 @@ func inputDataHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 		return
 	}
 
-	filename := uniqueFilename(fmt.Sprintf("%d.json", time.Now().UnixNano()))
+	filename := util.UniqueFilename(fmt.Sprintf("%d.json", time.Now().UnixNano()))
 	outputFile := fmt.Sprintf("%s/%s.json", outputfolder, filename)
 	err = os.WriteFile(outputFile, []byte(payload), 0644)
 	if err != nil {
@@ -127,50 +127,5 @@ func outputDataHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write([]byte(data))
 	if err != nil {
 		logrus.Errorf("Error while sending data: %v", err)
-	}
-}
-
-// uniqueFilename returns a timestamp filename in unix nanoseconds,
-// and an optional suffix in the event of collisions
-func uniqueFilename(f string) string {
-	uniqueFilename := f
-	_, err := os.Stat(uniqueFilename)
-	// while the file exists, we need to find a unique name
-	for err == nil {
-		uniqueFilename = incrementString(uniqueFilename, 0)
-		_, err = os.Stat(uniqueFilename)
-	}
-
-	return uniqueFilename
-}
-
-// incrementString returns a unique string given a string, followed
-// by possibly a separator then an integer
-func incrementString(str string, first int) string {
-	if str == "" {
-		return str
-	}
-
-	fullFilename := strings.SplitN(str, ".", 2)
-	nameWithoutExtension, extension := fullFilename[0], fullFilename[1]
-
-	separator := "_"
-
-	if first == 0 || first < 0 {
-		first = 1
-	}
-
-	strSep := strings.SplitN(nameWithoutExtension, separator, 2)
-	if len(strSep) > 1 {
-		i, err := strconv.Atoi(strSep[1])
-
-		if err != nil {
-			return ""
-		}
-
-		inc := i + first
-		return fmt.Sprintf("%s%s%d%s%s", strSep[0], separator, inc, ".", extension)
-	} else {
-		return fmt.Sprintf("%s%s%d%s%s", str, separator, first, ".", extension)
 	}
 }
