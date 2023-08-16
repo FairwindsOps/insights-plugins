@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+* avoid filename collisions
+* use afero filesystem wrapper to better support unit tests
+* add some unit tests for new utility functions
+* allow malformed files to be skipped in Aggregate24hrsData
+* remove use of deprecated io/ioutil
+* standardize on usage of log library (logrus)
+
 ## 0.2.8
 * update dependencies
 
