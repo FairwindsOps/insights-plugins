@@ -144,6 +144,8 @@ func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (ma
 
 // Handle for Validator to run validation checks.
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	fairwindsInsightsIndicator := "[Fairwinds Insights]"
+	blockedIndicator := "[Blocked]"
 	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
@@ -158,13 +160,15 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 	}
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
 	if len(warnings) > 0 {
-		response.Warnings = warnings
 		response.Result.Code = httpStatusMiscPersistentWarning
+		for _, warnString := range warnings {
+			response.Warnings = append(response.Warnings, fmt.Sprintf("%s %s", fairwindsInsightsIndicator, warnString))
+		}
 	}
 	if len(errors) > 0 {
 		// add errors to warnings for increased readability in command-line
 		for _, errString := range errors {
-			response.Warnings = append(response.Warnings, fmt.Sprintf("[Blocked] %s", errString))
+			response.Warnings = append(response.Warnings, fmt.Sprintf("%s %s %s", fairwindsInsightsIndicator, blockedIndicator, errString))
 		}
 	}
 	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
