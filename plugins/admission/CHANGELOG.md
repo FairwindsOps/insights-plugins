@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.12.0
+* Add 'Fairwinds Insights' indicator to Admission Controller response
+
 ## 1.11.0
 * Update polaris to 8.2.4. This adds new checks and increases severity for others.
 
