@@ -25,5 +25,5 @@ func TestIgnoreUsernames(t *testing.T) {
 		IgnoreUsernames: []string{"test123"},
 	}
 	resp = v.Handle(context.Background(), req)
-	assert.Equal(t, []string{"Insights admission controller is ignoring service account test123."}, resp.Warnings)
+	assert.Equal(t, []string{"[Fairwinds Insights] Insights admission controller is ignoring service account test123."}, resp.Warnings)
 }
