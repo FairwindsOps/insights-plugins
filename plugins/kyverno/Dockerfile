@@ -4,7 +4,7 @@ ARG TARGETOS
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
-RUN apk add jq bash curl
+RUN apk add jq bash curl moreutils
 
 # curl -L -s https://dl.k8s.io/release/stable.txt
 ENV kubectlVersion=v1.27.3

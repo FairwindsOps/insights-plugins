@@ -4,8 +4,8 @@ set -e
 trap 'echo "Error on Line: $LINENO"' ERR
 echo "Starting kyverno"
 results_file=/output/kyverno.json
-
-json='{"policyReports":[], "clusterPolicyReports":[]}'
+list_file=/tmp/results.json
+echo '{"policyReports":[], "clusterPolicyReports":[]}' > $list_file
 
 # check for policy and clusterpolicy CRDs
 kubectl get crd policies.kyverno.io >/dev/null || exit 1
@@ -55,7 +55,7 @@ for namespace in "${namespaces[@]}"; do
     fi
 
     # append the modified policyreport to the output file
-    json="$(jq --argjson report_json "$report_json" '.policyReports += [$report_json]' <<< "$json")"
+    jq --argjson report_json "$report_json" '.policyReports += [$report_json]' < $list_file | sponge $list_file
   done
 done
 
@@ -90,7 +90,7 @@ for report in "${cpol_reports[@]}"; do
     report_json="$(jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' <<< "$report_json")"
   fi
 
-  json="$(jq --argjson report_json "$report_json" '.clusterPolicyReports += [$report_json]' <<< "$json")"
+  jq --argjson report_json "$report_json" '.clusterPolicyReports += [$report_json]' < $list_file | sponge $list_file
 done
 
-echo $json | jq > $results_file
+cat $list_file | jq > $results_file
