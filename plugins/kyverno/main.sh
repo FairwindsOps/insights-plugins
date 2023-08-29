@@ -32,8 +32,9 @@ for namespace in "${namespaces[@]}"; do
 
   for report in "${reports[@]}"; do
     # remove passed or skipped results to minimize payload and trigger a 'fixed' status for action items
-    kubectl -n $namespace get $KIND $report -o json | jq '. | del( ."results"[] | select(."result" == "pass" or ."result" == "skip") )' > $report_file
-    policy_name=$(cat $report_file | jq -r '.results[0].policy')
+    report_json_full=$(kubectl -n $namespace get $KIND $report -o json)
+    echo $report_json_full | jq '. | del( ."results"[]? | select(."result" == "pass" or ."result" == "skip") )' > $report_file
+    policy_name=$(cat $report_file | jq -r '.results[0]?.policy')
 
     # use lookup table to minimize control plane load
     if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ "${policy_name}") ]]; then
@@ -70,8 +71,10 @@ count=${#cpol_reports[@]}
 echo "found $count $KIND"
 
 for report in "${cpol_reports[@]}"; do
-  kubectl get $KIND $report -o json | jq '. | del( ."results"[] | select(."result" == "pass" or ."result" == "skip") )' > $report_file
-  policy_name=$(cat $report_file | jq -r '.results[0].policy')
+  # remove passed or skipped results to minimize payload and trigger a 'fixed' status for action items
+  report_json_full=$(kubectl -n $namespace get $KIND $report -o json)
+  echo $report_json_full | jq '. | del( ."results"[]? | select(."result" == "pass" or ."result" == "skip") )' > $report_file
+  policy_name=$(cat $report_file | jq -r '.results[0]?.policy')
 
   if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ "${policy_name}") ]]; then
     policy_type="clusterpolicy"
