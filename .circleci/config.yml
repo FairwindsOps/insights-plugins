@@ -325,3 +325,15 @@ workflows:
             branches:
               only:
                 - main
+
+  rebuild:
+    triggers:
+      - schedule:
+          # At 00:00 every day monday-friday
+          cron: "0 0 * * 1-5"
+          filters:
+            branches:
+              only:
+                - main
+    jobs:
+      - build_and_push_plugins
