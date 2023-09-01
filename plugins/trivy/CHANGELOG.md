@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.28.1
+* Update dependencies
+
 ## 0.28.0
 * utilize the controller-utils library to correctly gather owner references
 
