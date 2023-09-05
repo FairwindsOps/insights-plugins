@@ -1,4 +1,4 @@
-FROM docker.io/bitnami/postgresql:14.2.0-debian-10-r94
+FROM docker.io/bitnami/postgresql:14.7.0-debian-11-r31
 
 USER root
 ENV PG_PARTMAN_VERSION v4.7.3
