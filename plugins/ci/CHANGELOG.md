@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.2.3
+* Update binary dependency `trivy`
+
 ## 5.2.2
 * Update dependencies 
 
