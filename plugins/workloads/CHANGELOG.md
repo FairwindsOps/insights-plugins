@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.0
+* migrate from go-funk to lo
+
 ## 2.5.0
 * add `PodLabels` and `PodAnnotations` to report output
 
