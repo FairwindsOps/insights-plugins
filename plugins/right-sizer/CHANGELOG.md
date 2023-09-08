@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+* migrate right-sizer plugin from go-funk to lo
+
 ## 0.4.9
 * Update image repo for noisy-neighbor, used by E2E test workload.
 
