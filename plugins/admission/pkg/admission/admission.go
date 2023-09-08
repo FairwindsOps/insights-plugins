@@ -9,8 +9,8 @@ import (
 	"mime/multipart"
 	"net/http"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 
 	admissionversion "github.com/fairwindsops/insights-plugins/plugins/admission"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
@@ -76,17 +76,17 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	passed = resultMap["Success"].(bool)
 	actionItems := resultMap["ActionItems"]
 	if actionItems != nil {
-		actionItemToString := func(ai interface{}) string {
+		actionItemToString := func(ai interface{}, _ int) string {
 			aiMap := ai.(map[string]interface{})
 			return fmt.Sprintf("%s", aiMap["Title"].(string))
 		}
-		warnings = funk.Map(funk.Filter(actionItems.([]interface{}), func(ai interface{}) bool {
+		warnings = lo.Map(lo.Filter(actionItems.([]interface{}), func(ai interface{}, _ int) bool {
 			return !ai.(map[string]interface{})["Failure"].(bool)
-		}), actionItemToString).([]string)
+		}), actionItemToString)
 
-		errors = funk.Map(funk.Filter(actionItems.([]interface{}), func(ai interface{}) bool {
+		errors = lo.Map(lo.Filter(actionItems.([]interface{}), func(ai interface{}, _ int) bool {
 			return ai.(map[string]interface{})["Failure"].(bool)
-		}), actionItemToString).([]string)
+		}), actionItemToString)
 	}
 	if message, ok := resultMap["Message"]; ok {
 		if str, stringOK := message.(string); stringOK && len(message.(string)) > 0 {
