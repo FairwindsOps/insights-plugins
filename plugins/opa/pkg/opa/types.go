@@ -3,7 +3,7 @@ package opa
 import (
 	"strings"
 
-	"github.com/thoas/go-funk"
+	"github.com/samber/lo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -125,13 +125,13 @@ func (supposedInstance CheckSetting) GetCustomCheckInstance() CustomCheckInstanc
 			CustomCheckName: supposedInstance.CheckName,
 			Output:          supposedInstance.AdditionalData.Output,
 			Parameters:      supposedInstance.AdditionalData.Parameters,
-			Targets: funk.Map(supposedInstance.Targets, func(s string) KubeTarget {
+			Targets: lo.Map(supposedInstance.Targets, func(s string, _ int) KubeTarget {
 				splitValues := strings.Split(s, "/")
 				return KubeTarget{
 					APIGroups: []string{splitValues[0]},
 					Kinds:     []string{splitValues[1]},
 				}
-			}).([]KubeTarget),
+			}),
 		},
 	}
 }
