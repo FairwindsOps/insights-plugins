@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
-	"github.com/thoas/go-funk"
+	"github.com/samber/lo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -249,5 +249,6 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 }
 
 func checkIfNodeIsControlPlane(labels map[string]string) bool {
-	return funk.Contains(labels, "node-role.kubernetes.io/control-plane") || funk.Contains(labels, "node-role.kubernetes.io/master")
+	keys := lo.Keys[string, string](labels)
+	return lo.Contains(keys, "node-role.kubernetes.io/control-plane") || lo.Contains(keys, "node-role.kubernetes.io/master")
 }

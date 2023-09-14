@@ -10,7 +10,7 @@ import (
 	core "k8s.io/api/core/v1"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/thoas/go-funk"
+	"github.com/samber/lo"
 	kube_errors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -133,7 +133,7 @@ func NewController(stop chan struct{}, kubeClientResources util.KubeClientResour
 		o(cfg)
 	}
 
-	missingAllowedNamespaces := funk.RightJoinString(cfg.allowedNamespaces, cfg.allowedUpdateNamespaces)
+	_, missingAllowedNamespaces := lo.Difference(cfg.allowedNamespaces, cfg.allowedUpdateNamespaces)
 	if len(cfg.allowedNamespaces) > 0 && len(missingAllowedNamespaces) > 0 {
 		cfg.allowedNamespaces = append(cfg.allowedNamespaces, missingAllowedNamespaces...)
 		glog.Infof("NOTE: allowedNamespaces has been updated to include those only specified in allowedUpdateNamespaces, the new allowedNamespaces list is: %v", cfg.allowedNamespaces)
@@ -221,7 +221,7 @@ func isSameEventOccurrence(g *eventUpdateGroup) bool {
 // pod, or an update related to an existing report item.
 func (c *Controller) processEvent(event *core.Event) {
 	glog.V(4).Infof("got event %s/%s (count: %d), reason: %s, involved object: %s", event.ObjectMeta.Namespace, event.ObjectMeta.Name, event.Count, event.Reason, event.InvolvedObject.Kind)
-	if len(c.config.allowedNamespaces) > 0 && !funk.ContainsString(c.config.allowedNamespaces, event.ObjectMeta.Namespace) {
+	if len(c.config.allowedNamespaces) > 0 && !lo.Contains(c.config.allowedNamespaces, event.ObjectMeta.Namespace) {
 		glog.V(4).Infof("ignoring event %s/%s as its namespace is not allowed", event.ObjectMeta.Namespace, event.ObjectMeta.Name)
 		return
 	}
@@ -279,7 +279,7 @@ func (c *Controller) UpdateMemoryLimitsPrecheck(namespace string, OOMs int64) (b
 	if !c.config.updateMemoryLimits {
 		return false, "updating memory limits has not been enabled"
 	}
-	if len(c.config.allowedUpdateNamespaces) > 0 && !funk.ContainsString(c.config.allowedUpdateNamespaces, namespace) {
+	if len(c.config.allowedUpdateNamespaces) > 0 && !lo.Contains(c.config.allowedUpdateNamespaces, namespace) {
 		return false, fmt.Sprintf("namespace %s is not allowed by allowedUpdateNamespaces", namespace)
 	}
 	if c.config.updateMemoryLimitsMinimumOOMs > 0 && OOMs < c.config.updateMemoryLimitsMinimumOOMs {

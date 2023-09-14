@@ -17,7 +17,7 @@ require (
 	github.com/samber/lo v1.38.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	github.com/thoas/go-funk v0.9.3
+	github.com/thoas/go-funk v0.9.3 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.3.0
 	k8s.io/api v0.27.2
 	k8s.io/apimachinery v0.27.3
