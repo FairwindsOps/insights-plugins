@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.13.0
+* Migrate from go-funk to lo
+
 ## 1.12.0
 * Add 'Fairwinds Insights' indicator to Admission Controller response
 

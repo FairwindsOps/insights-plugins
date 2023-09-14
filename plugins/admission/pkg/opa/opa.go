@@ -10,8 +10,8 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 	"github.com/hashicorp/go-multierror"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -76,13 +76,13 @@ func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGrou
 				CustomCheckName: instanceObject.CheckName,
 				Output:          instanceObject.AdditionalData.Output,
 				Parameters:      instanceObject.AdditionalData.Parameters,
-				Targets: funk.Map(instanceObject.Targets, func(s string) opa.KubeTarget {
+				Targets: lo.Map(instanceObject.Targets, func(s string, _ int) opa.KubeTarget {
 					splitValues := strings.Split(s, "/")
 					return opa.KubeTarget{
 						APIGroups: []string{splitValues[0]},
 						Kinds:     []string{splitValues[1]},
 					}
-				}).([]opa.KubeTarget),
+				}),
 			},
 		}
 		foundTargetInInstance := false
