@@ -106,8 +106,12 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
 		return true, []string{msg}, nil, nil
 	}
+	rawBytes := req.Object.Raw
+	if req.Operation == "DELETE" {
+		rawBytes = req.OriginalObject.Raw // Object.Raw is empty for DELETEs
+	}
 	var decoded map[string]any
-	err := json.Unmarshal(req.Object.Raw, &decoded)
+	err := json.Unmarshal(rawBytes, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
@@ -200,7 +204,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		return false, nil, nil, err
 	}
 	reports := []models.ReportInfo{metadataReport}
-	if config.Reports.Polaris {
+	if config.Reports.Polaris && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
 		polarisConfig := *config.Polaris
@@ -220,7 +224,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		reports = append(reports, opaReport)
 	}
 
-	if config.Reports.Pluto {
+	if config.Reports.Pluto && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Pluto")
 		userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
 		userTargetVersions, err := pluto.ParsePlutoTargetVersions(userTargetVersionsStr)
