@@ -108,7 +108,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	}
 	rawBytes := req.Object.Raw
 	if req.Operation == "DELETE" {
-		rawBytes = req.OriginalObject.Raw // Object.Raw is empty for DELETEs
+		rawBytes = req.OldObject.Raw // Object.Raw is empty for DELETEs
 	}
 	var decoded map[string]any
 	err := json.Unmarshal(rawBytes, &decoded)
