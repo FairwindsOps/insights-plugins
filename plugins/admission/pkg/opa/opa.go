@@ -108,5 +108,6 @@ func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGrou
 // check.
 func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
 	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, insightsInfo)
+	logrus.Infof("Ran opa v2, %d AIs, err: %v", len(newActionItems), err)
 	return newActionItems, err
 }
