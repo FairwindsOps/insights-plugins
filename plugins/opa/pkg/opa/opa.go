@@ -184,10 +184,8 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 // ProcessCheckForItemV2 is a runRegoForItemV2() wrapper that uses the specified
 // Kubernetes Kind/Namespace/Name to construct an action item.
 func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
-	logrus.Infof("Processing check for item v2")
 	results, err := runRegoForItemV2(ctx, check.Rego, obj, insightsInfo)
 	if err != nil {
-		logrus.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
 		return nil, fmt.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
 	}
 	aiDetails := OutputFormat{}
