@@ -213,6 +213,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		polarisConfig := *config.Polaris
 		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, req.Object.Raw)
 		if err != nil {
+			logrus.Errorf("Error while running Polaris: %v", err)
 			return false, nil, nil, err
 		}
 		reports = append(reports, polarisReport)
@@ -222,6 +223,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		logrus.Info("Running OPA")
 		opaReport, err := opa.ProcessOPA(ctx, decoded, req, config, iConfig)
 		if err != nil {
+			logrus.Errorf("Error while running OPA: %v", err)
 			return false, nil, nil, err
 		}
 		reports = append(reports, opaReport)
@@ -237,6 +239,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		}
 		plutoReport, err := pluto.ProcessPluto(req.Object.Raw, userTargetVersions)
 		if err != nil {
+			logrus.Errorf("Error while running Pluto: %v", err)
 			return false, nil, nil, err
 		}
 		reports = append(reports, plutoReport)
