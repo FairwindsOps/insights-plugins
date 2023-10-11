@@ -106,8 +106,12 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
 		return true, []string{msg}, nil, nil
 	}
+	rawBytes := req.Object.Raw
+	if req.Operation == "DELETE" {
+		rawBytes = req.OldObject.Raw // Object.Raw is empty for DELETEs
+	}
 	var decoded map[string]any
-	err := json.Unmarshal(req.Object.Raw, &decoded)
+	err := json.Unmarshal(rawBytes, &decoded)
 	if err != nil {
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
@@ -183,6 +187,9 @@ type MetadataReport struct {
 }
 
 func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (models.ReportInfo, error) {
+	if req.Operation == "DELETE" {
+		req.Object = req.OldObject // DELETE requests don't have an object
+	}
 	metadataReport := MetadataReport{AdmissionRequest: req.AdmissionRequest, NamespaceMetadata: namespaceMetadata}
 	contents, err := json.Marshal(&metadataReport)
 	return models.ReportInfo{
@@ -200,12 +207,13 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		return false, nil, nil, err
 	}
 	reports := []models.ReportInfo{metadataReport}
-	if config.Reports.Polaris {
+	if config.Reports.Polaris && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
 		polarisConfig := *config.Polaris
 		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, req.Object.Raw)
 		if err != nil {
+			logrus.Errorf("Error while running Polaris: %v", err)
 			return false, nil, nil, err
 		}
 		reports = append(reports, polarisReport)
@@ -215,12 +223,13 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		logrus.Info("Running OPA")
 		opaReport, err := opa.ProcessOPA(ctx, decoded, req, config, iConfig)
 		if err != nil {
+			logrus.Errorf("Error while running OPA: %v", err)
 			return false, nil, nil, err
 		}
 		reports = append(reports, opaReport)
 	}
 
-	if config.Reports.Pluto {
+	if config.Reports.Pluto && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Pluto")
 		userTargetVersionsStr := os.Getenv("PLUTO_TARGET_VERSIONS")
 		userTargetVersions, err := pluto.ParsePlutoTargetVersions(userTargetVersionsStr)
@@ -230,6 +239,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		}
 		plutoReport, err := pluto.ProcessPluto(req.Object.Raw, userTargetVersions)
 		if err != nil {
+			logrus.Errorf("Error while running Pluto: %v", err)
 			return false, nil, nil, err
 		}
 		reports = append(reports, plutoReport)

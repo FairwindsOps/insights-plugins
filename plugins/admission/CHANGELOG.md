@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.13.1
+* Fix for DELETE requests
+
 ## 1.13.0
 * Migrate from go-funk to lo
 
