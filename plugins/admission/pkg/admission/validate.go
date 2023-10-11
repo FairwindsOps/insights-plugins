@@ -187,6 +187,9 @@ type MetadataReport struct {
 }
 
 func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (models.ReportInfo, error) {
+	if req.Operation == "DELETE" {
+		req.Object = req.OldObject // DELETE requests don't have an object
+	}
 	metadataReport := MetadataReport{AdmissionRequest: req.AdmissionRequest, NamespaceMetadata: namespaceMetadata}
 	contents, err := json.Marshal(&metadataReport)
 	return models.ReportInfo{
