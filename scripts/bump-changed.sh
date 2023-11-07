@@ -28,3 +28,4 @@ for d in ./plugins/*/ ; do
     mv /tmp/CHANGELOG.md $d/CHANGELOG.md
 done
 
+
