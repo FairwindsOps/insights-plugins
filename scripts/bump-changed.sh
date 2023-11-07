@@ -27,5 +27,3 @@ for d in ./plugins/*/ ; do
     tail -n+2 $d/CHANGELOG.md >> /tmp/CHANGELOG.md
     mv /tmp/CHANGELOG.md $d/CHANGELOG.md
 done
-
-
