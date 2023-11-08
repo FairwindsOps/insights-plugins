@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
@@ -134,7 +135,7 @@ func extractRepoNameFromOrigin(origin string) string {
 		repoNameSplit := strings.Split(repoName, ":")
 		repoName = repoNameSplit[len(repoNameSplit)-1]
 	}
-	return strings.TrimSuffix(repoName, ".git")
+	return strings.TrimSuffix(repoName, filepath.Ext(repoName))
 }
 
 type hint struct {
