@@ -7,7 +7,7 @@ require (
 	github.com/fairwindsops/controller-utils v0.3.2
 	github.com/google/go-containerregistry v0.13.0
 	github.com/samber/lo v1.38.1
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	k8s.io/api v0.26.7
 	k8s.io/apimachinery v0.26.7

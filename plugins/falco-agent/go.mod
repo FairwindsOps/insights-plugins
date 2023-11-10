@@ -6,7 +6,7 @@ require (
 	github.com/fairwindsops/controller-utils v0.1.1
 	github.com/falcosecurity/falcosidekick v0.0.0-20220103163434-fde58f71eb1d
 	github.com/gorilla/mux v1.8.0
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/afero v1.9.5
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
