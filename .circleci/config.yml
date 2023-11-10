@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  slack: circleci/slack@4.8
+  slack: circleci/slack@4.12.5
   rok8s-scripts: fairwinds/rok8s-scripts@13.1.1
 
 commands:
@@ -84,7 +84,7 @@ commands:
 executors:
   ci-images:
     docker:
-      - image: quay.io/reactiveops/ci-images:v11-stretch
+      - image: quay.io/reactiveops/ci-images:v13.1-bullseye
   goreleaser:
     resource_class: large
     docker:
@@ -145,7 +145,7 @@ jobs:
 
   check_versions:
     docker:
-      - image: quay.io/reactiveops/ci-images:v11.13.5-alpine
+      - image: quay.io/reactiveops/ci-images:v13.1-alpine
     steps:
       - checkout
       - set_vault
