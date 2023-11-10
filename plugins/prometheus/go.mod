@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/prometheus
 
-go 1.19
+go 1.21
 
 replace github.com/fairwindsops/insights-plugins/plugins/prometheus => ./
 

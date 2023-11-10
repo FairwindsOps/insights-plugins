@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.1
+* Update to go 1.21
+
 ## 2.3.0
 * migrate opa plugin from go-funk to lo
 

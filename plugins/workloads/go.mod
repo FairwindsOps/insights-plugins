@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/workloads
 
-go 1.19
+go 1.21
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.2
