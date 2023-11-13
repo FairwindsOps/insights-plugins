@@ -305,8 +305,7 @@ workflows:
               ignore:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
-          parameters:
-            executor: ci-images-large
+          executor: ci-images-large
           name: End-To-End Test on Kubernetes
           requires:
             - build_and_push_plugins
