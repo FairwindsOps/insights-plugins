@@ -84,11 +84,7 @@ commands:
 executors:
   ci-images:
     docker:
-      - image: quay.io/reactiveops/ci-images:v13.1-bullseye
-  ci-images-xlarge:
-    resource_class: xlarge
-    docker:
-      - image: quay.io/reactiveops/ci-images:v13.1-bullseye
+      - image: quay.io/reactiveops/ci-images:v11-stretch
   goreleaser:
     resource_class: large
     docker:
@@ -149,7 +145,7 @@ jobs:
 
   check_versions:
     docker:
-      - image: quay.io/reactiveops/ci-images:v13.1-alpine
+      - image: quay.io/reactiveops/ci-images:v11.13.5-alpine
     steps:
       - checkout
       - set_vault
@@ -305,7 +301,6 @@ workflows:
               ignore:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
-          executor: ci-images-xlarge
           name: End-To-End Test on Kubernetes
           requires:
             - build_and_push_plugins
