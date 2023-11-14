@@ -1,4 +1,4 @@
-set -eo pipefail
+set -exo pipefail
 
 
 # Loop for a fixed number of seconds, until new restarts are seen for the

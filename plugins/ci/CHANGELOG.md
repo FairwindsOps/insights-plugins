@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.2.4
+* Update to go 1.21
+
 ## 5.2.3
 * Update binary dependency `trivy`
 

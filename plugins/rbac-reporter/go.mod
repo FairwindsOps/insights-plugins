@@ -1,9 +1,9 @@
 module github.com/fairwindsops/insights-plugins/plugins/rbac-reporter
 
-go 1.19
+go 1.21
 
 require (
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
