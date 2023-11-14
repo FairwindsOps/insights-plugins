@@ -1,9 +1,14 @@
 # Changelog
 
+## 1.3.5
+* Update to go 1.21
+
 ## 1.3.4
 * Prometheus bug fix
+
 ## 1.3.3
 * storage metric bug fix
+
 ## 1.3.2
 * fixing network transmit and receive
 
