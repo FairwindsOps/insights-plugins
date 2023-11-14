@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.2.5
+* Fix removing `.git` from repository name
+
 ## 5.2.4
 * Update to go 1.21
 
