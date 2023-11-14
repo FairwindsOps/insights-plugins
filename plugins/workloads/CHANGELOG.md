@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.2
+* update dependencies
+
 ## 2.6.1
 * Update to go 1.21
 
