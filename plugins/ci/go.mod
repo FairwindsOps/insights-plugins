@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/ci
 
-go 1.19
+go 1.21
 
 replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
 
@@ -15,7 +15,6 @@ require (
 	github.com/samber/lo v1.38.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -75,6 +74,7 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/yashtewari/glob-intersection v0.1.0 // indirect
+	golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.5.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect

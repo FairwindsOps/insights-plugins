@@ -1,7 +1,10 @@
 # Changelog
 
-## 5.2.4
+## 5.2.5
 * Fix removing `.git` from repository name
+
+## 5.2.4
+* Update to go 1.21
 
 ## 5.2.3
 * Update binary dependency `trivy`
