@@ -111,33 +111,33 @@ func TestGetController(t *testing.T) {
 
 func TestAdjustMetricsForMultiContainerPods(t *testing.T) {
 	testMetrics := []*model.SampleStream{
-		&model.SampleStream{
+		{
 			Metric: model.Metric{
 				"namespace": "default",
 				"pod":       "testpod",
 			},
 			Values: []model.SamplePair{
-				model.SamplePair{
+				{
 					Timestamp: 1674153900000,
 					Value:     0.5,
 				},
-				model.SamplePair{
+				{
 					Timestamp: 1674153930000,
 					Value:     1.5,
 				},
-				model.SamplePair{
+				{
 					Timestamp: 1674153960000,
 					Value:     0.0,
 				},
-				model.SamplePair{
+				{
 					Timestamp: 1674153990000,
 					Value:     5.3,
 				},
-				model.SamplePair{
+				{
 					Timestamp: 1674154020000,
 					Value:     9.0,
 				},
-				model.SamplePair{
+				{
 					Timestamp: 1674154050000,
 					Value:     10.0,
 				},
@@ -281,7 +281,8 @@ func TestAdjustMetricsForMultiContainerPods(t *testing.T) {
 // pods is correctly divided by the number of pods, and that a multi-container
 // pod is also divided by container.
 func TestStorageCapacity(t *testing.T) {
-	unstructuredPVCs := []unstructured.Unstructured{ // Minimal required fields for a test PersistentVolumeClain.
+	// TODO: This test is failing
+	unstructuredPVCs := []unstructured.Unstructured{ // Minimal required fields for a test PersistentVolumeClaim.
 		{
 			Object: map[string]interface{}{
 				"kind": "PersistentVolumeClaim",

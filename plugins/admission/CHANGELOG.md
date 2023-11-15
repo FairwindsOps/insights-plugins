@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.13.3
+* Update dependencies
+
 ## 1.13.2
 * Update to go 1.21
 
