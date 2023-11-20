@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+* update dependencies
+
+## 0.5.1
+* Update to go 1.21
+
 ## 0.5.0
 * migrate right-sizer plugin from go-funk to lo
 

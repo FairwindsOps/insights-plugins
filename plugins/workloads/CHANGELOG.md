@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.2
+* update dependencies
+
+## 2.6.1
+* Update to go 1.21
+
 ## 2.6.0
 * migrate from go-funk to lo
 

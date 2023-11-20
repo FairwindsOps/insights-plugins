@@ -11,7 +11,9 @@ import (
 )
 
 func TestExtractRepoNameFromOrigin(t *testing.T) {
+	assert.Equal(t, "FairwindsOps/insights-plugins", extractRepoNameFromOrigin("git@github.com:FairwindsOps/insights-plugins"))
 	assert.Equal(t, "FairwindsOps/insights-plugins", extractRepoNameFromOrigin("git@github.com:FairwindsOps/insights-plugins.git"))
+	assert.Equal(t, "FairwindsOps/insights-plugins", extractRepoNameFromOrigin("git@github.com:FairwindsOps/insights-plugins.git\n"))
 	assert.Equal(t, "", extractRepoNameFromOrigin(""))
 }
 

@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  slack: circleci/slack@4.8
+  slack: circleci/slack@4.12.5
   rok8s-scripts: fairwinds/rok8s-scripts@13.1.1
 
 commands:
@@ -88,10 +88,10 @@ executors:
   goreleaser:
     resource_class: large
     docker:
-      # The goreleaser image tag determins the version of Go.
+      # The goreleaser image tag determines the version of Go.
       # Manually check goreleaser images for their version of Go.
       # Ref: https://hub.docker.com/r/goreleaser/goreleaser/tags
-      - image: goreleaser/goreleaser:v1.11.4
+      - image: goreleaser/goreleaser:v1.22.1 # golang 1.21.3
 
 
 jobs:
@@ -108,7 +108,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/go:1.19
+      - image: cimg/go:1.21
     steps:
       - checkout
       - set_vault
@@ -135,7 +135,7 @@ jobs:
 
   check_version_changed:
     docker:
-      - image: cimg/go:1.19
+      - image: cimg/go:1.21
     steps:
       - checkout
       - set_vault

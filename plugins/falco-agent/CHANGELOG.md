@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+* update dependencies
+
+## 0.3.1
+* Update to go 1.21
+
 ## 0.3.0
 * avoid filename collisions
 * use afero filesystem wrapper to better support unit tests
