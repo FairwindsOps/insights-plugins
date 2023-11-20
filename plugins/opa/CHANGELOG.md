@@ -1,10 +1,15 @@
 # Changelog
 
+
+## 2.4.0
+* add checks for nginx cves 4886, 5054, and 5043
+
 ## 2.3.2
 * update dependencies
 
 ## 2.3.1
 * Update to go 1.21
+
 
 ## 2.3.0
 * migrate opa plugin from go-funk to lo
