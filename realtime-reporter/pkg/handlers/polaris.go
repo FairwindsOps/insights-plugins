@@ -30,7 +30,10 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 		reportMap := polarisReportInfoToMap(report)
 		e := evt.NewEvent("polaris", u.GetNamespace(), u.GetName(), reportMap)
-		eventJson, _ := json.Marshal(e)
+		eventJson, err := json.Marshal(e)
+		if err != nil {
+			logrus.Errorf("Unable to marshal event: %v", err)
+		}
 		logrus.Infof("%s", eventJson)
 	}
 	handler.UpdateFunc = func(old, new interface{}) {
@@ -48,37 +51,62 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 		reportMap := polarisReportInfoToMap(report)
 		e := evt.NewEvent("polaris", u.GetNamespace(), u.GetName(), reportMap)
-		eventJson, _ := json.Marshal(e)
+		eventJson, err := json.Marshal(e)
+		if err != nil {
+			logrus.Errorf("Unable to marshal event: %v", err)
+		}
 		logrus.Infof("%s", eventJson)
 	}
 	handler.DeleteFunc = func(obj interface{}) {
-		bytes, err := json.Marshal(obj)
-		if err != nil {
-			logrus.Errorf("Unable to marshal object: %v", err)
-		}
-
+		// an event with empty data currently indicates the resource has been removed
 		u := obj.(*unstructured.Unstructured)
 
-		report, err := polaris.GetPolarisReport(bytes)
+		e := evt.NewEvent("polaris", u.GetNamespace(), u.GetName(), nil)
+		eventJson, err := json.Marshal(e)
 		if err != nil {
-			logrus.Errorf("Unable to retrieve polaris report: %v", err)
+			logrus.Errorf("Unable to marshal event: %v", err)
 		}
 
-		reportMap := polarisReportInfoToMap(report)
-		e := evt.NewEvent("polaris", u.GetNamespace(), u.GetName(), reportMap)
-		eventJson, _ := json.Marshal(e)
-		logrus.Debugf("%s", eventJson)
+		logrus.Infof("%s", eventJson)
 	}
 	return handler
 }
 
+type PolarisReport struct {
+	Report   string
+	Version  string
+	Contents []byte
+}
+
 func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
-	reportJson, _ := json.Marshal(report)
-	var reportMap map[string]interface{}
-	err := json.Unmarshal(reportJson, &reportMap)
-	if err != nil {
-		logrus.Errorf("Unable to unmarshal polaris report: %v", err)
-		return nil
+	m := PolarisReport{
+		Report:   report.Report,
+		Version:  report.Version,
+		Contents: report.Contents,
 	}
+
+	var v map[string]any
+	err := json.Unmarshal(m.Contents, &v)
+	if err != nil {
+		panic(err)
+	}
+
+	im := map[string]any{
+		"Report":   m.Report,
+		"Version":  m.Version,
+		"Contents": m.Contents,
+	}
+
+	reportJson, err := json.Marshal(im)
+	if err != nil {
+		panic(err)
+	}
+
+	var reportMap map[string]interface{}
+	err = json.Unmarshal(reportJson, &reportMap)
+	if err != nil {
+		panic(err)
+	}
+
 	return reportMap
 }
