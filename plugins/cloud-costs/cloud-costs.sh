@@ -10,13 +10,16 @@ usage()
 {
 cat << EOF
 usage: cloud-costs \
-  --provider <cloud provider>
-  --database <database name> \
-  --table <table name> \
-  --tagkey <tag key> \
-  --tagvalue <tag value> \
-  --catalog <catalog for AWS> \
-  --workgroup <workgroup for AWS> \
+  --provider <cloud provider - aws is default>
+  --tagkey <tag key - required for AWS, optional for GCP> \
+  --tagvalue <tag value - required for AWS and GCP> \
+  --database <database name - required for AWS> \
+  --table <table name for - required for AWS> \
+  --catalog <catalog for - required for AWS> \
+  --workgroup <workgroup - required for AWS> \
+  --projectname <project name - required for GCP> \
+  --dataset <dataset name - required for GCP> \
+  --billingaccount <billing account - required for GCP> \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
 
@@ -24,13 +27,16 @@ This script runs cloud costs integration for Fairwinds Insights.
 EOF
 }
 
-provider='aws'
+provider=''
 tagkey=''
 tagvalue=''
 database=''
 table=''
 timeout='60'
 workgroup=''
+projectname=''
+dataset=''
+billingaccount=''
 days=''
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
@@ -39,6 +45,9 @@ while [ ! $# -eq 0 ]; do
     case "$flag" in
         timeout)
             timeout=${2}
+            ;;            
+        provider)
+            provider=${2}
             ;;            
         tagkey)
             tagkey=${2}
@@ -64,6 +73,15 @@ while [ ! $# -eq 0 ]; do
         workgroup)
             workgroup=${2}
             ;;
+        projectname)
+            projectname=${2}
+            ;;
+        dataset)
+            dataset=${2}
+            ;;
+        billingaccount)
+            billingaccount=${2}
+            ;;
         *)
             usage
             exit
@@ -76,15 +94,15 @@ if [[ "$days" = "" && "$AWS_COSTS_DAYS" != "" ]]; then
   days=$AWS_COSTS_DAYS
 fi
 if [[ "$days" = "" ]]; then
-  days='5'
+  days='1'
 fi
 
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 
 if  [[ "$provider" = "aws" ]]; then
-
-  if [["$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
+   echo "AWS CUR Integration......"
+  if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
     usage
     exit 1
   fi
@@ -136,16 +154,30 @@ if  [[ "$provider" = "aws" ]]; then
   echo "Saved aws costs file in /output/cloud-costs.json"
   exit 0
 fi
-if [[ "$provider" = "gcp" ]]; then
+if [[ "$provider" == "gcp" ]]; then
+  echo "Google Cloud integration......"
 
-  if [["$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
+  if [[ "$tagvalue" = "" || "$projectname" = "" || "$dataset" = "" || "$billingaccount" = "" || "$days" = "" ]]; then
     usage
     exit 1
   fi
+  
+  if [[ "$tagkey" = "" ]]; then
+    tagkey="goog-k8s-cluster-name"
+  fi
+
+  billingaccount=${billingaccount//-/_}
+  table="$projectname.$dataset.gcp_billing_export_resource_v1_$billingaccount"
+
+  echo "Google bigquey is running......"
+  sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
+
+  bq --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloud-costs-tmp.json
+  echo "Google bigquey finished......"
 
   mv /output/cloud-costs-tmp.json /output/cloud-costs.json
 
-  echo "Saved aws costs file in /output/cloud-costs.json"
+  echo "Saved GCP costs file in /output/cloud-costs.json"
   exit 0
   exit 0
 fi
