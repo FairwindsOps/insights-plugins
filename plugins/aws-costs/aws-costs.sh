@@ -67,8 +67,8 @@ while [ ! $# -eq 0 ]; do
     shift
     shift
 done
-if [[ "$days" = "" && "$CLOUD_COSTS_DAYS" != "" ]]; then
-  days=$CLOUD_COSTS_DAYS
+if [[ "$days" = "" && "$AWS_COSTS_DAYS" != "" ]]; then
+  days=$AWS_COSTS_DAYS
 fi
 if [[ "$days" = "" ]]; then
   days='5'
