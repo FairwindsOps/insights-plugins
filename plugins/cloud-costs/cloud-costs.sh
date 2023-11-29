@@ -20,6 +20,7 @@ usage: cloud-costs \
   --projectname <project name - required for GCP> \
   --dataset <dataset name - required for GCP> \
   --billingaccount <billing account - required for GCP> \
+  --serviceaccountemail <service account email - required for GCP> \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
 
@@ -37,6 +38,7 @@ workgroup=''
 projectname=''
 dataset=''
 billingaccount=''
+serviceaccountemail=''
 days=''
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
@@ -82,6 +84,9 @@ while [ ! $# -eq 0 ]; do
         billingaccount)
             billingaccount=${2}
             ;;
+        serviceaccountemail)
+            serviceaccountemail=${2}
+            ;;            
         *)
             usage
             exit
@@ -94,7 +99,7 @@ if [[ "$days" = "" && "$CLOUD_COSTS_DAYS" != "" ]]; then
   days=$CLOUD_COSTS_DAYS
 fi
 if [[ "$days" = "" ]]; then
-  days='1'
+  days='5'
 fi
 
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
@@ -170,8 +175,10 @@ if [[ "$provider" == "gcp" ]]; then
   table="$projectname.$dataset.gcp_billing_export_resource_v1_$billingaccount"
 
   echo "Google bigquey is running......"
-  sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
 
+  gcloud auth activate-service-account $serviceaccountemail --key-file=/.config/gcp-key.json --project=$projectname
+
+  sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
   bq --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloud-costs-tmp.json
   echo "Google bigquey finished......"
 
