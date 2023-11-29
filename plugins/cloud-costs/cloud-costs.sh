@@ -172,7 +172,7 @@ if [[ "$provider" == "gcp" ]]; then
   echo "Google bigquey is running......"
   sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
 
-  gcloud auth application-default login --quiet
+  gcloud auth application-default login --quiet --no-launch-browser
 
   bq --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloud-costs-tmp.json
   echo "Google bigquey finished......"
