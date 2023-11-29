@@ -171,7 +171,7 @@ if [[ "$provider" == "gcp" ]]; then
 
   echo "Google bigquey is running......"
 
-  gcloud auth activate-service-account bigqueryaccess@gcp-prime.iam.gserviceaccount.com --key-file=gcp-key.json --project=gcp-prime
+  gcloud auth activate-service-account bigqueryaccess@gcp-prime.iam.gserviceaccount.com --key-file=/config/gcp-key.json --project=gcp-prime
 
   sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
   bq --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloud-costs-tmp.json
