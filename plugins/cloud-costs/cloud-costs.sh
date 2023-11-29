@@ -173,7 +173,7 @@ if [[ "$provider" == "gcp" ]]; then
   sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
 
   echo "Before init"
-  gcloud init --no-browser --console-only, --no-launch-browser --skip-diagnostics
+  gcloud init --no-browser --console-only --no-launch-browser --skip-diagnostics
   echo "After init"
   gcloud auth application-default login --quiet --no-browser
 
