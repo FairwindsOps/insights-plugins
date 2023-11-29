@@ -94,7 +94,7 @@ if [[ "$days" = "" && "$CLOUD_COSTS_DAYS" != "" ]]; then
   days=$CLOUD_COSTS_DAYS
 fi
 if [[ "$days" = "" ]]; then
-  days='1'
+  days='5'
 fi
 
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
