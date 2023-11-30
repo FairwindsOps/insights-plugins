@@ -177,9 +177,9 @@ if [[ "$provider" == "gcp" ]]; then
   bq --quiet --format=prettyjson query --max_rows=10000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json
   echo "Google bigquey finished......"
 
-  awk '$0 == "[" {p=1} p' < /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clen.json
+  awk '$0 == "[" {p=1} p' < /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clean.json
 
-  mv /output/cloudcosts-tmp-clen.json /output/cloudcosts.json
+  mv /output/cloudcosts-tmp-clean.json /output/cloudcosts.json
   echo "Saved GCP costs file in /output/cloudcosts.json"  
 
   exit 0
