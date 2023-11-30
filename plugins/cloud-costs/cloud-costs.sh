@@ -20,7 +20,6 @@ usage: cloud-costs \
   --projectname <project name - required for GCP> \
   --dataset <dataset name - required for GCP> \
   --billingaccount <billing account - required for GCP> \
-  --serviceaccountemail <service account email - required for GCP> \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
 
@@ -38,7 +37,6 @@ workgroup=''
 projectname=''
 dataset=''
 billingaccount=''
-serviceaccountemail=''
 days=''
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
@@ -84,9 +82,6 @@ while [ ! $# -eq 0 ]; do
         billingaccount)
             billingaccount=${2}
             ;;
-        serviceaccountemail)
-            serviceaccountemail=${2}
-            ;;            
         *)
             usage
             exit
@@ -176,14 +171,14 @@ if [[ "$provider" == "gcp" ]]; then
 
   echo "Google bigquey is running......"
 
-  gcloud auth activate-service-account $serviceaccountemail --key-file=/.config/gcp-key.json --project=$projectname
+  gcloud auth activate-service-account --key-file=/.config/gcp-key.json --project=$projectname
 
   sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
-  bq --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloud-costs-tmp.json
+  bq --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json
   echo "Google bigquey finished......"
 
-  mv /output/cloud-costs-tmp.json /output/cloud-costs.json
+  mv /output/cloudcosts-tmp.json /output/cloudcosts.json
 
-  echo "Saved GCP costs file in /output/cloud-costs.json"  
+  echo "Saved GCP costs file in /output/cloudcosts.json"  
   exit 0
 fi
