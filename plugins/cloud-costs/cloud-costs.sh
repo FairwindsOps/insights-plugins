@@ -180,12 +180,7 @@ if [[ "$provider" == "gcp" ]]; then
   awk '$0 == "[" {p=1} p' < /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clen.json
 
   mv /output/cloudcosts-tmp-clen.json /output/cloudcosts.json
-
-  echo "--------------"
-  cat /output/cloudcosts.json
-  echo "--------------"
-
-
   echo "Saved GCP costs file in /output/cloudcosts.json"  
+
   exit 0
 fi
