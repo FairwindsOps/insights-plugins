@@ -1,6 +1,8 @@
 module github.com/FairwindsOps/insights-plugins/realtime-reporter
 
-go 1.20
+go 1.21
+
+toolchain go1.21.3
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20231114133200-3e310e6f2f5d
