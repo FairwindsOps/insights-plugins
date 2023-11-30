@@ -174,7 +174,7 @@ if [[ "$provider" == "gcp" ]]; then
   gcloud auth activate-service-account --key-file=/.config/gcp-key.json --project=$projectname
 
   sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
-  bq --quiet --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json
+  bq --quiet --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" 2> /dev/null > /output/cloudcosts-tmp.json
   echo "Google bigquey finished......"
 
   mv /output/cloudcosts-tmp.json /output/cloudcosts.json
