@@ -179,6 +179,10 @@ if [[ "$provider" == "gcp" ]]; then
 
   mv /output/cloudcosts-tmp.json /output/cloudcosts.json
 
+  echo "--------------"
+  cat /output/cloudcosts.json
+  echo "--------------"
+
   echo "Saved GCP costs file in /output/cloudcosts.json"  
   exit 0
 fi
