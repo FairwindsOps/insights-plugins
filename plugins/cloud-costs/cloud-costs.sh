@@ -176,7 +176,7 @@ if [[ "$provider" == "gcp" ]]; then
   sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' order by usage_start_time desc"
   bq --format=prettyjson query --max_rows=1000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json
   echo "Google bigquey finished......"
-  mv /output/cloudcosts-tmp.json /output/cloudcosts.json
+  mv /output/cloudcosts-tmp.json /output/cloud-costs.json
 
   echo "Saved GCP costs file in /output/cloudcosts.json"  
   exit 0
