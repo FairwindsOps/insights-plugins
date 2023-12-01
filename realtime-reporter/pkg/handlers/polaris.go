@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
@@ -17,6 +18,8 @@ import (
 )
 
 const maxTries = 3
+const host = "http://localhost:3001"
+const organization, cluster = "acme-co", "vvezani"
 
 func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
@@ -87,15 +90,20 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 }
 
 func uploadToInsights(payload []byte) error {
-	organization, cluster, reportType, token := "acme-co", "vvezani-test", "polaris", "jt8IDB8IDa8kONPTX2j_UW09RHpuEpbGUbeKciH2jIUFb9DyaoEGuWxplfwmH_51"
+	reportType := "polaris"
 
 	var sendError bool
 	var tries int
 
+	token := os.Getenv("INSIGHTS_TOKEN")
+	if token == "" {
+		return fmt.Errorf("INSIGHTS_TOKEN environment variable not set")
+	}
+
 	for {
-		apiURL := fmt.Sprintf("http://localhost:3001/v0/organizations/%s/clusters/%s/data/%s/incremental", organization, cluster, reportType)
+		apiURL := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/%s/incremental", host, organization, cluster, reportType)
 		if sendError {
-			apiURL = fmt.Sprintf("http://localhost:3001/v0/organizations/%s/clusters/%s/data/%s/incremental/failure", organization, cluster, reportType)
+			apiURL = fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/%s/incremental/failure", host, organization, cluster, reportType)
 		}
 
 		req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(payload))
@@ -115,7 +123,6 @@ func uploadToInsights(payload []byte) error {
 
 		// Check the response
 		if resp.StatusCode == http.StatusOK {
-			print(string(payload))
 			break
 		} else {
 			fmt.Println("Failed to upload event - status code:", resp.StatusCode)
