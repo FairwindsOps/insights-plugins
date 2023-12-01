@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4
+* Installed awscli
+
 ## 0.1.3
 * Fix cloud costs content
 
