@@ -2,9 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
 
@@ -16,12 +22,25 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 	var handler cache.ResourceEventHandlerFuncs
 	handler.AddFunc = func(obj interface{}) {
+		timestamp := getTimestampUnixNanos()
+
 		bytes, err := json.Marshal(obj)
 		if err != nil {
 			logrus.Errorf("Unable to marshal object: %v", err)
 		}
 
 		u := obj.(*unstructured.Unstructured)
+		ownerReferences := u.GetOwnerReferences()
+
+		// if owner references exist, and the object controller is configured to be watched, we can discard this event since the
+		// controller will be used to process the report
+		if len(ownerReferences) > 0 {
+			for _, controller := range ownerReferences {
+				if lo.Contains(viper.GetStringSlice("resources"), getOwnerReferenceGVKStringPluralized(controller)) {
+					return
+				}
+			}
+		}
 
 		report, err := polaris.GetPolarisReport(bytes)
 		if err != nil {
@@ -29,7 +48,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		}
 
 		reportMap := polarisReportInfoToMap(report)
-		e := evt.NewEvent(u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
+		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
@@ -37,6 +56,8 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		logrus.Infof("%s", eventJson)
 	}
 	handler.UpdateFunc = func(old, new interface{}) {
+		timestamp := getTimestampUnixNanos()
+
 		bytes, err := json.Marshal(new)
 		if err != nil {
 			logrus.Errorf("Unable to marshal object: %v", err)
@@ -50,7 +71,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		}
 
 		reportMap := polarisReportInfoToMap(report)
-		e := evt.NewEvent(u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
+		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
@@ -58,10 +79,12 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		logrus.Infof("%s", eventJson)
 	}
 	handler.DeleteFunc = func(obj interface{}) {
+		timestamp := getTimestampUnixNanos()
+
 		// an event with empty data currently indicates the resource has been removed
 		u := obj.(*unstructured.Unstructured)
 
-		e := evt.NewEvent(u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
+		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
@@ -109,4 +132,12 @@ func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
 	}
 
 	return reportMap
+}
+
+func getTimestampUnixNanos() int64 {
+	return time.Now().UTC().UnixNano()
+}
+
+func getOwnerReferenceGVKStringPluralized(ownerReference metav1.OwnerReference) string {
+	return strings.ToLower(fmt.Sprintf("%v/%vs", ownerReference.APIVersion, ownerReference.Kind))
 }
