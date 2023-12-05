@@ -12,7 +12,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
-	github.com/samber/lo v1.38.1
+	github.com/samber/lo v1.39.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v3 v3.0.1
