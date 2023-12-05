@@ -57,18 +57,14 @@ type insightsReportsConfig struct {
 	AutoScan map[string]insightsReportConfig
 }
 
-// Create a new CI instance based on flag cloneRepo
-func NewCIScan() (*CIScan, error) {
-	// cloneRepo controls if the repository must be cloned from the git provider, but also enables the auto-scan mode
-	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
-	logrus.Infof("cloneRepo: %v", cloneRepo)
-
+// Create a new CI instance based on flag autoScan
+func NewCIScan(autoScan bool) (*CIScan, error) {
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
 		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
 
-	baseFolder, repoBaseFolder, config, err := setupConfiguration(cloneRepo)
+	baseFolder, repoBaseFolder, config, err := setupConfiguration(autoScan)
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
 	}
@@ -80,7 +76,7 @@ func NewCIScan() (*CIScan, error) {
 	}
 
 	ci := CIScan{
-		autoScan:       cloneRepo,
+		autoScan:       autoScan,
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
 		baseFolder:     baseFolder,
@@ -381,9 +377,9 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 }
 
 // all modifications to config struct must be done in this context
-func setupConfiguration(cloneRepo bool) (string, string, *models.Configuration, error) {
-	if cloneRepo {
-		return getConfigurationForClonedRepo()
+func setupConfiguration(autoScan bool) (string, string, *models.Configuration, error) {
+	if autoScan {
+		return getConfigurationForAutoScan()
 	}
 	return getDefaultConfiguration()
 }
@@ -419,7 +415,7 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 	return filepath.Base(""), filepath.Base(""), config, nil
 }
 
-func getConfigurationForClonedRepo() (string, string, *models.Configuration, error) {
+func getConfigurationForAutoScan() (string, string, *models.Configuration, error) {
 	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	if repoFullName == "" {
 		return "", "", nil, errors.New("REPOSITORY_NAME environment variable not set")
@@ -501,6 +497,8 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 	if err != nil {
 		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
+
+	config.Options.SetExitCode = false // always false when running on auto-scan mode
 
 	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "update-ref", "refs/heads/"+config.Options.BaseBranch, "refs/remotes/origin/"+config.Options.BaseBranch), "updating branch ref")
 	if err != nil {
