@@ -57,14 +57,14 @@ type insightsReportsConfig struct {
 	AutoScan map[string]insightsReportConfig
 }
 
-// Create a new CI instance based on flag autoScan
-func NewCIScan(autoScan bool) (*CIScan, error) {
+// Create a new CI instance based on flag cloneRepo
+func NewCIScan(cloneRepo bool) (*CIScan, error) {
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
 		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
 	}
 
-	baseFolder, repoBaseFolder, config, err := setupConfiguration(autoScan)
+	baseFolder, repoBaseFolder, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
 	}
@@ -76,7 +76,7 @@ func NewCIScan(autoScan bool) (*CIScan, error) {
 	}
 
 	ci := CIScan{
-		autoScan:       autoScan,
+		autoScan:       cloneRepo,
 		token:          token,
 		repoBaseFolder: repoBaseFolder,
 		baseFolder:     baseFolder,
@@ -377,9 +377,9 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 }
 
 // all modifications to config struct must be done in this context
-func setupConfiguration(autoScan bool) (string, string, *models.Configuration, error) {
-	if autoScan {
-		return getConfigurationForAutoScan()
+func setupConfiguration(cloneRepo bool) (string, string, *models.Configuration, error) {
+	if cloneRepo {
+		return getConfigurationForCloneRepo()
 	}
 	return getDefaultConfiguration()
 }
@@ -415,7 +415,7 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 	return filepath.Base(""), filepath.Base(""), config, nil
 }
 
-func getConfigurationForAutoScan() (string, string, *models.Configuration, error) {
+func getConfigurationForCloneRepo() (string, string, *models.Configuration, error) {
 	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	if repoFullName == "" {
 		return "", "", nil, errors.New("REPOSITORY_NAME environment variable not set")
