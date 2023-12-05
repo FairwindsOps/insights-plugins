@@ -16,8 +16,13 @@ func main() {
 	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
 	logrus.Infof("cloneRepo: %v", cloneRepo)
 
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		logrus.Fatal("FAIRWINDS_TOKEN environment variable not set")
+	}
+
 	logrus.Infof("CI plugin %s", civersion.String())
-	ciScan, err := ci.NewCIScan(cloneRepo)
+	ciScan, err := ci.NewCIScan(cloneRepo, token)
 	if err != nil {
 		exitWithError(ciScan, "Error creating CI Scan main struct", err)
 	}

@@ -58,12 +58,7 @@ type insightsReportsConfig struct {
 }
 
 // Create a new CI instance based on flag cloneRepo
-func NewCIScan(cloneRepo bool) (*CIScan, error) {
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-	if token == "" {
-		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
-	}
-
+func NewCIScan(cloneRepo bool, token string) (*CIScan, error) {
 	baseFolder, repoBaseFolder, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
