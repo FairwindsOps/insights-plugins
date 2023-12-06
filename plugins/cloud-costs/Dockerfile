@@ -1,17 +1,12 @@
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:455.0.0
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:455.0.0-alpine
 
-RUN apt-get update && \
-    apt-get install -y \
+RUN apk add --no-cache \
         python3 \
-        python3-pip \
-        python3-setuptools \
-        groff \
-        less \
-        jq \
+        py3-pip \
     && pip3 install --upgrade pip \
-    && apt-get clean
-
-RUN pip3 --no-cache-dir install --upgrade awscli
+    && pip3 install --no-cache-dir \
+        awscli \
+    && rm -rf /var/cache/apk/*
 
 COPY cloud-costs.sh cloud-costs.sh
 

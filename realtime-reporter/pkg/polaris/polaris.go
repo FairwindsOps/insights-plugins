@@ -6,7 +6,6 @@ import (
 
 	polarisconfiguration "github.com/fairwindsops/polaris/pkg/config"
 	"github.com/fairwindsops/polaris/pkg/kube"
-	fwkube "github.com/fairwindsops/polaris/pkg/kube"
 	"github.com/fairwindsops/polaris/pkg/validator"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -34,7 +33,7 @@ func GetPolarisReport(manifest []byte) (models.ReportInfo, error) {
 		Report: "polaris",
 	}
 	// Scan with Polaris
-	controller, err := fwkube.NewGenericResourceFromBytes(manifest)
+	controller, err := kube.NewGenericResourceFromBytes(manifest)
 	if err != nil {
 		return report, err
 	}

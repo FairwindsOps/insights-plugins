@@ -1,9 +1,5 @@
 package report
 
-import (
-	"time"
-)
-
 const eventVersion = 1
 
 type Event struct {
@@ -15,13 +11,12 @@ type Event struct {
 	Data         map[string]any `json:"data"`
 }
 
-func NewEvent(kind string, namespace string, workload string, data map[string]any) Event {
-	timestamp := time.Now().UTC().UnixNano()
+func NewEvent(timestamp int64, kind string, namespace string, workload string, data map[string]any) Event {
 
 	event := Event{
 		EventVersion: eventVersion,
-		Kind:         kind,
 		Timestamp:    timestamp,
+		Kind:         kind,
 		Namespace:    namespace,
 		Workload:     workload,
 		Data:         data,
