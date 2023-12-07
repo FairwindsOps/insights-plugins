@@ -63,7 +63,7 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
 		}
-		err = uploadToInsights(token, eventJson)
+		err = uploadToInsights(token, timestamp, eventJson)
 		if err != nil {
 			logrus.Errorf("unable to upload to Insights: %v", err)
 		}
@@ -95,7 +95,7 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 			if err != nil {
 				logrus.Errorf("Unable to marshal event: %v", err)
 			}
-			err = uploadToInsights(token, eventJson)
+			err = uploadToInsights(token, timestamp, eventJson)
 			if err != nil {
 				logrus.Errorf("unable to upload to Insights: %v", err)
 			}
@@ -113,7 +113,7 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
 		}
-		err = uploadToInsights(token, eventJson)
+		err = uploadToInsights(token, timestamp, eventJson)
 		if err != nil {
 			logrus.Errorf("unable to upload to Insights: %v", err)
 		}
@@ -121,7 +121,7 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 	return handler
 }
 
-func uploadToInsights(token string, payload []byte) error {
+func uploadToInsights(token string, timestamp int64, payload []byte) error {
 	reportType := "polaris"
 
 	var sendError bool
@@ -139,6 +139,7 @@ func uploadToInsights(token string, payload []byte) error {
 		}
 
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Fairwinds-Event-Timestamp", fmt.Sprintf("%d", timestamp))
 		req.Header.Set("Authorization", "Bearer "+token) // Add your authentication token if needed
 
 		// Create an HTTP client and send the request
