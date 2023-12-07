@@ -13,6 +13,13 @@ resources:
   -  v1/configmaps
   -  apps/v1/daemonsets
   -  batch/v1/jobs
+  -  v1/pods
+  -  v1/services
+  -  networking.k8s.io/v1/ingresses
+  -  v1/nodes
+  -  v1/namespaces
+  -  v1/persistentvolumes
+  -  v1/persistentvolumeclaims
 
 namespaces:
   - all

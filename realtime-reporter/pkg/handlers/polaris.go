@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -23,9 +22,9 @@ import (
 
 const maxTries = 3
 const host = "http://localhost:3001"
-const organization, cluster = "acme-co", "vvezani"
+const organization, cluster = "acme-co", "vvezani-03"
 
-func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
+func PolarisHandler(token string, resourceType string) cache.ResourceEventHandlerFuncs {
 
 	var handler cache.ResourceEventHandlerFuncs
 	handler.AddFunc = func(obj interface{}) {
@@ -60,7 +59,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
 		}
-		err = uploadToInsights(eventJson)
+		err = uploadToInsights(token, eventJson)
 		if err != nil {
 			logrus.Errorf("unable to upload to Insights: %v", err)
 		}
@@ -86,7 +85,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
 		}
-		err = uploadToInsights(eventJson)
+		err = uploadToInsights(token, eventJson)
 		if err != nil {
 			logrus.Errorf("unable to upload to Insights: %v", err)
 		}
@@ -102,7 +101,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
 		}
-		err = uploadToInsights(eventJson)
+		err = uploadToInsights(token, eventJson)
 		if err != nil {
 			logrus.Errorf("unable to upload to Insights: %v", err)
 		}
@@ -110,16 +109,11 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 	return handler
 }
 
-func uploadToInsights(payload []byte) error {
+func uploadToInsights(token string, payload []byte) error {
 	reportType := "polaris"
 
 	var sendError bool
 	var tries int
-
-	token := os.Getenv("INSIGHTS_TOKEN")
-	if token == "" {
-		return fmt.Errorf("INSIGHTS_TOKEN environment variable not set")
-	}
 
 	for {
 		apiURL := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/%s/incremental", host, organization, cluster, reportType)

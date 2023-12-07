@@ -1,9 +1,12 @@
 package watcher
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/FairwindsOps/insights-plugins/realtime-reporter/pkg/handlers"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -26,7 +29,14 @@ func NewWatcher() (*Watcher, error) {
 		return nil, err
 	}
 
-	informer.AddEventHandler(handlers.PolarisHandler)
+	token := os.Getenv("INSIGHTS_TOKEN")
+	if token == "" {
+		return nil, fmt.Errorf("INSIGHTS_TOKEN environment variable not set")
+	}
+
+	informer.AddEventHandler(func(resourceType string) cache.ResourceEventHandlerFuncs {
+		return handlers.PolarisHandler(token, resourceType)
+	})
 
 	return &Watcher{client, informer}, nil
 }
