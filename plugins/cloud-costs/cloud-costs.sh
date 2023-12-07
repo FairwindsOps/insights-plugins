@@ -180,7 +180,9 @@ if [[ "$provider" == "gcp" ]]; then
   awk '$0 == "[" {p=1} p' < /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clean.json
 
   mv /output/cloudcosts-tmp-clean.json /output/cloudcosts.json
-  echo "Saved GCP costs file in /output/cloudcosts.json"  
+  echo "Saved GCP costs file in /output/cloudcosts.json"
 
   exit 0
 fi
+echo "--provider - is required and should be either aws or gcp"
+exit 1
