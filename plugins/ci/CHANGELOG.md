@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.2.7
+* Ignore `setExitCode` when running on auto-scan mode
+
 ## 5.2.6
 * Update dependencies
 

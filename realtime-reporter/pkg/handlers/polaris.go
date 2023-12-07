@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
+	"github.com/go-test/deep"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
@@ -29,6 +31,7 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 	var handler cache.ResourceEventHandlerFuncs
 	handler.AddFunc = func(obj interface{}) {
 		timestamp := getTimestampUnixNanos()
+		logrus.WithField("resourceType", resourceType).Info("add event")
 
 		bytes, err := json.Marshal(obj)
 		if err != nil {
@@ -54,7 +57,8 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 		}
 
 		reportMap := polarisReportInfoToMap(report)
-		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
+		logrus.Debug(len(reportMap))
+		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
@@ -67,31 +71,39 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 	handler.UpdateFunc = func(old, new interface{}) {
 		timestamp := getTimestampUnixNanos()
 
-		bytes, err := json.Marshal(new)
-		if err != nil {
-			logrus.Errorf("Unable to marshal object: %v", err)
-		}
+		oldObj := old.(*unstructured.Unstructured)
+		newObj := new.(*unstructured.Unstructured)
 
-		u := new.(*unstructured.Unstructured)
+		if !equality.Semantic.DeepEqual(old, new) {
+			diff := deep.Equal(oldObj, newObj)
+			logrus.WithField("resourceType", resourceType).WithField("diff", diff).Info("update event")
 
-		report, err := polaris.GetPolarisReport(bytes)
-		if err != nil {
-			logrus.Errorf("Unable to retrieve polaris report: %v", err)
-		}
+			bytes, err := json.Marshal(new)
+			if err != nil {
+				logrus.Errorf("Unable to marshal object: %v", err)
+			}
 
-		reportMap := polarisReportInfoToMap(report)
-		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
-		eventJson, err := json.Marshal(e)
-		if err != nil {
-			logrus.Errorf("Unable to marshal event: %v", err)
-		}
-		err = uploadToInsights(token, eventJson)
-		if err != nil {
-			logrus.Errorf("unable to upload to Insights: %v", err)
+			report, err := polaris.GetPolarisReport(bytes)
+			if err != nil {
+				logrus.Errorf("Unable to retrieve polaris report: %v", err)
+			}
+
+			reportMap := polarisReportInfoToMap(report)
+			logrus.Debug(len(reportMap))
+			e := evt.NewEvent(timestamp, newObj.GetObjectKind().GroupVersionKind().Kind, newObj.GetNamespace(), newObj.GetName(), nil)
+			eventJson, err := json.Marshal(e)
+			if err != nil {
+				logrus.Errorf("Unable to marshal event: %v", err)
+			}
+			err = uploadToInsights(token, eventJson)
+			if err != nil {
+				logrus.Errorf("unable to upload to Insights: %v", err)
+			}
 		}
 	}
 	handler.DeleteFunc = func(obj interface{}) {
 		timestamp := getTimestampUnixNanos()
+		logrus.WithField("resourceType", resourceType).Info("delete event")
 
 		// an event with empty data currently indicates the resource has been removed
 		u := obj.(*unstructured.Unstructured)
