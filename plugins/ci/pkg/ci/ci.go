@@ -58,16 +58,7 @@ type insightsReportsConfig struct {
 }
 
 // Create a new CI instance based on flag cloneRepo
-func NewCIScan() (*CIScan, error) {
-	// cloneRepo controls if the repository must be cloned from the git provider, but also enables the auto-scan mode
-	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
-	logrus.Infof("cloneRepo: %v", cloneRepo)
-
-	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
-	if token == "" {
-		return nil, errors.New("FAIRWINDS_TOKEN environment variable not set")
-	}
-
+func NewCIScan(cloneRepo bool, token string) (*CIScan, error) {
 	baseFolder, repoBaseFolder, config, err := setupConfiguration(cloneRepo)
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
@@ -383,7 +374,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 // all modifications to config struct must be done in this context
 func setupConfiguration(cloneRepo bool) (string, string, *models.Configuration, error) {
 	if cloneRepo {
-		return getConfigurationForClonedRepo()
+		return getConfigurationForCloneRepo()
 	}
 	return getDefaultConfiguration()
 }
@@ -419,7 +410,7 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 	return filepath.Base(""), filepath.Base(""), config, nil
 }
 
-func getConfigurationForClonedRepo() (string, string, *models.Configuration, error) {
+func getConfigurationForCloneRepo() (string, string, *models.Configuration, error) {
 	repoFullName := strings.TrimSpace(os.Getenv("REPOSITORY_NAME"))
 	if repoFullName == "" {
 		return "", "", nil, errors.New("REPOSITORY_NAME environment variable not set")
@@ -501,6 +492,8 @@ func getConfigurationForClonedRepo() (string, string, *models.Configuration, err
 	if err != nil {
 		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
 	}
+
+	config.Options.SetExitCode = false // always false when running on auto-scan mode
 
 	_, err = commands.ExecInDir(baseRepoPath, exec.Command("git", "update-ref", "refs/heads/"+config.Options.BaseBranch, "refs/remotes/origin/"+config.Options.BaseBranch), "updating branch ref")
 	if err != nil {

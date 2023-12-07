@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	civersion "github.com/fairwindsops/insights-plugins/plugins/ci"
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/ci"
@@ -10,8 +11,18 @@ import (
 
 func main() {
 	setLogLevel()
+
+	// cloneRepo and autoScan are synonymous in this context. they are both used to determine if the repo should be cloned and scanned when running on FW infrastructure.
+	cloneRepo := strings.ToLower(strings.TrimSpace(os.Getenv("CLONE_REPO"))) == "true"
+	logrus.Infof("cloneRepo: %v", cloneRepo)
+
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		logrus.Fatal("FAIRWINDS_TOKEN environment variable not set")
+	}
+
 	logrus.Infof("CI plugin %s", civersion.String())
-	ciScan, err := ci.NewCIScan()
+	ciScan, err := ci.NewCIScan(cloneRepo, token)
 	if err != nil {
 		exitWithError(ciScan, "Error creating CI Scan main struct", err)
 	}
