@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.5
+* Error hangling for provider parameter
+
 ## 0.1.4
 * Installed awscli
 
