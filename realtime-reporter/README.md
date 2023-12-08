@@ -8,11 +8,19 @@ Example configuration:
 
 ```yaml
 resources:
-  -  apps/v1/deployments
-  -  apps/v1/statefulsets
-  -  v1/configmaps
-  -  apps/v1/daemonsets
-  -  batch/v1/jobs
+  - apps/v1/deployments
+  - apps/v1/statefulsets
+  - v1/configmaps
+  - apps/v1/daemonsets
+  - batch/v1/jobs
+  - v1/pods
+  - v1/services
+  - networking.k8s.io/v1/ingresses
+  - v1/nodes
+  - v1/namespaces
+  - v1/persistentvolumes
+  - v1/persistentvolumeclaims
+  - apps/v1/replicasets
 
 namespaces:
   - all
@@ -25,19 +33,19 @@ From this `insights-plugins/realtime-reporter` directory, you can run simply wit
 * resource created
 
 ```json
-{"version":1,"timestamp":"1701121805498107000","namespace":"default","workload":"nginx-deployment","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
+{"event_version":1,"timestamp":1702058101532424000,"kind":"Deployment","namespace":"local-path-storage","workload":"local-path-provisioner","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
 ```
 
 * resource updated
 
 ```json
-{"version":1,"timestamp":"1701121878837615000","namespace":"insights-agent","workload":"workloads-28352003","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
+{"event_version":1,"timestamp":1702058147263443000,"kind":"Deployment","namespace":"default","workload":"nginx-deployment","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
 ```
 
 * resource deleted
 
 ```json
-{"version":1,"timestamp":"1701121778054851000","namespace":"default","workload":"nginx-deployment","data":null}
+{"event_version":1,"timestamp":1702058166269670000,"kind":"Deployment","namespace":"default","workload":"nginx-deployment","data":null}
 ```
 
 ## TODOs
