@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
-	"github.com/go-test/deep"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
@@ -63,17 +61,8 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 		oldObj := old.(*unstructured.Unstructured)
 		newObj := new.(*unstructured.Unstructured)
-		oldObjSpec, _, _ := unstructured.NestedMap(oldObj.Object, "spec")
-		newObjSpec, _, _ := unstructured.NestedMap(newObj.Object, "spec")
-		// TODO:
-		// something like this, but we need to ignore certain managed fields
-		// oldObjMeta, _, _ := unstructured.NestedMap(oldObj.Object, "metadata")
-		// newObjMeta, _, _ := unstructured.NestedMap(newObj.Object, "metadata")
 
-		if !equality.Semantic.DeepEqual(oldObjSpec, newObjSpec) {
-			specDiff := deep.Equal(oldObjSpec, newObjSpec)
-			logrus.WithField("resourceType", resourceType).WithField("specDiff", specDiff).Info("update event")
-
+		if oldObj.GetGeneration() < newObj.GetGeneration() {
 			bytes, err := json.Marshal(new)
 			if err != nil {
 				logrus.Errorf("Unable to marshal object: %v", err)
