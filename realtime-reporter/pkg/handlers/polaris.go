@@ -57,8 +57,7 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 		}
 
 		reportMap := polarisReportInfoToMap(report)
-		logrus.Debug(len(reportMap))
-		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
+		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
@@ -73,10 +72,16 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 
 		oldObj := old.(*unstructured.Unstructured)
 		newObj := new.(*unstructured.Unstructured)
+		oldObjSpec, _, _ := unstructured.NestedMap(oldObj.Object, "spec")
+		newObjSpec, _, _ := unstructured.NestedMap(newObj.Object, "spec")
+		// TODO:
+		// something like this, but we need to ignore certain managed fields
+		// oldObjMeta, _, _ := unstructured.NestedMap(oldObj.Object, "metadata")
+		// newObjMeta, _, _ := unstructured.NestedMap(newObj.Object, "metadata")
 
-		if !equality.Semantic.DeepEqual(old, new) {
-			diff := deep.Equal(oldObj, newObj)
-			logrus.WithField("resourceType", resourceType).WithField("diff", diff).Info("update event")
+		if !equality.Semantic.DeepEqual(oldObjSpec, newObjSpec) {
+			specDiff := deep.Equal(oldObjSpec, newObjSpec)
+			logrus.WithField("resourceType", resourceType).WithField("specDiff", specDiff).Info("update event")
 
 			bytes, err := json.Marshal(new)
 			if err != nil {
@@ -89,8 +94,8 @@ func PolarisHandler(token string, resourceType string) cache.ResourceEventHandle
 			}
 
 			reportMap := polarisReportInfoToMap(report)
-			logrus.Debug(len(reportMap))
-			e := evt.NewEvent(timestamp, newObj.GetObjectKind().GroupVersionKind().Kind, newObj.GetNamespace(), newObj.GetName(), nil)
+
+			e := evt.NewEvent(timestamp, newObj.GetObjectKind().GroupVersionKind().Kind, newObj.GetNamespace(), newObj.GetName(), reportMap)
 			eventJson, err := json.Marshal(e)
 			if err != nil {
 				logrus.Errorf("Unable to marshal event: %v", err)
