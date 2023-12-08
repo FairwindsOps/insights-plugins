@@ -24,7 +24,7 @@ import (
 
 const maxTries = 3
 const host = "http://localhost:3001"
-const organization, cluster = "acme-co", "vvezani-03"
+const organization, cluster = "acme-co", "vvezani"
 
 func PolarisHandler(token string, resourceType string) cache.ResourceEventHandlerFuncs {
 
