@@ -674,6 +674,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	}
 
 	if len(scanErrorsReportProperties.Items) > 0 {
+		printScanErrors(scanErrorsReportProperties)
 		scanErrorsReport, err := ci.processScanErrorsReportProperties(scanErrorsReportProperties)
 		if err != nil {
 			return nil, fmt.Errorf("unable to process scan errors report items: %w", err)
@@ -792,4 +793,11 @@ func createFileFromConfig(path, filename string, cfg models.Configuration) error
 		return err
 	}
 	return nil
+}
+
+func printScanErrors(scanErrorReport models.ScanErrorsReportProperties) {
+	fmt.Println("Scan Error(these are soft errors that do not prevent the scan from completing):")
+	for _, r := range scanErrorReport.Items {
+		fmt.Println("\t- " + createErrorItemMessage(r))
+	}
 }

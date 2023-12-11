@@ -1,8 +1,6 @@
 package models
 
 import (
-	"strings"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
@@ -142,33 +140,4 @@ func (reportProperties *ScanErrorsReportProperties) AddScanErrorsReportResultFro
 	logrus.Debugf("appending this error to ScanErrorsReportProperties: %#v", newItem)
 	reportProperties.Items = append(reportProperties.Items, newItem)
 	return
-}
-
-func (reportProperties ScanErrorsReportProperties) String() string {
-	var sb strings.Builder
-	for _, r := range reportProperties.Items {
-		sb.WriteString("- ")
-		if r.ErrorContext != "" {
-			sb.WriteString(r.ErrorContext)
-			sb.WriteString("/")
-		}
-		if r.Kind != "" {
-			sb.WriteString(r.Kind)
-			sb.WriteString("/")
-		}
-		if r.ResourceName != "" {
-			sb.WriteString(r.ResourceName)
-		}
-		if sb.Len() > 0 {
-			sb.WriteString(" - ")
-		}
-		sb.WriteString(r.ErrorMessage)
-		if r.Filename != "" {
-			sb.WriteString(" (")
-			sb.WriteString(r.Filename)
-			sb.WriteString(")")
-		}
-		sb.WriteString("\n")
-	}
-	return sb.String()
 }
