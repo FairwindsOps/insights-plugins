@@ -796,7 +796,7 @@ func createFileFromConfig(path, filename string, cfg models.Configuration) error
 }
 
 func printScanErrors(scanErrorReport models.ScanErrorsReportProperties) {
-	fmt.Println("Scan Error(these are soft errors that do not prevent the scan from completing):")
+	fmt.Println("Scan Errors(these are soft errors that do not prevent the scan from completing):")
 	for _, r := range scanErrorReport.Items {
 		fmt.Println("\t- " + createErrorItemMessage(r))
 	}
