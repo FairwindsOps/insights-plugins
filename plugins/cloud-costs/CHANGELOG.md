@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.7
+* Removing --quiet option
+
 ## 0.1.6
 * Removing gcloud auth
 
