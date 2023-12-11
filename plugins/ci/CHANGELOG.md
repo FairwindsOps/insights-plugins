@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.2.8
+* Log soft errors on output for better error visibility
+
 ## 5.2.7
 * Ignore `setExitCode` when running on auto-scan mode
 
