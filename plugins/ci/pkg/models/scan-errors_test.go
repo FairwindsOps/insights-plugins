@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,5 +56,77 @@ func TestAddScanErrorsReportResultFromAScanErrorsReportResultWithAnAdditionalRes
 	}
 	got := ScanErrorsReportProperties{}
 	got.AddScanErrorsReportResultFromError(anError, toPopulateMissingFields)
+	assert.Equal(t, want, got)
+}
+
+func TestAddScanErrorsReportResultFromAMultiError(t *testing.T) {
+	want := ScanErrorsReportProperties{
+		Items: []ScanErrorsReportResult{
+			{
+				ErrorMessage: "an error with additional context",
+				ErrorContext: "context from the first error",
+				Kind:         "deployment",
+				ResourceName: "myapp",
+				Remediation:  "fix the deployment",
+				Severity:     2.0,
+				Category:     "Security",
+				Filename:     "deployment.yaml",
+			},
+			{
+				ErrorMessage: "another error with additional context",
+				ErrorContext: "context from the second error",
+				Kind:         "statefulset",
+				ResourceName: "yourapp",
+				Remediation:  "fix the statefulset",
+				Severity:     2.5,
+				Category:     "Security",
+				Filename:     "statefulset.yaml",
+			},
+			{
+				ErrorMessage: "a third error with additional context",
+				ErrorContext: "a general; fallthrough context", // from toPopulateMissingFields
+				Kind:         "CIErrorWithoutContext",          // a default for a required value
+				ResourceName: "unknown",                        // a default for a required value
+				Remediation:  "fix something",                  // from toPopulateMissingFields
+				Severity:     1.5,                              // from toPopulateMissingFields
+				Category:     "Reliability",                    // from toPopulateMissingFields
+			},
+		},
+	}
+	multipleErrors := new(multierror.Error)
+	multipleErrors = multierror.Append(
+		ScanErrorsReportResult{
+			ErrorMessage: "an error with additional context",
+			ErrorContext: "context from the first error",
+			Kind:         "deployment",
+			ResourceName: "myapp",
+			Severity:     2.0,
+			Category:     "Security",
+			Remediation:  "fix the deployment",
+			Filename:     "deployment.yaml",
+		},
+		ScanErrorsReportResult{
+			ErrorMessage: "another error with additional context",
+			ErrorContext: "context from the second error",
+			Kind:         "statefulset",
+			ResourceName: "yourapp",
+			Severity:     2.5,
+			Category:     "Security",
+			Remediation:  "fix the statefulset",
+			Filename:     "statefulset.yaml",
+		},
+		ScanErrorsReportResult{
+			ErrorMessage: "a third error with additional context",
+		},
+	)
+	toPopulateMissingFields := ScanErrorsReportResult{
+		ErrorMessage: "this will not be used and should not be overwritten",
+		ErrorContext: "a general; fallthrough context",
+		Remediation:  "fix something",
+		Severity:     1.5,
+		Category:     "Reliability",
+	}
+	got := ScanErrorsReportProperties{}
+	got.AddScanErrorsReportResultFromError(multipleErrors, toPopulateMissingFields)
 	assert.Equal(t, want, got)
 }
