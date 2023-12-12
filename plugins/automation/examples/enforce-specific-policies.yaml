@@ -1,5 +1,5 @@
-name: "Enforce specific policies and manage exceptions for Admission Controller"
-description: "Enforce specific policies at the time of admission, including exception management via annotation"
+name: "enforce-specific-policies"
+description: "Enforce specific policies at the time of admission and support exceptions"
 context: "AdmissionController"
 reportType: ""
 cluster: ""
@@ -8,6 +8,8 @@ action: |
   //READ ME: Configure the policies to enforce
   //To do this, enter the eventType found under the Policies page into the policiesToEnforce array below
   policiesToEnforce = ["memoryRequestsMissing", "cpuRequestsMissing"];
+  exemptNamespaces = [];
+
 
 
   //--------------------------------------------
@@ -15,6 +17,7 @@ action: |
   //--------------------------------------------
 
   //Step 1: Make an enforcement decision for the Admission Controller. 
+
   //If the Action Item matches a policy to enforce, then increase the severity to Critical.
   if (policiesToEnforce.length > 0) {
     if (policiesToEnforce.indexOf(ActionItem.EventType) !== -1) {
@@ -33,8 +36,16 @@ action: |
     ActionItem.Resolution = WORKING_AS_INTENDED_RESOLUTION;
   }
 
-  //Step 2: Deterine if the deployment should bypass the  Admission Controller.
-  //Admission Controller will grant an exception if a YAML annotation like this exists: insights.fairwinds.com/ignore: "memoryRequestsMissing"
+  //Step 2: Deterine if the deployment should bypass the Admission Controller.
+
+  //Check if the Action Item's namespace is within the exemptNamespaces array
+  if(exemptNamespaces.indexOf(ActionItem.ResourceNamespace) !== -1) {
+      //Reduce severity and resolve this ActionItem so it can bypass the Admission Controller
+      ActionItem.Severity = LOW_SEVERITY;
+      ActionItem.Resolution = WORKING_AS_INTENDED_RESOLUTION;
+  }
+
+  //Admission Controller will grant an exception if a YAML annotation like this exists: insights.fairwinds.com/ignore: "memoryRequestsMissing,cpuRequestsMissing"
   policyException = ActionItem.ResourceAnnotations["insights.fairwinds.com/ignore"];
   if (policyException) {
     exceptions = policyException.split(",");
