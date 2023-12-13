@@ -38,14 +38,8 @@ to quickly create a Cobra application.`,
 			// use config file from the flag.
 			viper.SetConfigFile(configPath)
 		} else {
-			// find home directory
-			cwd, err := os.Getwd()
-			cobra.CheckErr(err)
-
-			// search config in current directory with name "insights-reporter" (without extension)
-			viper.AddConfigPath(cwd + "/examples")
-			viper.SetConfigType("yaml")
-			viper.SetConfigName("insights-reporter")
+			logrus.Error("config must be set")
+			os.Exit(1)
 		}
 
 		viper.AutomaticEnv()
