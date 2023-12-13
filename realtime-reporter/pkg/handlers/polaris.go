@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/cache"
 
+	fwClient "github.com/FairwindsOps/insights-plugins/realtime-reporter/pkg/client"
 	evt "github.com/FairwindsOps/insights-plugins/realtime-reporter/pkg/event"
 	"github.com/FairwindsOps/insights-plugins/realtime-reporter/pkg/polaris"
 )
@@ -54,7 +55,11 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
 		}
-		logrus.Infof("%s", eventJson)
+
+		err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
+		if err != nil {
+			logrus.Errorf("unable to upload to Insights: %v", err)
+		}
 	}
 	handler.UpdateFunc = func(old, new interface{}) {
 		timestamp := getTimestampUnixNanos()
@@ -80,7 +85,11 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 			if err != nil {
 				logrus.Errorf("Unable to marshal event: %v", err)
 			}
-			logrus.Infof("%s", eventJson)
+
+			err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
+			if err != nil {
+				logrus.Errorf("unable to upload to Insights: %v", err)
+			}
 		}
 	}
 	handler.DeleteFunc = func(obj interface{}) {
@@ -96,7 +105,10 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 			logrus.Errorf("Unable to marshal event: %v", err)
 		}
 
-		logrus.Infof("%s", eventJson)
+		err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
+		if err != nil {
+			logrus.Errorf("unable to upload to Insights: %v", err)
+		}
 	}
 	return handler
 }
