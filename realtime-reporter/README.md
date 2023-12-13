@@ -2,11 +2,21 @@
 
 ## Run
 
-You'll need to provide a configuration file for the reporter. The default location will be at `~/.insights-reporter.yaml`, or you can specify a file as a command line argument.
+You'll need to provide a configuration file for the reporter. An example configuration is located at `examples/insights-reporter.yaml`
 
-Example configuration located at `examples/insights-reporter.yaml`
+The Insights authentication token is passed as an environment variable. This is required:
 
-From this `insights-plugins/realtime-reporter` directory, you can run simply with `go run main.go`
+```
+export FAIRWINDS_TOKEN=$TOKEN
+```
+
+```
+ go run main.go \
+    --organization acme-co \
+    --cluster kind \
+    --host http://192.168.1.27:3001 \
+    --config examples/insights-reporter.yaml
+```
 
 ## Example Output
 
@@ -30,7 +40,5 @@ From this `insights-plugins/realtime-reporter` directory, you can run simply wit
 
 ## TODOs
 
-* Use the configuration provided by the `insights-agent` helm chart
-* Support uploading to the new endpoint once it's created
 * Implement more report types
 * Is `ReportJob` from the admission plugin the right thing to use here for incremental polaris reports? `Content` is represented as `[]byte` which will encode to base64 by the standard json library

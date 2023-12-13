@@ -13,8 +13,11 @@ import (
 )
 
 var (
-	configPath string
-	logLevel   string
+	configPath   string
+	organization string
+	cluster      string
+	host         string
+	logLevel     string
 )
 
 var rootCmd = &cobra.Command{
@@ -36,19 +39,23 @@ to quickly create a Cobra application.`,
 			viper.SetConfigFile(configPath)
 		} else {
 			// find home directory
-			home, err := os.UserHomeDir()
+			cwd, err := os.Getwd()
 			cobra.CheckErr(err)
 
-			// search config in home directory with name ".insights-reporter" (without extension)
-			viper.AddConfigPath(home)
+			// search config in current directory with name "insights-reporter" (without extension)
+			viper.AddConfigPath(cwd + "/examples")
 			viper.SetConfigType("yaml")
-			viper.SetConfigName(".insights-reporter")
+			viper.SetConfigName("insights-reporter")
 		}
 
 		viper.AutomaticEnv()
 
 		if err := viper.ReadInConfig(); err == nil {
 			logrus.Info("Using config file:", viper.ConfigFileUsed())
+			viper.BindPFlag("organization", cmd.Root().Flags().Lookup("organization"))
+			viper.BindPFlag("cluster", cmd.Root().Flags().Lookup("cluster"))
+			viper.BindPFlag("host", cmd.Root().Flags().Lookup("host"))
+			viper.BindEnv("token", "FAIRWINDS_TOKEN")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -77,6 +84,13 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "Location of configuration file.")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "Location of watch configuration file. Contains a list of resources to watch with an optional field to specify namespaces.")
+	rootCmd.MarkFlagRequired("config")
+	rootCmd.PersistentFlags().StringVar(&organization, "organization", "", "The Insights organization name.")
+	rootCmd.MarkFlagRequired("organization")
+	rootCmd.PersistentFlags().StringVar(&cluster, "cluster", "", "The Insights cluster name.")
+	rootCmd.MarkFlagRequired("cluster")
+	rootCmd.PersistentFlags().StringVar(&host, "host", "https://insights.fairwinds.com", "The Insights host.")
+	rootCmd.MarkFlagRequired("host")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "", logrus.InfoLevel.String(), "Logrus log level to be output (trace, debug, info, warning, error, fatal, panic).")
 }
