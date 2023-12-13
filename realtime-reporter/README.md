@@ -2,7 +2,7 @@
 
 ## Run
 
-You'll need to provide a configuration file for the reporter. An example configuration is located at `examples/insights-reporter.yaml`
+You'll need to provide a configuration file for the reporter. An example configuration is located at `examples/realtime-reporter.yaml`
 
 The Insights authentication token is passed as an environment variable. This is required:
 
@@ -15,7 +15,7 @@ export FAIRWINDS_TOKEN=$TOKEN
     --organization acme-co \
     --cluster kind \
     --host http://192.168.1.27:3001 \
-    --config examples/insights-reporter.yaml
+    --config examples/realtime-reporter.yaml
 ```
 
 ## Example Output

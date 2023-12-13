@@ -21,11 +21,8 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "insights-reporter",
-	Short: "A generator for Cobra based Applications",
-	Long: `Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "realtime-reporter",
+	Short: "A realtime reporter for Fairwinds Insights. Watches for changes in Kubernetes objects, generates reports and uploads them to Insights.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		parsedLevel, err := logrus.ParseLevel(logLevel)
 		if err != nil {
