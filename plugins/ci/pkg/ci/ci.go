@@ -29,6 +29,8 @@ import (
 const configFileName = "fairwinds-insights.yaml"
 const maxLinesForPrint = 8
 
+const filesModifiedFileName = "files_modified"
+
 var podSpecFields = []string{"jobTemplate", "spec", "template"}
 var containerSpecFields = []string{"containers", "initContainers"}
 
@@ -309,12 +311,23 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 			logrus.Fatalf("Unable to write contents for %s: %v", file.field, err)
 		}
 	}
-	w.Close()
 
 	repoDetails, err := getGitInfo(commands.ExecInDir, ci.config.Options.CIRunner, ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
+	if len(repoDetails.filesModified) > 0 {
+		fw, err := w.CreateFormFile(filesModifiedFileName, filesModifiedFileName)
+		if err != nil {
+			logrus.Fatalf("Unable to create form for %s: %v", "files_modified", err)
+		}
+		_, err = fw.Write([]byte(strings.Join(repoDetails.filesModified, "\n")))
+		if err != nil {
+			logrus.Fatalf("Unable to write file for %s: %v", "files_modified", err)
+		}
+	}
+
+	w.Close()
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", ci.config.Options.Hostname, ci.config.Options.Organization)
 	req, err := http.NewRequest("POST", url, &b)
@@ -330,9 +343,6 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	req.Header.Set("X-Branch-Name", repoDetails.branch)
 	req.Header.Set("X-Master-Hash", repoDetails.masterHash)
 	req.Header.Set("X-Base-Branch", ci.config.Options.BaseBranch)
-	if len(repoDetails.filesModified) > 0 {
-		req.Header.Set("X-Files-Modified", strings.Join(repoDetails.filesModified, ";"))
-	}
 	req.Header.Set("X-Origin", repoDetails.origin)
 	req.Header.Set("X-Repository-Name", repoDetails.repoName)
 	req.Header.Set("X-New-AI-Threshold", strconv.Itoa(ci.config.Options.NewActionItemThreshold))
