@@ -109,7 +109,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 		}
 	}
 	logrus.Infof("Branch: %s", branch)
-
+	logrus.Infof("Files modified: %s", filesModified)
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
 		origin, err = cmdExecutor(baseRepoPath, exec.Command("git", "remote", "get-url", "origin"), "getting origin url")
