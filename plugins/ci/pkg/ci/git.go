@@ -89,7 +89,16 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			logrus.Warnf("Unable to get GIT branch name: %v", err)
 			gitCommandFail = true
 		}
-		files, err := cmdExecutor(baseRepoPath, exec.Command("git", "diff", "--name-only", "HEAD", masterHash), "modified files")
+		refHash := os.Getenv("MASTER_HASH")
+		if refHash == "" {
+			refHash, err = cmdExecutor(baseRepoPath, exec.Command("git", "show-branch", "--merge-base"), "ref commit hash")
+			if err != nil {
+				logrus.Warnf("Unable to get git modified files: %v", err)
+				gitCommandFail = true
+			}
+			refHash = strings.ReplaceAll(refHash, "\n", "")
+		}
+		files, err := cmdExecutor(baseRepoPath, exec.Command("git", "diff", "--name-only", "HEAD", refHash), "modified files")
 		if err != nil {
 			logrus.Warnf("Unable to get git modified files: %v", err)
 			gitCommandFail = true
