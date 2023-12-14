@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.3.0
+* Added files that were modified to CI scan response
+
 ## 5.2.7
 * Ignore `setExitCode` when running on auto-scan mode
 
