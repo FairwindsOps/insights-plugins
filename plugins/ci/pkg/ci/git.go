@@ -19,6 +19,7 @@ type gitInfo struct {
 	currentHash   string
 	commitMessage string
 	repoName      string
+	filesModified []string
 }
 
 // cmdInDirExecutor was extracted to be able to test this function - as the main implementation execute real commands on the given path
@@ -29,6 +30,7 @@ type cmdExecutor func(cmd *exec.Cmd, message string) (string, error)
 
 func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
+	var filesModified []string
 	_, err = cmdExecutor(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", "/insights"), "marking directory as safe")
 	if err != nil {
 		logrus.Errorf("Unable to mark directory %s as safe: %v", baseRepoPath, err)
@@ -87,6 +89,24 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			logrus.Warnf("Unable to get GIT branch name: %v", err)
 			gitCommandFail = true
 		}
+		refHash, err := cmdExecutor(baseRepoPath, exec.Command("git", "show-branch", "--merge-base"), "ref commit hash")
+		if err != nil {
+			logrus.Warnf("Unable to get git modified files: %v", err)
+			gitCommandFail = true
+		}
+		refHash = strings.ReplaceAll(refHash, "\n", "")
+		files, err := cmdExecutor(baseRepoPath, exec.Command("git", "diff", "--name-only", "HEAD", refHash), "modified files")
+		if err != nil {
+			logrus.Warnf("Unable to get git modified files: %v", err)
+			gitCommandFail = true
+		}
+
+		splitted := strings.Split(files, "\n")
+		for _, f := range splitted {
+			if len(f) > 0 {
+				filesModified = append(filesModified, f)
+			}
+		}
 	}
 	logrus.Infof("Branch: %s", branch)
 
@@ -117,6 +137,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 		branch:        strings.TrimSuffix(branch, "\n"),
 		origin:        strings.TrimSuffix(origin, "\n"),
 		repoName:      strings.TrimSuffix(repoName, "\n"),
+		filesModified: filesModified,
 	}, nil
 }
 

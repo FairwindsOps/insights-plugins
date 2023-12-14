@@ -330,6 +330,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	req.Header.Set("X-Branch-Name", repoDetails.branch)
 	req.Header.Set("X-Master-Hash", repoDetails.masterHash)
 	req.Header.Set("X-Base-Branch", ci.config.Options.BaseBranch)
+	req.Header.Set("X-Files-Modified", strings.Join(repoDetails.filesModified, ";"))
 	req.Header.Set("X-Origin", repoDetails.origin)
 	req.Header.Set("X-Repository-Name", repoDetails.repoName)
 	req.Header.Set("X-New-AI-Threshold", strconv.Itoa(ci.config.Options.NewActionItemThreshold))
