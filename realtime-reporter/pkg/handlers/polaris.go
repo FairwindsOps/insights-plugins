@@ -50,7 +50,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		}
 
 		reportMap := polarisReportInfoToMap(report)
-		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
+		e := evt.NewEvent(timestamp, "add", u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)
@@ -81,7 +81,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 			reportMap := polarisReportInfoToMap(report)
 
-			e := evt.NewEvent(timestamp, newObj.GetObjectKind().GroupVersionKind().Kind, newObj.GetNamespace(), newObj.GetName(), reportMap)
+			e := evt.NewEvent(timestamp, "update", newObj.GetObjectKind().GroupVersionKind().Kind, newObj.GetNamespace(), newObj.GetName(), reportMap)
 			eventJson, err := json.Marshal(e)
 			if err != nil {
 				logrus.Errorf("Unable to marshal event: %v", err)
@@ -100,7 +100,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		// an event with empty data currently indicates the resource has been removed
 		u := obj.(*unstructured.Unstructured)
 
-		e := evt.NewEvent(timestamp, u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
+		e := evt.NewEvent(timestamp, "delete", u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
 			logrus.Errorf("Unable to marshal event: %v", err)

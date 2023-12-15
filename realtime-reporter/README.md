@@ -20,22 +20,22 @@ export FAIRWINDS_TOKEN=$TOKEN
 
 ## Example Output
 
-* resource created
+* resource added
 
 ```json
-{"event_version":1,"timestamp":1702058101532424000,"kind":"Deployment","namespace":"local-path-storage","workload":"local-path-provisioner","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
+{"event_version":1,"timestamp":1702656153316168000,"kube_event":"add","kind":"Namespace","namespace":"default","workload":"nginx-deployment","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
 ```
 
 * resource updated
 
 ```json
-{"event_version":1,"timestamp":1702058147263443000,"kind":"Deployment","namespace":"default","workload":"nginx-deployment","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
+{"event_version":1,"timestamp":1702058147263443000,"kube_event":"update","kind":"Deployment","namespace":"default","workload":"nginx-deployment","data":{"Contents":"B64_ENCODED_REPORT","Report":"polaris","Version":"1.0"}}
 ```
 
 * resource deleted
 
 ```json
-{"event_version":1,"timestamp":1702058166269670000,"kind":"Deployment","namespace":"default","workload":"nginx-deployment","data":null}
+{"event_version":1,"timestamp":1702058166269670000,"kube_event":"delete","kind":"Deployment","namespace":"default","workload":"nginx-deployment","data":null}
 ```
 
 ## TODOs

@@ -1,7 +1,6 @@
 resources:
   - apps/v1/deployments
   - apps/v1/statefulsets
-  - v1/configmaps
   - batch/v1/jobs
   - v1/pods
   - v1/services
