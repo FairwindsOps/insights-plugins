@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.1
+1
+1
+* Bump alpine to 3.19
+
 
 ## 2.4.0
 * add checks for nginx cves 4886, 5054, and 5043
