@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.2.8
+* Bump alpine to 3.19
+
 ## 5.2.7
 * Ignore `setExitCode` when running on auto-scan mode
 

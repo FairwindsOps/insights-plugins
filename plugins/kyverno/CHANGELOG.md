@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4
+* Bump alpine to 3.19
+
 ## 0.1.3
 * Modify script to use `jq` `--slurpfile` flag instead of a HERESTRING, to avoid "argument list too long" error
 ## 0.1.2
