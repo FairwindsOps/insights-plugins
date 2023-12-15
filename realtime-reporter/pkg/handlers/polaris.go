@@ -24,7 +24,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 	var handler cache.ResourceEventHandlerFuncs
 	handler.AddFunc = func(obj interface{}) {
 		timestamp := getTimestampUnixNanos()
-		logrus.WithField("resourceType", resourceType).Info("add event")
+		logrus.WithField("resourceType", resourceType).Debug("add event")
 
 		bytes, err := json.Marshal(obj)
 		if err != nil {
@@ -63,6 +63,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 	}
 	handler.UpdateFunc = func(old, new interface{}) {
 		timestamp := getTimestampUnixNanos()
+		logrus.WithField("resourceType", resourceType).Debug("update event")
 
 		oldObj := old.(*unstructured.Unstructured)
 		newObj := new.(*unstructured.Unstructured)
@@ -94,7 +95,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 	}
 	handler.DeleteFunc = func(obj interface{}) {
 		timestamp := getTimestampUnixNanos()
-		logrus.WithField("resourceType", resourceType).Info("delete event")
+		logrus.WithField("resourceType", resourceType).Debug("delete event")
 
 		// an event with empty data currently indicates the resource has been removed
 		u := obj.(*unstructured.Unstructured)

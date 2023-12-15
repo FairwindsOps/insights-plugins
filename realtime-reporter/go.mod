@@ -17,6 +17,7 @@ require (
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
+	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

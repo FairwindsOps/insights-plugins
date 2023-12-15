@@ -6,20 +6,41 @@ import (
 	"net/http"
 	"time"
 
+	httpretryafter "github.com/aereal/go-httpretryafter"
 	"github.com/avast/retry-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 const (
-	maxTries  = 3
+	maxTries  = 10
+	minDelay  = 100 * time.Millisecond
 	maxDelay  = 30 * time.Second
-	maxJitter = 10 * time.Millisecond
+	maxJitter = 50 * time.Millisecond
 )
 
-// TODO: this doesn't send a request to
-// apiURL = fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/%s/incremental/failure", host, organization, cluster, reportType)
-// on failure, need to figure out how to do this with retry-go
+type RetryAfterError struct {
+	response http.Response
+}
+
+func (err RetryAfterError) Error() string {
+	return fmt.Sprintf(
+		"Request to %s fail %s (%d)",
+		err.response.Request.RequestURI,
+		err.response.Status,
+		err.response.StatusCode,
+	)
+}
+
+type SomeOtherError struct {
+	err        string
+	retryAfter time.Duration
+}
+
+func (err SomeOtherError) Error() string {
+	return err.err
+}
+
 func UploadToInsights(timestamp int64, reportType string, payload []byte) error {
 	var resp *http.Response
 	host := viper.GetString("host")
@@ -51,16 +72,25 @@ func UploadToInsights(timestamp int64, reportType string, payload []byte) error 
 			return err
 		},
 		retry.Attempts(maxTries),
+		retry.Delay(minDelay),
+		retry.MaxDelay(maxDelay),
+		retry.MaxJitter(maxJitter),
 		retry.OnRetry(func(n uint, err error) {
 			logrus.Infof("retrying request after error: %v", err)
 		}),
 		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
-			logrus.Infof("server fails with: %v", err.Error())
-			// apply a default exponential back off strategy
+			switch e := err.(type) {
+			case RetryAfterError:
+				if t, err := httpretryafter.Parse(e.response.Header.Get("Retry-After")); err == nil {
+					return time.Until(t)
+				}
+			case SomeOtherError:
+				return e.retryAfter
+			}
+
+			// default to backoffdelay when server does not supply a retry-after response header
 			return retry.BackOffDelay(n, err, config)
 		}),
-		// apply random jitter
-		retry.MaxJitter(maxJitter),
 	)
 
 	return err
