@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.5
+* Bump kubectl to 1.29.0
+
 ## 0.1.4
 * Bump alpine to 3.19
 

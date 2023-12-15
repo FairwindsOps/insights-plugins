@@ -4,7 +4,7 @@ ARG TARGETOS
 ENV trivyVersion=0.45.0
 RUN apk update && apk add curl
 
-ENV kubectlVersion=1.27.0-alpha.1
+ENV kubectlVersion=1.29.0
 RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl
 RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
