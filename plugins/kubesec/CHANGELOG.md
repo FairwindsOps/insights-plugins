@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.6
+* Bump alpine to 3.19
+
 ## 1.4.5
 * Install yq with apk
 
