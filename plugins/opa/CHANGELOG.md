@@ -1,8 +1,6 @@
 # Changelog
 
 ## 2.4.1
-1
-1
 * Bump alpine to 3.19
 
 
