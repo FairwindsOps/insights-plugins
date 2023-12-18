@@ -1,7 +1,13 @@
 # Changelog
 
-## 5.2.8
+## 5.2.10
 * Print soft-errors to output to increase error awareness
+
+## 5.2.9
+* update trivy to 0.48.1
+
+## 5.2.8
+* Bump alpine to 3.19
 
 ## 5.2.7
 * Ignore `setExitCode` when running on auto-scan mode
