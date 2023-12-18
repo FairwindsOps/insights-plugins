@@ -1,17 +1,17 @@
-FROM alpine:3.18 as downloader
+FROM alpine:3.19 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV trivyVersion=0.45.0
 RUN apk update && apk add curl
 
-ENV kubectlVersion=1.27.0-alpha.1
+ENV kubectlVersion=1.29.0
 RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl
 RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
-FROM alpine:3.18
+FROM alpine:3.19
 WORKDIR /trivy
 RUN apk -U upgrade
 COPY scan ./scan
