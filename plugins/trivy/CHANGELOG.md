@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.28.7
+* update trivy to 0.48.1
+
 ## 0.28.6
 * Bump kubectl to 1.29.0
 
