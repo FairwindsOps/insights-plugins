@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 )
@@ -29,4 +30,29 @@ func (ci *CIScan) processScanErrorsReportProperties(reportProperties models.Scan
 		return nil, fmt.Errorf("while writing report output: %w", err)
 	}
 	return report, nil
+}
+
+func createErrorItemMessage(r models.ScanErrorsReportResult) string {
+	var sb strings.Builder
+	if r.ErrorContext != "" {
+		sb.WriteString(r.ErrorContext)
+		sb.WriteString("/")
+	}
+	if r.Kind != "" {
+		sb.WriteString(r.Kind)
+		sb.WriteString("/")
+	}
+	if r.ResourceName != "" {
+		sb.WriteString(r.ResourceName)
+	}
+	if sb.Len() > 0 {
+		sb.WriteString(" - ")
+	}
+	sb.WriteString(r.ErrorMessage)
+	if r.Filename != "" {
+		sb.WriteString(" (")
+		sb.WriteString(r.Filename)
+		sb.WriteString(")")
+	}
+	return sb.String()
 }
