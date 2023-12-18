@@ -1,7 +1,10 @@
 # Changelog
 
-## 5.2.10
+## 5.3.1
 * Print soft-errors to output to increase error awareness
+
+## 5.3.0
+* Added files that were modified to CI scan response
 
 ## 5.2.9
 * update trivy to 0.48.1
