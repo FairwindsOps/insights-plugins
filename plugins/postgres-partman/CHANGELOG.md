@@ -1,5 +1,8 @@
 # Changelog
 
+## 14.7.1
+* Add `apt-get update` to Dockerfile
+
 ## 14.7.0
 * Bump bitnami postgres base image tag
 
