@@ -2,6 +2,7 @@ FROM docker.io/bitnami/postgresql:14.7.0-debian-11-r31
 
 USER root
 ENV PG_PARTMAN_VERSION v4.7.3
+RUN apt-get update
 RUN install_packages wget
 RUN install_packages make
 RUN install_packages gcc
