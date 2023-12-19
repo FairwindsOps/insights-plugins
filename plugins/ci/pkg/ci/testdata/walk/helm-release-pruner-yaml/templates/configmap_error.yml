@@ -1,0 +1,10 @@
+---
+# Source: helm-release-pruner-yaml/templates/configmap.yml
+apiVersion: v1
+kind: ConfigMap
+kind: ConfigMap
+metadata:
+  name:  RELEASE-NAME-helm-release-pruner-yaml
+data:
+  start-up.sh: |-
+    #!/bin/sh
