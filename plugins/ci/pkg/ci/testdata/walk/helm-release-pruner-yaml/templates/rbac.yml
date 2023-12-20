@@ -1,0 +1,36 @@
+---
+# Source: helm-release-pruner-yaml/templates/rbac.yml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: RELEASE-NAME-helm-release-pruner-yaml
+---
+# Source: helm-release-pruner-yaml/templates/rbac.yml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: RELEASE-NAME-helm-release-pruner-yaml
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - secrets
+  verbs:
+  - delete
+  - get
+  - list
+---
+# Source: helm-release-pruner-yaml/templates/rbac.yml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: RELEASE-NAME-helm-release-pruner-yaml
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: RELEASE-NAME-helm-release-pruner-yaml
+subjects:
+- kind: ServiceAccount
+  name: RELEASE-NAME-helm-release-pruner-yaml
+  namespace: insights-agent
