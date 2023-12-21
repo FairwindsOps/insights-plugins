@@ -1,0 +1,57 @@
+---
+# Source: helm-release-pruner-yaml/templates/cronjob.yml
+apiVersion: batch/v1beta1
+kind: CronJob
+kind: CronJob
+metadata:
+  name: RELEASE-NAME-helm-release-pruner-yaml
+  labels:
+    app: helm-release-pruner-yaml
+    chart: helm-release-pruner-yaml-3.0.1
+    release: RELEASE-NAME
+    heritage: Helm
+spec:
+  schedule: "0 */4 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          name: RELEASE-NAME-helm-release-pruner-yaml
+          labels:
+            app: helm-release-pruner-yaml
+            release: RELEASE-NAME
+        spec:
+          serviceAccountName: RELEASE-NAME-helm-release-pruner-yaml
+          restartPolicy: Never
+          containers:
+          - name: helm-release-pruner-yaml
+            image: "quay.io/fairwinds/helm-release-pruner:v3.0.1"
+            imagePullPolicy: Always
+            command: ["/usr/local/bin/start-up.sh"]
+            volumeMounts:
+            - mountPath: /usr/local/bin/start-up.sh
+              name: config
+              subPath: start-up.sh
+            securityContext:
+              readOnlyRootFilesystem: true
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
+              runAsUser: 10324
+              capabilities:
+                drop:
+                  - ALL
+            resources:
+              limits:
+                cpu: 25m
+                memory: 32Mi
+              requests:
+                cpu: 25m
+                memory: 32M
+          volumes:
+          - name: config
+            configMap:
+              name: RELEASE-NAME-helm-release-pruner-yaml
+              defaultMode: 0555

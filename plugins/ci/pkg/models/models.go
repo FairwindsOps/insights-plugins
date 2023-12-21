@@ -26,9 +26,10 @@ type Resource struct {
 
 // ReportInfo is the information about a run of one of the reports.
 type ReportInfo struct {
-	Report   string
-	Version  string
-	Filename string
+	Report        string
+	Version       string
+	Filename      string
+	FilesModified []string
 }
 
 // Configuration is a struct representing the config options for Insights CI/CD
