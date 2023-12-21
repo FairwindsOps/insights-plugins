@@ -91,3 +91,14 @@ func TestGetAllResources(t *testing.T) {
 	assert.Len(t, images, 3, "even though there are errors, we should still get the images")
 	assert.Len(t, resources, 7, "even though there are errors, we should still get the resources")
 }
+
+func TestTrimSpace(t *testing.T) {
+	assert.Equal(t, "hello", strings.TrimSpace("hello"))
+	assert.Equal(t, "hello", strings.TrimSpace(" hello "))
+	assert.Equal(t, "hello", strings.TrimSpace("\nhello\n"))
+	assert.Equal(t, "hello", strings.TrimSpace("\n hello \n"))
+	assert.Equal(t, "hello", strings.TrimSpace("\n hello"))
+	assert.Equal(t, "hello", strings.TrimSpace("hello\n"))
+	assert.Equal(t, "hello", strings.TrimSpace("\nhello"))
+	assert.Equal(t, "hello", strings.TrimSpace(" \n hello \n "))
+}
