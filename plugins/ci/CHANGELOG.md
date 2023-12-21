@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.3.3
+* Fixing branch ref hash
+
 ## 5.3.2
 * Only skip failed files instead of halting the process
 
