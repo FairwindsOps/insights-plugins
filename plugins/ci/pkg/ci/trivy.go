@@ -214,9 +214,22 @@ func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, mani
 		// namely the Owner info (i.e. the deployment or other controller it is associated with)
 		var image *trivymodels.Image
 		for _, im := range manifestImages {
+
+			// match by pullRef
 			if im.PullRef == filename {
 				image = &im
 				break
+			}
+
+			// fallback - match by name
+			if imageName, ok := filenameToImageName[filename]; ok {
+				if im.Name == imageName {
+					if im.PullRef == "" {
+						im.PullRef = filename // set pullRef if not already set
+					}
+					image = &im
+					break
+				}
 			}
 		}
 		if image == nil {
