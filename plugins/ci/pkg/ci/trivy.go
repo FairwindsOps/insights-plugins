@@ -25,12 +25,12 @@ import (
 
 func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) (report *models.ReportInfo, errs error) {
 	allErrs := new(multierror.Error)
-	err := updatePullRef(ci.config.Images.FolderName, dockerImages, manifestImages)
+	dockerImages, manifestImages, err := updatePullRef(ci.config.Images.FolderName, dockerImages, manifestImages)
 	if err != nil {
 		return nil, err
 	}
 
-	filenameToImageName, err := downloadMissingImages(ci.config.Images.FolderName, dockerImages, manifestImages, ci.config.Options.RegistryCredentials)
+	filenameToImageName, dockerImages, manifestImages, err := downloadMissingImages(ci.config.Images.FolderName, downloadImageViaSkopeo, dockerImages, manifestImages, ci.config.Options.RegistryCredentials)
 	if err != nil {
 		allErrs = multierror.Append(allErrs, err)
 	}
@@ -89,10 +89,11 @@ func walkImages(folderPath string, cb imageCallback) error {
 }
 
 // updatePullRef looks through image tarballs and mark which ones are already there, by setting image.PullRef
-func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) error {
+func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) ([]trivymodels.DockerImage, []trivymodels.Image, error) {
 	logrus.Infof("Looking through images in %s", folderPath)
-	return walkImages(folderPath, func(filename string, sha string, repoTags []string) {
-		for _, image := range manifestImages {
+	err := walkImages(folderPath, func(filename string, sha string, repoTags []string) {
+		for i := range manifestImages {
+			image := &manifestImages[i]
 			if slices.Contains(repoTags, image.Name) {
 				// already downloaded
 				logrus.Infof("image (manifest) %s already downloaded", image.Name)
@@ -100,7 +101,8 @@ func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, ma
 			}
 		}
 
-		for _, image := range dockerImages {
+		for i := range dockerImages {
+			image := &dockerImages[i]
 			if slices.Contains(repoTags, image.Name) {
 				// already downloaded
 				logrus.Infof("image (docker) %s already downloaded", image.Name)
@@ -108,13 +110,18 @@ func updatePullRef(folderPath string, dockerImages []trivymodels.DockerImage, ma
 			}
 		}
 	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return dockerImages, manifestImages, nil
 }
 
-func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) (map[string]string, error) {
+func downloadMissingImages(folderPath string, imageDownloaderFunc ImageDownloaderFunc, dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, registryCredentials models.RegistryCredentials) (map[string]string, []trivymodels.DockerImage, []trivymodels.Image, error) {
 	allErrs := new(multierror.Error)
 	refLookup := map[string]string{} // postgres:15.1-bullseye -> postgres_15_1_bullseye
 	// Download missing images
-	for _, image := range manifestImages {
+	for i := range manifestImages {
+		image := &manifestImages[i]
 		if image.PullRef != "" {
 			continue
 		}
@@ -123,7 +130,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			continue
 		}
 		rc := registryCredentials.FindCredentialForImage(image.Name)
-		output, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
+		output, err := imageDownloaderFunc(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, fmt.Errorf("%v: %s", err, output))
 		} else {
@@ -132,7 +139,8 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 		}
 	}
 
-	for _, image := range dockerImages {
+	for i := range dockerImages {
+		image := &dockerImages[i]
 		if image.PullRef != "" {
 			continue
 		}
@@ -141,7 +149,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			continue
 		}
 		rc := registryCredentials.FindCredentialForImage(image.Name)
-		output, err := downloadImageViaSkopeo(commands.ExecWithMessage, folderPath, image.Name, rc)
+		output, err := imageDownloaderFunc(commands.ExecWithMessage, folderPath, image.Name, rc)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, fmt.Errorf("%v: %s", err, output))
 		} else {
@@ -150,7 +158,7 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 		}
 	}
 	if len(allErrs.Errors) > 0 {
-		return ciutil.ReverseMap(refLookup), models.ScanErrorsReportResult{
+		return ciutil.ReverseMap(refLookup), dockerImages, manifestImages, models.ScanErrorsReportResult{
 			ErrorMessage: allErrs.Error(), // keep multiple errors combined into a single error / action item
 			ErrorContext: "downloading missing images to be scanned by trivy",
 			Kind:         "InternalOperation",
@@ -159,8 +167,11 @@ func downloadMissingImages(folderPath string, dockerImages []trivymodels.DockerI
 			Filename:     filepath.Clean(folderPath), // clean() removes potential trailing slash
 		}
 	}
-	return ciutil.ReverseMap(refLookup), nil // postgres_15_1_bullseye -> postgres:15.1-bullseye
+	return ciutil.ReverseMap(refLookup), dockerImages, manifestImages, nil // postgres_15_1_bullseye -> postgres:15.1-bullseye
 }
+
+// ImageDownloaderFunc - downloads an image and returns the output and error
+type ImageDownloaderFunc = func(cmdExecutor cmdExecutor, folderPath, imageName string, rc *models.RegistryCredential) (string, error)
 
 func downloadImageViaSkopeo(cmdExecutor cmdExecutor, folderPath, imageName string, rc *models.RegistryCredential) (string, error) {
 	logrus.Infof("Downloading missing image %s", imageName)
@@ -214,22 +225,9 @@ func mergeImages(folderPath string, dockerImages []trivymodels.DockerImage, mani
 		// namely the Owner info (i.e. the deployment or other controller it is associated with)
 		var image *trivymodels.Image
 		for _, im := range manifestImages {
-
-			// match by pullRef
 			if im.PullRef == filename {
 				image = &im
 				break
-			}
-
-			// fallback - match by name
-			if imageName, ok := filenameToImageName[filename]; ok {
-				if im.Name == imageName {
-					if im.PullRef == "" {
-						im.PullRef = filename // set pullRef if not already set
-					}
-					image = &im
-					break
-				}
 			}
 		}
 		if image == nil {
