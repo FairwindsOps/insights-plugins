@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	trivymodels "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/hashicorp/go-multierror"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -28,6 +29,8 @@ import (
 
 const configFileName = "fairwinds-insights.yaml"
 const maxLinesForPrint = 8
+
+const filesModifiedFileName = "files_modified"
 
 var podSpecFields = []string{"jobTemplate", "spec", "template"}
 var containerSpecFields = []string{"containers", "initContainers"}
@@ -92,8 +95,9 @@ func (ci *CIScan) Close() {
 
 // getAllResources scans a folder of yaml files and returns all of the images and resources used.
 func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, error) {
-	images := make([]trivymodels.Image, 0)
-	resources := make([]models.Resource, 0)
+	var images []trivymodels.Image
+	var resources []models.Resource
+	var errors *multierror.Error
 	err := filepath.Walk(ci.configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
 			return nil
@@ -101,14 +105,17 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 
 		displayFilename, helmName, err := ci.getDisplayFilenameAndHelmName(path)
 		if err != nil {
-			return err
+			errors = multierror.Append(errors, fmt.Errorf("error getting displayFilename and helmName for file %s: %v", path, err))
+			return nil
 		}
 
-		file, err := os.Open(path)
+		fileHandler, err := os.Open(path)
 		if err != nil {
-			return fmt.Errorf("error opening file %s: %v", path, err)
+			errors = multierror.Append(errors, fmt.Errorf("error opening file %s: %v", path, err))
+			return nil
 		}
-		decoder := yaml.NewDecoder(file)
+
+		decoder := yaml.NewDecoder(fileHandler)
 		for {
 			// yaml.Node has access to the comments
 			// This allows us to get at the Filename comments that Helm leaves
@@ -117,14 +124,16 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 			err = decoder.Decode(&yamlNodeOriginal)
 			if err != nil {
 				if err != io.EOF {
-					return fmt.Errorf("error decoding file %s: %v", file.Name(), err)
+					errors = multierror.Append(errors, fmt.Errorf("error decoding file %s: %v", path, err))
+					return nil
 				}
-				break
+				break // EOF
 			}
 			yamlNode := map[string]interface{}{}
 			err = yamlNodeOriginal.Decode(&yamlNode)
 			if err != nil {
-				return fmt.Errorf("error decoding[2] file %s: %v", file.Name(), err)
+				errors = multierror.Append(errors, fmt.Errorf("error decoding document %s: %v", path, err))
+				return nil
 			}
 			kind, ok := yamlNode["kind"].(string)
 			if !ok {
@@ -186,9 +195,10 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		errors = multierror.Append(errors, fmt.Errorf("error walking directory %s: %v", ci.configFolder, err))
+		return nil, nil, errors
 	}
-	return images, resources, nil
+	return images, resources, errors.ErrorOrNil()
 }
 
 func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, error) {
@@ -309,12 +319,23 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 			logrus.Fatalf("Unable to write contents for %s: %v", file.field, err)
 		}
 	}
-	w.Close()
 
 	repoDetails, err := getGitInfo(commands.ExecInDir, ci.config.Options.CIRunner, ci.repoBaseFolder, ci.config.Options.RepositoryName, ci.config.Options.BaseBranch)
 	if err != nil {
 		logrus.Fatalf("Unable to get git details: %v", err)
 	}
+	if len(repoDetails.filesModified) > 0 {
+		fw, err := w.CreateFormFile(filesModifiedFileName, filesModifiedFileName)
+		if err != nil {
+			logrus.Fatalf("Unable to create form for %s: %v", "files_modified", err)
+		}
+		_, err = fw.Write([]byte(strings.Join(repoDetails.filesModified, "\n")))
+		if err != nil {
+			logrus.Fatalf("Unable to write file for %s: %v", "files_modified", err)
+		}
+	}
+
+	w.Close()
 
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/scan-results", ci.config.Options.Hostname, ci.config.Options.Organization)
 	req, err := http.NewRequest("POST", url, &b)
@@ -674,6 +695,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	}
 
 	if len(scanErrorsReportProperties.Items) > 0 {
+		printScanErrors(scanErrorsReportProperties)
 		scanErrorsReport, err := ci.processScanErrorsReportProperties(scanErrorsReportProperties)
 		if err != nil {
 			return nil, fmt.Errorf("unable to process scan errors report items: %w", err)
@@ -792,4 +814,11 @@ func createFileFromConfig(path, filename string, cfg models.Configuration) error
 		return err
 	}
 	return nil
+}
+
+func printScanErrors(scanErrorReport models.ScanErrorsReportProperties) {
+	fmt.Println("Scan Errors(these are soft errors that do not prevent the scan from completing):")
+	for _, r := range scanErrorReport.Items {
+		fmt.Println("\t- " + createErrorItemMessage(r))
+	}
 }

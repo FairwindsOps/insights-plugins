@@ -19,6 +19,7 @@ type gitInfo struct {
 	currentHash   string
 	commitMessage string
 	repoName      string
+	filesModified []string
 }
 
 // cmdInDirExecutor was extracted to be able to test this function - as the main implementation execute real commands on the given path
@@ -29,6 +30,8 @@ type cmdExecutor func(cmd *exec.Cmd, message string) (string, error)
 
 func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseRepoPath, repoName, baseBranch string) (*gitInfo, error) {
 	var err error
+	var filesModified []string
+	repoName = strings.TrimSpace(repoName)
 	_, err = cmdExecutor(baseRepoPath, exec.Command("git", "config", "--global", "--add", "safe.directory", "/insights"), "marking directory as safe")
 	if err != nil {
 		logrus.Errorf("Unable to mark directory %s as safe: %v", baseRepoPath, err)
@@ -43,6 +46,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			return nil, err
 		}
 	}
+	currentHash = strings.TrimSpace(currentHash)
 	logrus.Infof("Current hash: %s", currentHash)
 
 	var gitCommandFail bool
@@ -65,6 +69,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			}
 		}
 	}
+	masterHash = strings.TrimSpace(masterHash)
 	logrus.Infof("Master hash: %s", masterHash)
 
 	commitMessage := os.Getenv("COMMIT_MESSAGE")
@@ -78,6 +83,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 	if len(commitMessage) > 100 {
 		commitMessage = commitMessage[:100] // Limit to 100 chars, double the length of github recommended length
 	}
+	commitMessage = strings.TrimSpace(commitMessage)
 	logrus.Infof("Commit message: %s", commitMessage)
 
 	branch := os.Getenv("BRANCH_NAME")
@@ -88,7 +94,22 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			gitCommandFail = true
 		}
 	}
+	branch = strings.TrimSpace(branch)
 	logrus.Infof("Branch: %s", branch)
+
+	filesModifiedStr, err := cmdExecutor(baseRepoPath, exec.Command("git", "diff", "--name-only", "HEAD", masterHash), "getting modified files")
+	if err != nil {
+		logrus.Warnf("Unable to get git modified files: %v", err)
+		gitCommandFail = true
+	}
+
+	for _, mf := range strings.Split(filesModifiedStr, "\n") {
+		mf = strings.TrimSpace(mf)
+		if len(mf) > 0 {
+			filesModified = append(filesModified, mf)
+		}
+	}
+	logrus.Infof("Files modified: %s", filesModified)
 
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
@@ -98,6 +119,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			gitCommandFail = true
 		}
 	}
+	origin = strings.TrimSpace(origin)
 	logrus.Infof("Origin: %s", util.RemoveTokensAndPassword(origin))
 
 	if gitCommandFail {
@@ -111,12 +133,13 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 	logrus.Infof("Repo Name: %s", repoName)
 
 	return &gitInfo{
-		masterHash:    strings.TrimSuffix(masterHash, "\n"),
-		currentHash:   strings.TrimSuffix(currentHash, "\n"),
-		commitMessage: strings.TrimSuffix(commitMessage, "\n"),
-		branch:        strings.TrimSuffix(branch, "\n"),
-		origin:        strings.TrimSuffix(origin, "\n"),
-		repoName:      strings.TrimSuffix(repoName, "\n"),
+		masterHash:    masterHash,
+		currentHash:   currentHash,
+		commitMessage: commitMessage,
+		branch:        branch,
+		origin:        origin,
+		repoName:      repoName,
+		filesModified: filesModified,
 	}, nil
 }
 

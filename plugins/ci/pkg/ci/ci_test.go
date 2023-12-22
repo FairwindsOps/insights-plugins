@@ -77,3 +77,28 @@ func TestHasEnvSubstitution(t *testing.T) {
 	assert.False(t, hasEnvVar("161177611123.dkr.ecr.us-east-1.amazonaws.com/fairwinds-insights-api:5541f8d19d1e0a1ae860388c8b25b737773fd6ec"))
 	assert.False(t, hasEnvVar("161177611123.dkr.ecr.us-east-1.amazonaws.com/fairwinds-insights-api:11.0.0"))
 }
+
+func TestGetAllResources(t *testing.T) {
+	ci := CIScan{configFolder: "testdata/walk", config: &models.Configuration{}}
+	images, resources, err := ci.getAllResources()
+	assert.Equal(t, err.Error(), `2 errors occurred:
+	* error decoding document testdata/walk/helm-release-pruner-yaml/templates/configmap_error.yml: yaml: unmarshal errors:
+  line 5: mapping key "kind" already defined at line 4
+	* error decoding document testdata/walk/helm-release-pruner-yaml/templates/cronjob_error.yml: yaml: unmarshal errors:
+  line 5: mapping key "kind" already defined at line 4
+
+`)
+	assert.Len(t, images, 3, "even though there are errors, we should still get the images")
+	assert.Len(t, resources, 7, "even though there are errors, we should still get the resources")
+}
+
+func TestTrimSpace(t *testing.T) {
+	assert.Equal(t, "hello", strings.TrimSpace("hello"))
+	assert.Equal(t, "hello", strings.TrimSpace(" hello "))
+	assert.Equal(t, "hello", strings.TrimSpace("\nhello\n"))
+	assert.Equal(t, "hello", strings.TrimSpace("\n hello \n"))
+	assert.Equal(t, "hello", strings.TrimSpace("\n hello"))
+	assert.Equal(t, "hello", strings.TrimSpace("hello\n"))
+	assert.Equal(t, "hello", strings.TrimSpace("\nhello"))
+	assert.Equal(t, "hello", strings.TrimSpace(" \n hello \n "))
+}

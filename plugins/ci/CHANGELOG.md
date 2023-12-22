@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.3.3
+* Trim spaces from masterBranch before using it
+
+## 5.3.2
+* Only skip failed files instead of halting the process
+
+## 5.3.1
+* Print soft-errors to output to increase error awareness
+
+## 5.3.0
+* Added files that were modified to CI scan response
+
+## 5.2.9
+* update trivy to 0.48.1
+
+## 5.2.8
+* Bump alpine to 3.19
+
 ## 5.2.7
 * Ignore `setExitCode` when running on auto-scan mode
 

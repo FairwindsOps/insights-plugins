@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.4
+* Bump alpine to 3.19
+
 ## 0.20.3
 * update alpine and x/net
 

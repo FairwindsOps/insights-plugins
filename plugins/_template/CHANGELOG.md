@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.14
+* Bump alpine to 3.19
+
 ## 0.1.13
 * Update alpine
 
