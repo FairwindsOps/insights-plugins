@@ -9,7 +9,6 @@ resources:
   - v1/namespaces
   - v1/persistentvolumes
   - v1/persistentvolumeclaims
-  - apps/v1/replicasets
 
 namespaces:
   - all
