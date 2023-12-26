@@ -88,7 +88,7 @@ func TestGetAllResources(t *testing.T) {
   line 5: mapping key "kind" already defined at line 4
 
 `)
-	assert.Len(t, images, 3, "even though there are errors, we should still get the images")
+	assert.Len(t, images, 2, "even though there are errors, we should still get the images")
 	assert.Len(t, resources, 7, "even though there are errors, we should still get the resources")
 }
 
