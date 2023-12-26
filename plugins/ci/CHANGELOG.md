@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.3.4
+* Fix image owners matching logic
+
 ## 5.3.3
 * Trim spaces from masterBranch before using it
 
