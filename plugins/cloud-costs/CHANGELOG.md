@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.8
+* Added tag prefix
+
 ## 0.1.7
 * Removing --quiet option
 

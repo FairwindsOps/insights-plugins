@@ -12,6 +12,7 @@ cat << EOF
 usage: awscosts \
   --database <database name> \
   --table <table name> \
+  --tagprefix <tag prefix> \
   --tagkey <tag key> \
   --tagvalue <tag value> \
   --catalog <catalog> \
@@ -24,6 +25,7 @@ EOF
 }
 
 tagkey=''
+tagprefix=''
 tagvalue=''
 database=''
 table=''
@@ -90,7 +92,7 @@ queryResults=$(aws athena start-query-execution \
     FROM \
       "$database"."$table" \
     WHERE \
-      resource_tags_user_$tagkey='$tagvalue' \
+      $tagprefix$tagkey='$tagvalue' \
       AND line_item_usage_end_date > timestamp '$initial_date_time' \
       AND line_item_usage_end_date <= timestamp '$final_date_time' \
     GROUP BY  1,2,4,5,6,7,8,11,12
