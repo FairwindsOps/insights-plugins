@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.1
+## 1.4.0
 * Added tag prefix
 
 ## 1.3.0

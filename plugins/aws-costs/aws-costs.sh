@@ -83,10 +83,6 @@ fi
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 
-if [[ "$tagprefix" = "" ]]; then
-  tagprefix = "resource_tags_user_"
-fi
-
 queryResults=$(aws athena start-query-execution \
 --query-string \
     "SELECT \

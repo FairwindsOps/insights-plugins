@@ -111,10 +111,6 @@ if  [[ "$provider" = "aws" ]]; then
     exit 1
   fi
 
-  if [[ "$tagprefix" = "" ]]; then
-    tagprefix = "resource_tags_user_"
-  fi
-
   queryResults=$(aws athena start-query-execution \
   --query-string \
       "SELECT \
