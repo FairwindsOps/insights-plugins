@@ -11,6 +11,7 @@ usage()
 cat << EOF
 usage: cloud-costs \
   --provider <cloud provider - aws is default>
+  --tagprefix <tag prefix - optional for aws, not used for GCP> \
   --tagkey <tag key - required for AWS, optional for GCP> \
   --tagvalue <tag value - required for AWS and GCP> \
   --database <database name - required for AWS> \
@@ -49,6 +50,9 @@ while [ ! $# -eq 0 ]; do
         provider)
             provider=${2}
             ;;            
+        tagprefix)
+            tagkey=${2}
+            ;;
         tagkey)
             tagkey=${2}
             ;;
@@ -116,7 +120,7 @@ if  [[ "$provider" = "aws" ]]; then
       FROM \
         "$database"."$table" \
       WHERE \
-        resource_tags_user_$tagkey='$tagvalue' \
+        $tagprefix$tagkey='$tagvalue' \
         AND line_item_usage_end_date > timestamp '$initial_date_time' \
         AND line_item_usage_end_date <= timestamp '$final_date_time' \
       GROUP BY  1,2,4,5,6,7,8,11,12
