@@ -11,7 +11,7 @@ usage()
 cat << EOF
 usage: cloud-costs \
   --provider <cloud provider - aws is default>
-  --tagprefix <tag prefix - optional> \
+  --tagprefix <tag prefix - optional for aws, not used for GCP> \
   --tagkey <tag key - required for AWS, optional for GCP> \
   --tagvalue <tag value - required for AWS and GCP> \
   --database <database name - required for AWS> \
