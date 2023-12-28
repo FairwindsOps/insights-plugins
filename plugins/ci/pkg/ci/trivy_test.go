@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
+	trivymodels "github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -56,4 +57,42 @@ func TestDownloadImageViaSkopeo(t *testing.T) {
 	cmd, err = downloadImageViaSkopeo(noopReturnArgsCmdExecutor, "./", "postgres:15.1-bullseye", &rc)
 	assert.NoError(t, err)
 	assert.Equal(t, "[skopeo copy --src-creds my-username:my-password random args docker://postgres:15.1-bullseye docker-archive:./postgres_15_1_bullseye]", cmd)
+}
+
+func TestDownloadMissingImages(t *testing.T) {
+	mockDownloaderFn := func(cmdExecutor cmdExecutor, folderPath, imageName string, rc *models.RegistryCredential) (string, error) {
+		return "", nil // noop
+	}
+	rc := models.RegistryCredentials{}
+
+	dockerImages := []trivymodels.DockerImage{{Name: "postgres:15.1-bullseye", PullRef: "postgres_15_1_bullseye"}, {Name: "nginx:1.23.2-alpine", PullRef: "nginx_1_23_2_alpine"}}
+	manifestImages := []trivymodels.Image{
+		{
+			Name:   "postgres:15.1-bullseye",
+			Owners: []trivymodels.Resource{{Name: "postgres", Kind: "Deployment", Namespace: "default", Container: "postgres"}},
+		},
+		{
+			Name:   "nginx:1.23.2-alpine",
+			Owners: []trivymodels.Resource{{Name: "nginx", Kind: "Deployment", Namespace: "default", Container: "nginx"}},
+		},
+		{
+			Name:   "alpine:1.24.2",
+			Owners: []trivymodels.Resource{{Name: "nginx", Kind: "Deployment", Namespace: "default", Container: "nginx"}},
+		},
+	}
+
+	refToImageName, dockerImages, manifestImages, err := downloadMissingImages("_/images", mockDownloaderFn, dockerImages, manifestImages, rc)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]string{
+		"postgres_15_1_bullseye": "postgres:15.1-bullseye",
+		"nginx_1_23_2_alpine":    "nginx:1.23.2-alpine",
+		"alpine_1_24_2":          "alpine:1.24.2",
+	}, refToImageName)
+
+	assert.Len(t, dockerImages, 2)
+	assert.Len(t, manifestImages, 3)
+
+	for _, mi := range manifestImages {
+		assert.NotEmpty(t, mi.PullRef)
+	}
 }

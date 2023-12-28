@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.3.4
+* Fix image owners matching logic
+
+## 5.3.3
+* Trim spaces from masterBranch before using it
+
 ## 5.3.2
 * Only skip failed files instead of halting the process
 
