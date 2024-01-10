@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.14.0
+### update polaris to 8.5.4. More info Below:
+
+* rename `metadataAndNameMismatched` to `metadataAndInstanceMismatched`
+  * update `kubernetes.io/` label from `name` to `instance` 
+* update `clusterrolebindingClusterAdmin` check
+* update `rolebindingClusterAdminClusterRole` check
+* update `rolebindingClusterRolePodExecAttach` check
+* update `rolebindingRolePodExecAttach` check
+* update `topologySpreadConstraint` check
+
 ## 1.13.4
 * Bump alpine to 3.19
 
