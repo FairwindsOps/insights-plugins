@@ -29,6 +29,7 @@ EOF
 }
 
 provider=''
+tagprefix=''
 tagkey=''
 tagvalue=''
 database=''
@@ -51,7 +52,7 @@ while [ ! $# -eq 0 ]; do
             provider=${2}
             ;;            
         tagprefix)
-            tagkey=${2}
+            tagprefix=${2}
             ;;
         tagkey)
             tagkey=${2}

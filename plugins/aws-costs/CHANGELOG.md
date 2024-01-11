@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.1
+* Fixed tag prefix on aws costs plugin
+
 ## 1.4.0
 * Added tag prefix
 
