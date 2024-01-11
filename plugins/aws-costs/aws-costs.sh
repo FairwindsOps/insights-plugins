@@ -41,7 +41,7 @@ while [ ! $# -eq 0 ]; do
             timeout=${2}
             ;;            
         tagprefix)
-            tagkey=${2}
+            tagprefix=${2}
             ;;
         tagkey)
             tagkey=${2}
