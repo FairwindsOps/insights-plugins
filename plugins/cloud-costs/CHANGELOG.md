@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.1.8
+* Tag prefix bug fix
+
+## 0.1.8
 * Added tag prefix
 
 ## 0.1.7
