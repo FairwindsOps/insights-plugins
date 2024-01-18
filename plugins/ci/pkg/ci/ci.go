@@ -198,7 +198,36 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 		errors = multierror.Append(errors, fmt.Errorf("error walking directory %s: %v", ci.configFolder, err))
 		return nil, nil, errors
 	}
-	return images, resources, errors.ErrorOrNil()
+
+	// multiple images with the same name may belong to different owners, so we need to deduplicate them
+	dedupedImages := dedupImages(images)
+
+	return dedupedImages, resources, errors.ErrorOrNil()
+}
+
+func dedupImages(images []trivymodels.Image) []trivymodels.Image {
+	imageOwnersMap := map[string][]trivymodels.Resource{}
+	for _, img := range images {
+		if _, ok := imageOwnersMap[img.Name]; !ok {
+			imageOwnersMap[img.Name] = []trivymodels.Resource{} // initialize
+		}
+		imageOwnersMap[img.Name] = append(imageOwnersMap[img.Name], img.Owners...)
+	}
+
+	imagesMap := lo.KeyBy(images, func(img trivymodels.Image) string { return img.Name })
+
+	dedupedImages := []trivymodels.Image{}
+	for k, i := range imagesMap {
+		dedupedImages = append(dedupedImages, trivymodels.Image{
+			ID:                 i.ID,
+			PullRef:            i.PullRef,
+			Name:               i.Name,
+			Owners:             imageOwnersMap[k],
+			RecommendationOnly: i.RecommendationOnly,
+		})
+	}
+
+	return dedupedImages
 }
 
 func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, error) {
