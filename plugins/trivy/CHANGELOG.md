@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.28.8
+* normalize image ID and name to fix re-scan of stale images
+
 ## 0.28.7
 * update trivy to 0.48.1
 
