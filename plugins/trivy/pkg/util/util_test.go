@@ -1,4 +1,4 @@
-package image
+package util
 
 import (
 	"os"
@@ -11,7 +11,7 @@ func TestShouldBeAbleToReadOldReports(t *testing.T) {
 	v1Body, err := os.ReadFile("testdata/v0.26/latest.json")
 	assert.NoError(t, err)
 
-	v2, err := unmarshalBody(v1Body)
+	v2, err := UnmarshalAndFixReport(v1Body)
 	assert.NoError(t, err)
 	assert.Equal(t, 28, len(v2.Images))
 	assert.Equal(t, 467, len(v2.Vulnerabilities))
@@ -25,11 +25,11 @@ func TestShouldBeAbleToReadOldReports(t *testing.T) {
 	}
 }
 
-func TestUnmarshalBody(t *testing.T) {
+func TestUnmarshalAndFixReport(t *testing.T) {
 	v2Body, err := os.ReadFile("testdata/v0.27/latest.json")
 	assert.NoError(t, err)
 
-	v2, err := unmarshalBody(v2Body)
+	v2, err := UnmarshalAndFixReport(v2Body)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(v2.Images))
 	assert.Equal(t, 467, len(v2.Vulnerabilities))

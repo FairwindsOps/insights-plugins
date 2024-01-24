@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/insights"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -28,6 +29,7 @@ const outputFile = image.TempDir + "/final-report.json"
  * Images or images recommendations that no longer belongs to that cluster are filtered out
  */
 func main() {
+	ctx := context.TODO()
 	setLogLevel(os.Getenv("LOGRUS_LEVEL"))
 	setEnv()
 
@@ -37,7 +39,7 @@ func main() {
 	token := os.Getenv("FAIRWINDS_TOKEN")
 	noRecommendations := os.Getenv("NO_RECOMMENDATIONS")
 
-	lastReport, err := image.GetLastReport(host, org, cluster, token)
+	lastReport, err := insights.FetchLastReport(ctx, host, org, cluster, token)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -45,37 +47,38 @@ func main() {
 	for _, i := range lastReport.Images {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
-	ctx := context.Background()
+
 	namespaceBlocklist, namespaceAllowlist := getNamespaceBlocklistAllowlistFromEnv()
 	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
-	images, err := image.GetImages(ctx, namespaceBlocklist, namespaceAllowlist)
+
+	inClusterImages, err := image.GetImages(ctx, namespaceBlocklist, namespaceAllowlist)
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	logrus.Infof("Found %d images in cluster", len(images))
-	for _, i := range images {
+	logrus.Infof("Found %d images in cluster", len(inClusterImages))
+	for _, i := range inClusterImages {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
 
-	imagesToScan := image.GetUnscannedImagesToScan(images, lastReport.Images, numberToScan)
+	imagesToScan := image.GetUnscannedImagesToScan(inClusterImages, lastReport.Images, numberToScan)
 	unscannedCount := len(imagesToScan)
 	logrus.Infof("Found %d images that have never been scanned", unscannedCount)
-	imagesToScan = image.GetImagesToRescan(images, *lastReport, imagesToScan, numberToScan)
-	logrus.Infof("Will rescan %d additional images", len(imagesToScan)-unscannedCount)
+	imagesToScan = image.GetImagesToReScan(inClusterImages, *lastReport, imagesToScan, numberToScan)
+	logrus.Infof("Will re-scan %d additional images", len(imagesToScan)-unscannedCount)
 	for _, i := range imagesToScan {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
 
 	// Owners info from latest report might be out-of-date, we need to update it using the cluster info
-	lastReport.Images = image.UpdateOwnersReferenceOnMatchingImages(lastReport.Images, images)
+	lastReport.Images = image.UpdateOwnersReferenceOnMatchingImages(lastReport.Images, inClusterImages)
 	// Remove any images from the report that are no longer in the cluster
-	lastReport.Images = image.GetMatchingImages(lastReport.Images, images, false)
+	lastReport.Images = image.GetMatchingImages(lastReport.Images, inClusterImages, false)
 	logrus.Infof("%d images after removing images no longer in cluster", len(lastReport.Images))
 	// Remove any images from the report that we're going to re-scan now
 	lastReport.Images = image.GetUnmatchingImages(lastReport.Images, imagesToScan, false)
 	logrus.Infof("%d images after removing images to be scanned", len(lastReport.Images))
 	// Remove any recommendations from the report that no longer have a corresponding image in the cluster
-	lastReport.Images = image.GetMatchingImages(lastReport.Images, images, true)
+	lastReport.Images = image.GetMatchingImages(lastReport.Images, inClusterImages, true)
 	logrus.Infof("%d images after removing recommendations that don't match", len(lastReport.Images))
 
 	logrus.Infof("Starting image scans")

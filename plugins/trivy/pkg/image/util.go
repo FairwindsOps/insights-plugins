@@ -52,7 +52,7 @@ func GetUnscannedImagesToScan(imagesInCluster []models.Image, lastReportImages [
 	return imagesToScan
 }
 
-func GetImagesToRescan(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image, maxScans int) []models.Image {
+func GetImagesToReScan(images []models.Image, lastReport models.MinimizedReport, imagesToScan []models.Image, maxScans int) []models.Image {
 	sort.Slice(lastReport.Images, func(a, b int) bool {
 		return lastReport.Images[a].LastScan == nil || lastReport.Images[b].LastScan != nil && lastReport.Images[a].LastScan.Before(*lastReport.Images[b].LastScan)
 	})

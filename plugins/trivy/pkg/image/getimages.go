@@ -37,7 +37,7 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 	kubeClientResources := util.CreateKubeClientResources()
 
 	client := fwControllerUtils.Client{
-		Context:    context.TODO(),
+		Context:    ctx,
 		Dynamic:    kubeClientResources.DynamicClient,
 		RESTMapper: kubeClientResources.RESTMapper,
 	}
@@ -94,6 +94,10 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 				if _, found := keyToImage[imgKey]; found {
 					continue
 				}
+
+				imageID = strings.TrimPrefix(imageID, util.DockerIOprefix)
+				imageName = strings.TrimPrefix(imageName, util.DockerIOprefix)
+
 				keyToImage[imgKey] = models.Image{
 					ID:      imageID,
 					Name:    imageName,

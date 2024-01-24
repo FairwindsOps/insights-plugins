@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -35,68 +34,6 @@ func init() {
 		}
 		registryPassword = string(content)
 	}
-}
-
-// GetLastReport returns the last report for Trivy from Fairwinds Insights
-func GetLastReport(host, org, cluster, token string) (*models.MinimizedReport, error) {
-	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/trivy/latest.json", host, org, cluster)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound {
-		return &models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}}, nil
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Bad Status code on get last report: %d", resp.StatusCode)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalBody(body)
-}
-
-func unmarshalBody(body []byte) (*models.MinimizedReport, error) {
-	var report models.MinimizedReport
-	err := json.Unmarshal(body, &report)
-	if err != nil {
-		return nil, err
-	}
-	fixOwners(&report)
-	return &report, nil
-}
-
-// fixOwners adapt older owners fields to the new ones
-func fixOwners(report *models.MinimizedReport) {
-	for i := range report.Images {
-		img := &report.Images[i]
-		if hasDeprecatedOwnerFields(*img) {
-			var container string
-			if img.OwnerContainer != nil {
-				container = *img.OwnerContainer
-			}
-			img.Owners = []models.Resource{
-				{
-					Name:      img.OwnerName,
-					Kind:      img.OwnerKind,
-					Namespace: img.Namespace,
-					Container: container,
-				},
-			}
-		}
-	}
-}
-
-func hasDeprecatedOwnerFields(img models.ImageDetailsWithRefs) bool {
-	return len(img.OwnerName) != 0 || len(img.OwnerKind) != 0 || len(img.Namespace) != 0
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
