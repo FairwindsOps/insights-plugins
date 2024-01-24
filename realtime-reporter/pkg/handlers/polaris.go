@@ -28,7 +28,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 		bytes, err := json.Marshal(obj)
 		if err != nil {
-			logrus.Errorf("Unable to marshal object: %v", err)
+			panic(err)
 		}
 
 		u := obj.(*unstructured.Unstructured)
@@ -46,19 +46,23 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 		report, err := polaris.GetPolarisReport(bytes)
 		if err != nil {
-			logrus.Errorf("Unable to retrieve polaris report: %v", err)
+			panic(err)
 		}
 
-		reportMap := polarisReportInfoToMap(report)
+		reportMap, err := polarisReportInfoToMap(report)
+		if err != nil {
+			panic(err)
+		}
+
 		e := evt.NewEvent(timestamp, "add", u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
-			logrus.Errorf("Unable to marshal event: %v", err)
+			panic(err)
 		}
 
 		err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
 		if err != nil {
-			logrus.Errorf("unable to upload to Insights: %v", err)
+			panic(err)
 		}
 	}
 	handler.UpdateFunc = func(old, new interface{}) {
@@ -71,25 +75,28 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		if oldObj.GetGeneration() < newObj.GetGeneration() {
 			bytes, err := json.Marshal(new)
 			if err != nil {
-				logrus.Errorf("Unable to marshal object: %v", err)
+				panic(err)
 			}
 
 			report, err := polaris.GetPolarisReport(bytes)
 			if err != nil {
-				logrus.Errorf("Unable to retrieve polaris report: %v", err)
+				panic(err)
 			}
 
-			reportMap := polarisReportInfoToMap(report)
+			reportMap, err := polarisReportInfoToMap(report)
+			if err != nil {
+				panic(err)
+			}
 
 			e := evt.NewEvent(timestamp, "update", newObj.GetObjectKind().GroupVersionKind().Kind, newObj.GetNamespace(), newObj.GetName(), reportMap)
 			eventJson, err := json.Marshal(e)
 			if err != nil {
-				logrus.Errorf("Unable to marshal event: %v", err)
+				panic(err)
 			}
 
 			err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
 			if err != nil {
-				logrus.Errorf("unable to upload to Insights: %v", err)
+				panic(err)
 			}
 		}
 	}
@@ -103,12 +110,12 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		e := evt.NewEvent(timestamp, "delete", u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
-			logrus.Errorf("Unable to marshal event: %v", err)
+			panic(err)
 		}
 
 		err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
 		if err != nil {
-			logrus.Errorf("unable to upload to Insights: %v", err)
+			panic(err)
 		}
 	}
 	return handler
@@ -120,7 +127,7 @@ type PolarisReport struct {
 	Contents []byte
 }
 
-func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
+func polarisReportInfoToMap(report models.ReportInfo) (map[string]interface{}, error) {
 	m := PolarisReport{
 		Report:   report.Report,
 		Version:  report.Version,
@@ -130,7 +137,7 @@ func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
 	var v map[string]any
 	err := json.Unmarshal(m.Contents, &v)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	im := map[string]any{
@@ -141,16 +148,13 @@ func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
 
 	reportJson, err := json.Marshal(im)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	var reportMap map[string]interface{}
 	err = json.Unmarshal(reportJson, &reportMap)
-	if err != nil {
-		panic(err)
-	}
 
-	return reportMap
+	return reportMap, err
 }
 
 func getTimestampUnixNanos() int64 {
