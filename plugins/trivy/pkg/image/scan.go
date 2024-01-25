@@ -3,7 +3,6 @@ package image
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -163,7 +162,7 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	}()
 
 	report := models.TrivyResults{}
-	data, err := ioutil.ReadFile(reportFile)
+	data, err := os.ReadFile(reportFile)
 	if err != nil {
 		logrus.Errorf("Error reading report %s: %s", imageID, err)
 		return nil, err

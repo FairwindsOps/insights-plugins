@@ -95,8 +95,8 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 					continue
 				}
 
-				imageID = strings.TrimPrefix(imageID, util.DockerIOprefix)
-				imageName = strings.TrimPrefix(imageName, util.DockerIOprefix)
+				imageID = strings.TrimPrefix(imageID, DockerIOprefix)
+				imageName = strings.TrimPrefix(imageName, DockerIOprefix)
 
 				keyToImage[imgKey] = models.Image{
 					ID:      imageID,

@@ -4,14 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
-	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/insights"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +37,7 @@ func main() {
 	token := os.Getenv("FAIRWINDS_TOKEN")
 	noRecommendations := os.Getenv("NO_RECOMMENDATIONS")
 
-	lastReport, err := insights.FetchLastReport(ctx, host, org, cluster, token)
+	lastReport, err := image.FetchLastReport(ctx, host, org, cluster, token)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -102,7 +100,7 @@ func main() {
 		logrus.Fatalf("could not marshal report: %v", err)
 	}
 	logrus.Infof("Writing to file %s", outputFile)
-	err = ioutil.WriteFile(outputFile, data, 0644)
+	err = os.WriteFile(outputFile, data, 0644)
 	if err != nil {
 		logrus.Fatalf("could not write to output file: %v", err)
 	}

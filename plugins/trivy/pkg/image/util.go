@@ -1,11 +1,14 @@
 package image
 
 import (
+	"encoding/json"
 	"sort"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 )
+
+const DockerIOprefix = "docker.io/"
 
 func GetMatchingImages(baseImages []models.ImageDetailsWithRefs, toMatch []models.Image, isRecommendation bool) []models.ImageDetailsWithRefs {
 	return getImages(baseImages, toMatch, isRecommendation, true)
@@ -124,4 +127,49 @@ func UpdateOwnersReferenceOnMatchingImages(baseImages []models.ImageDetailsWithR
 		}
 	}
 	return baseImages
+}
+
+func unmarshalAndFixReport(body []byte) (*models.MinimizedReport, error) {
+	var report models.MinimizedReport
+	err := json.Unmarshal(body, &report)
+	if err != nil {
+		return nil, err
+	}
+	fixOwners(&report)
+	normalizeDockerHubImages(&report)
+	return &report, nil
+}
+
+// fixOwners adapt older owners fields to the new ones
+func fixOwners(report *models.MinimizedReport) {
+	for i := range report.Images {
+		img := &report.Images[i]
+		if hasDeprecatedOwnerFields(*img) {
+			var container string
+			if img.OwnerContainer != nil {
+				container = *img.OwnerContainer
+			}
+			img.Owners = []models.Resource{
+				{
+					Name:      img.OwnerName,
+					Kind:      img.OwnerKind,
+					Namespace: img.Namespace,
+					Container: container,
+				},
+			}
+		}
+	}
+}
+
+func hasDeprecatedOwnerFields(img models.ImageDetailsWithRefs) bool {
+	return len(img.OwnerName) != 0 || len(img.OwnerKind) != 0 || len(img.Namespace) != 0
+}
+
+// normalizeDockerHubImages removes the docker.io/ prefix from the image names and IDs
+func normalizeDockerHubImages(report *models.MinimizedReport) {
+	for i := range report.Images {
+		img := &report.Images[i]
+		img.Name = strings.TrimPrefix(img.Name, DockerIOprefix)
+		img.ID = strings.TrimPrefix(img.ID, DockerIOprefix)
+	}
 }

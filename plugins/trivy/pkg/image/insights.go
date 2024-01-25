@@ -1,13 +1,13 @@
-package insights
+package image
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
+
 	"net/http"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
-	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 )
 
 // FetchLastReport returns the last report for Trivy from Fairwinds Insights
@@ -30,9 +30,9 @@ func FetchLastReport(ctx context.Context, host, org, cluster, token string) (*mo
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Bad Status code on get last report: %d", resp.StatusCode)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-	return util.UnmarshalAndFixReport(body)
+	return unmarshalAndFixReport(body)
 }
