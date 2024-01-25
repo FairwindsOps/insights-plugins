@@ -28,7 +28,8 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 		bytes, err := json.Marshal(obj)
 		if err != nil {
-			logrus.Errorf("Unable to marshal object: %v", err)
+			logrus.Errorf("unable to marshal object: %v", err)
+			return
 		}
 
 		u := obj.(*unstructured.Unstructured)
@@ -46,19 +47,27 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 		report, err := polaris.GetPolarisReport(bytes)
 		if err != nil {
-			logrus.Errorf("Unable to retrieve polaris report: %v", err)
+			logrus.Errorf("unable to retrieve polaris report: %v", err)
+			return
 		}
 
-		reportMap := polarisReportInfoToMap(report)
+		reportMap, err := polarisReportInfoToMap(report)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+
 		e := evt.NewEvent(timestamp, "add", u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), reportMap)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
-			logrus.Errorf("Unable to marshal event: %v", err)
+			logrus.Errorf("unable to marshal event: %v", err)
+			return
 		}
 
 		err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
 		if err != nil {
 			logrus.Errorf("unable to upload to Insights: %v", err)
+			return
 		}
 	}
 	handler.UpdateFunc = func(old, new interface{}) {
@@ -71,25 +80,33 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		if oldObj.GetGeneration() < newObj.GetGeneration() {
 			bytes, err := json.Marshal(new)
 			if err != nil {
-				logrus.Errorf("Unable to marshal object: %v", err)
+				logrus.Errorf("unable to marshal object: %v", err)
+				return
 			}
 
 			report, err := polaris.GetPolarisReport(bytes)
 			if err != nil {
-				logrus.Errorf("Unable to retrieve polaris report: %v", err)
+				logrus.Errorf("unable to retrieve polaris report: %v", err)
+				return
 			}
 
-			reportMap := polarisReportInfoToMap(report)
+			reportMap, err := polarisReportInfoToMap(report)
+			if err != nil {
+				logrus.Error(err)
+				return
+			}
 
 			e := evt.NewEvent(timestamp, "update", newObj.GetObjectKind().GroupVersionKind().Kind, newObj.GetNamespace(), newObj.GetName(), reportMap)
 			eventJson, err := json.Marshal(e)
 			if err != nil {
-				logrus.Errorf("Unable to marshal event: %v", err)
+				logrus.Errorf("unable to marshal event: %v", err)
+				return
 			}
 
 			err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
 			if err != nil {
 				logrus.Errorf("unable to upload to Insights: %v", err)
+				return
 			}
 		}
 	}
@@ -103,12 +120,14 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 		e := evt.NewEvent(timestamp, "delete", u.GetObjectKind().GroupVersionKind().Kind, u.GetNamespace(), u.GetName(), nil)
 		eventJson, err := json.Marshal(e)
 		if err != nil {
-			logrus.Errorf("Unable to marshal event: %v", err)
+			logrus.Errorf("unable to marshal event: %v", err)
+			return
 		}
 
 		err = fwClient.UploadToInsights(timestamp, "polaris", eventJson)
 		if err != nil {
 			logrus.Errorf("unable to upload to Insights: %v", err)
+			return
 		}
 	}
 	return handler
@@ -120,7 +139,7 @@ type PolarisReport struct {
 	Contents []byte
 }
 
-func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
+func polarisReportInfoToMap(report models.ReportInfo) (map[string]interface{}, error) {
 	m := PolarisReport{
 		Report:   report.Report,
 		Version:  report.Version,
@@ -130,7 +149,7 @@ func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
 	var v map[string]any
 	err := json.Unmarshal(m.Contents, &v)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	im := map[string]any{
@@ -141,16 +160,16 @@ func polarisReportInfoToMap(report models.ReportInfo) map[string]interface{} {
 
 	reportJson, err := json.Marshal(im)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	var reportMap map[string]interface{}
 	err = json.Unmarshal(reportJson, &reportMap)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return reportMap
+	return reportMap, nil
 }
 
 func getTimestampUnixNanos() int64 {
