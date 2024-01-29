@@ -11,11 +11,15 @@ export FAIRWINDS_TOKEN=$TOKEN
 ```
 
 ```
- go run main.go \
+curl -o examples/polaris.yaml https://raw.githubusercontent.com/FairwindsOps/polaris/master/examples/config.yaml
+
+go run main.go \
     --organization acme-co \
     --cluster kind \
-    --host http://192.168.1.27:3001 \
-    --config examples/realtime-reporter.yaml
+    --host http://192.168.1.27:3000 \
+    --config examples/realtime-reporter.yaml \
+    --polaris-enabled \
+    --polaris-config examples/polaris.yaml
 ```
 
 ## Example Output

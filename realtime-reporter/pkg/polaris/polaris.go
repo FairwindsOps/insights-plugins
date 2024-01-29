@@ -8,6 +8,7 @@ import (
 	"github.com/fairwindsops/polaris/pkg/kube"
 	"github.com/fairwindsops/polaris/pkg/validator"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
@@ -17,7 +18,7 @@ import (
 var config polarisconfiguration.Configuration
 
 func init() {
-	configPath := "examples/polaris.yaml"
+	configPath := viper.GetString("polaris-config")
 	var err error
 
 	config, err = polarisconfiguration.ParseFile(configPath)

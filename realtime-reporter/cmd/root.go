@@ -13,11 +13,13 @@ import (
 )
 
 var (
-	configPath   string
-	organization string
-	cluster      string
-	host         string
-	logLevel     string
+	configPath        string
+	polarisEnabled    bool
+	polarisConfigPath string
+	organization      string
+	cluster           string
+	host              string
+	logLevel          string
 )
 
 var rootCmd = &cobra.Command{
@@ -47,6 +49,8 @@ var rootCmd = &cobra.Command{
 			viper.BindPFlag("cluster", cmd.Root().Flags().Lookup("cluster"))
 			viper.BindPFlag("host", cmd.Root().Flags().Lookup("host"))
 			viper.BindEnv("token", "FAIRWINDS_TOKEN")
+			viper.BindPFlag("polaris-enabled", cmd.Root().Flags().Lookup("polaris-enabled"))
+			viper.BindPFlag("polaris-config", cmd.Root().Flags().Lookup("polaris-config"))
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -77,6 +81,8 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "Location of watch configuration file. Contains a list of resources to watch with an optional field to specify namespaces.")
 	rootCmd.MarkFlagRequired("config")
+	rootCmd.PersistentFlags().BoolVar(&polarisEnabled, "polaris-enabled", false, "Run the Polaris handler for Insights realtime-reporter.")
+	rootCmd.PersistentFlags().StringVar(&polarisConfigPath, "polaris-config", "", "Location of polaris configuration file. Used by the Polaris handler. Example can be found at https://raw.githubusercontent.com/FairwindsOps/polaris/master/examples/config.yaml")
 	rootCmd.PersistentFlags().StringVar(&organization, "organization", "", "The Insights organization name.")
 	rootCmd.MarkFlagRequired("organization")
 	rootCmd.PersistentFlags().StringVar(&cluster, "cluster", "", "The Insights cluster name.")
