@@ -23,7 +23,7 @@ func init() {
 
 	config, err = polarisconfiguration.ParseFile(configPath)
 	if err != nil {
-		logrus.Errorf("Error parsing config at %s: %v", configPath, err)
+		logrus.Errorf("error parsing config at %s: %v", configPath, err)
 		os.Exit(1)
 	}
 }

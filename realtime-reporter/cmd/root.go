@@ -56,7 +56,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		watcher, err := watcher.NewWatcher()
 		if err != nil {
-			logrus.Fatalf("Error creating new watcher: %s", err.Error())
+			logrus.Fatalf("error creating new watcher: %s", err.Error())
 		}
 
 		stopCh := make(chan struct{})
