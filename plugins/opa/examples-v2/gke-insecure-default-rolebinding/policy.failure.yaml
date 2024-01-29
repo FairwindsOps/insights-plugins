@@ -1,0 +1,19 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: insights-agent-get-logs
+  namespace: insights-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: insights-agent-get-logs
+subjects:
+- kind: ServiceAccount
+  name: insights-agent-cronjob-executor
+  namespace: insights-agent
+- kind: ServiceAccount
+  name: insights-agent-pluto
+  namespace: insights-agent
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:unauthenticated
