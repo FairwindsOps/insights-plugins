@@ -77,7 +77,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		logrus.Info("configFilePath===", configFilePath)
 	}
 	// The -s avoids tfsec exiting with an error value for scan warnings.
-	output, err := commands.ExecWithMessage(exec.Command("tfsec", "--config-file", "./custom/.tfsec/_tfchecks.yaml", "-s", "-f", "json", "-O", outputFile, terraformPath), "scanning Terraform in "+terraformPath)
+	output, err := commands.ExecWithMessage(exec.Command("tfsec", "--config-file", ci.repoBaseFolder+"/custom/.tfsec/_tfchecks.yaml", "-s", "-f", "json", "-O", outputFile, ci.repoBaseFolder+"/"+terraformPath), "scanning Terraform in "+terraformPath)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %s", err, output)
 	}
