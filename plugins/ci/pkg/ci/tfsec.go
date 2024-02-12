@@ -66,8 +66,15 @@ func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, errs error
 func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResult, error) {
 	terraformPathAsFileName := strings.ReplaceAll(strings.TrimPrefix(terraformPath, ci.repoBaseFolder), "/", "_")
 	outputFile := filepath.Join(ci.config.Options.TempFolder, fmt.Sprintf("tfsec-output-%s", terraformPathAsFileName))
+	customChecks := ci.config.Reports.TFSec.CustomChecksFilePath != nil && *ci.config.Reports.TFSec.CustomChecksFilePath != ""
+	configFile := ""
+	configFilePath := ""
+	if customChecks {
+		configFile = "--config-file"
+		configFilePath = *ci.config.Reports.TFSec.CustomChecksFilePath
+	}
 	// The -s avoids tfsec exiting with an error value for scan warnings.
-	output, err := commands.ExecWithMessage(exec.Command("tfsec", "-s", "-f", "json", "-O", outputFile, terraformPath), "scanning Terraform in "+terraformPath)
+	output, err := commands.ExecWithMessage(exec.Command("tfsec", configFile, configFilePath, "-s", "-f", "json", "-O", outputFile, terraformPath), "scanning Terraform in "+terraformPath)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %s", err, output)
 	}
@@ -99,6 +106,9 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		}
 		logrus.Debugf("updating filename %q to be relative to the repository: %q", reportProperties.Items[i].Location.FileName, newFileName)
 		reportProperties.Items[i].Location.FileName = newFileName
+		if reportProperties.Items[i].RuleID == "" {
+			reportProperties.Items[i].RuleID = "tfsec-custom-check"
+		}
 	}
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, reportProperties)
 	return reportProperties.Items, nil
