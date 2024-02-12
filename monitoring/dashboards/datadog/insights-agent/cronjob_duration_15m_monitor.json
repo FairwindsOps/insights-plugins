@@ -1,0 +1,21 @@
+{
+    "id": 138653336,
+    "name": "[fairwinds/insights-agent] CronJob duration since last schedule exceeded (15m)",
+    "type": "query alert",
+    "query": "max(last_5m):avg:kubernetes_state.cronjob.duration_since_last_schedule{kube_namespace:insights-agent AND kube_cronjob IN (prometheus-metrics, workloads)} by {cluster_name,kube_namespace,kube_cronjob} > 1200",
+    "message": "{{#is_alert}} CronJob has exceeded (> {{threshold}} ). CronJob name: {{kube_cronjob.name}} {{/is_alert}}\n\n{{#is_warning}} CronJob has exceeded (> {{threshold}} ). CronJob name: {{kube_cronjob.name}} {{/is_warning}}",
+    "tags": [],
+    "options": {
+        "thresholds": {
+            "critical": 1200,
+            "warning": 960
+        },
+        "notify_audit": false,
+        "include_tags": true,
+        "new_group_delay": 60,
+        "notify_no_data": false,
+        "silenced": {}
+    },
+    "priority": null,
+    "restricted_roles": null
+}
