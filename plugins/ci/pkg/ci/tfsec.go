@@ -73,6 +73,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		logrus.Info("Adding check validation")
 		configFile = "--config-file"
 		configFilePath = *ci.config.Reports.TFSec.CustomChecksFilePath
+		logrus.Info("configFile===", configFile)
 		logrus.Info("configFilePath===", configFilePath)
 	}
 	// The -s avoids tfsec exiting with an error value for scan warnings.

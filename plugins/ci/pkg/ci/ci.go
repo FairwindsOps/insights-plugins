@@ -91,8 +91,8 @@ func NewCIScan(cloneRepo bool, token string) (*CIScan, error) {
 
 // Close deletes all temporary folders created.
 func (ci *CIScan) Close() {
-	//os.RemoveAll(ci.config.Options.TempFolder)
-	//os.RemoveAll(ci.config.Images.FolderName)
+	os.RemoveAll(ci.config.Options.TempFolder)
+	os.RemoveAll(ci.config.Images.FolderName)
 }
 
 // getAllResources scans a folder of yaml files and returns all of the images and resources used.
