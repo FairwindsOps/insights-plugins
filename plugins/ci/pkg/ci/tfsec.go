@@ -109,7 +109,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		}
 		logrus.Debugf("updating filename %q to be relative to the repository: %q", reportProperties.Items[i].Location.FileName, newFileName)
 		reportProperties.Items[i].Location.FileName = newFileName
-		if reportProperties.Items[i].RuleID == "" {
+		if len(reportProperties.Items[i].RuleID) == 0 {
 			reportProperties.Items[i].RuleID = "tfsec-custom-check"
 		}
 	}
