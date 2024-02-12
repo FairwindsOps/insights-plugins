@@ -47,6 +47,15 @@ func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, errs error
 		logrus.Infof("there were no tfsec findings after processing %d paths\n", len(ci.config.Terraform.Paths))
 		return nil, allErrsCombined
 	}
+	items := []models.TFSecResult{}
+	for _, it := range reportProperties.Items {
+		item := it
+		if len(it.RuleID) == 0 {
+			item.RuleID = "custom-tfsec"
+		}
+		items = append(items, item)
+	}
+	reportProperties.Items = items
 	file, err := json.MarshalIndent(reportProperties, "", " ")
 	if err != nil {
 		return nil, fmt.Errorf("while encoding report output: %w", err)
