@@ -66,8 +66,6 @@ func NewCIScan(cloneRepo bool, token string) (*CIScan, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not get configuration: %v", err)
 	}
-	logrus.Info("baseFolder====", baseFolder)
-	logrus.Info("repoBaseFolder====", repoBaseFolder)
 
 	configFolder := config.Options.TempFolder + "/configuration/"
 	err = os.MkdirAll(configFolder, 0755)

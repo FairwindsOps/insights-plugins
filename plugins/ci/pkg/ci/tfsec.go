@@ -97,7 +97,6 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	items := []models.TFSecResult{}
 	for _, item := range reportProperties.Items {
 		newFileName := item.Location.FileName
-		logrus.Info("newFilename=====", newFileName)
 		if strings.HasPrefix(item.Location.FileName, "terraform-aws-modules/") {
 			logrus.Debugf("preppending %q to filename %q because it refers to a Terraform module", terraformPath, newFileName)
 			newFileName = filepath.Join(terraformPath, newFileName)
@@ -110,11 +109,9 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 			newFileName = strings.TrimPrefix(newFileName, absRepoBaseFolder+"/")
 		}
 		logrus.Debugf("updating filename %q to be relative to the repository: %q", item.Location.FileName, newFileName)
-		logrus.Info("FINAL newFilename=====", newFileName)
 		item.Location.FileName = newFileName
 		if len(item.RuleID) == 0 {
 			item.RuleID = "custom-tfsec"
-			logrus.Info("SETTINGS tfsec-custom-check=====")
 		}
 		items = append(items, item)
 	}

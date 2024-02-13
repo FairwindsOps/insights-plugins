@@ -74,7 +74,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 
 	commitMessage := os.Getenv("COMMIT_MESSAGE")
 	if commitMessage == "" {
-		commitMessage, err = cmdExecutor(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message UPDATED!!!!!")
+		commitMessage, err = cmdExecutor(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message")
 		if err != nil {
 			logrus.Warnf("Unable to get GIT commit message: %v", err)
 			gitCommandFail = true
@@ -109,7 +109,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			filesModified = append(filesModified, mf)
 		}
 	}
-	logrus.Infof("Files modified UPDATED!!!!: %s", filesModified)
+	logrus.Infof("Files modified: %s", filesModified)
 
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
