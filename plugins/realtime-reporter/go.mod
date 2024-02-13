@@ -3,6 +3,8 @@ module github.com/FairwindsOps/insights-plugins/realtime-reporter
 go 1.20
 
 require (
+	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20231114133200-3e310e6f2f5d
 	github.com/fairwindsops/polaris v0.0.0-20231102194751-391b802d4d17
 	github.com/samber/lo v1.39.0
@@ -17,9 +19,7 @@ require (
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
-	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
-	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
