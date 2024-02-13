@@ -5,7 +5,7 @@ if [ "$(id -u)" != "0" ] ; then
 sudo_cmd="sudo"
 fi
 
-${sudo_cmd} apt-get update && ${sudo_cmd} apt-get install apt-transport-https ca-certificates -y
+${sudo_cmd} apk update && ${sudo_cmd} apk add ca-certificates
 ${sudo_cmd} update-ca-certificates
 
 echo 'export SLACK_DEFAULT_CHANNEL=CPYBX810T' >> ${BASH_ENV}
