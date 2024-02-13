@@ -74,7 +74,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 
 	commitMessage := os.Getenv("COMMIT_MESSAGE")
 	if commitMessage == "" {
-		commitMessage, err = cmdExecutor(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message")
+		commitMessage, err = cmdExecutor(baseRepoPath, exec.Command("git", "log", "--pretty=format:%s", "-1"), "getting commit message UPDATED!!!!!")
 		if err != nil {
 			logrus.Warnf("Unable to get GIT commit message: %v", err)
 			gitCommandFail = true
