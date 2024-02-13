@@ -109,7 +109,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 			filesModified = append(filesModified, mf)
 		}
 	}
-	logrus.Infof("Files modified: %s", filesModified)
+	logrus.Infof("Files modified UPDATED!!!!: %s", filesModified)
 
 	origin := os.Getenv("ORIGIN_URL")
 	if origin == "" {
