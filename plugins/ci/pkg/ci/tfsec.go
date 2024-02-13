@@ -47,15 +47,6 @@ func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, errs error
 		logrus.Infof("there were no tfsec findings after processing %d paths\n", len(ci.config.Terraform.Paths))
 		return nil, allErrsCombined
 	}
-	items := []models.TFSecResult{}
-	for _, it := range reportProperties.Items {
-		item := it
-		if len(it.RuleID) == 0 {
-			item.RuleID = "custom-tfsec"
-		}
-		items = append(items, item)
-	}
-	reportProperties.Items = items
 	file, err := json.MarshalIndent(reportProperties, "", " ")
 	if err != nil {
 		return nil, fmt.Errorf("while encoding report output: %w", err)
@@ -103,9 +94,11 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	}
 	logrus.Infof("%d tfsec results for path %s", len(reportProperties.Items), terraformPath)
 	logrus.Debugf("Removing the base repository path %q from the file name of each tfsec result", ci.repoBaseFolder)
-	for i := range reportProperties.Items {
-		newFileName := reportProperties.Items[i].Location.FileName
-		if strings.HasPrefix(reportProperties.Items[i].Location.FileName, "terraform-aws-modules/") {
+	items := []models.TFSecResult{}
+	for _, item := range reportProperties.Items {
+		newFileName := item.Location.FileName
+		logrus.Info("newFilename=====", newFileName)
+		if strings.HasPrefix(item.Location.FileName, "terraform-aws-modules/") {
 			logrus.Debugf("preppending %q to filename %q because it refers to a Terraform module", terraformPath, newFileName)
 			newFileName = filepath.Join(terraformPath, newFileName)
 		}
@@ -116,12 +109,16 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		} else {
 			newFileName = strings.TrimPrefix(newFileName, absRepoBaseFolder+"/")
 		}
-		logrus.Debugf("updating filename %q to be relative to the repository: %q", reportProperties.Items[i].Location.FileName, newFileName)
-		reportProperties.Items[i].Location.FileName = newFileName
-		if len(reportProperties.Items[i].RuleID) == 0 {
-			reportProperties.Items[i].RuleID = "tfsec-custom-check"
+		logrus.Debugf("updating filename %q to be relative to the repository: %q", item.Location.FileName, newFileName)
+		logrus.Info("FINAL newFilename=====", newFileName)
+		item.Location.FileName = newFileName
+		if len(item.RuleID) == 0 {
+			item.RuleID = "custom-tfsec"
+			logrus.Info("SETTINGS tfsec-custom-check=====")
 		}
+		items = append(items, item)
 	}
+	reportProperties.Items = items
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, reportProperties)
 	return reportProperties.Items, nil
 }
