@@ -14,6 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const CustomCheckRuleID = "custom-tfsec"
+
 func (ci *CIScan) TerraformEnabled() bool {
 	return *ci.config.Reports.TFSec.Enabled
 }
@@ -72,12 +74,10 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	if customChecks {
 		logrus.Info("Adding check validation")
 		configFile = "--config-file"
-		configFilePath = *ci.config.Reports.TFSec.CustomChecksFilePath
-		logrus.Info("configFile===", configFile)
-		logrus.Info("configFilePath===", configFilePath)
+		configFilePath = ci.repoBaseFolder + *ci.config.Reports.TFSec.CustomChecksFilePath
 	}
 	// The -s avoids tfsec exiting with an error value for scan warnings.
-	output, err := commands.ExecWithMessage(exec.Command("tfsec", "--config-file", ci.repoBaseFolder+"/custom/.tfsec/_tfchecks.yaml", "-s", "-f", "json", "-O", outputFile, ci.repoBaseFolder+"/"+terraformPath), "scanning Terraform in "+terraformPath)
+	output, err := commands.ExecWithMessage(exec.Command("tfsec", configFile, configFilePath, "-s", "-f", "json", "-O", outputFile, ci.repoBaseFolder+"/"+terraformPath), "scanning Terraform in "+terraformPath)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %s", err, output)
 	}
@@ -111,7 +111,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		logrus.Debugf("updating filename %q to be relative to the repository: %q", item.Location.FileName, newFileName)
 		item.Location.FileName = newFileName
 		if len(item.RuleID) == 0 {
-			item.RuleID = "custom-tfsec"
+			item.RuleID = CustomCheckRuleID
 		}
 		items = append(items, item)
 	}
