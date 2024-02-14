@@ -14,6 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const DefaultCustomCheckRuleID = "tfsec_custom_check"
+
 func (ci *CIScan) TerraformEnabled() bool {
 	return *ci.config.Reports.TFSec.Enabled
 }
@@ -66,8 +68,17 @@ func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, errs error
 func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResult, error) {
 	terraformPathAsFileName := strings.ReplaceAll(strings.TrimPrefix(terraformPath, ci.repoBaseFolder), "/", "_")
 	outputFile := filepath.Join(ci.config.Options.TempFolder, fmt.Sprintf("tfsec-output-%s", terraformPathAsFileName))
+	customChecks := ci.config.Reports.TFSec.CustomChecksDirectory != nil && *ci.config.Reports.TFSec.CustomChecksDirectory != ""
+	params := []string{}
+	if customChecks {
+		params = append(params, "--custom-check-dir", *ci.config.Reports.TFSec.CustomChecksDirectory)
+	}
 	// The -s avoids tfsec exiting with an error value for scan warnings.
-	output, err := commands.ExecWithMessage(exec.Command("tfsec", "-s", "-f", "json", "-O", outputFile, terraformPath), "scanning Terraform in "+terraformPath)
+
+	//configFile, configFilePath, "-s", "-f", "json", "-O", outputFile, terraformPath
+	params = append(params, "-s", "-f", "json", "-O", outputFile, terraformPath)
+	logrus.Info("tfsec ", params)
+	output, err := commands.ExecWithMessage(exec.Command("tfsec", params...), "scanning Terraform in "+terraformPath)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %s", err, output)
 	}
@@ -99,6 +110,12 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		}
 		logrus.Debugf("updating filename %q to be relative to the repository: %q", reportProperties.Items[i].Location.FileName, newFileName)
 		reportProperties.Items[i].Location.FileName = newFileName
+		if len(reportProperties.Items[i].RuleID) == 0 {
+			reportProperties.Items[i].RuleID = strings.TrimPrefix(reportProperties.Items[i].LongID, "custom-custom-")
+			if len(reportProperties.Items[i].RuleID) == 0 {
+				reportProperties.Items[i].RuleID = DefaultCustomCheckRuleID
+			}
+		}
 	}
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, reportProperties)
 	return reportProperties.Items, nil

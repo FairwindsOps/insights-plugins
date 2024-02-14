@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.4.0
+* Added tfsec custom checks
+
 ## 5.3.4
 * Fix image owners matching logic
 
