@@ -95,10 +95,9 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	}
 	logrus.Infof("%d tfsec results for path %s", len(reportProperties.Items), terraformPath)
 	logrus.Debugf("Removing the base repository path %q from the file name of each tfsec result", ci.repoBaseFolder)
-	items := []models.TFSecResult{}
-	for _, item := range reportProperties.Items {
-		newFileName := item.Location.FileName
-		if strings.HasPrefix(item.Location.FileName, "terraform-aws-modules/") {
+	for i := range reportProperties.Items {
+		newFileName := reportProperties.Items[i].Location.FileName
+		if strings.HasPrefix(reportProperties.Items[i].Location.FileName, "terraform-aws-modules/") {
 			logrus.Debugf("preppending %q to filename %q because it refers to a Terraform module", terraformPath, newFileName)
 			newFileName = filepath.Join(terraformPath, newFileName)
 		}
@@ -109,17 +108,15 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		} else {
 			newFileName = strings.TrimPrefix(newFileName, absRepoBaseFolder+"/")
 		}
-		logrus.Debugf("updating filename %q to be relative to the repository: %q", item.Location.FileName, newFileName)
-		item.Location.FileName = newFileName
-		if len(item.RuleID) == 0 {
-			item.RuleID = strings.TrimPrefix(item.LongID, "custom-custom-")
-			if len(item.RuleID) == 0 {
-				item.RuleID = DefaultCustomCheckRuleID
+		logrus.Debugf("updating filename %q to be relative to the repository: %q", reportProperties.Items[i].Location.FileName, newFileName)
+		reportProperties.Items[i].Location.FileName = newFileName
+		if len(reportProperties.Items[i].RuleID) == 0 {
+			reportProperties.Items[i].RuleID = strings.TrimPrefix(reportProperties.Items[i].LongID, "custom-custom-")
+			if len(reportProperties.Items[i].RuleID) == 0 {
+				reportProperties.Items[i].RuleID = DefaultCustomCheckRuleID
 			}
 		}
-		items = append(items, item)
 	}
-	reportProperties.Items = items
 	logrus.Debugf("tfsec output for %s: %#v", terraformPath, reportProperties)
 	return reportProperties.Items, nil
 }
