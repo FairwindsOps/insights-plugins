@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const DefaultCustomCheckRuleID = "custom-tfsec"
+const DefaultCustomCheckRuleID = "tfsec_custom_check"
 
 func (ci *CIScan) TerraformEnabled() bool {
 	return *ci.config.Reports.TFSec.Enabled
@@ -112,7 +112,7 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 		logrus.Debugf("updating filename %q to be relative to the repository: %q", item.Location.FileName, newFileName)
 		item.Location.FileName = newFileName
 		if len(item.RuleID) == 0 {
-			item.RuleID = item.LongID
+			item.RuleID = strings.TrimPrefix(item.LongID, "custom-custom-")
 			if len(item.RuleID) == 0 {
 				item.RuleID = DefaultCustomCheckRuleID
 			}
