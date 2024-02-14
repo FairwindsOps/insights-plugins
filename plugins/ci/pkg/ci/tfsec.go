@@ -69,15 +69,16 @@ func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResu
 	terraformPathAsFileName := strings.ReplaceAll(strings.TrimPrefix(terraformPath, ci.repoBaseFolder), "/", "_")
 	outputFile := filepath.Join(ci.config.Options.TempFolder, fmt.Sprintf("tfsec-output-%s", terraformPathAsFileName))
 	customChecks := ci.config.Reports.TFSec.CustomChecksFilePath != nil && *ci.config.Reports.TFSec.CustomChecksFilePath != ""
-	configFile := ""
-	configFilePath := ""
+	params := []string{}
 	if customChecks {
-		logrus.Info("Adding check validation")
-		configFile = "--config-file"
-		configFilePath = ci.repoBaseFolder + *ci.config.Reports.TFSec.CustomChecksFilePath
+		params = append(params, "--custom-check-dir", *ci.config.Reports.TFSec.CustomChecksFilePath)
 	}
 	// The -s avoids tfsec exiting with an error value for scan warnings.
-	output, err := commands.ExecWithMessage(exec.Command("tfsec", configFile, configFilePath, "-s", "-f", "json", "-O", outputFile, terraformPath), "scanning Terraform in "+terraformPath)
+
+	//configFile, configFilePath, "-s", "-f", "json", "-O", outputFile, terraformPath
+	params = append(params, "-s", "-f", "json", "-O", outputFile, terraformPath)
+	logrus.Info("tfsec ", params)
+	output, err := commands.ExecWithMessage(exec.Command("tfsec", params...), "scanning Terraform in "+terraformPath)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %s", err, output)
 	}
