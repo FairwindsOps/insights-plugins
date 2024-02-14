@@ -92,8 +92,8 @@ type reportConfig struct {
 }
 
 type tfSecConfig struct {
-	Enabled              *bool   `yaml:"enabled"`
-	CustomChecksFilePath *string `yaml:"customChecksFilePath"`
+	Enabled               *bool   `yaml:"enabled"`
+	CustomChecksDirectory *string `yaml:"customChecksDirectory"`
 }
 
 type trivyConfig struct {

@@ -68,10 +68,10 @@ func (ci *CIScan) ProcessTerraformPaths() (report *models.ReportInfo, errs error
 func (ci *CIScan) ProcessTerraformPath(terraformPath string) ([]models.TFSecResult, error) {
 	terraformPathAsFileName := strings.ReplaceAll(strings.TrimPrefix(terraformPath, ci.repoBaseFolder), "/", "_")
 	outputFile := filepath.Join(ci.config.Options.TempFolder, fmt.Sprintf("tfsec-output-%s", terraformPathAsFileName))
-	customChecks := ci.config.Reports.TFSec.CustomChecksFilePath != nil && *ci.config.Reports.TFSec.CustomChecksFilePath != ""
+	customChecks := ci.config.Reports.TFSec.CustomChecksDirectory != nil && *ci.config.Reports.TFSec.CustomChecksDirectory != ""
 	params := []string{}
 	if customChecks {
-		params = append(params, "--custom-check-dir", *ci.config.Reports.TFSec.CustomChecksFilePath)
+		params = append(params, "--custom-check-dir", *ci.config.Reports.TFSec.CustomChecksDirectory)
 	}
 	// The -s avoids tfsec exiting with an error value for scan warnings.
 
