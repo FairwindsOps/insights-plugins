@@ -8,8 +8,8 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.25.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/securityhub v1.46.1 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.24.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/securityhub v1.29.1 // indirect
 	github.com/aws/smithy-go v1.20.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/golang/glog v1.2.0 // indirect
