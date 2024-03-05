@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/kube-bench
 
-go 1.21
+go 1.22
 
 require (
 	github.com/aquasecurity/kube-bench v0.6.11
