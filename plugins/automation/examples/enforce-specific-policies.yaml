@@ -1,40 +1,49 @@
-name: "Enforce specific policies and manage exceptions for Admission Controller"
-description: "Enforce specific policies at the time of admission, including exception management via annotation"
+name: "enforce-specific-policies"
+description: "Enforce specific policies at the time of admission, including exception management"
 context: "AdmissionController"
 reportType: ""
 cluster: ""
 repository: ""
 action: |
-  //READ ME: Configure the policies to enforce
-  //To do this, enter the eventType found under the Policies page into the policiesToEnforce array below
+  //READ ME: Follow the steps below to configure which policies to enforce
+
+  //STEP 1: Identify your baseline policies that apply to all clusters. Enter the eventType found under the Policies page into the policiesToEnforce array below
   policiesToEnforce = ["memoryRequestsMissing", "cpuRequestsMissing"];
+
+  //STEP 2 (optional): Enter the specific namespaces you'd like to globally exempt from Admission Controller
+  exemptNamespaces = ["insights-agent", "fairwinds-insights"];
 
 
   //--------------------------------------------
   //Enforcement Logic - Modify at your own risk!
   //--------------------------------------------
 
-  //Step 1: Make an enforcement decision for the Admission Controller. 
+  //Enforcement Stage 1: Make an enforcement decision for the Admission Controller. 
   //If the Action Item matches a policy to enforce, then increase the severity to Critical.
   if (policiesToEnforce.length > 0) {
-    if (policiesToEnforce.indexOf(ActionItem.EventType) !== -1) {
+      if (policiesToEnforce.indexOf(ActionItem.EventType) !== -1) {
 
-        //Enforce the policy specified in the policiesToEnforce object
-        ActionItem.Severity = CRITICAL_SEVERITY;
-    }else{
+          //Enforce the policy specified in the policiesToEnforce object
+          ActionItem.Severity = CRITICAL_SEVERITY;
+      }else{
 
-        //Since this EventType isn't in our policy to enforce list, then lower severity
-        ActionItem.Severity = LOW_SEVERITY;
-        ActionItem.Resolution = WORKING_AS_INTENDED_RESOLUTION;
-    }
+          //Since this EventType isn't in our policy to enforce list, then lower severity
+          ActionItem.Severity = LOW_SEVERITY;
+      }
   }else{
     //Since this EventType isn't in our policy to enforce list, then lower severity
     ActionItem.Severity = LOW_SEVERITY;
-    ActionItem.Resolution = WORKING_AS_INTENDED_RESOLUTION;
   }
 
-  //Step 2: Deterine if the deployment should bypass the  Admission Controller.
-  //Admission Controller will grant an exception if a YAML annotation like this exists: insights.fairwinds.com/ignore: "memoryRequestsMissing"
+  //Enforcement Stage 2: Deterine if the deployment should bypass the Admission Controller.
+
+  //Check if the Action Item's namespace is within the exemptNamespaces array
+  if(exemptNamespaces.indexOf(ActionItem.ResourceNamespace) !== -1) {
+      //Reduce severity and resolve this ActionItem so it can bypass the Admission Controller
+      ActionItem.Severity = LOW_SEVERITY;
+  }
+
+  //Admission Controller will grant exceptions for specific Action Items if a YAML annotation like this exists: insights.fairwinds.com/ignore: "memoryRequestsMissing,cpuRequestsMissing"
   policyException = ActionItem.ResourceAnnotations["insights.fairwinds.com/ignore"];
   if (policyException) {
     exceptions = policyException.split(",");
@@ -42,6 +51,13 @@ action: |
     if (exceptions.indexOf(ActionItem.EventType) !== -1) {
         //Reduce severity and resolve this ActionItem so it can bypass the Admission Controller
         ActionItem.Severity = LOW_SEVERITY;
-        ActionItem.Resolution = WORKING_AS_INTENDED_RESOLUTION;
     }
+  }
+
+  //Admission Controller will grant exception for ALL Action Items if a YAML annotation like this exists: insights.fairwinds.com/ignoreAll: "true"
+  policyExceptionIgnoreAll = ActionItem.ResourceAnnotations["insights.fairwinds.com/ignoreAll"];
+  if (policyExceptionIgnoreAll) {
+    
+      //Reduce severity and resolve this ActionItem so it can bypass the Admission Controller
+      ActionItem.Severity = LOW_SEVERITY;
   }
