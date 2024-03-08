@@ -11,6 +11,7 @@ type TFSecResult struct {
 	Resolution      string              `json:"resolution"`
 	Resource        string              `json:"resource"` // TF resource E.G. aws_instance.bastion
 	Location        TFSecResultLocation `json:"location"`
+	LongID          string              `json:"long_id"`
 }
 
 // TFSecResultLocation contains the file name and line numbers where an issue
