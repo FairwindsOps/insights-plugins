@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.3
+* update dependencies
+
 ## 2.4.2
 * Adding an OPA policy to detect GKE clusterrolebinding/rolebindings with disallowed default principals
 
