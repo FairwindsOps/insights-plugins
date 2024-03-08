@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.1
+* update dependencies
+
 ## 1.14.0
 ### update polaris to 8.5.4. More info Below:
 

@@ -67,7 +67,11 @@ func CreateKubeClientResources() KubeClientResources {
 	if err != nil {
 		glog.Fatalf("Error creating dynamic kubernetes client: %v", err)
 	}
-	RESTMapper, err := apiutil.NewDynamicRESTMapper(config)
+	httpClient, err := rest.HTTPClientFor(config)
+	if err != nil {
+		glog.Fatal("error creating httpClient using kubeconfig: %s", err.Error())
+	}
+	RESTMapper, err := apiutil.NewDynamicRESTMapper(config, httpClient)
 	if err != nil {
 		glog.Fatalf("Error creating REST Mapper: %v", err)
 	}

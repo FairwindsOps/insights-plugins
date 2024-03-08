@@ -210,7 +210,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		for _, pod := range workload.Pods {
 			podKey := fmt.Sprintf("%s/%s", pod.GetNamespace(), pod.GetName())
 			workloadMap[podKey] = &workloads[idx]
-			podSpec, err := controller.GetPodSpec(pod.UnstructuredContent())
+			_, podSpec, err := controller.GetPodMetadataAndSpec(pod.UnstructuredContent())
 			if err != nil {
 				logrus.Warnf("cannot convert unstructured pod %s into PodSpec to process its volumes: %v", podKey, err)
 				continue
