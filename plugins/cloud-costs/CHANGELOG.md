@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.10
+* Fixed AWS file name
+
 ## 0.1.9
 * Tag prefix bug fix
 
