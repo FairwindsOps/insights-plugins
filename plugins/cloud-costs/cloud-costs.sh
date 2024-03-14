@@ -153,10 +153,10 @@ if  [[ "$provider" = "aws" ]]; then
   fi
   done
 
-  aws athena get-query-results --query-execution-id $executionId > /output/cloud-costs-tmp.json
-  mv /output/cloud-costs-tmp.json /output/cloud-costs.json
+  aws athena get-query-results --query-execution-id $executionId > /output/cloudcosts-tmp.json
+  mv /output/cloudcosts-tmp.json /output/cloudcosts.json
 
-  echo "Saved aws costs file in /output/cloud-costs.json"
+  echo "Saved aws costs file in /output/cloudcosts.json"
   exit 0
 fi
 if [[ "$provider" == "gcp" ]]; then
