@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
-images=(quay.io/fairwinds/polaris:7.4 quay.io/fairwinds/nova:v3.6 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.16 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.8)
+images=(quay.io/fairwinds/polaris:9.0 quay.io/fairwinds/nova:v3.8 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.19 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.11)
 have_vulns=()
 
 for d in ./plugins/*/ ; do
