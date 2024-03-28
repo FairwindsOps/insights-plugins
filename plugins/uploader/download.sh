@@ -1,11 +1,6 @@
 #!/bin/sh
 set -e
-set -x
 
-if [ -z "$DEBUG" ]
-then
-    set +x
-fi
 usage()
 {
 cat << EOF
@@ -56,7 +51,6 @@ while [ ! $# -eq 0 ]; do
     shift
 done
 
-set +x
 if [[ -z $FAIRWINDS_TOKEN || -z $host || -z $organization || -z $cluster || -z $datatype || -z $file ]]; then
   usage
   exit 1
