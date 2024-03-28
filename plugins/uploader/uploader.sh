@@ -1,11 +1,6 @@
 #!/bin/sh
 set -e
-set -x
 
-if [ -z "$DEBUG" ]
-then
-    set +x
-fi
 usage()
 {
 cat << EOF
@@ -84,7 +79,6 @@ do
         # Get logs for container that's not insights-uploader and upload
         # data-binary to preserve newline characters.
         if [ "$SEND_FAILURES" = "true" ]; then
-            set +x
             kubectl logs $POD_NAME -c $(kubectl get pod $POD_NAME -o jsonpath="{.spec.containers[?(@.name != 'insights-uploader')].name}") | \
             curl -X POST $url \
                 -L \
@@ -96,17 +90,12 @@ do
                 -H "X-Fairwinds-Agent-Chart-Version: $FAIRWINDS_AGENT_CHART_VERSION" \
                 $CURL_EXTRA_ARGS \
                 --fail
-            if [ -n "$DEBUG" ]
-            then
-                set -x
-            fi
         fi
         exit 1
     fi
   fi
   if [ -f $file ]; then
     url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype
-    set +x
     curl -X POST $url \
       -L \
       -d @$file \
@@ -117,7 +106,6 @@ do
       -H "X-Fairwinds-Agent-Chart-Version: $FAIRWINDS_AGENT_CHART_VERSION" \
       $CURL_EXTRA_ARGS \
       --fail
-    set -x
     exit 0
   fi
   sleep 1
