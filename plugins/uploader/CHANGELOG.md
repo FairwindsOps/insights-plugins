@@ -1,4 +1,6 @@
 # Changelog
+## 0.6.0
+* Add option to remove `set +/-x` from uploader and downloader
 
 ## 0.5.3
 * Bump kubectl to 1.29.0
