@@ -97,6 +97,7 @@ do
   fi
   if [ -f $file ]; then
     url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype
+    echo "about to curl $url"
     curl -X POST $url \
       -L \
       -d @$file \
