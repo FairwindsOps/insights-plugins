@@ -51,3 +51,8 @@ type CombinedRequest struct {
 	networkReceive  []model.SamplePair
 	storageCapacity []model.SamplePair
 }
+
+type NodesMetrics struct {
+	idleCPU    model.SampleValue
+	idleMemory model.SampleValue
+}

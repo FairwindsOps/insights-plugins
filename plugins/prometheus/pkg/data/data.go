@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-const urlFormat = "%s/v0/organizations/%s/clusters/%s/data/metrics"
 const minutesToCalculateNetworkIncrease = 5
 
 // GetClient returns a Prometheus API client for a given address
@@ -90,6 +89,28 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 		}
 	}
 	return
+}
+
+func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API) (*NodesMetrics, error) {
+	r := getRange()
+	idleCPU, err := getNodesIdleCPU(ctx, api, r)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("Found %d metrics for idle CPU", len(idleCPU))
+	idleMemory, err := getNodesIdleMemory(ctx, api, r)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("Found %d metrics for idle CPU", len(idleMemory))
+	response := &NodesMetrics{}
+	if len(idleCPU) > 0 {
+		response.idleCPU = idleCPU[0].Values[0].Value
+	}
+	if len(idleMemory) > 0 {
+		response.idleMemory = idleMemory[0].Values[0].Value
+	}
+	return response, nil
 }
 
 // GetMetrics returns the memory/cpu and requests for each container running in the cluster.

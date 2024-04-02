@@ -133,6 +133,24 @@ func get30sIncreaseMetric(ctx context.Context, api prometheusV1.API, r prometheu
 	return adjusted, nil
 }
 
+func getNodesIdleMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
+	query := `100 * ((SUM(avg_over_time(node_memory_MemFree_bytes[10m]) + avg_over_time(node_memory_Cached_bytes[10m]) + avg_over_time(node_memory_Buffers_bytes[10m])) / SUM(avg_over_time(node_memory_MemTotal_bytes[10m]))))`
+	values, err := queryPrometheus(ctx, api, r, query)
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values, nil
+}
+
+func getNodesIdleCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range) (model.Matrix, error) {
+	query := `avg(rate(node_cpu_seconds_total{mode="idle"}[10m])) * 100`
+	values, err := queryPrometheus(ctx, api, r, query)
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values, nil
+}
+
 func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, query string) (model.Matrix, error) {
 	if query == "" {
 		return model.Matrix{}, fmt.Errorf("query cannot be empty")
