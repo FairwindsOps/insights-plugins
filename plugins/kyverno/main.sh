@@ -5,7 +5,7 @@
 set -e
 trap 'echo "Error on Line: $LINENO"' ERR
 echo "Starting kyverno"
-results_file=./kyverno.json
+results_file=/output/kyverno.json
 report_file=/tmp/report.json
 list_file=/tmp/results.json
 echo '{"policyReports":[], "clusterPolicyReports":[]}' > $list_file
@@ -30,6 +30,8 @@ declare -a policy_descriptions
 reports=$(kubectl get policyreport,clusterpolicyreport --all-namespaces)
 if [[ -z "$reports" ]]; then
 	echo "no policyreport,clusterpolicyreport found in cluster. quitting..."
+  cat $list_file | jq > $results_file
+  rm $list_file
 	exit 0
 fi
 
