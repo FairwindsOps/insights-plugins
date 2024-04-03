@@ -53,6 +53,6 @@ type CombinedRequest struct {
 }
 
 type NodesMetrics struct {
-	idleCPU    model.SampleValue
-	idleMemory model.SampleValue
+	IdleCPU    model.SampleValue `json:"IdleCPU,omitempty" yaml:"IdleCPU,omitempty"`
+	IdleMemory model.SampleValue `json:"IdleMemory,omitempty" yaml:"IdleMemory,omitempty"`
 }

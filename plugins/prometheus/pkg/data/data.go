@@ -102,13 +102,13 @@ func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restM
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("Found %d metrics for idle CPU", len(idleMemory))
+	logrus.Infof("Found %d metrics for idle Memory", len(idleMemory))
 	response := &NodesMetrics{}
 	if len(idleCPU) > 0 {
-		response.idleCPU = idleCPU[0].Values[0].Value
+		response.IdleCPU = idleCPU[0].Values[0].Value
 	}
 	if len(idleMemory) > 0 {
-		response.idleMemory = idleMemory[0].Values[0].Value
+		response.IdleMemory = idleMemory[0].Values[0].Value
 	}
 	return response, nil
 }
