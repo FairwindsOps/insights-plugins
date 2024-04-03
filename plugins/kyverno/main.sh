@@ -43,6 +43,7 @@ for namespace in "${namespaces[@]}"; do
 	echo "found $count policyreport,clusterpolicyreport for namespace $namespace"
 done
 
+echo "" > $report_file
 # retrieve all policyreports in all namespaces, only include those with nonzero numbers of:
 # 'fail', 'warn', or 'error'
 reports=$(kubectl get policyreport,clusterpolicyreport -A -ojson | jq '.items | map(select(.summary.fail > 0 or .summary.warn > 0 or .summary.error > 0))')
