@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.0
+* Accomodate the change in Kyverno report aggregation in v1.11+ (https://github.com/kyverno/kyverno/pull/8426)
+
 ## 0.1.5
 * Bump kubectl to 1.29.0
 
