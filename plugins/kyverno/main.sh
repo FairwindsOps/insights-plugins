@@ -75,8 +75,8 @@ echo "$reports" | jq -c '.[]' | while read -r r; do
       jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
     fi
 
-    # append the modified policyreport to the output file
-    if [[ "$kind" == "PolicyReport" ]]; then
+  # append the modified policyreport to the output file
+  if [[ "$kind" == "PolicyReport" ]]; then
     	jq --slurpfile report_json "$report_file" '.policyReports += $report_json' < $list_file | sponge $list_file
 	fi
 
