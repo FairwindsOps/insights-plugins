@@ -20,7 +20,7 @@ kubectl get crd "$KIND"s.wgpolicyk8s.io >/dev/null || exit 1
 
 echo "Retrieving "
 namespaces=$(kubectl get namespaces -o name | sed 's/namespace\///g')
-IFS=$'\n' namespaces=($namespaces)
+IFS=$'\n' namespaces=("$namespaces")
 
 declare -a policies
 declare -a policy_titles
@@ -37,9 +37,9 @@ fi
 
 # get policyreport totals for diagnostics
 for namespace in "${namespaces[@]}"; do
-	reports=$(kubectl get policyreport,clusterpolicyreport -n $namespace -o name)
-	IFS=$'\n' reports=($reports)
-	count=${#reports[@]}
+	reports_for_count=$(kubectl get policyreport,clusterpolicyreport -n "$namespace" -o name)
+	IFS=$'\n' reports_for_count=("$reports_for_count")
+	count=${#reports_for_count[@]}
 	echo "found $count policyreport,clusterpolicyreport for namespace $namespace"
 done
 
@@ -47,26 +47,26 @@ echo "" > $report_file
 # retrieve all policyreports in all namespaces, only include those with nonzero numbers of:
 # 'fail', 'warn', or 'error'
 reports=$(kubectl get policyreport,clusterpolicyreport -A -ojson | jq '.items | map(select(.summary.fail > 0 or .summary.warn > 0 or .summary.error > 0))')
-echo $reports | jq -c '.[]' | while read r; do
+echo "$reports" | jq -c '.[]' | while read -r r; do
 	# remove 'pass' or 'skip' results from the report, these are not needed for generating
 	# Insights action items, write to the report file
-	echo $r | jq '. | del( ."results"[]? | select(."result" == "pass" or ."result" == "skip") )'  > $report_file
+	echo "$r" | jq '. | del( ."results"[]? | select(."result" == "pass" or ."result" == "skip") )'  > $report_file
 	policy_name=$(cat $report_file | jq -r '.results[0]?.policy')
 	namespace=$(cat $report_file | jq -r '.metadata.namespace')
 	kind=$(cat $report_file | jq -r '.kind')
 
 	# use lookup table to minimize control plane load
-    if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ "${policy_name}") ]]; then
+    if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ ${policy_name}) ]]; then
       # determine if report refers to a policy or a clusterpolicy
       policy_type="clusterpolicy"
-      kubectl get $policy_type $policy_name >/dev/null || policy_type="policy"
+      kubectl get $policy_type "$policy_name" >/dev/null || policy_type="policy"
       # retrieve necessary metadata from the associated policy
-      policy_title=$(kubectl -n $namespace get $policy_type $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
-      policy_description=$(kubectl -n $namespace get $policy_type $policy_name -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
+      policy_title=$(kubectl -n "$namespace" get "$policy_type" "$policy_name" -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
+      policy_description=$(kubectl -n "$namespace" get "$policy_type" "$policy_name" -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
       # populate the policy title and name
       jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
 
-      policies+=($policy_name)
+      policies+=("$policy_name")
       policy_titles["$policy_name"]=$policy_title
       policy_descriptions["$policy_name"]=$policy_description
     else
