@@ -56,24 +56,24 @@ echo "$reports" | jq -c '.[]' | while read -r r; do
 	kind=$(cat $report_file | jq -r '.kind')
 
 	# use lookup table to minimize control plane load
-    if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ ${policy_name}) ]]; then
-      # determine if report refers to a policy or a clusterpolicy
-      policy_type="clusterpolicy"
-      kubectl get $policy_type "$policy_name" >/dev/null || policy_type="policy"
-      # retrieve necessary metadata from the associated policy
-      policy_title=$(kubectl -n "$namespace" get "$policy_type" "$policy_name" -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
-      policy_description=$(kubectl -n "$namespace" get "$policy_type" "$policy_name" -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
-      # populate the policy title and name
-      jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
+  if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ ${policy_name}) ]]; then
+    # determine if report refers to a policy or a clusterpolicy
+    policy_type="clusterpolicy"
+    kubectl get $policy_type "$policy_name" >/dev/null || policy_type="policy"
+    # retrieve necessary metadata from the associated policy
+    policy_title=$(kubectl -n "$namespace" get "$policy_type" "$policy_name" -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/title}")
+    policy_description=$(kubectl -n "$namespace" get "$policy_type" "$policy_name" -o=jsonpath="{.metadata.annotations.policies\.kyverno\.io\/description}")
+    # populate the policy title and name
+    jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
 
-      policies+=("$policy_name")
-      policy_titles["$policy_name"]=$policy_title
-      policy_descriptions["$policy_name"]=$policy_description
-    else
-      policy_title=${policy_titles[$policy_name]}
-      policy_description=${policy_descriptions[$policy_name]}
-      jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
-    fi
+    policies+=("$policy_name")
+    policy_titles["$policy_name"]=$policy_title
+    policy_descriptions["$policy_name"]=$policy_description
+  else
+    policy_title=${policy_titles[$policy_name]}
+    policy_description=${policy_descriptions[$policy_name]}
+    jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
+  fi
 
   # append the modified policyreport to the output file
   if [[ "$kind" == "PolicyReport" ]]; then
