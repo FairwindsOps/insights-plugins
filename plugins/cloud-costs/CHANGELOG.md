@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.11
+## 0.2.0
 * Added partition column to GCP big query
 
 ## 0.1.10
