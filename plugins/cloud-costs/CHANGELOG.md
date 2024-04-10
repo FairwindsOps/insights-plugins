@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.11
+* Added partition column to GCP big query
+
 ## 0.1.10
 * Fixed AWS file name
 
