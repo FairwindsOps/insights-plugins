@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.5.3
+* Changed curl option to --data-binary to support big files
+
+## 0.5.3
 * Bump kubectl to 1.29.0
 
 ## 0.5.2
