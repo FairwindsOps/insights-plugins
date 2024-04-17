@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+* Reduced number of columns in BigQuery
+
+## 0.2.0
+* Added partition column to GCP big query
+
 ## 0.1.10
 * Fixed AWS file name
 
