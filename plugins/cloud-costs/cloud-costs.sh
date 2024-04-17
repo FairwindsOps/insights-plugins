@@ -176,7 +176,7 @@ if [[ "$provider" == "gcp" ]]; then
 
   echo "Google bigquey is running......"
 
-  sql="SELECT main.* FROM \`$table\` AS main LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) >= '$initial_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) <= '$final_date_time' order by usage_start_time desc"
+  sql="SELECT main.cost, main.cost_at_list, main.cost_type, main.service, main.usage_start_time, main.usage_end_time, main.usage, main.sku, main.system_labels FROM \`$table\` AS main, UNNEST(main.system_labels) LEFT JOIN UNNEST(labels) as labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) >= '$initial_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) <= '$final_date_time' order by usage_start_time desc"
   bq --format=prettyjson query --max_rows=10000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json
   echo "Google bigquey finished......"
 
