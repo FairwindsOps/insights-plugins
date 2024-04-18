@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.3
+* GCP BigQuery aggregation bug fix
+
 ## 0.2.2
 * Added aggregation to GCP BigQuery
 
