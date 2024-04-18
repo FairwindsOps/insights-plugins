@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+* Added aggregation to GCP BigQuery
+
 ## 0.2.1
 * Reduced number of columns in BigQuery
 
