@@ -109,7 +109,7 @@ do
     set +x
     curl -X POST $url \
       -L \
-      -d @$file \
+      --data-binary @$file \
       -H "Authorization: Bearer ${FAIRWINDS_TOKEN//[$'\t\r\n']}" \
       -H "Content-Type: application/json" \
       -H "X-Fairwinds-Agent-Version: `cat version.txt`" \
