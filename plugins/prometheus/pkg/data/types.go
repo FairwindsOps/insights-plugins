@@ -51,3 +51,8 @@ type CombinedRequest struct {
 	networkReceive  []model.SamplePair
 	storageCapacity []model.SamplePair
 }
+
+type NodesMetrics struct {
+	IdleCPU    model.SampleValue `json:"IdleCPU,omitempty" yaml:"IdleCPU,omitempty"`
+	IdleMemory model.SampleValue `json:"IdleMemory,omitempty" yaml:"IdleMemory,omitempty"`
+}
