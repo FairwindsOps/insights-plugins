@@ -51,7 +51,15 @@ func main() {
 	}
 	logrus.Infof("Got %d metrics", len(res))
 	stats := data.CalculateStatistics(res)
-	data, err := json.Marshal(map[string]interface{}{"Values": stats})
+
+	nodesMetrics, err := data.GetNodesMetrics(context.Background(), dynamic, restMapper, client)
+	if err != nil {
+		panic(err)
+	}
+	data, err := json.Marshal(map[string]interface{}{
+		"Values": stats,
+		"Nodes":  nodesMetrics,
+	})
 	if err != nil {
 		panic(err)
 	}
