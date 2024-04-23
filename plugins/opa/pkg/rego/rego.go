@@ -9,6 +9,7 @@ import (
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
+	"github.com/open-policy-agent/opa/topdown"
 	"github.com/open-policy-agent/opa/types"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
