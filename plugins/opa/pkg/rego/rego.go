@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/open-policy-agent/opa/ast"
@@ -35,6 +36,8 @@ func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]int
 
 func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo *InsightsInfo) *rego.Rego {
 	return rego.New(
+		rego.EnablePrintStatements(true),
+		rego.PrintHook(topdown.NewPrintHook(os.Stdout)),
 		rego.Query("results = data"),
 		rego.Module("fairwinds", body),
 		rego.Function2(
