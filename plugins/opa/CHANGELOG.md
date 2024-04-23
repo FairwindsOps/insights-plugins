@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.4
+* Add support for `print` statements
+
 ## 2.4.3
 * update dependencies
 
