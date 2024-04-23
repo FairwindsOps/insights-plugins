@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.1
+* update dependencies
+
 ## 1.4.0
 * Added CPU and Memory idle data
 

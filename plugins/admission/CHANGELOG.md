@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.14.2
+* update dependencies
+
 ## 1.14.1
 * update dependencies
 
