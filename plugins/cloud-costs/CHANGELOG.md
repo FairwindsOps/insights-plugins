@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.5
+* Bumped cloud cli version to 473.0.0
+
 ## 0.2.4
 * GCP BigQuery labels bug fix
 
