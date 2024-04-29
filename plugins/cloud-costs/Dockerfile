@@ -2,8 +2,6 @@ FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:473.0.0
 
 RUN apt-get update && \
     apt-get install -y \
-        groff \
-        less \
         jq \
         unzip \
     && apt-get clean 
