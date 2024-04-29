@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.4.6
+## 5.5.0
 * update dependencies
 
 ## 5.4.5
