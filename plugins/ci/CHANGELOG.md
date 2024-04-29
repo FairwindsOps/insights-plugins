@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.5.0
+* update fsec and trivy version
+
 ## 5.4.5
 * update dependencies
 
