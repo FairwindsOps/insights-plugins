@@ -1,4 +1,4 @@
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:455.0.0
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:473.0.0
 
 RUN apt-get update && \
     apt-get install -y \
