@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.17
+* update dependencies
+
 ## 1.3.16
 * update dependencies
 

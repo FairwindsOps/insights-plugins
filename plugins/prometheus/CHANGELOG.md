@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.4
+* update dependencies
+
 ## 1.4.3
 * update dependencies
 
