@@ -1,7 +1,7 @@
 FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:473.0.0
 
-RUN apt-get update -qqy && \
-    apt-get -qqy install -y \
+RUN apt-get update && \
+    apt-get install -y \
         python3 \
         python3-pip \
         python3-setuptools \
