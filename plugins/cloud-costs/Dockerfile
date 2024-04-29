@@ -7,6 +7,10 @@ RUN apt-get update && \
         jq \
     && apt-get clean
 
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip ./aws
 
 COPY cloud-costs.sh cloud-costs.sh
 
