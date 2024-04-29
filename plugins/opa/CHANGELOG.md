@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.6
+* update dependencies
+
 ## 2.4.5
 * update dependencies
 
