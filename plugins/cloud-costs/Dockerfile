@@ -13,6 +13,8 @@ RUN apt-get update && \
 
 RUN pip3 --no-cache-dir install --upgrade awscli
 
+RUN apt-get remove -y python3-pip python3-setuptools python3
+
 COPY cloud-costs.sh cloud-costs.sh
 
 CMD ["cloud-costs.sh"]
