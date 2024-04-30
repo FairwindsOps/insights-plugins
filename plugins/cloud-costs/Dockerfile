@@ -13,6 +13,9 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     ./aws/install && \
     rm -rf awscliv2.zip ./aws
 
+# install python
+RUN apk add python3 py3-pip
+
 # install google-cloud-cli using curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-360.0.0-linux-x86_64.tar.gz
 RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-360.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-360.0.0-linux-x86_64.tar.gz" && \
     tar -xvf google-cloud-sdk-360.0.0-linux-x86_64.tar.gz && \
