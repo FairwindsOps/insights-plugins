@@ -15,15 +15,12 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 
 RUN apk add python3=3.11.9-r0 py3-pip
 
-# install python collections
-#RUN pip install boto3
-
 # install google-cloud-cli using curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-360.0.0-linux-x86_64.tar.gz
-RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-360.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-360.0.0-linux-x86_64.tar.gz" && \
-    tar -xvf google-cloud-sdk-360.0.0-linux-x86_64.tar.gz && \
+RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-373.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-373.0.0-linux-x86_64.tar.gz" && \
+    tar -xvf google-cloud-sdk-373.0.0-linux-x86_64.tar.gz && \
     ./google-cloud-sdk/install.sh && \
     rm -rf google-cloud-sdk-360.0.0-linux-x86_64.tar.gz ./google-cloud-sdk
 
-#COPY cloud-costs.sh cloud-costs.sh
+COPY cloud-costs.sh cloud-costs.sh
 
-#CMD ["cloud-costs.sh"]
+CMD ["cloud-costs.sh"]
