@@ -1,9 +1,9 @@
 FROM alpine:3.19
 
-ARG TARGETARCH
-ARG TARGETOS
+ARG TARGETARCH=amd64
+ARG TARGETOS=linux
 
-ENV awsArch=""
+ENV awsArch="-aarch64"
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
@@ -12,21 +12,19 @@ RUN apk add unzip
 
 RUN apk add python3
 
-RUN if [ "${TARGETARCH}" = "amd64" ] ; then awsArch="aarch64"; else awsArch="${TARGETARCH}"; fi && \
-    curl https://awscli.amazonaws.com/awscli-exe-${TARGETOS}_${awsArch}.zip > awscliv2.zip && \
+RUN if [ "${TARGETARCH}" = "amd64" ] ; then awsArch="-aarch64"; else awsArch="_${TARGETARCH}"; fi && \
+    curl https://awscli.amazonaws.com/awscli-exe-${TARGETOS}${awsArch}.zip > awscliv2.zip && \
     unzip awscliv2.zip && \
     ./aws/install && \
     rm -rf awscliv2.zip ./aws
 
-RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz > google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz && \
-    tar -xvf google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz && \
+    RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-400.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-400.0.0-linux-x86_64.tar.gz" && \
+    tar -xvf google-cloud-sdk-400.0.0-linux-x86_64.tar.gz && \
     ./google-cloud-sdk/install.sh && \
-    rm -rf google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz 
+    rm -rf google-cloud-sdk-400.0.0-linux-x86_64.tar.gz
 
 RUN ./google-cloud-sdk/bin/gcloud components install bq
 
-RUN bq --help
+COPY cloud-costs.sh cloud-costs.sh
 
-#COPY cloud-costs.sh cloud-costs.sh
-
-#CMD ["cloud-costs.sh"]
+CMD ["cloud-costs.sh"]
