@@ -4,7 +4,7 @@ ARG TARGETOS
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
-RUN apk add jq bash curl moreutils
+RUN apk add jq bash curl moreutils coreutils
 RUN apk add unzip
 
 # install awscli using curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
