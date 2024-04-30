@@ -18,7 +18,7 @@ RUN if [ "${TARGETARCH}" = "amd64" ] ; then awsArch="aarch64"; else awsArch="${T
     ./aws/install && \
     rm -rf awscliv2.zip ./aws
 
-RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz -o "google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz" && \
+RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz > google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz && \
     tar -xvf google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz && \
     ./google-cloud-sdk/install.sh && \
     rm -rf google-cloud-sdk-400.0.0-${TARGETOS}_${TARGETARCH}.tar.gz 
