@@ -19,9 +19,8 @@ RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-clou
     tar -xvf google-cloud-sdk-373.0.0-linux-x86_64.tar.gz && \
     ./google-cloud-sdk/install.sh && \
     ./google-cloud-sdk/bin/gcloud components install bq && \
-    ln -s /google-cloud-sdk/bin/bq ./bq && \
+    cp /google-cloud-sdk/bin/bq ./bq && \
     rm -rf google-cloud-sdk-373.0.0-linux-x86_64.tar.gz ./google-cloud-sdk
-
 
 COPY cloud-costs.sh cloud-costs.sh
 
