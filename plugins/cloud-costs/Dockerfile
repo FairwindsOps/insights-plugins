@@ -2,6 +2,7 @@ FROM alpine:3.19
 
 ARG TARGETARCH
 ARG TARGETOS
+ARG awsArch
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
@@ -10,7 +11,8 @@ RUN apk add unzip
 
 RUN apk add python3
 
-RUN curl "https://awscli.amazonaws.com/awscli-exe-${TARGETOS}_${TARGETARCH}.zip" -o "awscliv2.zip" && \
+RUN if [ "${TARGETARCH}" = "amd64" ] ; then awsArch="aarch64"; else trivyArch="${TARGETARCH}"; fi && \
+RUN curl "https://awscli.amazonaws.com/awscli-exe-${TARGETOS}_${awsArch}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install && \
     rm -rf awscliv2.zip ./aws
