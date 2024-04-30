@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1
+* Replaced cloud costs image
+
 ## 0.3.0
 * Bumped cloud cli version to 473.0.0
 
