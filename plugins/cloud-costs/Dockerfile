@@ -1,6 +1,4 @@
 FROM alpine:3.19
-ARG TARGETARCH
-ARG TARGETOS
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
