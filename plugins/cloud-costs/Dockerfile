@@ -1,5 +1,8 @@
 FROM alpine:3.19
 
+ARG TARGETARCH
+ARG TARGETOS
+
 RUN apk -U upgrade
 RUN apk update && apk upgrade
 RUN apk add jq bash curl moreutils coreutils
@@ -7,7 +10,7 @@ RUN apk add unzip
 
 RUN apk add python3
 
-RUN curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip > awscliv2.zip && \
+RUN curl https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip > awscliv2.zip && \
     unzip awscliv2.zip && \
     ./aws/install -i /usr/local/aws-cli -b /usr/local/bin && \
     rm -rf awscliv2.zip ./aws
