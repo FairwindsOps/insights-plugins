@@ -11,8 +11,8 @@ RUN apk add unzip
 
 RUN apk add python3
 
-RUN if [ "${TARGETARCH}" = "amd64" ] ; then awsArch="aarch64"; else trivyArch="${TARGETARCH}"; fi && \
-RUN curl "https://awscli.amazonaws.com/awscli-exe-${TARGETOS}_${awsArch}.zip" -o "awscliv2.zip" && \
+RUN if [ "${TARGETARCH}" = "amd64" ] ; then awsArch="aarch64"; else awsArch="${TARGETARCH}"; fi && \
+    curl "https://awscli.amazonaws.com/awscli-exe-${TARGETOS}_${awsArch}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install && \
     rm -rf awscliv2.zip ./aws
