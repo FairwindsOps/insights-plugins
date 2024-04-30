@@ -1,10 +1,5 @@
 FROM alpine:3.19
 
-ARG TARGETARCH=amd64
-ARG TARGETOS=linux
-
-RUN awsArch=""
-
 RUN apk -U upgrade
 RUN apk update && apk upgrade
 RUN apk add jq bash curl moreutils coreutils
@@ -12,10 +7,9 @@ RUN apk add unzip
 
 RUN apk add python3
 
-RUN if [ "${TARGETARCH}" = "amd64" ] ; then awsArch="-aarch64"; else awsArch="_${TARGETARCH}"; fi && \
-    curl https://awscli.amazonaws.com/awscli-exe-${TARGETOS}${awsArch}.zip > awscliv2.zip && \
+RUN curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip > awscliv2.zip && \
     unzip awscliv2.zip && \
-    ./aws/install && \
+    ./aws/install -i /usr/local/aws-cli -b /usr/local/bin && \
     rm -rf awscliv2.zip ./aws
 
     RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-400.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-400.0.0-linux-x86_64.tar.gz" && \
