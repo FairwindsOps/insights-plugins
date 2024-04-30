@@ -18,8 +18,6 @@ RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-clou
     ./google-cloud-sdk/bin/gcloud components install bq && \
     rm -rf google-cloud-sdk-473.0.0-linux-x86_64.tar.gz 
 
-RUN /google-cloud-sdk/bin/bq --help
-
 COPY cloud-costs.sh cloud-costs.sh
 
 CMD ["cloud-costs.sh"]
