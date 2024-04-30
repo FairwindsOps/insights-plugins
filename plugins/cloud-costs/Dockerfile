@@ -2,7 +2,6 @@ FROM alpine:3.19
 
 ARG TARGETARCH
 ARG TARGETOS
-ARG awsArch
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
