@@ -3,7 +3,7 @@ FROM alpine:3.19
 ARG TARGETARCH=amd64
 ARG TARGETOS=linux
 
-ENV awsArch="-aarch64"
+RUN awsArch=""
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
