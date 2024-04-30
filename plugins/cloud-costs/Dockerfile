@@ -12,11 +12,14 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     ./aws/install && \
     rm -rf awscliv2.zip ./aws
 
-RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-470.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-470.0.0-linux-x86_64.tar.gz" && \
-    tar -xvf google-cloud-sdk-470.0.0-linux-x86_64.tar.gz && \
+RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-460.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-460.0.0-linux-x86_64.tar.gz" && \
+    tar -xvf google-cloud-sdk-460.0.0-linux-x86_64.tar.gz && \
     ./google-cloud-sdk/install.sh && \
-    ./google-cloud-sdk/bin/gcloud components install bq && \
-    rm -rf google-cloud-sdk-470.0.0-linux-x86_64.tar.gz 
+    rm -rf google-cloud-sdk-460.0.0-linux-x86_64.tar.gz 
+
+RUN ./google-cloud-sdk/bin/gcloud components install bq
+
+#RUN /google-cloud-sdk/bin/bq --help    
 
 COPY cloud-costs.sh cloud-costs.sh
 
