@@ -10,13 +10,9 @@ RUN apk add unzip
 
 RUN apk add python3
 
-RUN if [ "${TARGETARCH}" = "arm64" ] ; then awsArch="aarch64"; else awsArch="x86_64"; fi && \
-    curl https://awscli.amazonaws.com/awscli-exe-${TARGETOS}-${awsArch}.zip > awscliv2.zip && \
-    unzip awscliv2.zip && \
-    ./aws/install -i /usr/local/aws-cli -b /usr/local/bin && \
-    rm -rf awscliv2.zip ./aws
+RUN apk add --no-cache aws-cli
 
-RUN if [ "${TARGETARCH}" = "arm64" ] ; then googleArch="arm"; else googleArch="x86_64"; fi && \
+RUN if [ "arm64" = "arm64" ] ; then googleArch="arm"; else googleArch="x86_64"; fi && \
     curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-400.0.0-linux-${googleArch}.tar.gz" -o "google-cloud-sdk-400.0.0.tar.gz" && \
     tar -xvf google-cloud-sdk-400.0.0.tar.gz && \
     ./google-cloud-sdk/install.sh && \
