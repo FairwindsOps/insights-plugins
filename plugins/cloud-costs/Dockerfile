@@ -2,7 +2,8 @@ FROM alpine:3.19
 
 ARG TARGETARCH
 ARG TARGETOS
-ENV awsArch="aarch641"
+
+ENV awsArch=""
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
