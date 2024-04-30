@@ -18,9 +18,9 @@ RUN apk add python3=3.11.9-r0 py3-pip
 RUN curl "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-373.0.0-linux-x86_64.tar.gz" -o "google-cloud-sdk-373.0.0-linux-x86_64.tar.gz" && \
     tar -xvf google-cloud-sdk-373.0.0-linux-x86_64.tar.gz && \
     ./google-cloud-sdk/install.sh && \
+    ./google-cloud-sdk/bin/gcloud components install bq && \    
     rm -rf google-cloud-sdk-360.0.0-linux-x86_64.tar.gz ./google-cloud-sdk
 
-RUN gcloud components install bq
 
 COPY cloud-costs.sh cloud-costs.sh
 
