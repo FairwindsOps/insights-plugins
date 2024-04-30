@@ -1,17 +1,26 @@
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:473.0.0
+FROM alpine:3.19
 
-RUN apt-get update && \
-    apt-get install -y \
-        python3 \
-        python3-pip \
-        python3-setuptools \
-        groff \
-        less \
-        jq \
-    && pip3 install --upgrade pip \
-    && apt-get clean
+ARG TARGETARCH
+ARG TARGETOS
 
-RUN pip3 --no-cache-dir install --upgrade awscli
+RUN apk -U upgrade
+RUN apk update && apk upgrade
+RUN apk add jq bash curl moreutils coreutils
+RUN apk add unzip
+
+ENV google_cloud_sdk_version=400.0.0 
+
+RUN apk add python3
+
+RUN apk add --no-cache aws-cli
+
+RUN if [ "${TARGETARCH}" = "arm64" ] ; then googleArch="arm"; else googleArch="x86_64"; fi && \
+    curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${google_cloud_sdk_version}-${TARGETOS}-${googleArch}.tar.gz -o "google-cloud-sdk.tar.gz" && \
+    tar -xvf google-cloud-sdk.tar.gz && \
+    ./google-cloud-sdk/install.sh && \
+    rm -rf google-cloud-sdk.tar.gz
+
+RUN ./google-cloud-sdk/bin/gcloud components install bq
 
 COPY cloud-costs.sh cloud-costs.sh
 
