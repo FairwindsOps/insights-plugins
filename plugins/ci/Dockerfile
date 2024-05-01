@@ -19,7 +19,6 @@ RUN cd tfsec-${tfsecVersion}/scripts RUN ./build.sh
 RUN mv tfsec-${tfsecVersion}/cmd/tfsec /usr/local/bin/tfsec
 
 RUN rm -rf tfsec-${tfsecVersion} tfsec.tar.gz
-  
 
 RUN DESIRED_VERSION=$helmVersion curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
