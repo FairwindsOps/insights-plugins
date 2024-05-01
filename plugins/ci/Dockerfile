@@ -15,14 +15,11 @@ RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="$
 RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/$polarisVersion/polaris_${TARGETOS}_${TARGETARCH}.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
 RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 
-RUN apk add --no-cache go
+RUN curl -L "https://github.com/aquasecurity/tfsec/archive/refs/tags/v${tfsecVersion}.tar.gz" > tfsec.tar.gz && tar -xvf tfsec.tar.gz
+RUN cd tfsec-${tfsecVersion}/scripts RUN ./build.sh
+RUN mv tfsec-${tfsecVersion}/cmd/tfsec /usr/local/bin/tfsec
 
-RUN curl -L "https://github.com/aquasecurity/tfsec/archive/refs/tags/v1.28.5.tar.gz" > tfsec.tar.gz && tar -xvf tfsec.tar.gz
-#RUN cd tfsec-1.28.5/cmd/tfsec && go build -o tfsec \
-RUN cd tfsec-1.28.5/scripts RUN ./build.sh
-RUN mv tfsec-1.28.5/cmd/tfsec /usr/local/bin/tfsec
-
-RUN rm -rf tfsec-1.28.5 tfsec.tar.gz
+RUN rm -rf tfsec-${tfsecVersion} tfsec.tar.gz
   
 
 RUN DESIRED_VERSION=$helmVersion curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
