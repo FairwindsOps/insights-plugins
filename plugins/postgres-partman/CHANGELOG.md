@@ -1,5 +1,8 @@
 # Changelog
 
+## 14.8.0
+* upgrading postgres version
+
 ## 14.7.1
 * Add `apt-get update` to Dockerfile
 

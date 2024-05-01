@@ -1,13 +1,14 @@
-FROM docker.io/bitnami/postgresql:14.7.0-debian-11-r31
+FROM postgres:14.10-alpine3.19
 
 USER root
-ENV PG_PARTMAN_VERSION v4.7.3
-RUN apt-get update
-RUN install_packages wget
-RUN install_packages make
-RUN install_packages gcc
-RUN install_packages libc6-dev
-RUN wget -O pg_partman.tar.gz "https://github.com/pgpartman/pg_partman/archive/$PG_PARTMAN_VERSION.tar.gz"
+ENV PG_PARTMAN_VERSION v4.6.2
+
+RUN apk -U upgrade
+RUN apk update && apk upgrade
+
+RUN apk add curl make gcc libc-dev postgresql-dev
+
+RUN curl -L https://github.com/pgpartman/pg_partman/archive/$PG_PARTMAN_VERSION.tar.gz -o "pg_partman.tar.gz"
 RUN mkdir -p /usr/src/pg_partman \
     && tar \
         --extract \
