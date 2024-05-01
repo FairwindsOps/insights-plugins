@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.6.0
+* refactored building tfsec
+
 ## 5.5.1
 * update dependencies
 
