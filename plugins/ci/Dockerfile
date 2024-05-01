@@ -30,7 +30,6 @@ RUN DESIRED_VERSION=$helmVersion curl https://raw.githubusercontent.com/helm/hel
 FROM alpine:3.19
 WORKDIR /insights
 RUN apk -U upgrade
-RUN apk add --no-cache skopeo git libc6-compat
 RUN mkdir -p /output/tmp
 COPY insights-ci /usr/local/bin
 COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
