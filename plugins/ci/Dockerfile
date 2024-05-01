@@ -7,7 +7,6 @@ ENV polarisVersion=8.2.3
 ENV plutoVersion=5.16.4
 ENV helmVersion=3.11.2
 
-
 # Bash and openssl are  required by the Helm script.
 RUN apk update && apk --no-cache add curl bash openssl ca-certificates
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
