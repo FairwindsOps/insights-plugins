@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+* Removed anthoscli
+
 ## 0.3.1
 * Replaced cloud costs image
 
