@@ -10,7 +10,6 @@ ENV helmVersion=3.11.2
 
 # Bash and openssl are  required by the Helm script.
 RUN apk update && apk --no-cache add curl bash openssl ca-certificates
-RUN apk add --no-cache make
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 #RUN curl -L https://github.com/aquasecurity/tfsec/releases/download/v${tfsecVersion}/tfsec-${TARGETOS}-${TARGETARCH} > /usr/local/bin/tfsec && chmod +x /usr/local/bin/tfsec
