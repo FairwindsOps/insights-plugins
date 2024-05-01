@@ -23,7 +23,7 @@ RUN curl -L "https://github.com/aquasecurity/tfsec/archive/refs/tags/v1.28.5.tar
 RUN cd tfsec-1.28.5/cmd/tfsec && go build -o tfsec \
     && mv cmd/tfsec/tfsec /usr/local/bin/tfsec
 
-RUN rm -rf tfsec-1.28.5 tfsec.tar.gz
+#RUN rm -rf tfsec-1.28.5 tfsec.tar.gz
   
 
 RUN DESIRED_VERSION=$helmVersion curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
