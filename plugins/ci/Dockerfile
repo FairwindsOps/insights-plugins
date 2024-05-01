@@ -18,8 +18,9 @@ RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVers
 RUN apk add --no-cache go
 
 RUN curl -L "https://github.com/aquasecurity/tfsec/archive/refs/tags/v1.28.5.tar.gz" > tfsec.tar.gz && tar -xvf tfsec.tar.gz
-RUN cd tfsec-1.28.5/cmd/tfsec && go build -o tfsec \
-    && mv tfsec /usr/local/bin/tfsec
+#RUN cd tfsec-1.28.5/cmd/tfsec && go build -o tfsec \
+RUN cd tfsec-1.28.5/scripts RUN ./build.sh
+RUN mv tfsec-1.28.5/cmd/tfsec /usr/local/bin/tfsec
 
 RUN rm -rf tfsec-1.28.5 tfsec.tar.gz
   
@@ -31,7 +32,7 @@ WORKDIR /insights
 RUN apk -U upgrade
 RUN apk add --no-cache skopeo git libc6-compat
 RUN mkdir -p /output/tmp
-COPY insights-ci /usr/local/bin
+#COPY insights-ci /usr/local/bin
 COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=downloader /usr/local/bin/tfsec /usr/local/bin/tfsec
 COPY --from=downloader /usr/local/bin/polaris /usr/local/bin/polaris
