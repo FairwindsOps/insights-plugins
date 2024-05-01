@@ -1,4 +1,4 @@
-FROM alpine:3.19 AS downloader
+FROM golang:alpine3.19 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV tfsecVersion=1.28.5
@@ -6,8 +6,6 @@ ENV trivyVersion=0.50.4
 ENV polarisVersion=8.2.3
 ENV plutoVersion=5.16.4
 ENV helmVersion=3.11.2
-
-RUN apk add --no-cache go
 
 # Bash and openssl are  required by the Helm script.
 RUN apk update && apk --no-cache add curl bash openssl ca-certificates
