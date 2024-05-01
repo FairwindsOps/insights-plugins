@@ -7,6 +7,8 @@ ENV polarisVersion=8.2.3
 ENV plutoVersion=5.16.4
 ENV helmVersion=3.11.2
 
+RUN apk add --no-cache go
+
 # Bash and openssl are  required by the Helm script.
 RUN apk update && apk --no-cache add curl bash openssl ca-certificates
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
@@ -15,8 +17,7 @@ RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/$polarisV
 RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 
 RUN curl -L "https://github.com/aquasecurity/tfsec/archive/refs/tags/v${tfsecVersion}.tar.gz" > tfsec.tar.gz && tar -xvf tfsec.tar.gz
-RUN cd tfsec-${tfsecVersion}/scripts RUN ./build.sh
-RUN mv tfsec-${tfsecVersion}/cmd/tfsec /usr/local/bin/tfsec
+RUN cd tfsec-${tfsecVersion}/cmd/tfsec && go build -o tfsec && mv tfsec /usr/local/bin/tfsec && chmod +x /usr/local/bin/tfsec && cd ..
 
 RUN rm -rf tfsec-${tfsecVersion} tfsec.tar.gz
 
