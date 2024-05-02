@@ -18,12 +18,10 @@ RUN if [ "${TARGETARCH}" = "arm64" ] ; then googleArch="arm"; else googleArch="x
     curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${google_cloud_sdk_version}-${TARGETOS}-${googleArch}.tar.gz -o "google-cloud-sdk.tar.gz" && \
     tar -xvf google-cloud-sdk.tar.gz && \
     ./google-cloud-sdk/install.sh && \
+    ./google-cloud-sdk/bin/gcloud components install bq && \
+    rm ./google-cloud-sdk/bin/anthoscli && \
+    rm -rf /google-cloud-sdk/lib/googlecloudsdk/third_party /google-cloud-sdk/platform/gsutil/third_party && \
     rm -rf google-cloud-sdk.tar.gz
-
-RUN ./google-cloud-sdk/bin/gcloud components install bq
-
-RUN rm ./google-cloud-sdk/bin/anthoscli 
-RUN rm -rf /google-cloud-sdk/lib/googlecloudsdk/third_party /google-cloud-sdk/platform/gsutil/third_party
 
 COPY cloud-costs.sh cloud-costs.sh
 
