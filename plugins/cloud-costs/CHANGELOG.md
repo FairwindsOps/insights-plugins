@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.3
+* removed unused libs from google-cloud-sdk
+
 ## 0.3.2
 * Removed anthoscli
 
