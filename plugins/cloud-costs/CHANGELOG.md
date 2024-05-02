@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.4
+* refactoring docker file to remove vulnerabilities
+
 ## 0.3.3
 * removed unused libs from google-cloud-sdk
 
