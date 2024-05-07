@@ -10,7 +10,7 @@ require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240214152350-40f728c8f865
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.19.2
+	github.com/fairwindsops/pluto/v5 v5.19.4
 	github.com/fairwindsops/polaris v0.0.0-20240305151902-48fc87a663c9 // 8.5.4
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.12.0
