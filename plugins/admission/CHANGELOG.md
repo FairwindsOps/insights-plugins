@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.0
+* update dependencies for vulnerabilities
+
 ## 1.14.4
 * update dependencies
 
