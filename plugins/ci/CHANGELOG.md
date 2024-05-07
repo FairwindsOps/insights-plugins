@@ -1,11 +1,14 @@
 # Changelog
 
+## 5.5.2
+* bumped tfsec to 1.28.6 for fixing vulnerabilities
+
 ## 5.5.1
 * update dependencies
 
 ## 5.5.0
 
-* update fsec and trivy version
+* update tfsec and trivy version
 
 ## 5.4.5
 * update dependencies
