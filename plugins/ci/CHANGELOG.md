@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.5.3
+* bumped polaris to 9.0.1
+
 ## 5.5.2
 * bumped tfsec to 1.28.6 for fixing vulnerabilities
 
