@@ -3,7 +3,7 @@ ARG TARGETARCH
 ARG TARGETOS
 ENV tfsecVersion=1.28.6
 ENV trivyVersion=0.50.4
-ENV polarisVersion=9.0.1
+ENV polarisVersion=9.0.0
 ENV plutoVersion=5.16.4
 ENV helmVersion=3.11.2
 
