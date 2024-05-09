@@ -39,6 +39,9 @@ const monitoringGoogleApis = "monitoring.googleapis.com"
 func main() {
 	setLogLevel()
 	address := os.Getenv("PROMETHEUS_ADDRESS")
+	if address == "" {
+		panic("prometheus-metrics.address must be set")
+	}
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
 		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
