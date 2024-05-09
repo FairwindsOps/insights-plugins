@@ -38,16 +38,13 @@ func GetClient(address, bearerToken string) (prometheusV1.API, error) {
 	config := api.Config{
 		Address: address,
 	}
-	fmt.Println("bearerToken====", bearerToken)
 	if bearerToken != "" {
-		fmt.Println("added bearerToken====")
 		config.RoundTripper = p8sConfig.NewAuthorizationCredentialsRoundTripper("Bearer", p8sConfig.Secret(bearerToken), api.DefaultRoundTripper)
 	} else {
 		config.RoundTripper = api.DefaultRoundTripper
 	}
 	client, err := api.NewClient(config)
 	if err != nil {
-		fmt.Println("e====", err)
 		return nil, err
 	}
 	return prometheusV1.NewAPI(client), nil
