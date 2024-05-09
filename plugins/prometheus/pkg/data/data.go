@@ -96,7 +96,7 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 	return
 }
 
-func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API) (*NodesMetrics, error) {
+func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API, clusterName string) (*NodesMetrics, error) {
 	r := getRange()
 	idleCPU, err := getNodesIdleCPU(ctx, api, r)
 	if err != nil {
@@ -119,51 +119,51 @@ func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restM
 }
 
 // GetMetrics returns the memory/cpu and requests for each container running in the cluster.
-func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API) ([]CombinedRequest, error) {
+func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API, clusterName string) ([]CombinedRequest, error) {
 	r := getRange()
-	memory, err := getMemory(ctx, api, r)
+	memory, err := getMemory(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for memory", len(memory))
 
-	cpu, err := getCPU(ctx, api, r)
+	cpu, err := getCPU(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for cpu", len(cpu))
 
-	memoryRequest, err := getMemoryRequests(ctx, api, r)
+	memoryRequest, err := getMemoryRequests(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for memoryRequests", len(memoryRequest))
 
-	cpuRequest, err := getCPURequests(ctx, api, r)
+	cpuRequest, err := getCPURequests(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for cpuRequests", len(cpuRequest))
 
-	memoryLimits, err := getMemoryLimits(ctx, api, r)
+	memoryLimits, err := getMemoryLimits(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for memoryLimits", len(memoryLimits))
 
-	cpuLimits, err := getCPULimits(ctx, api, r)
+	cpuLimits, err := getCPULimits(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for cpuLimits", len(cpuLimits))
 
-	networkTransmit, err := getNetworkTransmitBytesFor30s(ctx, api, r, minutesToCalculateNetworkIncrease)
+	networkTransmit, err := getNetworkTransmitBytesFor30s(ctx, api, r, minutesToCalculateNetworkIncrease, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for network transmit bytes", len(networkTransmit))
 
-	networkReceive, err := getNetworkReceiveBytesFor30s(ctx, api, r, minutesToCalculateNetworkIncrease)
+	networkReceive, err := getNetworkReceiveBytesFor30s(ctx, api, r, minutesToCalculateNetworkIncrease, clusterName)
 	if err != nil {
 		return nil, err
 	}

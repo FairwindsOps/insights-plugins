@@ -38,6 +38,11 @@ const monitoringGoogleApis = "monitoring.googleapis.com"
 
 func main() {
 	setLogLevel()
+	dynamic, restMapper, clusterName, err := getKubeClient()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("clusterName======", clusterName)
 	address := os.Getenv("PROMETHEUS_ADDRESS")
 	if address == "" {
 		panic("prometheus-metrics.address must be set")
@@ -61,18 +66,14 @@ func main() {
 		panic(err)
 	}
 
-	dynamic, restMapper, err := getKubeClient()
-	if err != nil {
-		panic(err)
-	}
-	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client)
+	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName)
 	if err != nil {
 		panic(err)
 	}
 	logrus.Infof("Got %d metrics", len(res))
 	stats := data.CalculateStatistics(res)
 
-	nodesMetrics, err := data.GetNodesMetrics(context.Background(), dynamic, restMapper, client)
+	nodesMetrics, err := data.GetNodesMetrics(context.Background(), dynamic, restMapper, client, clusterName)
 	if err != nil {
 		panic(err)
 	}
@@ -103,32 +104,32 @@ func setLogLevel() {
 	}
 }
 
-func getKubeClient() (dynamic.Interface, meta.RESTMapper, error) {
+func getKubeClient() (dynamic.Interface, meta.RESTMapper, string, error) {
 	var restMapper meta.RESTMapper
 	var dynamicClient dynamic.Interface
 	kubeConf, configError := ctrl.GetConfig()
 	if configError != nil {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
-		return dynamicClient, restMapper, configError
+		return dynamicClient, restMapper, kubeConf.Host, configError
 	}
 
 	api, err := kubernetes.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Kubernetes client: %v", err)
-		return dynamicClient, restMapper, err
+		return dynamicClient, restMapper, kubeConf.Host, err
 	}
 
 	dynamicClient, err = dynamic.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Dynamic client: %v", err)
-		return dynamicClient, restMapper, err
+		return dynamicClient, restMapper, kubeConf.Host, err
 	}
 
 	resources, err := restmapper.GetAPIGroupResources(api.Discovery())
 	if err != nil {
 		logrus.Errorf("Error getting API Group resources: %v", err)
-		return dynamicClient, restMapper, err
+		return dynamicClient, restMapper, kubeConf.Host, err
 	}
 	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
-	return dynamicClient, restMapper, nil
+	return dynamicClient, restMapper, kubeConf.Host, nil
 }
