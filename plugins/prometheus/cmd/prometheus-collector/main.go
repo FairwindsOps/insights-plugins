@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2/google"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -31,12 +33,30 @@ import (
 )
 
 const outputFile = "/output/prometheus-metrics.json"
+const monitoringReadScope = "https://www.googleapis.com/auth/monitoring.read"
+const monitoringGoogleApis = "monitoring.googleapis.com"
 
 func main() {
 	setLogLevel()
 	address := os.Getenv("PROMETHEUS_ADDRESS")
+	if address == "" {
+		panic("prometheus-metrics.address must be set")
+	}
+	accessToken := ""
+	if strings.Contains(address, monitoringGoogleApis) {
+		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
+		if err != nil {
+			panic(err)
+		}
+		token, err := tokenSource.Token()
+		if err != nil {
+			panic(err)
+		}
+		accessToken = token.AccessToken
+	}
+
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
-	client, err := data.GetClient(address)
+	client, err := data.GetClient(address, accessToken)
 	if err != nil {
 		panic(err)
 	}
