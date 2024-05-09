@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.4.4
-* add GCP auth token
+* Added google access token to prometheus plugin
 
 ## 1.4.3
 * update dependencies
