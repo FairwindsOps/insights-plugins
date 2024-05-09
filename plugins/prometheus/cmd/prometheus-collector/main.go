@@ -21,6 +21,7 @@ import (
 	"os"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2/google"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -34,9 +35,18 @@ const outputFile = "/output/prometheus-metrics.json"
 
 func main() {
 	setLogLevel()
-	address := os.Getenv("PROMETHEUS_ADDRESS")
+	token, err := google.DefaultTokenSource(context.Background(), "https://www.googleapis.com/auth/monitoring.read")
+	if err != nil {
+		panic(err)
+	}
+	accessToken, err := token.Token()
+	if err != nil {
+		panic(err)
+	}
+
+	address := "https://monitoring.googleapis.com/v1/projects/gcp-prime/location/global/prometheus"
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
-	client, err := data.GetClient(address)
+	client, err := data.GetClient(address, accessToken.AccessToken)
 	if err != nil {
 		panic(err)
 	}
