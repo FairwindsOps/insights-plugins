@@ -15,7 +15,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 )
 
-const plutoVersion = "5.16.4"
+const plutoVersion = "5.19.1"
 
 // ProcessPluto processes an object with Pluto, using the user-specified Pluto
 // target-versions to determine API deprecations and removals.
