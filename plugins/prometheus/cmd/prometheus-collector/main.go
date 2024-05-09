@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2/google"
@@ -32,26 +33,27 @@ import (
 )
 
 const outputFile = "/output/prometheus-metrics.json"
+const monitoringReadScope = "https://www.googleapis.com/auth/monitoring.read"
+const monitoringGoogleApis = "monitoring.googleapis.com"
 
 func main() {
 	setLogLevel()
-	token, err := google.DefaultTokenSource(context.Background(), "https://www.googleapis.com/auth/monitoring.read")
-	if err != nil {
-		panic(err)
-	}
-	accessToken, err := token.Token()
-	if err != nil {
-		panic(err)
-	}
-
-	logrus.Infof("Access token: %s", accessToken.AccessToken)
-	logrus.Infof("Refresh token: %s", accessToken.RefreshToken)
-	logrus.Infof("Expiry token: %s", accessToken.Expiry)
-	logrus.Infof("TokenType token: %s", accessToken.TokenType)
-
 	address := os.Getenv("PROMETHEUS_ADDRESS")
+	accessToken := ""
+	if strings.Contains(address, monitoringGoogleApis) {
+		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
+		if err != nil {
+			panic(err)
+		}
+		token, err := tokenSource.Token()
+		if err != nil {
+			panic(err)
+		}
+		accessToken = token.AccessToken
+	}
+
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
-	client, err := data.GetClient(address, accessToken.AccessToken)
+	client, err := data.GetClient(address, accessToken)
 	if err != nil {
 		panic(err)
 	}
