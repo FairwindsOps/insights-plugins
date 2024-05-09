@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.4
+* Added google access token to prometheus plugin
+
 ## 1.4.3
 * update dependencies
 

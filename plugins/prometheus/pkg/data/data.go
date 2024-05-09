@@ -24,6 +24,7 @@ import (
 	pluginmodels "github.com/fairwindsops/insights-plugins/plugins/prometheus/pkg/models"
 	"github.com/prometheus/client_golang/api"
 	prometheusV1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	p8sConfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -33,10 +34,14 @@ import (
 const minutesToCalculateNetworkIncrease = 5
 
 // GetClient returns a Prometheus API client for a given address
-func GetClient(address string) (prometheusV1.API, error) {
+func GetClient(address, bearerToken string) (prometheusV1.API, error) {
 	config := api.Config{
-		Address:      address,
-		RoundTripper: api.DefaultRoundTripper,
+		Address: address,
+	}
+	if bearerToken != "" {
+		config.RoundTripper = p8sConfig.NewAuthorizationCredentialsRoundTripper("Bearer", p8sConfig.Secret(bearerToken), api.DefaultRoundTripper)
+	} else {
+		config.RoundTripper = api.DefaultRoundTripper
 	}
 	client, err := api.NewClient(config)
 	if err != nil {
