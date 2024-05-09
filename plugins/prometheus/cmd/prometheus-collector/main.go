@@ -44,7 +44,7 @@ func main() {
 		panic(err)
 	}
 
-	address := "https://monitoring.googleapis.com/v1/projects/gcp-prime/location/global/prometheus"
+	address := os.Getenv("PROMETHEUS_ADDRESS")
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
 	client, err := data.GetClient(address, accessToken.AccessToken)
 	if err != nil {
