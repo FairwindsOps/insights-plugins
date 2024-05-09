@@ -44,6 +44,11 @@ func main() {
 		panic(err)
 	}
 
+	logrus.Infof("Access token: %s", accessToken.AccessToken)
+	logrus.Infof("Refresh token: %s", accessToken.RefreshToken)
+	logrus.Infof("Expiry token: %s", accessToken.Expiry)
+	logrus.Infof("TokenType token: %s", accessToken.TokenType)
+
 	address := os.Getenv("PROMETHEUS_ADDRESS")
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
 	client, err := data.GetClient(address, accessToken.AccessToken)
