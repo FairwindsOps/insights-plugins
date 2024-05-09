@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.4
+* add GCP auth token
+
 ## 1.4.3
 * update dependencies
 
