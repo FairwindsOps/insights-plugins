@@ -27,7 +27,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/fairwindsops/insights-plugins/plugins/prometheus/pkg/data"
@@ -63,6 +62,11 @@ func main() {
 		// standard Prometheus metrics don't have cluster name, we should apply it only to google managed prometheus
 		clusterName = ""
 	}
+	c, err := google.FindDefaultCredentials(context.Background())
+	fmt.Println("Credentials=====", *c)
+	fmt.Println("json====", c.JSON)
+	fmt.Println("json====", c.ProjectID)
+	fmt.Println("json====", c.TokenSource)
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
 	client, err := data.GetClient(address, accessToken)
 	if err != nil {
@@ -141,28 +145,4 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, string, error) {
 	}
 	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
 	return dynamicClient, restMapper, kubeConf.Host, nil
-}
-
-func getContext() {
-	kubeconfig := os.Getenv("KUBECONFIG")
-	// Typically set to $HOME/.kube/config
-	if kubeconfig == "" {
-		kubeconfig = clientcmd.RecommendedHomeFile
-		// Fallback to the default location
-	}
-	// Load the kubeconfig file to get the config
-	config, err := clientcmd.LoadFromFile(kubeconfig)
-	if err != nil {
-		fmt.Printf("Error loading kubeconfig file: %s\n", err)
-		return
-	}
-	// Get the current context name
-	contextName := config.CurrentContext
-	fmt.Printf("Current context: %s\n", contextName)
-	// Get the cluster name from the current context
-	if context, ok := config.Contexts[contextName]; ok {
-		fmt.Printf("Cluster name: %s\n", context.Cluster)
-	} else {
-		fmt.Printf("Context %s not found in the kubeconfig\n", contextName)
-	}
 }
