@@ -55,12 +55,12 @@ func main() {
 		}
 		accessToken = token.AccessToken
 	}
-
-	dynamic, restMapper, err := getKubeClient()
+	logrus.Infof("Getting metrics from Prometheus at %s", address)
+	client, err := data.GetClient(address, accessToken)
 	if err != nil {
 		panic(err)
 	}
-	client, err := data.GetClient(address, accessToken)
+	dynamic, restMapper, err := getKubeClient()
 	if err != nil {
 		panic(err)
 	}
@@ -110,6 +110,7 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, error) {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
 		return dynamicClient, restMapper, configError
 	}
+
 	api, err := kubernetes.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Kubernetes client: %v", err)
