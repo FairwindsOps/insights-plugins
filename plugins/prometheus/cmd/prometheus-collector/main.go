@@ -38,15 +38,15 @@ const monitoringGoogleApis = "monitoring.googleapis.com"
 
 func main() {
 	setLogLevel()
-	dynamic, restMapper, clusterName, err := getKubeClient()
+	dynamic, restMapper, err := getKubeClient()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("clusterName======", clusterName)
 	address := os.Getenv("PROMETHEUS_ADDRESS")
 	if address == "" {
 		panic("prometheus-metrics.address must be set")
 	}
+	clusterName := os.Getenv("CLUSTER_NAME")
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
 		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
@@ -58,16 +58,8 @@ func main() {
 			panic(err)
 		}
 		accessToken = token.AccessToken
-	} else {
-		// standard Prometheus metrics don't have cluster name, we should apply it only to google managed prometheus
-		clusterName = ""
 	}
-	c, err := google.FindDefaultCredentials(context.Background())
-	fmt.Println("Credentials=====", *c)
-	fmt.Println("json====", c.JSON)
-	fmt.Println("json====", c.ProjectID)
-	fmt.Println("json====", c.TokenSource)
-	logrus.Infof("Getting metrics from Prometheus at %s", address)
+
 	client, err := data.GetClient(address, accessToken)
 	if err != nil {
 		panic(err)
@@ -103,7 +95,7 @@ func setLogLevel() {
 	if os.Getenv("LOGRUS_LEVEL") != "" {
 		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
 		if err != nil {
-			panic(fmt.Errorf("Invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
+			panic(fmt.Errorf("invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
 		}
 		logrus.SetLevel(lvl)
 	} else {
@@ -111,37 +103,31 @@ func setLogLevel() {
 	}
 }
 
-func getKubeClient() (dynamic.Interface, meta.RESTMapper, string, error) {
+func getKubeClient() (dynamic.Interface, meta.RESTMapper, error) {
 	var restMapper meta.RESTMapper
 	var dynamicClient dynamic.Interface
 	kubeConf, configError := ctrl.GetConfig()
 	if configError != nil {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
-		return dynamicClient, restMapper, kubeConf.Host, configError
+		return dynamicClient, restMapper, configError
 	}
-	fmt.Println("kubeConf=====", *kubeConf)
-	fmt.Println("ContentConfig=====", kubeConf.ContentConfig)
-	fmt.Println("ServerName=====", kubeConf.ServerName)
-	fmt.Println("Username=====", kubeConf.Username)
 	api, err := kubernetes.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Kubernetes client: %v", err)
-		return dynamicClient, restMapper, kubeConf.Host, err
+		return dynamicClient, restMapper, err
 	}
 
 	dynamicClient, err = dynamic.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Dynamic client: %v", err)
-		return dynamicClient, restMapper, kubeConf.Host, err
+		return dynamicClient, restMapper, err
 	}
-
-	fmt.Println("dynamicClient=====", dynamicClient)
 
 	resources, err := restmapper.GetAPIGroupResources(api.Discovery())
 	if err != nil {
 		logrus.Errorf("Error getting API Group resources: %v", err)
-		return dynamicClient, restMapper, kubeConf.Host, err
+		return dynamicClient, restMapper, err
 	}
 	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
-	return dynamicClient, restMapper, kubeConf.Host, nil
+	return dynamicClient, restMapper, nil
 }
