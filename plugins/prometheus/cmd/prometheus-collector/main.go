@@ -46,6 +46,9 @@ func main() {
 	address := os.Getenv("PROMETHEUS_ADDRESS")
 	if address == "" {
 		panic("prometheus-metrics.address must be set")
+	} else {
+		// standard Prometheus metrics don't have cluster name, we should apply it only to google managed prometheus
+		clusterName = ""
 	}
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
