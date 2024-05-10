@@ -29,7 +29,11 @@ const (
 )
 
 func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`container_memory_usage_bytes{image!="", container!="POD", container!="", cluster="%s"}`, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`container_memory_usage_bytes{image!="", container!="POD", container!=""%s}`, clusterFilter)
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -41,7 +45,11 @@ func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, 
 }
 
 func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="byte", resource="memory", cluster="%s"}`, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="byte", resource="memory"%s}`, clusterFilter)
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -53,7 +61,11 @@ func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1
 }
 
 func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="core", resource="cpu", cluster="%s"}`, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="core", resource="cpu"%s}`, clusterFilter)
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -65,7 +77,11 @@ func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Ra
 }
 
 func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="byte", resource="memory", cluster="%s"}`, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="byte", resource="memory"%s}`, clusterFilter)
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -77,7 +93,11 @@ func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 }
 
 func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="core", resource="cpu", cluster="%s"}`, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="core", resource="cpu"%s}`, clusterFilter)
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -89,7 +109,11 @@ func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Rang
 }
 
 func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`rate(container_cpu_usage_seconds_total{image!="", container!="POD", container!="", cluster="%s"}[2m])`, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`rate(container_cpu_usage_seconds_total{image!="", container!="POD", container!=""%s}[2m])`, clusterFilter)
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
@@ -109,7 +133,11 @@ func getNetworkTransmitBytesFor30s(ctx context.Context, api prometheusV1.API, r 
 }
 
 func get30sIncreaseMetric(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, metric string, minutes int, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`increase(%s{interface="eth0", cluster="%s"}[%dm])`, metric, clusterName, minutes)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`increase(%s{interface="eth0"%s}[%dm])`, metric, clusterFilter, minutes)
 	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
@@ -134,7 +162,11 @@ func get30sIncreaseMetric(ctx context.Context, api prometheusV1.API, r prometheu
 }
 
 func getNodesIdleMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`100 * ((SUM(avg_over_time(node_memory_MemAvailable_bytes{cluster="%s"}[60m])) / SUM(avg_over_time(node_memory_MemTotal_bytes{cluster="%s"}[60m]))))`, clusterName, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`{cluster="%s"}`, clusterName)
+	}
+	query := fmt.Sprintf(`100 * ((SUM(avg_over_time(node_memory_MemAvailable_bytes%s[60m])) / SUM(avg_over_time(node_memory_MemTotal_bytes%s[60m]))))`, clusterFilter, clusterFilter)
 	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
@@ -143,7 +175,11 @@ func getNodesIdleMemory(ctx context.Context, api prometheusV1.API, r prometheusV
 }
 
 func getNodesIdleCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	query := fmt.Sprintf(`avg(rate(node_cpu_seconds_total{mode="idle", mode!="iowait", mode!="steal", cluster="%s"}[60m])) * 100`, clusterName)
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`avg(rate(node_cpu_seconds_total{mode="idle", mode!="iowait", mode!="steal"%s}[60m])) * 100`, clusterFilter)
 	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
