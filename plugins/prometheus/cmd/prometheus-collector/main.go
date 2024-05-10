@@ -38,10 +38,6 @@ const monitoringGoogleApis = "monitoring.googleapis.com"
 
 func main() {
 	setLogLevel()
-	dynamic, restMapper, err := getKubeClient()
-	if err != nil {
-		panic(err)
-	}
 	address := os.Getenv("PROMETHEUS_ADDRESS")
 	if address == "" {
 		panic("prometheus-metrics.address must be set")
@@ -60,11 +56,14 @@ func main() {
 		accessToken = token.AccessToken
 	}
 
+	dynamic, restMapper, err := getKubeClient()
+	if err != nil {
+		panic(err)
+	}
 	client, err := data.GetClient(address, accessToken)
 	if err != nil {
 		panic(err)
 	}
-
 	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName)
 	if err != nil {
 		panic(err)
