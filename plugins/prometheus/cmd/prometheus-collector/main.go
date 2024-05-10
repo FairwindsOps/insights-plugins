@@ -60,6 +60,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	dynamic, restMapper, err := getKubeClient()
 	if err != nil {
 		panic(err)
