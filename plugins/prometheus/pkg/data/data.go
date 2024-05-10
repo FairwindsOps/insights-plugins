@@ -98,12 +98,12 @@ func getController(workloads []controller.Workload, podName, namespace string) (
 
 func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API, clusterName string) (*NodesMetrics, error) {
 	r := getRange()
-	idleCPU, err := getNodesIdleCPU(ctx, api, r)
+	idleCPU, err := getNodesIdleCPU(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for idle CPU", len(idleCPU))
-	idleMemory, err := getNodesIdleMemory(ctx, api, r)
+	idleMemory, err := getNodesIdleMemory(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
