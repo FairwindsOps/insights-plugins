@@ -123,7 +123,6 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, string, error) {
 	fmt.Println("ContentConfig=====", kubeConf.ContentConfig)
 	fmt.Println("ServerName=====", kubeConf.ServerName)
 	fmt.Println("Username=====", kubeConf.Username)
-	getContext()
 	api, err := kubernetes.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Kubernetes client: %v", err)
