@@ -46,9 +46,6 @@ func main() {
 	address := os.Getenv("PROMETHEUS_ADDRESS")
 	if address == "" {
 		panic("prometheus-metrics.address must be set")
-	} else {
-		// standard Prometheus metrics don't have cluster name, we should apply it only to google managed prometheus
-		clusterName = ""
 	}
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
@@ -61,8 +58,10 @@ func main() {
 			panic(err)
 		}
 		accessToken = token.AccessToken
+	} else {
+		// standard Prometheus metrics don't have cluster name, we should apply it only to google managed prometheus
+		clusterName = ""
 	}
-
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
 	client, err := data.GetClient(address, accessToken)
 	if err != nil {
@@ -115,7 +114,10 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, string, error) {
 		logrus.Errorf("Error fetching KubeConfig: %v", configError)
 		return dynamicClient, restMapper, kubeConf.Host, configError
 	}
-
+	fmt.Println("kubeConf=====", *kubeConf)
+	fmt.Println("ContentConfig=====", kubeConf.ContentConfig)
+	fmt.Println("ServerName=====", kubeConf.ServerName)
+	fmt.Println("Username=====", kubeConf.Username)
 	api, err := kubernetes.NewForConfig(kubeConf)
 	if err != nil {
 		logrus.Errorf("Error creating Kubernetes client: %v", err)
