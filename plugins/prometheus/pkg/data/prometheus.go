@@ -35,6 +35,7 @@ func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, 
 	}
 	fmt.Println("CLUSTER FILTER=====", clusterFilter)
 	query := fmt.Sprintf(`container_memory_usage_bytes{image!="", container!="POD", container!=""%s}`, clusterFilter)
+	fmt.Println("QUERY=====", query)
 	values, warnings, err := api.QueryRange(ctx, query, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
