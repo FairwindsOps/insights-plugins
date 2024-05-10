@@ -55,6 +55,7 @@ func main() {
 		}
 		accessToken = token.AccessToken
 	}
+
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
 	client, err := data.GetClient(address, accessToken)
 	if err != nil {
