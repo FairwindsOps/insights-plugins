@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.5
+* google managed prometheus cluster filter
+
 ## 1.4.4
 * Added google access token to prometheus plugin
 

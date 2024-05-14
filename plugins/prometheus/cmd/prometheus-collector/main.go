@@ -42,6 +42,7 @@ func main() {
 	if address == "" {
 		panic("prometheus-metrics.address must be set")
 	}
+	clusterName := os.Getenv("CLUSTER_NAME")
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
 		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
@@ -65,14 +66,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client)
+	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName)
 	if err != nil {
 		panic(err)
 	}
 	logrus.Infof("Got %d metrics", len(res))
 	stats := data.CalculateStatistics(res)
 
-	nodesMetrics, err := data.GetNodesMetrics(context.Background(), dynamic, restMapper, client)
+	nodesMetrics, err := data.GetNodesMetrics(context.Background(), dynamic, restMapper, client, clusterName)
 	if err != nil {
 		panic(err)
 	}
@@ -95,7 +96,7 @@ func setLogLevel() {
 	if os.Getenv("LOGRUS_LEVEL") != "" {
 		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
 		if err != nil {
-			panic(fmt.Errorf("Invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
+			panic(fmt.Errorf("invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
 		}
 		logrus.SetLevel(lvl)
 	} else {
