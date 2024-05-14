@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.1
+* bumped pluto version
+
 ## 1.15.0
 * update dependencies for vulnerabilities
 
