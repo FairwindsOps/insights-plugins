@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.5.5
+* bumped pluto to 5.19.4
+
 ## 5.5.4
 * bumped pluto to 5.19.3
 
