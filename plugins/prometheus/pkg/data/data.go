@@ -108,12 +108,28 @@ func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restM
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for idle Memory", len(idleMemory))
+	overheadCPU, err := getNodesOverheadCPU(ctx, api, r, clusterName)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("Found %d metrics for overhead CPU", len(overheadCPU))
+	overheadMemory, err := getNodesOverheadMemory(ctx, api, r, clusterName)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Infof("Found %d metrics for overhead Memory", len(overheadMemory))
 	response := &NodesMetrics{}
 	if len(idleCPU) > 0 && len(idleCPU[0].Values) > 0 {
 		response.IdleCPU = idleCPU[0].Values[0].Value
 	}
 	if len(idleMemory) > 0 && len(idleMemory[0].Values) > 0 {
 		response.IdleMemory = idleMemory[0].Values[0].Value
+	}
+	if len(overheadCPU) > 0 && len(overheadCPU[0].Values) > 0 {
+		response.OverheadCPU = overheadCPU[0].Values[0].Value
+	}
+	if len(overheadMemory) > 0 && len(overheadMemory[0].Values) > 0 {
+		response.OverheadMemory = overheadMemory[0].Values[0].Value
 	}
 	return response, nil
 }
