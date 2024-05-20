@@ -179,7 +179,7 @@ func getNodesIdleCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	if clusterName != "" {
 		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
 	}
-	query := fmt.Sprintf(`avg(rate(node_cpu_seconds_total{mode="idle", mode!="iowait", mode!="steal"%s}[60m])) * 100`, clusterFilter)
+	query := fmt.Sprintf(`avg(rate(node_cpu_seconds_total{mode="idle", mode!="iowait", mode!="steal"%s}[5m])) * 100`, clusterFilter)
 	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
