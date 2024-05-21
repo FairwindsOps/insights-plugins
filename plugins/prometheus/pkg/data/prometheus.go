@@ -179,7 +179,50 @@ func getNodesIdleCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	if clusterName != "" {
 		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
 	}
-	query := fmt.Sprintf(`avg(rate(node_cpu_seconds_total{mode="idle", mode!="iowait", mode!="steal"%s}[60m])) * 100`, clusterFilter)
+	query := fmt.Sprintf(`avg(rate(node_cpu_seconds_total{mode="idle", mode!="iowait", mode!="steal"%s}[5m])) * 100`, clusterFilter)
+	values, err := queryPrometheus(ctx, api, r, query)
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values, nil
+}
+
+func getNodesOverheadCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	clusterCompleteFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+		clusterCompleteFilter = fmt.Sprintf(`{cluster="%s"}`, clusterName)
+	}
+	query := fmt.Sprintf(`
+		100 * (
+			(1 - avg(rate(node_cpu_seconds_total{mode="idle", mode!="iowait", mode!="steal"%s}[5m]))) * SUM(machine_cpu_cores%s) 
+			- SUM(rate(container_cpu_usage_seconds_total{image!="", container!="POD", container!=""%s}[10m]))
+			) 
+		/ SUM(machine_cpu_cores%s)`,
+		clusterFilter, clusterCompleteFilter, clusterFilter, clusterCompleteFilter)
+	values, err := queryPrometheus(ctx, api, r, query)
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values, nil
+}
+
+func getNodesOverheadMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	clusterCompleteFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+		clusterCompleteFilter = fmt.Sprintf(`{cluster="%s"}`, clusterName)
+	}
+	query := fmt.Sprintf(`
+		100 * 
+		(
+			(1 - (SUM(avg_over_time(node_memory_MemAvailable_bytes%s[10m])) / SUM(avg_over_time(node_memory_MemTotal_bytes%s[10m])))) * SUM(machine_memory_bytes%s)
+			- SUM(container_memory_usage_bytes{image!="", container!="POD", container!=""%s})
+		)
+		/ SUM(machine_memory_bytes%s)`,
+		clusterCompleteFilter, clusterCompleteFilter, clusterCompleteFilter, clusterFilter, clusterCompleteFilter)
 	values, err := queryPrometheus(ctx, api, r, query)
 	if err != nil {
 		return model.Matrix{}, err
