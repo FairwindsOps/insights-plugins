@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.7
+* round prometheus metrics to 1 milli CPU
+
 ## 1.4.6
 * added overhead costs to prometheus plugin
 
