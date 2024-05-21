@@ -39,11 +39,17 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 		}
 		for _, cpu := range value.cpu {
 			timestamp := time.Unix(int64(cpu.Timestamp)/1000, 0)
+			var cpuValue int64
+			if cpu.Value > 0 && cpu.Value < 1.0 {
+				cpuValue = 1
+			} else {
+				cpuValue = int64(cpu.Value * 1000)
+			}
 			stats = append(stats, Statistics{
 				StartTime:  timestamp,
 				Owner:      value.Owner,
 				Metric:     "CPU",
-				Value:      int64(cpu.Value * 1000),
+				Value:      cpuValue,
 				Request:    int64(value.cpuRequest * 1000),
 				LimitValue: int64(value.cpuLimit * 1000),
 			})
