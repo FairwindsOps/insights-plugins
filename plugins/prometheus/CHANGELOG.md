@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.6
+* added overhead costs to prometheus plugin
+
 ## 1.4.5
 * google managed prometheus cluster filter
 
