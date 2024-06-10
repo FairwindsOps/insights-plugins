@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.5.6
+* bumped alpine image
+
 ## 5.5.5
 * bumped pluto to 5.19.4
 
