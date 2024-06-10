@@ -1,7 +1,7 @@
 # Changelog
 
 ## 5.5.6
-* bumped alpine image
+* bumped versions
 
 ## 5.5.5
 * bumped pluto to 5.19.4
