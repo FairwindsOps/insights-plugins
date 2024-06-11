@@ -346,3 +346,4 @@ workflows:
                 - main
     jobs:
       - build_and_push_plugins
+      - scan_for_vulnerabilities
