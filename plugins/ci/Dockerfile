@@ -1,7 +1,7 @@
 FROM alpine:3.19 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV tfsecVersion=1.28.6
+ENV tfsecVersion=1.28.5
 ENV trivyVersion=0.50.4
 ENV polarisVersion=9.0.0
 ENV plutoVersion=5.19.4

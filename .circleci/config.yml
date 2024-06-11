@@ -191,7 +191,6 @@ jobs:
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
-      #- run: ./scripts/scan-all.sh
       - run: |
           declare -a CHANGED_PLUGINS
           if [ "$CIRCLE_BRANCH" != "main" ]
@@ -200,7 +199,6 @@ jobs:
               CHANGED_PLUGINS+=($plugin)
             done
             ./scripts/scan-all.sh "$CIRCLE_BRANCH" "${CHANGED_PLUGINS[@]}"
-          fi
           else
             ./scripts/scan-all.sh
           fi

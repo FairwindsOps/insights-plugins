@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.29.1
+* update trivy version
+
 ## 0.29.0
 * update trivy version
 
