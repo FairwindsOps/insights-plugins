@@ -71,13 +71,11 @@ for name in "${images[@]}"; do
     if [[ $SKIP_TRIVY == "true" ]]; then
       break
     fi
-    # remove the tag version from the image name
-    name_without_tag=$(echo $name | sed "s/:.*//")
-  
+
+    name_without_tag=$(echo $name | sed "s/:.*//") 
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
-       echo "FINAL changed_plugins_map==== ${changed_plugins_map[${plugin_map[$name_without_tag]}]}"
       if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
-        name=$(echo $name | sed "s/:.*//"):$branch_name
+        name=$(echo $name_without_tag:$branch_name)
       fi
     fi
 
