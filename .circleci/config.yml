@@ -195,10 +195,13 @@ jobs:
           declare -a CHANGED_PLUGINS
           if [ "$CIRCLE_BRANCH" != "main" ]
           then
+            # print CHANGED array
+            echo "CHANGED array: ${CHANGED[@]}"  
             for plugin in "${CHANGED[@]}"; do
+              echo "adding changed............. $plugin"
               CHANGED_PLUGINS+=($plugin)
             done
-            ./scripts/scan-all.sh "$CIRCLE_BRANCH" "${CHANGED_PLUGINS[@]}"
+            ./scripts/scan-all.sh "$CIRCLE_BRANCH" ${CHANGED_PLUGINS[@]}
           else
             ./scripts/scan-all.sh
           fi
