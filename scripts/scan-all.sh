@@ -1,7 +1,7 @@
 #! /bin/bash
 set -eo pipefail
 
-declare -a changed_plugins=("${!1}")
+declare -a changed_plugins=$1
 declare branch_name=$2
 
 branch_name=$(echo $branch_name | sed 's/\//_/g')
