@@ -2,8 +2,7 @@
 set -eo pipefail
 
 declare branch_name=$1
-declare -a changed_plugins=$2
-
+declare -a changed_plugins=($2)
 
 branch_name=$(echo $branch_name | sed 's/\//-/g')
 
