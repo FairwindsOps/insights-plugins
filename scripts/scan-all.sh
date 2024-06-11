@@ -94,7 +94,7 @@ for name in "${images[@]}"; do
         echo "replacing version with branch name"
         name=$(echo $name | sed "s/:.*//"):$branch_name
       else
-        echo "inside 333333"
+        echo "inside 3333333"
       fi
     else
       echo "inside 44444"
