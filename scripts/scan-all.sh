@@ -1,8 +1,12 @@
 #! /bin/bash
 set -eo pipefail
 
-declare -a changed_plugins=$1
-declare branch_name=$2
+declare branch_name=$1
+declare -a changed_plugins=$2
+
+
+echo "branch_name: $branch_name"
+echo "changed_plugins: $changed_plugins"
 
 branch_name=$(echo $branch_name | sed 's/\//_/g')
 
@@ -87,6 +91,7 @@ for name in "${images[@]}"; do
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
        echo "inside 11111 ${plugin_map[$name_without_tag]}"
        echo "changed_plugins_map==== ${changed_plugins_map}"
+       echo "FINAL changed_plugins_map==== ${changed_plugins_map[${plugin_map[$name_without_tag]}]}"
       if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
         echo "inside 222222 "
         echo "replacing version with branch name"
