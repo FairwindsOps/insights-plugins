@@ -192,23 +192,18 @@ jobs:
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
       - set_tags
-      - run: |
-          declare -a CHANGED_PLUGINS
-          if [ "$CIRCLE_BRANCH" != "main" ]
-          then
-            # print CHANGED array
-            echo "CHANGED array===========> ${CHANGED[@]}"  
-            for plugin in "${CHANGED[@]}"; do
-              echo "adding changed............. $plugin"
-              CHANGED_PLUGINS+=($plugin)
-            done
-            #CHANGED_PLUGINS+=("ci")
-            #CHANGED_PLUGINS+=("trivy")
-            echo "CHANGED_PLUGINS array: ${CHANGED_PLUGINS[@]}"
-            ./scripts/scan-all.sh "$CIRCLE_BRANCH" "${CHANGED_PLUGINS[@]}"
-          else
-            ./scripts/scan-all.sh
-          fi
+      - run:
+          name: Scan for vulnerabilities
+          command: |
+            if [ "$CIRCLE_BRANCH" != "main" ]
+            then
+              # print CHANGED array
+              echo "CHANGED array===========> ${CHANGED[@]}"  
+              echo "CHANGED array: ${CHANGED[@]}"
+              ./scripts/scan-all.sh "$CIRCLE_BRANCH" "${CHANGED[@]}"
+            else
+              ./scripts/scan-all.sh
+            fi
       - run: |
           if ! git diff --exit-code fairwinds-insights.yaml; then
             echo "Please run `SKIP_TRIVY=true ./scripts/scan-all.sh` to regenerate fairwinds-insights.yaml"

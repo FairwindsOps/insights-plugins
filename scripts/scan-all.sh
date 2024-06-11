@@ -5,11 +5,7 @@ declare branch_name=$1
 declare -a changed_plugins=$2
 
 
-echo "branch_name: $branch_name"
-echo "changed_plugins: $changed_plugins"
-
 branch_name=$(echo $branch_name | sed 's/\//-/g')
-echo "branch_name updated: $branch_name"
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
 images=(quay.io/fairwinds/polaris:9.0 quay.io/fairwinds/nova:v3.9 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.19 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.11)
@@ -43,6 +39,7 @@ echo "changed_plugins: ${changed_plugins[@]}"
 
 declare -A changed_plugins_map
 for plugin in "${changed_plugins[@]}"; do
+  echo "map with plugin: $plugin"
   changed_plugins_map[$plugin]=1
 done
 
@@ -78,13 +75,7 @@ for name in "${images[@]}"; do
     fi
     # remove the tag version from the image name
     name_without_tag=$(echo $name | sed "s/:.*//")
-
-
-#    echo "plugin_map===== ${plugin_map}"
-#    echo "name ========== ${name}"
-#    echo "name_without_tag ========== ${name_without_tag}"
-#    echo "mapped========= ${plugin_map[$name_without_tag]}"
-   
+  
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
        echo "inside 11111 ${plugin_map[$name_without_tag]}"
        echo "changed_plugins_map==== ${changed_plugins_map}"
