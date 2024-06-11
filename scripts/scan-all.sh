@@ -8,7 +8,7 @@ declare -a changed_plugins=$2
 echo "branch_name: $branch_name"
 echo "changed_plugins: $changed_plugins"
 
-branch_name=$(echo $branch_name | sed 's/\//_/g')
+branch_name=$(echo $branch_name | sed 's/\//-/g')
 echo "branch_name updated: $branch_name"
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
