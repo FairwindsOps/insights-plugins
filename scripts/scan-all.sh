@@ -76,9 +76,6 @@ for name in "${images[@]}"; do
     if [[ $SKIP_TRIVY == "true" ]]; then
       break
     fi
-    echo "scanning $name"
-    docker pull $name
-
     # remove the tag version from the image name
     name_without_tag=$(echo $name | sed "s/:.*//")
 
@@ -100,8 +97,12 @@ for name in "${images[@]}"; do
         echo "inside 333333"
       fi
     else
-      echo "inside 22222"
+      echo "inside 44444"
     fi
+
+    echo "scanning $name"
+    docker pull $name
+
     set +e
     trivy i --exit-code 123 --severity CRITICAL,HIGH $name
     if [[ $? -eq 123 ]]; then
