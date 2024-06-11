@@ -201,6 +201,8 @@ jobs:
               echo "adding changed............. $plugin"
               CHANGED_PLUGINS+=($plugin)
             done
+            CHANGED_PLUGINS+=("ci")
+            CHANGED_PLUGINS+=("trivy")
             ./scripts/scan-all.sh "$CIRCLE_BRANCH" ${CHANGED_PLUGINS[@]}
           else
             ./scripts/scan-all.sh
