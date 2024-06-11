@@ -68,11 +68,13 @@ for name in "${images[@]}"; do
     docker pull $name
 
     # if image is in the changed_plugins array, replace version with branch name
-    if [[ -n ${changed_plugins_map[${plugin_map[$name]}]} ]]; then
-      echo "replacing version with branch name"
-      name=$(echo $name | sed "s/:.*//"):$branch_name
+    # handle error bad array subscript
+    if [[ -n ${plugin_map[$name]} ]]; then
+      if [[ -n ${changed_plugins_map[${plugin_map[$name]}]} ]]; then
+        echo "replacing version with branch name"
+        name=$(echo $name | sed "s/:.*//"):$branch_name
+      fi
     fi
-
     set +e
     trivy i --exit-code 123 --severity CRITICAL,HIGH $name
     if [[ $? -eq 123 ]]; then
