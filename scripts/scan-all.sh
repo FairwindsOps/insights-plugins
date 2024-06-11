@@ -80,10 +80,10 @@ for name in "${images[@]}"; do
     name_without_tag=$(echo $name | sed "s/:.*//")
 
 
-    echo "plugin_map===== ${plugin_map}"
-    echo "name ========== ${name}"
-    echo "name_without_tag ========== ${name_without_tag}"
-    echo "mapped========= ${plugin_map[$name_without_tag]}"
+#    echo "plugin_map===== ${plugin_map}"
+#    echo "name ========== ${name}"
+#    echo "name_without_tag ========== ${name_without_tag}"
+#    echo "mapped========= ${plugin_map[$name_without_tag]}"
    
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
        echo "inside 11111 ${plugin_map[$name_without_tag]}"
