@@ -67,13 +67,22 @@ for name in "${images[@]}"; do
     echo "scanning $name"
     docker pull $name
 
-    # if image is in the changed_plugins array, replace version with branch name
-    # handle error bad array subscript
+    echo "plugin_map===== ${plugin_map}"
+    echo "name ========== ${name}"
+    echo "mapped========= ${plugin_map[$name]}"
+   
     if [[ -n ${plugin_map[$name]} ]]; then
+       echo "inside 11111 ${plugin_map[$name]}"
+       echo "changed_plugins_map==== ${changed_plugins_map}"
       if [[ -n ${changed_plugins_map[${plugin_map[$name]}]} ]]; then
+        echo "inside 222222 "
         echo "replacing version with branch name"
         name=$(echo $name | sed "s/:.*//"):$branch_name
+      else
+        echo "inside 333333"
       fi
+    else
+      echo "inside 22222"
     fi
     set +e
     trivy i --exit-code 123 --severity CRITICAL,HIGH $name
