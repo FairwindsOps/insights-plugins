@@ -32,8 +32,13 @@ for name in "${images[@]}"; do
   echo -e "    - $name" >> ./fairwinds-insights.yaml
 done
 
+
+# print changed_plugins
+echo "changed_plugins: ${changed_plugins[@]}"
+
 declare -A changed_plugins_map
 for plugin in "${changed_plugins[@]}"; do
+  echo "changed plugin============: $plugin"
   changed_plugins_map[$plugin]=1
 done
 
@@ -59,6 +64,9 @@ plugin_map["quay.io/fairwinds/insights-uploader"]="uploader"
 plugin_map["quay.io/fairwinds/insights-utils"]="utils"
 plugin_map["quay.io/fairwinds/workloads"]="workloads"
 
+# print plugin_map
+echo "plugin_map: ${plugin_map[@]}"
+
 echo "scanning all images"
 for name in "${images[@]}"; do
     if [[ $SKIP_TRIVY == "true" ]]; then
@@ -74,7 +82,7 @@ for name in "${images[@]}"; do
     echo "plugin_map===== ${plugin_map}"
     echo "name ========== ${name}"
     echo "name_without_tag ========== ${name_without_tag}"
-    echo "mapped========= ${plugin_map[$name]}"
+    echo "mapped========= ${plugin_map[$name_without_tag]}"
    
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
        echo "inside 11111 ${plugin_map[$name_without_tag]}"
