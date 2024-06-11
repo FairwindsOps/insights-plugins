@@ -191,7 +191,16 @@ jobs:
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
-      - run: ./scripts/scan-all.sh
+      - set_tags
+      - run:
+          name: Scan for vulnerabilities
+          command: |
+            if [ "$CIRCLE_BRANCH" != "main" ]
+            then
+              ./scripts/scan-all.sh $CIRCLE_BRANCH "${CHANGED[*]}"
+            else
+              ./scripts/scan-all.sh
+            fi
       - run: |
           if ! git diff --exit-code fairwinds-insights.yaml; then
             echo "Please run `SKIP_TRIVY=true ./scripts/scan-all.sh` to regenerate fairwinds-insights.yaml"
@@ -337,3 +346,4 @@ workflows:
                 - main
     jobs:
       - build_and_push_plugins
+      - scan_for_vulnerabilities
