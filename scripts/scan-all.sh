@@ -43,7 +43,6 @@ echo "changed_plugins: ${changed_plugins[@]}"
 
 declare -A changed_plugins_map
 for plugin in "${changed_plugins[@]}"; do
-  echo "changed plugin============: $plugin"
   changed_plugins_map[$plugin]=1
 done
 
