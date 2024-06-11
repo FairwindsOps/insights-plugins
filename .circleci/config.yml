@@ -191,7 +191,19 @@ jobs:
       - set_environment_variables
       - setup_remote_docker
       - run: ./.circleci/scripts/install-trivy.sh
-      - run: ./scripts/scan-all.sh
+      #- run: ./scripts/scan-all.sh
+      - run: |
+          declare -a CHANGED_PLUGINS
+          if [ "$CIRCLE_BRANCH" != "main" ]
+          then
+            for plugin in "${CHANGED[@]}"; do
+              CHANGED_PLUGINS+=($plugin)
+            done
+            ./scripts/scan.sh "$CIRCLE_BRANCH" "${CHANGED_PLUGINS[@]}"
+          fi
+          else
+            ./scripts/scan.sh
+          fi
       - run: |
           if ! git diff --exit-code fairwinds-insights.yaml; then
             echo "Please run `SKIP_TRIVY=true ./scripts/scan-all.sh` to regenerate fairwinds-insights.yaml"
