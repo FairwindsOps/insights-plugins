@@ -67,14 +67,19 @@ for name in "${images[@]}"; do
     echo "scanning $name"
     docker pull $name
 
+    # remove the tag version from the image name
+    name_without_tag=$(echo $name | sed "s/:.*//")
+
+
     echo "plugin_map===== ${plugin_map}"
     echo "name ========== ${name}"
+    echo "name_without_tag ========== ${name_without_tag}"
     echo "mapped========= ${plugin_map[$name]}"
    
-    if [[ -n ${plugin_map[$name]} ]]; then
-       echo "inside 11111 ${plugin_map[$name]}"
+    if [[ -n ${plugin_map[$name_without_tag]} ]]; then
+       echo "inside 11111 ${plugin_map[$name_without_tag]}"
        echo "changed_plugins_map==== ${changed_plugins_map}"
-      if [[ -n ${changed_plugins_map[${plugin_map[$name]}]} ]]; then
+      if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
         echo "inside 222222 "
         echo "replacing version with branch name"
         name=$(echo $name | sed "s/:.*//"):$branch_name
