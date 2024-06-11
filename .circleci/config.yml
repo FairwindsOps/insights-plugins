@@ -199,7 +199,7 @@ jobs:
             then
               # print CHANGED array
               echo "CHANGED array===========> ${CHANGED[@]}"  
-              ./scripts/scan-all.sh "$CIRCLE_BRANCH" ${CHANGED[@]}
+              ./scripts/scan-all.sh "$CIRCLE_BRANCH" ${CHANGED}
             else
               ./scripts/scan-all.sh
             fi
