@@ -33,8 +33,6 @@ for name in "${images[@]}"; do
   echo -e "    - $name" >> ./fairwinds-insights.yaml
 done
 
-
-# print changed_plugins
 echo "changed_plugins: ${changed_plugins[@]}"
 
 declare -A changed_plugins_map
@@ -77,18 +75,10 @@ for name in "${images[@]}"; do
     name_without_tag=$(echo $name | sed "s/:.*//")
   
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
-       echo "inside 11111 ${plugin_map[$name_without_tag]}"
-       echo "changed_plugins_map==== ${changed_plugins_map}"
        echo "FINAL changed_plugins_map==== ${changed_plugins_map[${plugin_map[$name_without_tag]}]}"
       if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
-        echo "inside 222222 "
-        echo "replacing version with branch name"
         name=$(echo $name | sed "s/:.*//"):$branch_name
-      else
-        echo "inside 3333333"
       fi
-    else
-      echo "inside 44444"
     fi
 
     echo "scanning $name"

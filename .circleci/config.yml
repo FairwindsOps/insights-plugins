@@ -198,8 +198,9 @@ jobs:
             if [ "$CIRCLE_BRANCH" != "main" ]
             then
               # print CHANGED array
-              echo "CHANGED array===========> ${CHANGED[@]}"  
-              ./scripts/scan-all.sh "$CIRCLE_BRANCH" [${CHANGED}]
+              echo "CHANGED array===========> ${CHANGED[@]}" 
+              # pass  circelci env variable to script and changed array
+              ./scripts/scan-all.sh $CIRCLE_BRANCH "${CHANGED[@]}"
             else
               ./scripts/scan-all.sh
             fi
