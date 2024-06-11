@@ -203,6 +203,7 @@ jobs:
             done
             CHANGED_PLUGINS+=("ci")
             CHANGED_PLUGINS+=("trivy")
+            echo "CHANGED_PLUGINS array: ${CHANGED_PLUGINS[@]}"
             ./scripts/scan-all.sh "$CIRCLE_BRANCH" ${CHANGED_PLUGINS[@]}
           else
             ./scripts/scan-all.sh
