@@ -199,10 +199,10 @@ jobs:
             for plugin in "${CHANGED[@]}"; do
               CHANGED_PLUGINS+=($plugin)
             done
-            ./scripts/scan.sh "$CIRCLE_BRANCH" "${CHANGED_PLUGINS[@]}"
+            ./scripts/scan-all.sh "$CIRCLE_BRANCH" "${CHANGED_PLUGINS[@]}"
           fi
           else
-            ./scripts/scan.sh
+            ./scripts/scan-all.sh
           fi
       - run: |
           if ! git diff --exit-code fairwinds-insights.yaml; then
