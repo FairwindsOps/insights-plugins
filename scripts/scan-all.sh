@@ -59,9 +59,6 @@ plugin_map["quay.io/fairwinds/insights-uploader"]="uploader"
 plugin_map["quay.io/fairwinds/insights-utils"]="utils"
 plugin_map["quay.io/fairwinds/workloads"]="workloads"
 
-# print plugin_map
-echo "plugin_map: ${plugin_map[@]}"
-
 echo "scanning all images"
 for name in "${images[@]}"; do
     if [[ $SKIP_TRIVY == "true" ]]; then
