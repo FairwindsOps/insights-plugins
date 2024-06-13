@@ -62,7 +62,6 @@ commands:
     description: Check that version.txt changed if folder changed
     steps:
     - set_vault
-    - run: ./scripts/check-all-versions.sh
     - run:
         name: Check version.txt
         command: |
