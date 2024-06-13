@@ -38,7 +38,6 @@ rewrites["aws-costs"]="awscosts"
 rewrites["falco-agent"]="falco"
 rewrites["kube-bench-aggregator"]="kube-bench.aggregator"
 rewrites["prometheus"]="prometheus-metrics"
-rewrites["right-sizer"]="insights-right-sizer"
 
 for proj in ${plugin_projects[@]}; do
   latest_versions[$proj]=$(cat ../plugins/$proj/version.txt)
@@ -51,6 +50,9 @@ used_versions["admission"]=$(yq e ".appVersion" ./charts/stable/insights-admissi
 
 latest_versions["admission-chart"]=$(yq e ".version" ./charts/stable/insights-admission/Chart.yaml)
 used_versions["admission-chart"]=$(yq e ".dependencies[] | select(.name == \"insights-admission\").version" ./charts/stable/insights-agent/requirements.yaml)
+
+#right-sizer version is oom-detection tag inside right-sizer
+used_versions["right-sizer"]=$(yq e ".right-sizer.oom-detection.image.tag" $values_file)
 
 all_projects=( admission admission-chart )
 all_projects+=(${cloned_projects[@]})
