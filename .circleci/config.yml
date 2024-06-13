@@ -62,6 +62,7 @@ commands:
     description: Check that version.txt changed if folder changed
     steps:
     - set_vault
+    - run: ./scripts/check-all-versions.sh
     - run:
         name: Check version.txt
         command: |
@@ -296,7 +297,6 @@ workflows:
     jobs:
       - test
       - check_version_changed
-      - run: ./scripts/check-all-versions.sh
       - validate_modified_opa_policies:
           name: Validate Modified OPA Policies
           requires:
