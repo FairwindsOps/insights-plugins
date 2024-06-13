@@ -54,8 +54,6 @@ used_versions["admission-chart"]=$(yq e ".dependencies[] | select(.name == \"ins
 #right-sizer version is oom-detection tag inside right-sizer
 used_versions["right-sizer"]=$(yq e ".right-sizer.oom-detection.image.tag" $values_file)
 
-
-
 all_projects=( admission admission-chart )
 all_projects+=(${cloned_projects[@]})
 all_projects+=(${plugin_projects[@]})
