@@ -4,7 +4,7 @@ set -eo pipefail
 declare branch_name=$1
 declare -a changed_plugins=($2)
 
-branch_name=$(echo $branch_name | sed 's/\//-/g')
+branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
 images=(quay.io/fairwinds/polaris:9.0 quay.io/fairwinds/nova:v3.9 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.19 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.11)
