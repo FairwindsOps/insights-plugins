@@ -68,24 +68,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName)
+	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName, skipNonZeroMetricsValidation)
 	if err != nil {
 		panic(err)
 	}
 	logrus.Infof("Got %d metrics", len(res))
 	stats := data.CalculateStatistics(res)
-
-	if !skipNonZeroMetricsValidation {
-		err = verifyIfAllSettingsAreZero(stats)
-		if err != nil {
-			logrus.Fatal("kube-state-metrics error: ", err)
-		}
-
-		err = verifyIfAllValuesAreZero(stats)
-		if err != nil {
-			logrus.Fatal("kubelet/cAdvisor error: ", err)
-		}
-	}
 
 	nodesMetrics, err := data.GetNodesMetrics(context.Background(), dynamic, restMapper, client, clusterName)
 	if err != nil {
@@ -146,25 +134,4 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, error) {
 	}
 	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
 	return dynamicClient, restMapper, nil
-}
-
-func verifyIfAllSettingsAreZero(stats []data.Statistics) error {
-	for _, stat := range stats {
-		if stat.Request != 0 {
-			return nil
-		}
-		if stat.LimitValue != 0 {
-			return nil
-		}
-	}
-	return fmt.Errorf("all settings are nil. It is likely that the data is not being collected correctly. Verify kube-state-metrics is running and the Prometheus configuration is correct")
-}
-
-func verifyIfAllValuesAreZero(stats []data.Statistics) error {
-	for _, stat := range stats {
-		if stat.Value != 0 {
-			return nil
-		}
-	}
-	return fmt.Errorf("all values are zero. It is likely that the data is not being collected correctly. Verify Kubelet/cAdvisor metrics are being collected correctly")
 }

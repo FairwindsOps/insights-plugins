@@ -135,43 +135,61 @@ func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restM
 }
 
 // GetMetrics returns the memory/cpu and requests for each container running in the cluster.
-func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API, clusterName string) ([]CombinedRequest, error) {
+func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API, clusterName string, skipNonZeroMetricsValidation bool) ([]CombinedRequest, error) {
 	r := getRange()
 	memory, err := getMemory(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for memory", len(memory))
+	if !skipNonZeroMetricsValidation && len(memory) == 0 {
+		return nil, fmt.Errorf("No memory metrics found. It is likely that the data is not being collected correctly. Verify Kubelet/cAdvisor metrics are being collected correctly")
+	}
 
 	cpu, err := getCPU(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for cpu", len(cpu))
+	if !skipNonZeroMetricsValidation && len(cpu) == 0 {
+		return nil, fmt.Errorf("No cpu metrics found. It is likely that the data is not being collected correctly. Verify Kubelet/cAdvisor metrics are being collected correctly")
+	}
 
 	memoryRequest, err := getMemoryRequests(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for memoryRequests", len(memoryRequest))
+	if !skipNonZeroMetricsValidation && len(memoryRequest) == 0 {
+		return nil, fmt.Errorf("No memory request metrics found. It is likely that the data is not being collected correctly. Verify kube-state-metrics is running and the Prometheus configuration is correct")
+	}
 
 	cpuRequest, err := getCPURequests(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for cpuRequests", len(cpuRequest))
+	if !skipNonZeroMetricsValidation && len(cpuRequest) == 0 {
+		return nil, fmt.Errorf("No cpu request metrics found. It is likely that the data is not being collected correctly. Verify kube-state-metrics is running and the Prometheus configuration is correct")
+	}
 
 	memoryLimits, err := getMemoryLimits(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for memoryLimits", len(memoryLimits))
+	if !skipNonZeroMetricsValidation && len(memoryLimits) == 0 {
+		return nil, fmt.Errorf("No memory limit metrics found. It is likely that the data is not being collected correctly. Verify kube-state-metrics is running and the Prometheus configuration is correct")
+	}
 
 	cpuLimits, err := getCPULimits(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Infof("Found %d metrics for cpuLimits", len(cpuLimits))
+	if !skipNonZeroMetricsValidation && len(cpuLimits) == 0 {
+		return nil, fmt.Errorf("No cpu limit metrics found. It is likely that the data is not being collected correctly. Verify kube-state-metrics is running and the Prometheus configuration is correct")
+	}
 
 	networkTransmit, err := getNetworkTransmitBytesFor30s(ctx, api, r, minutesToCalculateNetworkIncrease, clusterName)
 	if err != nil {
