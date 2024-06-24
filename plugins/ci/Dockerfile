@@ -21,7 +21,7 @@ FROM alpine:3.20
 WORKDIR /insights
 RUN apk -U upgrade
 RUN apk add --no-cache skopeo libc6-compat
-RUN apk add --no-cache git=2.43.4-r0
+RUN apk add --no-cache git=2.45.2
 
 RUN mkdir -p /output/tmp
 COPY insights-ci /usr/local/bin
