@@ -45,8 +45,6 @@ func main() {
 	clusterName := os.Getenv("CLUSTER_NAME")
 	skipNonZeroMetricsValidation := strings.ToLower(os.Getenv("SKIP_NON_ZERO_METRICS_CHECK")) == "true"
 
-	logrus.Info("skipNonZeroMetricsValidation======", skipNonZeroMetricsValidation)
-
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
 		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
