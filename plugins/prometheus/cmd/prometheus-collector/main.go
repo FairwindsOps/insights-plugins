@@ -77,14 +77,12 @@ func main() {
 	if !skipNonZeroMetricsValidation {
 		err = verifyIfAllSettingsAreZero(stats)
 		if err != nil {
-			logrus.Error("kube-state-metrics error: ", err)
-			panic(err)
+			logrus.Fatal("kube-state-metrics error: ", err)
 		}
 
 		err = verifyIfAllValuesAreZero(stats)
 		if err != nil {
-			logrus.Error("kubelet/cAdvisor error: ", err)
-			panic(err)
+			logrus.Fatal("kubelet/cAdvisor error: ", err)
 		}
 	}
 
