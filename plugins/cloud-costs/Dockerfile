@@ -8,11 +8,13 @@ RUN apk update && apk upgrade
 RUN apk add jq bash curl moreutils coreutils
 RUN apk add unzip
 
-ENV google_cloud_sdk_version=400.0.0 
+ENV google_cloud_sdk_version=481.0.0 
 
 RUN apk add python3
 
 RUN apk add --no-cache aws-cli
+
+RUN python3 --version
 
 RUN if [ "${TARGETARCH}" = "arm64" ] ; then googleArch="arm"; else googleArch="x86_64"; fi && \
     curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${google_cloud_sdk_version}-${TARGETOS}-${googleArch}.tar.gz -o "google-cloud-sdk.tar.gz" && \
