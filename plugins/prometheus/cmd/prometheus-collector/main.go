@@ -43,6 +43,7 @@ func main() {
 		panic("prometheus-metrics.address must be set")
 	}
 	clusterName := os.Getenv("CLUSTER_NAME")
+	skipNonZeroMetricsValidation := strings.ToLower(os.Getenv("SKIP_NON_ZERO_METRICS_CHECK")) == "true"
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
 		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
@@ -73,16 +74,18 @@ func main() {
 	logrus.Infof("Got %d metrics", len(res))
 	stats := data.CalculateStatistics(res)
 
-	err = verifyIfAllSettingsAreZero(stats)
-	if err != nil {
-		logrus.Error("kube-state-metrics error: ", err)
-		panic(err)
-	}
+	if !skipNonZeroMetricsValidation {
+		err = verifyIfAllSettingsAreZero(stats)
+		if err != nil {
+			logrus.Error("kube-state-metrics error: ", err)
+			panic(err)
+		}
 
-	err = verifyIfAllValuesAreZero(stats)
-	if err != nil {
-		logrus.Error("kubelet/cAdvisor error: ", err)
-		panic(err)
+		err = verifyIfAllValuesAreZero(stats)
+		if err != nil {
+			logrus.Error("kubelet/cAdvisor error: ", err)
+			panic(err)
+		}
 	}
 
 	nodesMetrics, err := data.GetNodesMetrics(context.Background(), dynamic, restMapper, client, clusterName)
