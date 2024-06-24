@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.8
+* added all-zero validation for ksm and cAdvisor
+
 ## 1.4.7
 * round prometheus metrics to 1 milli CPU
 
