@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.5
+* Bump alpine to 3.20
+
 ## 0.5.4
 * Changed curl option to --data-binary to support big files
 

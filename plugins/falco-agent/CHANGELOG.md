@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.8
+* Bump alpine to 3.20
+
 ## 0.3.7
 * update dependencies
 
