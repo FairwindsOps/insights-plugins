@@ -1,7 +1,7 @@
 # Changelog
 
 ## 5.5.7
-* Bump alpine to 3.19
+* Bump alpine to 3.20
 
 ## 5.5.6
 * bumped versions
