@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.0
+* added all-zero validation for ksm and cAdvisor
+
 ## 1.4.8
 * Bump alpine to 3.20
 

@@ -20,10 +20,6 @@ import (
 // CalculateStatistics finds the max/min/avg for a set of data points by hour
 func CalculateStatistics(values []CombinedRequest) []Statistics {
 	stats := make([]Statistics, 0)
-	type memCPU struct {
-		memoryArray []float64
-		cpuArray    []float64
-	}
 	for _, value := range values {
 		for _, mem := range value.memory {
 			timestamp := time.Unix(int64(mem.Timestamp)/1000, 0)
