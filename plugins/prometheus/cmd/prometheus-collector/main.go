@@ -43,6 +43,8 @@ func main() {
 		panic("prometheus-metrics.address must be set")
 	}
 	clusterName := os.Getenv("CLUSTER_NAME")
+	skipNonZeroMetricsValidation := strings.ToLower(os.Getenv("SKIP_NON_ZERO_METRICS_CHECK")) == "true"
+
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
 		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
@@ -66,7 +68,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName)
+	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName, skipNonZeroMetricsValidation)
 	if err != nil {
 		panic(err)
 	}
