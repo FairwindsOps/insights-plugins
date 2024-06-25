@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.3
+* Bump alpine to 3.20
+
 ## 1.15.2
 * bumped pluto to 5.19.4
 

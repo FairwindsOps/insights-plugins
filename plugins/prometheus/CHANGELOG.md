@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.8
+* Bump alpine to 3.20
+
 ## 1.4.7
 * round prometheus metrics to 1 milli CPU
 
