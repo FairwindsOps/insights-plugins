@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.8
+* Bump alpine to 3.20
+
 ## 2.6.7
 * update dependencies
 
@@ -114,12 +117,12 @@
 
 ## 2.2.2
 * Bump alpine to 3.15
+
 ## 2.2.1
 * Bump go modules
 
 ## 2.2.0
 * Start using controller-utils to get all top workloads.
-
 
 ## 2.1.7
 * rebuild to fix CVEs in alpine:3.14

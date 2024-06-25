@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.29.1
+* Bump alpine to 3.20
+
 ## 0.29.0
 * update trivy version
 
