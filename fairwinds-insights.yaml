@@ -1,13 +1,7 @@
 options:
-options:
-  organization: fairwinds-production
   organization: fairwinds-production
   baseBranch: main
-  baseBranch: main
 # run ./scripts/scan-all.sh to regenerate
-# run ./scripts/scan-all.sh to regenerate
-images:
-images:
 images:
   docker:
     - quay.io/fairwinds/polaris:9.0
