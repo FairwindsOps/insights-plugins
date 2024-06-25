@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.5
+* Bump alpine to 3.20
+
 ## 0.3.4
 * refactoring docker file to remove vulnerabilities
 

@@ -4,7 +4,7 @@ set -eo pipefail
 declare branch_name=$1
 declare -a changed_plugins=($2)
 
-branch_name=$(echo $branch_name | sed 's/\//-/g')
+branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
 images=(quay.io/fairwinds/polaris:9.0 quay.io/fairwinds/nova:v3.9 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.19 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.11)
@@ -43,14 +43,14 @@ plugin_map["quay.io/fairwinds/insights-admission-controller"]="admission"
 plugin_map["quay.io/fairwinds/aws-costs"]="aws-costs"
 plugin_map["quay.io/fairwinds/insights-ci"]="ci"
 plugin_map["quay.io/fairwinds/cloud-costs"]="cloud-costs"
-plugin_map["quay.io/fairwinds/falco-agent"]="falco"
+plugin_map["quay.io/fairwinds/falco-agent"]="falco-agent"
 plugin_map["quay.io/fairwinds/fw-kube-bench-aggregator"]="kube-bench-aggregator"
 plugin_map["quay.io/fairwinds/fw-kube-bench"]="kube-bench"
 plugin_map["quay.io/fairwinds/kubectl"]="kubectl"
 plugin_map["quay.io/fairwinds/fw-kubesec"]="kubesec"
 plugin_map["quay.io/fairwinds/kyverno"]="kyverno"
 plugin_map["quay.io/fairwinds/fw-opa"]="opa"
-plugin_map["quay.io/fairwinds/postgres-partman"]="postgres"
+plugin_map["quay.io/fairwinds/postgres-partman"]="postgres-partman"
 plugin_map["quay.io/fairwinds/prometheus-collector"]="prometheus"
 plugin_map["quay.io/fairwinds/rbac-reporter"]="rbac-reporter"
 plugin_map["quay.io/fairwinds/right-sizer"]="right-sizer"
