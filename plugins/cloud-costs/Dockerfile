@@ -15,15 +15,14 @@ RUN apk add python3
 RUN apk add --no-cache aws-cli
 
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
-        googleArch="arm"; \ 
-    else \ 
-        googleArch="x86_64"; \ 
+        googleArch="arm"; \
+    else \
+        googleArch="x86_64"; \
     fi && \
     curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${google_cloud_sdk_version}-${TARGETOS}-${googleArch}.tar.gz -o "google-cloud-sdk.tar.gz" && \
     tar -xvf google-cloud-sdk.tar.gz && \
     ./google-cloud-sdk/install.sh && \
     ./google-cloud-sdk/bin/gcloud components install bq && \
-    rm ./google-cloud-sdk/bin/anthoscli && \
     rm -rf /google-cloud-sdk/lib/googlecloudsdk/third_party /google-cloud-sdk/platform/gsutil/third_party /google-cloud-sdk/lib/googlecloudsdk/generated_clients/apis/appengine && \
     rm -rf google-cloud-sdk.tar.gz
 
