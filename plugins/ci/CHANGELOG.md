@@ -1,8 +1,5 @@
 # Changelog
 
-## 5.5.9
-* Fixed CI vulnerability
-
 ## 5.5.8
 * Fixed CI vulnerability
 
