@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.5.9
+* Bumped trivy version
+
 ## 5.5.8
 * Fixed CI vulnerability
 
