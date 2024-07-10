@@ -11,9 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ScoreOutOfBoundsMessage is the message for the error when the score returned by Insights is out of bounds.
-const ScoreOutOfBoundsMessage = "score out of bounds"
-
 // Resource represents a Kubernetes resource with information about what file it came from.
 type Resource struct {
 	Kind       string
@@ -21,15 +18,15 @@ type Resource struct {
 	Filename   string
 	Namespace  string
 	HelmName   string
+	Labels     map[string]string
 	Containers []string
 }
 
 // ReportInfo is the information about a run of one of the reports.
 type ReportInfo struct {
-	Report        string
-	Version       string
-	Filename      string
-	FilesModified []string
+	Report   string
+	Version  string
+	Filename string
 }
 
 // Configuration is a struct representing the config options for Insights CI/CD

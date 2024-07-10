@@ -146,7 +146,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 					if !ok {
 						logrus.Warningf("Found a malformed YAML list item at %s", path+info.Name())
 					}
-					_, kind, name, namespace := util.ExtractMetadata(obj)
+					_, kind, name, namespace, labels := util.ExtractMetadata(obj)
 					if kind == "" {
 						logrus.Warningf("Found a YAML list item without kind at %s", path+info.Name())
 						continue
@@ -161,6 +161,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 						Kind:      kind,
 						Name:      name,
 						Namespace: namespace,
+						Labels:    labels,
 						Filename:  displayFilename,
 						HelmName:  helmName,
 						Containers: lo.Map(containers, func(c models.Container, _ int) string {
@@ -169,7 +170,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 					})
 				}
 			} else {
-				_, kind, name, namespace := util.ExtractMetadata(yamlNode)
+				_, kind, name, namespace, labels := util.ExtractMetadata(yamlNode)
 				if kind == "" {
 					logrus.Warningf("Found a YAML file without kind at %s", path+info.Name())
 					continue
@@ -184,6 +185,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 					Kind:      kind,
 					Name:      name,
 					Namespace: namespace,
+					Labels:    labels,
 					Filename:  displayFilename,
 					HelmName:  helmName,
 					Containers: lo.Map(containers, func(c models.Container, _ int) string {
@@ -257,7 +259,7 @@ func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, er
 }
 
 func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
-	_, kind, name, namespace := util.ExtractMetadata(yamlNode)
+	_, kind, name, namespace, _ := util.ExtractMetadata(yamlNode)
 	if kind == "" || name == "" {
 		return nil, nil
 	}
@@ -268,10 +270,10 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 			Name: c.Image,
 			Owners: []trivymodels.Resource{
 				{
-					Kind:      kind,
-					Container: c.Name,
 					Name:      name,
+					Kind:      kind,
 					Namespace: namespace,
+					Container: c.Name,
 				},
 			},
 		}
