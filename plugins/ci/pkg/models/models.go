@@ -38,6 +38,17 @@ type Configuration struct {
 	Reports   reportsConfig   `yaml:"reports"`
 }
 
+func (c *Configuration) String() string {
+	if c == nil {
+		return "nil"
+	}
+	b, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("error marshalling config: %v", err)
+	}
+	return string(b)
+}
+
 // ManifestConfig is a struct representing the config options for Manifests
 type ManifestConfig struct {
 	YamlPaths []string     `yaml:"yaml"`
