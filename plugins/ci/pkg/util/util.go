@@ -5,16 +5,25 @@ import (
 	"strings"
 )
 
-func ExtractMetadata(obj map[string]interface{}) (string, string, string, string) {
-	kind, _ := obj["kind"].(string)
-	apiVersion, _ := obj["apiVersion"].(string)
-	metadata, ok := obj["metadata"].(map[string]interface{})
+func ExtractMetadata(obj map[string]any) (apiVersion, kind, name, namespace string, labels map[string]string) {
+	kind, _ = obj["kind"].(string)
+	apiVersion, _ = obj["apiVersion"].(string)
+	metadata, ok := obj["metadata"].(map[string]any)
 	if !ok {
-		return apiVersion, kind, "", ""
+		return apiVersion, kind, "", "", nil
 	}
-	name, _ := metadata["name"].(string)
-	namespace, _ := metadata["namespace"].(string)
-	return apiVersion, kind, name, namespace
+	name, _ = metadata["name"].(string)
+	namespace, _ = metadata["namespace"].(string)
+	labelsMap, ok := metadata["labels"].(map[string]any)
+	if ok && len(labelsMap) > 0 {
+		labels = make(map[string]string, len(labelsMap))
+		for k, v := range labelsMap {
+			if s, ok := v.(string); ok {
+				labels[k] = s
+			}
+		}
+	}
+	return apiVersion, kind, name, namespace, labels
 }
 
 // GetRepoDetails splits the repo name
@@ -26,7 +35,7 @@ func GetRepoDetails(repositoryName string) (owner, repoName string) {
 	return "", repositoryName
 }
 
-// ExactlyOneOf looks for atleast one occurance.
+// ExactlyOneOf looks for at least one occurrence.
 func ExactlyOneOf(inputs ...bool) bool {
 	foundAtLeastOne := false
 	for _, input := range inputs {
@@ -68,7 +77,7 @@ func RemoveTokensAndPassword(s string) string {
 	return s
 }
 
-func PrettyPrint(i interface{}) string {
+func PrettyPrint(i any) string {
 	s, _ := json.Marshal(i)
 	return string(s)
 }
