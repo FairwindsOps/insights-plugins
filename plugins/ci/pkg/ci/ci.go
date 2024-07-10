@@ -454,7 +454,7 @@ func getDefaultConfiguration() (string, string, *models.Configuration, error) {
 		return "", "", nil, err
 	}
 	config.SetPathDefaults()
-	logrus.Infof("Running with configuration %#v", config)
+	logrus.Infof("Running with configuration: %s", config)
 	err = config.CheckForErrors()
 	if err != nil {
 		return "", "", nil, fmt.Errorf("Error parsing fairwinds-insights.yaml: %v", err)
