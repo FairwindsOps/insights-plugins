@@ -42,7 +42,7 @@ func (c *Configuration) String() string {
 	if c == nil {
 		return "nil"
 	}
-	b, err := json.MarshalIndent(c, "", "  ")
+	b, err := json.Marshal(c)
 	if err != nil {
 		return fmt.Sprintf("error marshalling config: %v", err)
 	}
