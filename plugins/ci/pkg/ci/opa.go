@@ -85,7 +85,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 
 	kube.SetFileClient(files)
 	for fileNumber, nodeMap := range files {
-		apiVersion, resourceKind, resourceName, namespace := util.ExtractMetadata(nodeMap)
+		apiVersion, resourceKind, resourceName, namespace, _ := util.ExtractMetadata(nodeMap)
 		apiGroup := strings.Split(apiVersion, "/")[0]
 		newActionItems, err := processObject(ctx, nodeMap, resourceName, resourceKind, apiGroup, namespace, instances, checks)
 		if err != nil {

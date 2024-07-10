@@ -8,12 +8,13 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
 )
 
-const workloadsReportVersion = "0.1.0"
+const workloadsReportVersion = "0.2.0"
 
 func (ci *CIScan) GetWorkloadReport(resources []models.Resource) (*models.ReportInfo, error) {
 	workloadsReport := models.ReportInfo{
 		Report:   "scan-workloads",
 		Filename: "scan-workloads.json",
+		Version:  workloadsReportVersion,
 	}
 	resourceBytes, err := json.Marshal(map[string]interface{}{"Resources": resources})
 	if err != nil {
@@ -23,7 +24,5 @@ func (ci *CIScan) GetWorkloadReport(resources []models.Resource) (*models.Report
 	if err != nil {
 		return nil, err
 	}
-
-	workloadsReport.Version = workloadsReportVersion
 	return &workloadsReport, nil
 }
