@@ -11,12 +11,7 @@ RUN apk add unzip
 ENV google_cloud_sdk_version=481.0.0 
 
 RUN apk add python3
-
-RUN apt-get update 
-RUN apt-get install py3-setuptools=70.0.0
-RUN apk upgrade
-RUN apk add py3-setuptools=70.0.0
-RUN apk upgrade
+RUN apk add py3-setuptools=70.3.0
 
 RUN apk add --no-cache aws-cli
 
