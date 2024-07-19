@@ -7,7 +7,7 @@ replace github.com/fairwindsops/insights-plugins/plugins/admission => ./
 replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
 
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240214152350-40f728c8f865
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-00010101000000-000000000000
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v5 v5.19.4
