@@ -33,8 +33,8 @@ func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]int
 	return nil, nil
 }
 
-func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo *InsightsInfo) *rego.Rego {
-	return rego.New(
+func GetRegoQuery(body string, dataFn KubeDataFunction, opaCustomLibs map[string]string, insightsInfo *InsightsInfo) *rego.Rego {
+	opts := []func(r *rego.Rego){
 		rego.Query("results = data"),
 		rego.Module("fairwinds", body),
 		rego.Function2(
@@ -42,17 +42,24 @@ func GetRegoQuery(body string, dataFn KubeDataFunction, insightsInfo *InsightsIn
 				Name: "kubernetes",
 				Decl: types.NewFunction(types.Args(types.S, types.S), types.A),
 			},
-			getDataFunction(dataFn.GetData)),
+			getDataFunction(dataFn.GetData),
+		),
 		rego.Function1(
 			&rego.Function{
 				Name: "insightsinfo",
 				Decl: types.NewFunction(types.Args(types.S), types.A),
 			},
-			GetInsightsInfoFunction(insightsInfo)))
+			GetInsightsInfoFunction(insightsInfo),
+		),
+	}
+	for name, regoDef := range opaCustomLibs {
+		opts = append(opts, rego.Module(name, regoDef))
+	}
+	return rego.New(opts...)
 }
 
 func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
-	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
+	r := GetRegoQuery(regoStr, dataFn, nil, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return nil, err
@@ -74,8 +81,8 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 
 // func RunRegoForItemV2 evaluates rego against a Kube object. IT replaces
 // RunRegoForItemV() and supports v2 of Insights OPACustomChecks.
-func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
-	r := GetRegoQuery(regoStr, dataFn, insightsInfo)
+func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, opaCustomLibs map[string]string, insightsInfo *InsightsInfo) ([]interface{}, error) {
+	r := GetRegoQuery(regoStr, dataFn, opaCustomLibs, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error while preparing rego query for evaluation: %v", err)

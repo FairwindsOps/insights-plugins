@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -58,7 +59,12 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 	actionItems := make([]ActionItem, 0)
 	var allErrs error = nil
 
+	opaCustomLibs := FilterOPACustomLibrary(checks)
 	for _, check := range checks {
+		if check.IsLibrary {
+			continue
+		}
+
 		logrus.Debugf("Check %s is version %.1f", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
@@ -75,7 +81,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 				}
 			}
 		case 2.0:
-			newItems, err := processCheckV2(ctx, check)
+			newItems, err := processCheckV2(ctx, check, opaCustomLibs)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, multierror.Prefix(err, " ")))
 			}
@@ -105,12 +111,12 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 
 // processCheckV2 accepts a OPACustomCheck, returning both action items and
 // errors accumulated while processing the check.
-func processCheckV2(ctx context.Context, check OPACustomCheck) ([]ActionItem, error) {
+func processCheckV2(ctx context.Context, check OPACustomCheck, opaCustomLibs []OPACustomLibrary) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var allErrs *multierror.Error = new(multierror.Error)
 	allErrs.ErrorFormat = multierrorListFormatLimiterFunc
 	for _, gr := range getGroupResources(*CLIKubeTargets) {
-		newAI, err := processCheckTargetV2(ctx, check, gr)
+		newAI, err := processCheckTargetV2(ctx, check, gr, opaCustomLibs)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, err)
 		}
@@ -146,7 +152,7 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 
 // processCheckTarget runs the specified OPACustomCheck against all in-cluster
 // objects of the specified schema.GroupResource, returning any action items.
-func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.GroupResource) ([]ActionItem, error) {
+func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.GroupResource, opaCustomLibs []OPACustomLibrary) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
 	gvr, err := client.RestMapper.ResourceFor(gr.WithVersion("")) // The empty APIVersion causes RESTMapper to provide one.
@@ -159,7 +165,7 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.G
 	}
 	logrus.Debugf("Listed %d %q objects for check %s, target %s", len(list.Items), gvr, check.Name, gr)
 	for _, obj := range list.Items {
-		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
+		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), opaCustomLibs, &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +176,7 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.G
 
 // ProcessCheckForItem is a runRegoForItem() wrapper that uses the specified
 // Kubernetes Kind/Namespace/Name to construct an action item.
-func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance CustomCheckInstance, obj map[string]any, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
 	results, err := runRegoForItem(ctx, check.Rego, instance.Spec.Parameters, obj, insightsInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
@@ -183,8 +189,8 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 
 // ProcessCheckForItemV2 is a runRegoForItemV2() wrapper that uses the specified
 // Kubernetes Kind/Namespace/Name to construct an action item.
-func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]interface{}, resourceName, resourceKind, resourceNamespace string, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
-	results, err := runRegoForItemV2(ctx, check.Rego, obj, insightsInfo)
+func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]any, resourceName, resourceKind, resourceNamespace string, opaCustomLibs []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+	results, err := runRegoForItemV2(ctx, check.Rego, obj, opaCustomLibs, insightsInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
 	}
@@ -198,7 +204,7 @@ func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[st
 // InsightsInfo, running the rego policy with the Kubernetes object as input.
 // The Insights Parameters and Insights Info struct are also made available to
 // the executing rego policy (the latter via a function).
-func runRegoForItem(ctx context.Context, body string, params map[string]interface{}, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
+func runRegoForItem(ctx context.Context, body string, params map[string]any, obj map[string]any, insightsInfo *rego.InsightsInfo) ([]any, error) {
 	client := kube.GetKubeClient()
 	return rego.RunRegoForItem(ctx, body, params, obj, *client, insightsInfo)
 }
@@ -206,9 +212,9 @@ func runRegoForItem(ctx context.Context, body string, params map[string]interfac
 // runRegoForItemV2 accepts rego, a Kube object, and InsightsInfo, running the
 // rego policy with the Kubernetes object as input.  The Insights Info struct
 // is also made available to the executing rego policy via a function.
-func runRegoForItemV2(ctx context.Context, body string, obj map[string]interface{}, insightsInfo *rego.InsightsInfo) ([]interface{}, error) {
+func runRegoForItemV2(ctx context.Context, body string, obj map[string]any, opaCustomLibs []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]any, error) {
 	client := kube.GetKubeClient()
-	return rego.RunRegoForItemV2(ctx, body, obj, *client, insightsInfo)
+	return rego.RunRegoForItemV2(ctx, body, obj, *client, toOPACustomLibsMap(opaCustomLibs), insightsInfo)
 }
 
 func getInsightsChecks() (clusterCheckModel, error) {
@@ -241,7 +247,7 @@ func getInsightsChecks() (clusterCheckModel, error) {
 	return jsonResponse, nil
 }
 
-func maybeGetStringField(m map[string]interface{}, key string) (*string, error) {
+func maybeGetStringField(m map[string]any, key string) (*string, error) {
 	if m[key] == nil {
 		return nil, nil
 	}
@@ -252,7 +258,7 @@ func maybeGetStringField(m map[string]interface{}, key string) (*string, error) 
 	return &str, nil
 }
 
-func maybeGetFloatField(m map[string]interface{}, key string) (*float64, error) {
+func maybeGetFloatField(m map[string]any, key string) (*float64, error) {
 	if m[key] == nil {
 		return nil, nil
 	}
@@ -267,7 +273,7 @@ func maybeGetFloatField(m map[string]interface{}, key string) (*float64, error) 
 	return &f, nil
 }
 
-func getDetailsFromMap(m map[string]interface{}) (OutputFormat, error) {
+func getDetailsFromMap(m map[string]any) (OutputFormat, error) {
 	output := OutputFormat{}
 	var err error
 	output.Description, err = maybeGetStringField(m, "description")
@@ -295,7 +301,7 @@ func getDetailsFromMap(m map[string]interface{}) (OutputFormat, error) {
 
 // processResults converts the provided rego results (output) and other
 // metadata into action items.
-func processResults(resourceName, resourceKind, resourceNamespace string, results []interface{}, name string, details OutputFormat) ([]ActionItem, error) {
+func processResults(resourceName, resourceKind, resourceNamespace string, results []any, name string, details OutputFormat) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	for _, output := range results {
 		strMethod, ok := output.(string)
@@ -303,7 +309,7 @@ func processResults(resourceName, resourceKind, resourceNamespace string, result
 		if ok {
 			outputDetails.Description = &strMethod
 		} else {
-			mapMethod, ok := output.(map[string]interface{})
+			mapMethod, ok := output.(map[string]any)
 			if ok {
 				var err error
 				outputDetails, err = getDetailsFromMap(mapMethod)
@@ -414,4 +420,24 @@ func multierrorListFormatLimiterFunc(es []error) string {
 	return fmt.Sprintf(
 		"%d errors occurred%s:\n\t%s\n\n",
 		len(es), extraHeader, strings.Join(points, "\n\t"))
+}
+
+type OPACustomLibrary struct {
+	Name string
+	Rego string
+}
+
+func FilterOPACustomLibrary(customChecks []OPACustomCheck) []OPACustomLibrary {
+	libs := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool { return check.IsLibrary })
+	return lo.Map(libs, func(lib OPACustomCheck, _ int) OPACustomLibrary {
+		return OPACustomLibrary{Name: lib.Name, Rego: lib.Rego}
+	})
+}
+
+func toOPACustomLibsMap(opaCustomLibs []OPACustomLibrary) map[string]string {
+	libs := map[string]string{}
+	for _, lib := range opaCustomLibs {
+		libs[lib.Name] = lib.Rego
+	}
+	return libs
 }

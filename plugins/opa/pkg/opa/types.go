@@ -90,6 +90,7 @@ type OPACustomCheck struct {
 	Remediation              *string
 	Category                 *string
 	AdditionalKubernetesData []string
+	IsLibrary                bool
 }
 
 type CheckSetting struct {
