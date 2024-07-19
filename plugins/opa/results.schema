@@ -31,10 +31,7 @@
             },
             "Category": {
               "type": "string"
-            },
-            "ResourceKind": {
-              "type": "string"
-            },
+            }
           },
           "required": [
             "ResourceNamespace",
