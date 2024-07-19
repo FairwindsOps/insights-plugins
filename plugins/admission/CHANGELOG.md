@@ -1,6 +1,9 @@
 # Changelog
 
 ## 1.15.3
+* Add support for OPA custom libs
+
+## 1.15.3
 * Bump alpine to 3.20
 
 ## 1.15.2
