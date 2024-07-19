@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.15.3
+## 1.16.0
 * Add support for OPA custom libs
 
 ## 1.15.3
