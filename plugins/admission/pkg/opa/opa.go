@@ -28,12 +28,8 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 	var allErrs error = nil
 	requestInfo := rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: iConfig.Cluster, AdmissionRequest: &req}
 
-	opaCustomLibs := opa.FilterOPACustomLibrary(configuration.OPA.CustomChecks)
-	for _, check := range configuration.OPA.CustomChecks {
-		if check.IsLibrary {
-			continue // skip "execution" for lib modules
-		}
-
+	opaCustomChecks, opaCustomLibs := opa.GetOPACustomChecksAndLibraries(configuration.OPA.CustomChecks)
+	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:

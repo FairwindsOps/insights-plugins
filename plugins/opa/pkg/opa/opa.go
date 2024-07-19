@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -33,12 +33,6 @@ var instanceGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", V
 var checkGvr = schema.GroupVersionResource{Group: "insights.fairwinds.com", Version: "v1beta1", Resource: "customchecks"}
 
 func Run(ctx context.Context) ([]ActionItem, error) {
-	thisNamespace := "insights-agent"
-	namespaceBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err == nil { //Ignore errors because that means this isn't running in a container
-		thisNamespace = string(namespaceBytes)
-	}
-
 	jsonResponse, err := getInsightsChecks()
 	if err != nil {
 		return nil, err
@@ -46,7 +40,7 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 
 	logrus.Infof("Found %d checks and %d instances", len(jsonResponse.Checks), len(jsonResponse.Instances))
 
-	ais, err := processAllChecks(ctx, jsonResponse.Instances, jsonResponse.Checks, thisNamespace)
+	ais, err := processAllChecks(ctx, jsonResponse.Instances, jsonResponse.Checks)
 	if err != nil {
 		return nil, err
 	}
@@ -55,16 +49,12 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 
 // processAllChecks runs the supplied slices of OPACustomCheck and
 // CheckSetting and returns a slice of action items.
-func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks []OPACustomCheck, thisNamespace string) ([]ActionItem, error) {
+func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checksAndLibs []OPACustomCheck) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var allErrs error = nil
 
-	opaCustomLibs := FilterOPACustomLibrary(checks)
-	for _, check := range checks {
-		if check.IsLibrary {
-			continue
-		}
-
+	opaCustomChecks, opaCustomLibs := GetOPACustomChecksAndLibraries(checksAndLibs)
+	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
@@ -217,34 +207,33 @@ func runRegoForItemV2(ctx context.Context, body string, obj map[string]any, opaC
 	return rego.RunRegoForItemV2(ctx, body, obj, *client, toOPACustomLibsMap(opaCustomLibs), insightsInfo)
 }
 
-func getInsightsChecks() (clusterCheckModel, error) {
-	var jsonResponse clusterCheckModel
-
+func getInsightsChecks() (*clusterCheckModel, error) {
 	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") +
 		"/data/opa/customChecks"
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return jsonResponse, err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+os.Getenv("FAIRWINDS_TOKEN"))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return jsonResponse, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return jsonResponse, fmt.Errorf("failed to retrieve updated checks with a status code of : %d", resp.StatusCode)
+		return nil, fmt.Errorf("failed to retrieve updated checks with a status code of : %d", resp.StatusCode)
 	}
-	responseBody, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return jsonResponse, err
+		return nil, err
 	}
+	var jsonResponse clusterCheckModel
 	err = json.Unmarshal(responseBody, &jsonResponse)
 	if err != nil {
-		return jsonResponse, err
+		return nil, err
 	}
-	return jsonResponse, nil
+	return &jsonResponse, nil
 }
 
 func maybeGetStringField(m map[string]any, key string) (*string, error) {
@@ -427,11 +416,15 @@ type OPACustomLibrary struct {
 	Rego string
 }
 
-func FilterOPACustomLibrary(customChecks []OPACustomCheck) []OPACustomLibrary {
-	libs := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool { return check.IsLibrary })
-	return lo.Map(libs, func(lib OPACustomCheck, _ int) OPACustomLibrary {
+func GetOPACustomChecksAndLibraries(customChecks []OPACustomCheck) ([]OPACustomCheck, []OPACustomLibrary) {
+	checks := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool { return !check.IsLibrary })
+
+	libChecks := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool { return check.IsLibrary })
+	libs := lo.Map(libChecks, func(lib OPACustomCheck, _ int) OPACustomLibrary {
 		return OPACustomLibrary{Name: lib.Name, Rego: lib.Rego}
 	})
+
+	return checks, libs
 }
 
 func toOPACustomLibsMap(opaCustomLibs []OPACustomLibrary) map[string]string {
