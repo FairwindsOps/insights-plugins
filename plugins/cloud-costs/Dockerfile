@@ -11,7 +11,7 @@ RUN apk add unzip
 ENV google_cloud_sdk_version=481.0.0 
 
 RUN apk add python3
-RUN apk add py3-setuptools=70.3.0-r0 --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community --no-cache
+RUN apk add py3-setuptools --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community --no-cache
 
 RUN apk add --no-cache aws-cli
 
