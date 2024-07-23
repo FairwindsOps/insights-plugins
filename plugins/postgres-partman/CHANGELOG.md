@@ -1,5 +1,9 @@
 # Changelog
 
+## 16.0.0
+* upgrade to postgres 16.3
+* upgrade to pg_partman 5.1.0
+
 ## 14.8.0
 * upgrading postgres version
 
@@ -10,7 +14,7 @@
 * Bump bitnami postgres base image tag
 
 ## 14.4.1
-* Using bitinami image as parent
+* Using bitnami image as parent
 
 ## 14.4.0
 * Initial release
