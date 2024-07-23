@@ -1,14 +1,15 @@
-FROM postgres:14.10-alpine3.19
+# do not change bitnami base image as it is required for kubernetes deployment
+FROM bitnami/postgresql:16.3.0-debian-12-r21
 
 USER root
-ENV PG_PARTMAN_VERSION v4.6.2
 
-RUN apk -U upgrade
-RUN apk update && apk upgrade
-
-RUN apk add curl make gcc libc-dev postgresql-dev
-
-RUN curl -L https://github.com/pgpartman/pg_partman/archive/$PG_PARTMAN_VERSION.tar.gz -o "pg_partman.tar.gz"
+ENV PG_PARTMAN_VERSION v5.1.0
+RUN apt-get update
+RUN install_packages wget
+RUN install_packages make
+RUN install_packages gcc
+RUN install_packages libc6-dev
+RUN wget -O pg_partman.tar.gz "https://github.com/pgpartman/pg_partman/archive/refs/tags/$PG_PARTMAN_VERSION.tar.gz"
 RUN mkdir -p /usr/src/pg_partman \
     && tar \
         --extract \
