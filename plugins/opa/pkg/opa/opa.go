@@ -37,9 +37,6 @@ func Run(ctx context.Context) ([]ActionItem, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	logrus.Infof("Found %d checks and %d instances", len(jsonResponse.Checks), len(jsonResponse.Instances))
-
 	ais, err := processAllChecks(ctx, jsonResponse.Instances, jsonResponse.Checks)
 	if err != nil {
 		return nil, err
@@ -54,6 +51,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 	var allErrs error = nil
 
 	opaCustomChecks, opaCustomLibs := GetOPACustomChecksAndLibraries(checksAndLibs)
+	logrus.Infof("Found %d checks, %d instances and %d libs", len(opaCustomChecks), len(checkInstances), len(opaCustomLibs))
 	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f", check.Name, check.Version)
 		switch check.Version {

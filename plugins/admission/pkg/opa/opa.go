@@ -29,6 +29,7 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 	requestInfo := rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: iConfig.Cluster, AdmissionRequest: &req}
 
 	opaCustomChecks, opaCustomLibs := opa.GetOPACustomChecksAndLibraries(configuration.OPA.CustomChecks)
+	logrus.Infof("Found %d checks, %d instances and %d libs", len(opaCustomChecks), len(configuration.OPA.CustomCheckInstances), len(opaCustomLibs))
 	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
