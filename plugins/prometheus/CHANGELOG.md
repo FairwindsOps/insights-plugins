@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1
+* add support for go workspace
+
 ## 1.5.0
 * added all-zero validation for ksm and cAdvisor
 
