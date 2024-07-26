@@ -12,5 +12,5 @@ use (
 	./plugins/right-sizer
 	./plugins/trivy
 	./plugins/workloads
-  ./realtime-reporter
+	./realtime-reporter
 )
