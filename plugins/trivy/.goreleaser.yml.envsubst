@@ -9,7 +9,6 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
-  - GO11MODULE=on
 builds:
 - main: ./cmd/trivy
   # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,

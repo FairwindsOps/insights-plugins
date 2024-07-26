@@ -2,7 +2,7 @@
 # Wrap goreleaser by using envsubst on .goreleaser.yml,
 # and creating a temporary git tag from an Insights plugin the version.txt file.
 
-function cleanup {
+cleanup() {
   if [ "${CIRCLE_TAG}" == "" ] ; then
     echo "${this_script} deleting git tag ${temporary_git_tag} for goreleaser"
     unset GORELEASER_CURRENT_TAG
@@ -53,6 +53,8 @@ else
   export feature_docker_tag=$(echo "${CIRCLE_BRANCH:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
   echo "${this_script} also using docker tag ${feature_docker_tag} since ${CIRCLE_BRANCH} is a feature branch"
 fi
+
+git restore ../../go.work.sum # something on the releaser process is changing the go.work.sum file
 
 cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml
 goreleaser $@

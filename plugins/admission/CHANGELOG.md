@@ -3,6 +3,9 @@
 ## 1.16.0
 * Add support for OPA custom libs
 
+## 1.15.4
+* add support for go workspace
+
 ## 1.15.3
 * Bump alpine to 3.20
 

@@ -2,13 +2,9 @@ module github.com/fairwindsops/insights-plugins/plugins/ci
 
 go 1.22
 
-replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
-
-replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
-
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-00010101000000-000000000000
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-00010101000000-000000000000
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20240723212203-c2a8403f3449
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
@@ -71,6 +67,7 @@ require (
 	github.com/prometheus/common v0.49.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/vbatts/tar-split v0.11.5 // indirect
@@ -81,6 +78,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect

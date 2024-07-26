@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.16
+* add support for go workspace
+
 ## 0.4.15
 * update dependencies
 

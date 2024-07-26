@@ -3,6 +3,9 @@
 ## 5.7.0
 - Add support for OPA custom libs
 
+## 5.6.1
+* add support for go workspace
+
 ## 5.6.0
 - Add support for scan-workloads labels
 
