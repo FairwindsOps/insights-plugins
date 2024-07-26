@@ -2,13 +2,9 @@ module github.com/fairwindsops/insights-plugins/plugins/ci
 
 go 1.22
 
-replace github.com/fairwindsops/insights-plugins/plugins/trivy => ../trivy
-
-replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
-
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240214152350-40f728c8f865
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20240214152350-40f728c8f865
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20240723212203-c2a8403f3449
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0

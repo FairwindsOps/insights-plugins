@@ -2,12 +2,8 @@ module github.com/fairwindsops/insights-plugins/plugins/admission
 
 go 1.22
 
-replace github.com/fairwindsops/insights-plugins/plugins/admission => ./
-
-replace github.com/fairwindsops/insights-plugins/plugins/opa => ../opa
-
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240214152350-40f728c8f865
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v5 v5.19.4
@@ -90,7 +86,6 @@ require (
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect

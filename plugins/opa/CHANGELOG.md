@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.4.8
+* add support for go workspace
+
 ## 2.4.7
 * Bump alpine to 3.20
 

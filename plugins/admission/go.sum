@@ -34,6 +34,8 @@ github.com/evanphx/json-patch/v5 v5.9.0 h1:kcBlZQbplgElYIlo/n1hJbls2z/1awpXxpRi0
 github.com/evanphx/json-patch/v5 v5.9.0/go.mod h1:VNkHZ/282BpEyt/tObQO8s5CMPmYYq14uClGH4abBuQ=
 github.com/fairwindsops/controller-utils v0.3.3 h1:K5lLGE30oMQbYI+Ca+HzE8IrcH30QG+/99WmvxntzxE=
 github.com/fairwindsops/controller-utils v0.3.3/go.mod h1:CrnJrIi/MgYjwFCE1Q4gACy9On13fRMn6vXoY/m+nAs=
+github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449 h1:KJf58JLQLcNE2ajuaHQsaCUdE30VLQg+TxyyQ3h9o1w=
+github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449/go.mod h1:O7exqY2twgCukf2ATiQuigzoDD/4uhYIc/cM3BpQhIc=
 github.com/fairwindsops/pluto/v5 v5.19.4 h1:zqXR1JjR6yTq4hWsOSxtnOZT0SPqvgTeHsU5HIimSZs=
 github.com/fairwindsops/pluto/v5 v5.19.4/go.mod h1:1bCdO7lfQLZUGurThNo/3dUsJOpOLVw6d2f6GG16rlI=
 github.com/fairwindsops/polaris v0.0.0-20240315144335-a81bd296742c h1:0+oIY7IdDSpxfh2UQYoBL+BnXCysmmsMgrOplLDvxJg=
@@ -250,8 +252,8 @@ golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
-golang.org/x/sync v0.7.0 h1:YsImfSBoP9QPYL0xyKJPq0gcaJdG3rInoqxTWbfQu9M=
-golang.org/x/sync v0.7.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
+golang.org/x/sync v0.6.0 h1:5BMeUDZ7vkXGfEr1x9B4bRcTH4lpkTkpdh0T/J+qjbQ=
+golang.org/x/sync v0.6.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

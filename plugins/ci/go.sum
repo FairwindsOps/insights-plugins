@@ -46,6 +46,10 @@ github.com/evanphx/json-patch/v5 v5.9.0 h1:kcBlZQbplgElYIlo/n1hJbls2z/1awpXxpRi0
 github.com/evanphx/json-patch/v5 v5.9.0/go.mod h1:VNkHZ/282BpEyt/tObQO8s5CMPmYYq14uClGH4abBuQ=
 github.com/fairwindsops/controller-utils v0.3.3 h1:K5lLGE30oMQbYI+Ca+HzE8IrcH30QG+/99WmvxntzxE=
 github.com/fairwindsops/controller-utils v0.3.3/go.mod h1:CrnJrIi/MgYjwFCE1Q4gACy9On13fRMn6vXoY/m+nAs=
+github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449 h1:KJf58JLQLcNE2ajuaHQsaCUdE30VLQg+TxyyQ3h9o1w=
+github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449/go.mod h1:O7exqY2twgCukf2ATiQuigzoDD/4uhYIc/cM3BpQhIc=
+github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20240723212203-c2a8403f3449 h1:HV58bzdqZ1rVgQrrR0338OJ14wP0qpfIRUyUKGBRTF8=
+github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20240723212203-c2a8403f3449/go.mod h1:tZiYNMzIBAx5r27+L60gvGx4NpqWpChMSui4FWEVt4c=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=

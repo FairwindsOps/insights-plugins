@@ -2,8 +2,6 @@ module github.com/fairwindsops/insights-plugins/plugins/prometheus
 
 go 1.22
 
-replace github.com/fairwindsops/insights-plugins/plugins/prometheus => ./
-
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fairwindsops/controller-utils v0.3.3
