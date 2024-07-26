@@ -9,7 +9,6 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
-  - GOFLAGS=-mod=readonly
   # Avoid contaminating workstation Go directories.
   - GOMODCACHE={{ .Env.TMPDIR }}/admission-go-mod-cache
   - GOBIN={{ .Env.TMPDIR }}/admission-go-bin
