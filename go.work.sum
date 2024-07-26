@@ -119,6 +119,7 @@ cloud.google.com/go/oslogin v1.13.0/go.mod h1:xPJqLwpTZ90LSE5IL1/svko+6c5avZLlui
 cloud.google.com/go/phishingprotection v0.8.4/go.mod h1:6b3kNPAc2AQ6jZfFHioZKg9MQNybDg4ixFd4RPZZ2nE=
 cloud.google.com/go/policytroubleshooter v1.10.2/go.mod h1:m4uF3f6LseVEnMV6nknlN2vYGRb+75ylQwJdnOXfnv0=
 cloud.google.com/go/privatecatalog v0.9.4/go.mod h1:SOjm93f+5hp/U3PqMZAHTtBtluqLygrDrVO8X8tYtG0=
+cloud.google.com/go/pubsub v1.9.1/go.mod h1:7QTUeCiy+P1dVPO8hHVbZSHDfibbgm1gbKyOVYnqb8g=
 cloud.google.com/go/pubsub v1.33.0/go.mod h1:f+w71I33OMyxf9VpMVcZbnG5KSUkCOUHYpFd5U1GdRc=
 cloud.google.com/go/pubsub v1.34.0/go.mod h1:alj4l4rBg+N3YTFDDC+/YyFTs6JAjam2QfYsddcAW4c=
 cloud.google.com/go/pubsublite v1.8.1/go.mod h1:fOLdU4f5xldK4RGJrBMm+J7zMWNj/k4PxwEZXy39QS0=

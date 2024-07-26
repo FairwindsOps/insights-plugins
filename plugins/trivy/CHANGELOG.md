@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.29.3
+* add support for go workspace
+
 ## 0.29.2
 * Bumped trivy version
 
