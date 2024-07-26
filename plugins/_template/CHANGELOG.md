@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.1.15
+* remove redundant GO11MODULE
+
+## 0.1.15
 * Bump alpine to 3.20
 
 ## 0.1.14
