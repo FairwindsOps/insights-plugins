@@ -9,7 +9,6 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
-  - GO11MODULE=on
 builds:
   # Multiple pkg/*.go files are required to build.
 - main: ./pkg
