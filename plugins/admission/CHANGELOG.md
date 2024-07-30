@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0
+* fixed security issue
+
 ## 1.15.4
 * add support for go workspace
 
