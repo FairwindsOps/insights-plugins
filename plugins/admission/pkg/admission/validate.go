@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/pluto"
@@ -118,8 +119,17 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	}
 	ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any)
 	if ok && len(ownerReferences) > 0 {
-		logrus.Infof("Object has an owner - skipping")
-		return true, nil, nil, nil
+		ownerReference := ownerReferences[0].(map[string]any)
+		client := kube.GetKubeClient()
+		controller, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
+		if err == nil {
+			parent := controller.Object
+			err = validateIfControllerMatches(decoded, parent)
+			if err == nil {
+				logrus.Infof("Object has an owner and the owner is valid - skipping")
+				return true, nil, nil, nil
+			}
+		}
 	}
 	var namespaceMetadata map[string]any
 	if namespace, ok := decoded["metadata"].(map[string]any)["namespace"].(string); ok && namespace != "" {
@@ -250,4 +260,29 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		return false, nil, nil, err
 	}
 	return results, warnings, errors, nil
+}
+
+func validateIfControllerMatches(child map[string]any, controller map[string]any) error {
+	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["uid"] != controller["metadata"].(map[string]any)["uid"] {
+		return fmt.Errorf("controller does not match ownerReference")
+	}
+	childContainers := child["spec"].(map[string]any)["containers"].([]any)
+	controllerContainers := controller["spec"].(map[string]any)["containers"].([]any)
+	if len(childContainers) != len(controllerContainers) {
+		return fmt.Errorf("controller does not match child containers")
+	}
+	childContainerNames := make([]string, 0)
+	for _, container := range childContainers {
+		childContainerNames = append(childContainerNames, container.(map[string]any)["name"].(string))
+	}
+	controllerContainerNames := make([]string, 0)
+	for _, container := range controllerContainers {
+		controllerContainerNames = append(controllerContainerNames, container.(map[string]any)["name"].(string))
+	}
+	for _, childContainerName := range childContainerNames {
+		if !lo.Contains(controllerContainerNames, childContainerName) {
+			return fmt.Errorf("controller does not match child containers")
+		}
+	}
+	return nil
 }
