@@ -264,12 +264,15 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 
 func validateIfControllerMatches(child map[string]any, controller map[string]any) error {
 	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["uid"] != controller["metadata"].(map[string]any)["uid"] {
-		return fmt.Errorf("controller does not match ownerReference")
+		return fmt.Errorf("controller does not match ownerReference uid")
+	}
+	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["namespace"] != controller["metadata"].(map[string]any)["namespace"] {
+		return fmt.Errorf("controller does not match ownerReference namespace")
 	}
 	childContainers := child["spec"].(map[string]any)["containers"].([]any)
 	controllerContainers := controller["spec"].(map[string]any)["containers"].([]any)
 	if len(childContainers) != len(controllerContainers) {
-		return fmt.Errorf("controller does not match child containers")
+		return fmt.Errorf("length of controller container does not match child containers")
 	}
 	childContainerNames := make([]string, 0)
 	for _, container := range childContainers {
@@ -281,7 +284,7 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 	}
 	for _, childContainerName := range childContainerNames {
 		if !lo.Contains(controllerContainerNames, childContainerName) {
-			return fmt.Errorf("controller does not match child containers")
+			return fmt.Errorf("controller does not match child containers names")
 		}
 	}
 	return nil
