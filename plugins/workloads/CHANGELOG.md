@@ -1,8 +1,5 @@
 # Changelog
 
-## 3.0.0
-* fixed naked pods security issue
-
 ## 2.6.9
 * add support for go workspace
 
