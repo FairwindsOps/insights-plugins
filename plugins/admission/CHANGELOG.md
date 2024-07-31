@@ -1,7 +1,11 @@
 # Changelog
 
 ## 2.0.0
-* fixed security issue
+* fixed admission security issue
+
+## 1.15.5
+* bumped pluto to 5.20
+
 
 ## 1.15.4
 * add support for go workspace
