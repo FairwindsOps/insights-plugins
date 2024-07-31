@@ -7,7 +7,7 @@ declare -a changed_plugins=($2)
 branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
-images=(quay.io/fairwinds/polaris:9.0 quay.io/fairwinds/nova:v3.9 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.19 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.11)
+images=(quay.io/fairwinds/polaris:9.0 quay.io/fairwinds/nova:v3.10 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.20 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.13)
 have_vulns=()
 
 for d in ./plugins/*/ ; do
@@ -50,7 +50,6 @@ plugin_map["quay.io/fairwinds/kubectl"]="kubectl"
 plugin_map["quay.io/fairwinds/fw-kubesec"]="kubesec"
 plugin_map["quay.io/fairwinds/kyverno"]="kyverno"
 plugin_map["quay.io/fairwinds/fw-opa"]="opa"
-plugin_map["quay.io/fairwinds/postgres-partman"]="postgres-partman"
 plugin_map["quay.io/fairwinds/prometheus-collector"]="prometheus"
 plugin_map["quay.io/fairwinds/rbac-reporter"]="rbac-reporter"
 plugin_map["quay.io/fairwinds/right-sizer"]="right-sizer"
@@ -65,7 +64,10 @@ for name in "${images[@]}"; do
       break
     fi
 
-    name_without_tag=$(echo $name | sed "s/:.*//") 
+    name_without_tag=$(echo $name | sed "s/:.*//")
+    if [[ $name_without_tag == "quay.io/fairwinds/postgres-partman" ]]; then
+      continue
+    fi
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
       if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
         name=$(echo $name_without_tag:$branch_name)

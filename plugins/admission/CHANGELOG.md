@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.15.5
+* bumped pluto to 5.20
+
 ## 1.15.4
 * add support for go workspace
 

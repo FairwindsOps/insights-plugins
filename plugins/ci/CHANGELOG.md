@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.6.2
+* fixed docker vulnerability
+
 ## 5.6.1
 * add support for go workspace
 
