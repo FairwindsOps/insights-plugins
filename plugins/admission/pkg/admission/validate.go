@@ -131,6 +131,8 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 			} else {
 				logrus.Infof("Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 			}
+		} else {
+			logrus.Infof("Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 		}
 	} else {
 		logrus.Infof("Object %s has no owner - running checks", req.Name)
