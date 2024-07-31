@@ -132,6 +132,8 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 				logrus.Infof("Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 			}
 		}
+	} else {
+		logrus.Infof("Object %s has no owner - running checks", req.Name)
 	}
 	var namespaceMetadata map[string]any
 	if namespace, ok := decoded["metadata"].(map[string]any)["namespace"].(string); ok && namespace != "" {
