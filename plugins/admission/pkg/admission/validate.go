@@ -124,6 +124,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		controller, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
 		if err == nil {
 			parent := controller.Object
+			logrus.Infof("decoded object: %v", decoded)
 			err = validateIfControllerMatches(decoded, parent)
 			if err == nil {
 				logrus.Infof("Object %s has an owner and the owner is valid - skipping", req.Name)
