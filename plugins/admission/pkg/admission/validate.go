@@ -277,22 +277,30 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 	if childNamespace != controllerNamespace {
 		return fmt.Errorf("controller namespace %s does not match ownerReference namespace %s", controller["metadata"].(map[string]any)["namespace"], child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["namespace"])
 	}
-	childContainers := child["spec"].(map[string]any)["containers"].([]any)
-	controllerContainers := controller["spec"].(map[string]any)["teamplte"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-	if len(childContainers) != len(controllerContainers) {
-		return fmt.Errorf("length of controller container does not match child containers")
-	}
-	childContainerNames := make([]string, 0)
-	for _, container := range childContainers {
-		childContainerNames = append(childContainerNames, container.(map[string]any)["name"].(string))
-	}
-	controllerContainerNames := make([]string, 0)
-	for _, container := range controllerContainers {
-		controllerContainerNames = append(controllerContainerNames, container.(map[string]any)["name"].(string))
-	}
-	for _, childContainerName := range childContainerNames {
-		if !lo.Contains(controllerContainerNames, childContainerName) {
-			return fmt.Errorf("controller does not match child containers names")
+	controllerKind := controller["kind"].(string)
+	if controllerKind == "Deployment" || controllerKind == "StatefulSet" || controllerKind == "DaemonSet" || controllerKind == "ReplicaSet" || controllerKind == "CronJob" {
+		childContainers := child["spec"].(map[string]any)["containers"].([]any)
+		var controllerContainers []any
+		if controllerKind == "CronJob" {
+			controllerContainers = controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
+		} else {
+			controllerContainers = controller["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
+		}
+		if len(childContainers) != len(controllerContainers) {
+			return fmt.Errorf("length of controller container does not match child containers")
+		}
+		childContainerNames := make([]string, 0)
+		for _, container := range childContainers {
+			childContainerNames = append(childContainerNames, container.(map[string]any)["name"].(string))
+		}
+		controllerContainerNames := make([]string, 0)
+		for _, container := range controllerContainers {
+			controllerContainerNames = append(controllerContainerNames, container.(map[string]any)["name"].(string))
+		}
+		for _, childContainerName := range childContainerNames {
+			if !lo.Contains(controllerContainerNames, childContainerName) {
+				return fmt.Errorf("controller does not match child containers names")
+			}
 		}
 	}
 	return nil
