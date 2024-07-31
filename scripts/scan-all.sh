@@ -50,7 +50,6 @@ plugin_map["quay.io/fairwinds/kubectl"]="kubectl"
 plugin_map["quay.io/fairwinds/fw-kubesec"]="kubesec"
 plugin_map["quay.io/fairwinds/kyverno"]="kyverno"
 plugin_map["quay.io/fairwinds/fw-opa"]="opa"
-plugin_map["quay.io/fairwinds/postgres-partman"]="postgres-partman"
 plugin_map["quay.io/fairwinds/prometheus-collector"]="prometheus"
 plugin_map["quay.io/fairwinds/rbac-reporter"]="rbac-reporter"
 plugin_map["quay.io/fairwinds/right-sizer"]="right-sizer"
@@ -65,7 +64,10 @@ for name in "${images[@]}"; do
       break
     fi
 
-    name_without_tag=$(echo $name | sed "s/:.*//") 
+    name_without_tag=$(echo $name | sed "s/:.*//")
+    if [[ $name_without_tag == "quay.io/fairwinds/postgres-partman" ]]; then
+      continue
+    fi
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
       if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
         name=$(echo $name_without_tag:$branch_name)
