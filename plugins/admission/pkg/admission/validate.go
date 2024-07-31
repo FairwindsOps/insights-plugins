@@ -272,7 +272,9 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["uid"] != controller["metadata"].(map[string]any)["uid"] {
 		return fmt.Errorf("controller does not match ownerReference uid")
 	}
-	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["namespace"] != controller["metadata"].(map[string]any)["namespace"] {
+	childNamespace := child["metadata"].(map[string]any)["namespace"].(string)
+	controllerNamespace := controller["metadata"].(map[string]any)["namespace"].(string)
+	if childNamespace != controllerNamespace {
 		return fmt.Errorf("controller namespace %s does not match ownerReference namespace %s", controller["metadata"].(map[string]any)["namespace"], child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["namespace"])
 	}
 	childContainers := child["spec"].(map[string]any)["containers"].([]any)
