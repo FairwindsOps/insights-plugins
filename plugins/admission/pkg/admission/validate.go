@@ -118,20 +118,18 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		return false, nil, nil, err
 	}
 	ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any)
-	logrus.Info("ownerReferences====", ownerReferences)
-	fmt.Println("ownerReferencesX====", ownerReferences)
 	if ok && len(ownerReferences) > 0 {
 		ownerReference := ownerReferences[0].(map[string]any)
 		client := kube.GetKubeClient()
 		controller, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
-		logrus.Info("controller====", controller)
-		fmt.Println("controllerX====", controller)
 		if err == nil {
 			parent := controller.Object
 			err = validateIfControllerMatches(decoded, parent)
 			if err == nil {
-				logrus.Infof("Object has an owner and the owner is valid - skipping")
+				logrus.Infof("Object %s has an owner and the owner is valid - skipping", req.Name)
 				return true, nil, nil, nil
+			} else {
+				logrus.Infof("Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 			}
 		}
 	}
@@ -267,9 +265,6 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 }
 
 func validateIfControllerMatches(child map[string]any, controller map[string]any) error {
-	logrus.Info("Validating if controller matches child")
-	logrus.Info("child====", child)
-	logrus.Info("controller====", controller)
 	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["uid"] != controller["metadata"].(map[string]any)["uid"] {
 		return fmt.Errorf("controller does not match ownerReference uid")
 	}
