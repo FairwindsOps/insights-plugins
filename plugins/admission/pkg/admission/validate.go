@@ -129,10 +129,10 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 				logrus.Infof("Object %s has an owner and the owner is valid - skipping", req.Name)
 				return true, nil, nil, nil
 			} else {
-				logrus.Infof("Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+				logrus.Infof("e1: Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 			}
 		} else {
-			logrus.Infof("Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+			logrus.Infof("e2: Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 		}
 	} else {
 		logrus.Infof("Object %s has no owner - running checks", req.Name)
@@ -278,7 +278,7 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 		return fmt.Errorf("controller namespace %s does not match ownerReference namespace %s", controller["metadata"].(map[string]any)["namespace"], child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["namespace"])
 	}
 	controllerKind := controller["kind"].(string)
-	if controllerKind == "Deployment" || controllerKind == "StatefulSet" || controllerKind == "DaemonSet" || controllerKind == "ReplicaSet" || controllerKind == "CronJob" {
+	if controllerKind == "Deployment" || controllerKind == "StatefulSet" || controllerKind == "DaemonSet" || controllerKind == "ReplicaSet" || controllerKind == "CronJob" || controllerKind == "Job" {
 		var childContainers []any
 		if _, ok := child["spec"].(map[string]any)["containers"]; ok {
 			childContainers = child["spec"].(map[string]any)["containers"].([]any)
