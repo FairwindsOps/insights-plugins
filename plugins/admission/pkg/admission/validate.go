@@ -291,6 +291,7 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 		}
 		var controllerContainers []any
 		if controllerKind == "CronJob" {
+			logrus.Infof("controller[spec] for %s=== %v", controller["name"], controller["spec"])
 			controllerContainers = controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
 		} else {
 			controllerContainers = controller["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
