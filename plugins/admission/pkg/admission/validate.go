@@ -289,11 +289,6 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 		}
 		var controllerContainers []any
 		if _, ok := controller["spec"].(map[string]any)["jobTemplate"]; ok {
-			logrus.Infof("xyz controoler[spec][jobTemplate]: %v", controller["spec"].(map[string]any)["jobTemplate"])
-			logrus.Infof("xyz controoler[spec][jobTemplate][spec]: %v", controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"])
-			logrus.Infof("xyz controoler[spec][jobTemplate][spec][template]: %v", controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"])
-			logrus.Infof("xyz controoler[spec][jobTemplate][spec][template][spec]: %v", controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"].(map[string]any)["spec"])
-			logrus.Infof("xyz controoler[spec][jobTemplate][spec][template][spec][containers]: %v", controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"])
 			controllerContainers = controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
 		} else {
 			controllerContainers = controller["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
