@@ -280,7 +280,6 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 	}
 	controllerKind := controller["kind"].(string)
 	if controllerKind == "Deployment" || controllerKind == "StatefulSet" || controllerKind == "DaemonSet" || controllerKind == "ReplicaSet" || controllerKind == "CronJob" {
-		logrus.Infof("child[spec] for %s=== %v", child["name"], child["spec"])
 		var childContainers []any
 		if _, ok := child["spec"].(map[string]any)["containers"]; ok {
 			childContainers = child["spec"].(map[string]any)["containers"].([]any)
