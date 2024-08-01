@@ -284,6 +284,8 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 		var childContainers []any
 		if _, ok := child["spec"].(map[string]any)["containers"]; ok {
 			childContainers = child["spec"].(map[string]any)["containers"].([]any)
+		} else if _, ok := child["spec"].(map[string]any)["jobTemplate"]; ok {
+			childContainers = child["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
 		} else {
 			childContainers = child["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
 		}
