@@ -290,7 +290,7 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 		var controllerContainers []any
 		if _, ok := controller["spec"].(map[string]any)["jobTemplate"]; ok {
 			logrus.Infof("controoler[spec][jobTemplate]: %v", controller["spec"].(map[string]any)["jobTemplate"])
-			controllerContainers = controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["metadata"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
+			controllerContainers = controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
 		} else {
 			controllerContainers = controller["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
 		}
