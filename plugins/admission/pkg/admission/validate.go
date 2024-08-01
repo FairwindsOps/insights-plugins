@@ -121,7 +121,6 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	if ok && len(ownerReferences) > 0 {
 		ownerReference := ownerReferences[0].(map[string]any)
 		client := kube.GetKubeClient()
-		logrus.Info("CHECKING......", req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string))
 		controller, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
 		if err == nil {
 			parent := controller.Object
