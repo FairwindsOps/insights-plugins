@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/samber/lo"
@@ -297,20 +296,28 @@ func ValidateIfControllerMatches(child map[string]any, controller map[string]any
 			return fmt.Errorf("controller does not match child containers names")
 		}
 	}
-	childContainerSecurityContext := map[string]any{}
+	childContainerSecurityContext := map[string]string{}
 	lo.ForEach(childContainers, func(container any, _ int) {
-		childContainerSecurityContext[getContainerKey(container.(map[string]any))] = container.(map[string]any)["securityContext"]
+		jsonSecurityContext, err := json.Marshal(container.(map[string]any)["securityContext"])
+		if err != nil {
+			logrus.Errorf("Error marshaling securityContext")
+		}
+		childContainerSecurityContext[getContainerKey(container.(map[string]any))] = string(jsonSecurityContext)
 	})
-	controllerContainersSecurityContext := map[string]any{}
+	controllerContainersSecurityContext := map[string]string{}
 	lo.ForEach(controllerContainers, func(container any, _ int) {
-		controllerContainersSecurityContext[getContainerKey(container.(map[string]any))] = container.(map[string]any)["securityContext"]
+		jsonSecurityContext, err := json.Marshal(container.(map[string]any)["securityContext"])
+		if err != nil {
+			logrus.Errorf("Error marshaling securityContext")
+		}
+		controllerContainersSecurityContext[getContainerKey(container.(map[string]any))] = string(jsonSecurityContext)
 	})
 	for key, childContainerSecurityContext := range childContainerSecurityContext {
-		controller := controllerContainersSecurityContext[key]
-		if !reflect.DeepEqual(childContainerSecurityContext, controller) {
+		controllerSecurityContext := controllerContainersSecurityContext[key]
+		if childContainerSecurityContext != controllerSecurityContext {
 			logrus.Infof("child container key: %s", key)
-			logrus.Infof("child      container securityContext: %v", childContainerSecurityContext)
-			logrus.Infof("controller container securityContext: %v", controller)
+			logrus.Infof("child      container securityContext: %s", childContainerSecurityContext)
+			logrus.Infof("controller container securityContext: %s", controller)
 			return fmt.Errorf("controller does not match child containers securityContext")
 		}
 	}
