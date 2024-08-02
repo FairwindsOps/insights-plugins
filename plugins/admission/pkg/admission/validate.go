@@ -126,13 +126,13 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 			parent := controller.Object
 			err = validateIfControllerMatches(decoded, parent)
 			if err == nil {
-				logrus.Infof("Object %s has an owner and the owner is valid - skipping", req.Name)
+				logrus.Infof("object %s has an owner and the owner is valid - skipping", req.Name)
 				return true, nil, nil, nil
 			} else {
-				logrus.Infof("e1: Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+				logrus.Infof("object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 			}
 		} else {
-			logrus.Infof("e2: Object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+			logrus.Infof("error retrieving owner for object %s - running checks: %v", req.Name, err)
 		}
 	} else {
 		logrus.Infof("Object %s has no owner - running checks", req.Name)
