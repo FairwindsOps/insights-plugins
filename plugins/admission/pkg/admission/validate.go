@@ -328,7 +328,7 @@ func validateSecurityContext(childContainers, controllerContainers []any) error 
 	for _, container := range childContainers {
 		jsonSecurityContext, err := json.Marshal(container.(map[string]any)["securityContext"])
 		if err != nil {
-			logrus.Error(err, "Error marshaling securityContext")
+			logrus.Error(err, "Error marshaling child securityContext")
 			return err
 		}
 		childContainerSecurityContext[getContainerKey(container.(map[string]any))] = string(jsonSecurityContext)
@@ -337,7 +337,7 @@ func validateSecurityContext(childContainers, controllerContainers []any) error 
 	for _, container := range controllerContainers {
 		jsonSecurityContext, err := json.Marshal(container.(map[string]any)["securityContext"])
 		if err != nil {
-			logrus.Error(err, "Error marshaling securityContext")
+			logrus.Error(err, "Error marshaling controller securityContext")
 			return err
 		}
 		controllerContainersSecurityContext[getContainerKey(container.(map[string]any))] = string(jsonSecurityContext)
@@ -346,7 +346,7 @@ func validateSecurityContext(childContainers, controllerContainers []any) error 
 		controllerSecurityContext := controllerContainersSecurityContext[key]
 		if childContainerSecurityContext != controllerSecurityContext {
 			logrus.Infof("child container key: %s", key)
-			logrus.Infof("child      container securityContext: %s", childContainerSecurityContext)
+			logrus.Infof("child container securityContext: %s", childContainerSecurityContext)
 			logrus.Infof("controller container securityContext: %s", controllerSecurityContext)
 			return fmt.Errorf("controller does not match child containers securityContext")
 		}
