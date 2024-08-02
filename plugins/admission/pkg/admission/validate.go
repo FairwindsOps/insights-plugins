@@ -307,6 +307,8 @@ func ValidateIfControllerMatches(child map[string]any, controller map[string]any
 	})
 	for key, childContainerSecurityContext := range childContainerSecurityContext {
 		if !reflect.DeepEqual(childContainerSecurityContext, controllerContainersSecurityContext[key]) {
+			logrus.Infof("child container securityContext: %v", childContainerSecurityContext)
+			logrus.Infof("controller container securityContext: %v", controllerContainersSecurityContext[key])
 			return fmt.Errorf("controller does not match child containers securityContext")
 		}
 	}
