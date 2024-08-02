@@ -38,6 +38,8 @@ const (
 // Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#response
 const httpStatusMiscPersistentWarning = 299
 
+var controllerValidKinds = []string{"Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "CronJob", "Job"}
+
 func (w webhookFailurePolicy) String() string {
 	var result string
 	switch w {
@@ -117,22 +119,20 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
 	}
-	ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any)
-	if ok && len(ownerReferences) > 0 {
+	if ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any); ok && len(ownerReferences) > 0 {
 		ownerReference := ownerReferences[0].(map[string]any)
 		client := kube.GetKubeClient()
 		controller, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
-		if err == nil {
-			parent := controller.Object
-			err = validateIfControllerMatches(decoded, parent)
-			if err == nil {
+		if err != nil {
+			logrus.Infof("error retrieving owner for object %s - running checks: %v", req.Name, err)
+		} else {
+			err = validateIfControllerMatches(decoded, controller.Object)
+			if err != nil {
+				logrus.Infof("object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+			} else {
 				logrus.Infof("object %s has an owner and the owner is valid - skipping", req.Name)
 				return true, nil, nil, nil
-			} else {
-				logrus.Infof("object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 			}
-		} else {
-			logrus.Infof("error retrieving owner for object %s - running checks: %v", req.Name, err)
 		}
 	} else {
 		logrus.Infof("Object %s has no owner - running checks", req.Name)
@@ -272,43 +272,44 @@ func validateIfControllerMatches(child map[string]any, controller map[string]any
 	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["uid"] != controller["metadata"].(map[string]any)["uid"] {
 		return fmt.Errorf("controller does not match ownerReference uid")
 	}
-	childNamespace := child["metadata"].(map[string]any)["namespace"].(string)
-	controllerNamespace := controller["metadata"].(map[string]any)["namespace"].(string)
-	if childNamespace != controllerNamespace {
+	if child["metadata"].(map[string]any)["namespace"].(string) != controller["metadata"].(map[string]any)["namespace"].(string) {
 		return fmt.Errorf("controller namespace %s does not match ownerReference namespace %s", controller["metadata"].(map[string]any)["namespace"], child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["namespace"])
 	}
-	controllerKind := controller["kind"].(string)
-	if controllerKind == "Deployment" || controllerKind == "StatefulSet" || controllerKind == "DaemonSet" || controllerKind == "ReplicaSet" || controllerKind == "CronJob" || controllerKind == "Job" {
-		var childContainers []any
-		if _, ok := child["spec"].(map[string]any)["containers"]; ok {
-			childContainers = child["spec"].(map[string]any)["containers"].([]any)
-		} else if _, ok := child["spec"].(map[string]any)["jobTemplate"]; ok {
-			childContainers = child["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-		} else {
-			childContainers = child["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-		}
-		var controllerContainers []any
-		if _, ok := controller["spec"].(map[string]any)["jobTemplate"]; ok {
-			controllerContainers = controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-		} else {
-			controllerContainers = controller["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-		}
-		if len(childContainers) != len(controllerContainers) {
-			return fmt.Errorf("length of controller container does not match child containers")
-		}
-		childContainerNames := make([]string, 0)
-		for _, container := range childContainers {
-			childContainerNames = append(childContainerNames, container.(map[string]any)["name"].(string))
-		}
-		controllerContainerNames := make([]string, 0)
-		for _, container := range controllerContainers {
-			controllerContainerNames = append(controllerContainerNames, container.(map[string]any)["name"].(string))
-		}
-		for _, childContainerName := range childContainerNames {
-			if !lo.Contains(controllerContainerNames, childContainerName) {
-				return fmt.Errorf("controller does not match child containers names")
-			}
+	if !lo.Contains(controllerValidKinds, controller["kind"].(string)) {
+		return fmt.Errorf("controller kind %s is not a valid controller kind", controller["kind"].(string))
+	}
+	childContainers := getChildContainers(child)
+	controllerContainers := getControllerContainers(controller)
+	if len(childContainers) != len(controllerContainers) {
+		return fmt.Errorf("length of controller container does not match child containers")
+	}
+	childContainerNames := lo.Map(childContainers, func(container any, _ int) string {
+		return container.(map[string]any)["name"].(string)
+	})
+	controllerContainerNames := lo.Map(controllerContainers, func(container any, _ int) string {
+		return container.(map[string]any)["name"].(string)
+	})
+	for _, childContainerName := range childContainerNames {
+		if !lo.Contains(controllerContainerNames, childContainerName) {
+			return fmt.Errorf("controller does not match child containers names")
 		}
 	}
 	return nil
+}
+
+func getChildContainers(child map[string]any) []any {
+	if _, ok := child["spec"].(map[string]any)["containers"]; ok {
+		return child["spec"].(map[string]any)["containers"].([]any)
+	} else if _, ok := child["spec"].(map[string]any)["jobTemplate"]; ok {
+		return child["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
+	}
+	return child["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
+}
+
+func getControllerContainers(controller map[string]any) []any {
+	if _, ok := controller["spec"].(map[string]any)["jobTemplate"]; ok {
+		return controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
+	} else {
+		return controller["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
+	}
 }
