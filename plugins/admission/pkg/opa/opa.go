@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	opaversion "github.com/fairwindsops/insights-plugins/plugins/opa"
+	opaVersion "github.com/fairwindsops/insights-plugins/plugins/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 	"github.com/hashicorp/go-multierror"
@@ -22,12 +22,15 @@ import (
 func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, configuration models.Configuration, iConfig models.InsightsConfig) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report:  "opa",
-		Version: opaversion.String(),
+		Version: opaVersion.String(),
 	}
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
 	requestInfo := rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: iConfig.Cluster, AdmissionRequest: &req}
-	for _, check := range configuration.OPA.CustomChecks {
+
+	opaCustomChecks, opaCustomLibs := opa.GetOPACustomChecksAndLibraries(configuration.OPA.CustomChecks)
+	logrus.Infof("Found %d checks, %d instances and %d libs", len(opaCustomChecks), len(configuration.OPA.CustomCheckInstances), len(opaCustomLibs))
+	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
@@ -37,7 +40,7 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 				allErrs = multierror.Append(allErrs, err)
 			}
 		case 2.0:
-			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, &requestInfo)
+			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, opaCustomLibs, &requestInfo)
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)
@@ -106,7 +109,7 @@ func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGrou
 // ProcessOPAV2 runs a V2 CustomCheck against a Kubernetes object,
 // returning action items and any error encountered while processing the
 // check.
-func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
-	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, insightsInfo)
+func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, opaCustomLibs []opa.OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
+	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, opaCustomLibs, insightsInfo)
 	return newActionItems, err
 }

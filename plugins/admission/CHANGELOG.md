@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.16.0
+* Add support for OPA custom libs
+
 ## 1.15.5
 * bumped pluto to 5.20
 

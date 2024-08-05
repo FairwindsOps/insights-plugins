@@ -32,7 +32,7 @@ type Configuration struct {
 		OPA     bool
 	}
 	OPA struct {
-		CustomChecks         []opa.OPACustomCheck
+		CustomChecks         []opa.OPACustomCheck // contains both checks and libraries (IsLibrary)
 		CustomCheckInstances []opa.CheckSetting
 	}
 	Polaris *polarisconfiguration.Configuration
