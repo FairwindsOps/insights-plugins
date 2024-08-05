@@ -382,7 +382,7 @@ func validateContainersSpec(childContainers, controllerContainers []any) error {
 	}
 	for key, childContainerJSON := range childContainerJSON {
 		controllerJSON := controllerContainersJSON[key]
-		if childContainerJSON != childContainerJSON {
+		if childContainerJSON != controllerJSON {
 			logrus.Infof("child container key: %s", key)
 			logrus.Infof("child container securityContext: %s", childContainerJSON)
 			logrus.Infof("controller container securityContext: %s", controllerJSON)
