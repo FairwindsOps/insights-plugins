@@ -5,9 +5,9 @@ options:
 images:
   docker:
     - quay.io/fairwinds/polaris:9.0
-    - quay.io/fairwinds/nova:v3.9
-    - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.19
-    - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.11
+    - quay.io/fairwinds/nova:v3.10
+    - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.20
+    - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.13
     - quay.io/fairwinds/insights-admission-controller:1.15.3
     - quay.io/fairwinds/aws-costs:1.4.1
     - quay.io/fairwinds/insights-ci:5.6.0

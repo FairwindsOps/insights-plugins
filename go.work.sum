@@ -41,7 +41,6 @@ cloud.google.com/go/cloudtasks v1.12.4/go.mod h1:BEPu0Gtt2dU6FxZHNqqNdGqIG86qyWK
 cloud.google.com/go/compute v1.21.0/go.mod h1:4tCnrn48xsqlwSAiLf1HXMQk8CONslYbdiEZc9FEIbM=
 cloud.google.com/go/compute v1.23.0/go.mod h1:4tCnrn48xsqlwSAiLf1HXMQk8CONslYbdiEZc9FEIbM=
 cloud.google.com/go/compute v1.23.1/go.mod h1:CqB3xpmPKKt3OJpW2ndFIXnA9A4xAy/F3Xp1ixncW78=
-cloud.google.com/go/compute v1.23.3/go.mod h1:VCgBUoMnIVIR0CscqQiPJLAG25E3ZRZMzcFZeQ+h8CI=
 cloud.google.com/go/contactcenterinsights v1.11.3/go.mod h1:HHX5wrz5LHVAwfI2smIotQG9x8Qd6gYilaHcLLLmNis=
 cloud.google.com/go/contactcenterinsights v1.12.1/go.mod h1:HHX5wrz5LHVAwfI2smIotQG9x8Qd6gYilaHcLLLmNis=
 cloud.google.com/go/container v1.27.1/go.mod h1:b1A1gJeTBXVLQ6GGw9/9M4FG94BEGsqJ5+t4d/3N7O4=
@@ -281,6 +280,8 @@ github.com/evanphx/json-patch v4.12.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQL
 github.com/fairwindsops/controller-utils v0.3.0/go.mod h1:Plr++8B/A+TlhbVBG0sNhToaaQKo7LoFNIfdKi58vpM=
 github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20240214152350-40f728c8f865/go.mod h1:JE+8ltlSVGIvlnQKtPS/yWDyA3+QfYGKVftcMVpUWm4=
 github.com/fairwindsops/insights-plugins/plugins/workloads v0.0.0-20230601204422-5c789e15990c/go.mod h1:bNIBr22uoqvgi3JzUg7Hg9QidCsvXWAhquNQRyDGJCo=
+github.com/fairwindsops/pluto/v5 v5.20.0 h1:x5elsX9zUR5SHSIJ8BNeL2ieKhgwNTYLZKkMJYzFcSA=
+github.com/fairwindsops/pluto/v5 v5.20.0/go.mod h1:1bCdO7lfQLZUGurThNo/3dUsJOpOLVw6d2f6GG16rlI=
 github.com/fatih/color v1.9.0/go.mod h1:eQcE1qtQxscV5RaZvpXrrb8Drkc3/DdQ+uUYCNjL+zU=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
 github.com/fatih/color v1.14.1/go.mod h1:2oHN61fhTpgcxD3TSWCgKDiH1+x4OiDVVGH8WlgGZGg=
