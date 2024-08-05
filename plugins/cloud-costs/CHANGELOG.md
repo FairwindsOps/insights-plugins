@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.6
+* Fix setuptools vulnerability
+
 ## 0.3.5
 * Bump alpine to 3.20
 
