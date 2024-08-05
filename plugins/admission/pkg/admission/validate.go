@@ -300,6 +300,12 @@ func ValidateIfControllerMatches(child map[string]any, controller map[string]any
 	if err != nil {
 		return err
 	}
+
+	err = validateContainersSpec(childContainers, controllerContainers)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -348,6 +354,37 @@ func validateSecurityContext(childContainers, controllerContainers []any) error 
 			logrus.Infof("child container key: %s", key)
 			logrus.Infof("child container securityContext: %s", childContainerSecurityContext)
 			logrus.Infof("controller container securityContext: %s", controllerSecurityContext)
+			return fmt.Errorf("controller does not match child containers securityContext")
+		}
+	}
+	return nil
+}
+
+func validateContainersSpec(childContainers, controllerContainers []any) error {
+	childContainerJSON := map[string]string{}
+	for _, container := range childContainers {
+		jsonData, err := json.Marshal(container.(map[string]any))
+		if err != nil {
+			logrus.Error(err, "Error marshaling child container")
+			return err
+		}
+		childContainerJSON[getContainerKey(container.(map[string]any))] = string(jsonData)
+	}
+	controllerContainersJSON := map[string]string{}
+	for _, container := range controllerContainers {
+		jsonData, err := json.Marshal(container.(map[string]any))
+		if err != nil {
+			logrus.Error(err, "Error marshaling controller container")
+			return err
+		}
+		controllerContainersJSON[getContainerKey(container.(map[string]any))] = string(jsonData)
+	}
+	for key, childContainerJSON := range childContainerJSON {
+		controllerJSON := controllerContainersJSON[key]
+		if childContainerJSON != childContainerJSON {
+			logrus.Infof("child container key: %s", key)
+			logrus.Infof("child container securityContext: %s", childContainerJSON)
+			logrus.Infof("controller container securityContext: %s", controllerJSON)
 			return fmt.Errorf("controller does not match child containers securityContext")
 		}
 	}
