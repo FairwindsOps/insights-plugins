@@ -1,4 +1,4 @@
-// version is imported by other packages of this plugin, to determin
+// version is imported by other packages of this plugin, to determine
 // the plugin version, which is obtained from the version.txt file.
 package version
 

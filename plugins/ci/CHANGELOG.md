@@ -1,12 +1,19 @@
 # Changelog
 
+## 5.7.0
+
+- Add support for OPA custom libs
+
 ## 5.6.2
-* fixed docker vulnerability
+
+- fixed docker vulnerability
 
 ## 5.6.1
-* add support for go workspace
+
+- add support for go workspace
 
 ## 5.6.0
+
 - Add support for scan-workloads labels
 
 ## 5.5.9
@@ -22,23 +29,18 @@
 - Bump alpine to 3.20
 
 ## 5.5.6
-
 - bumped versions
 
 ## 5.5.5
-
 - bumped pluto to 5.19.4
 
 ## 5.5.4
-
 - bumped pluto to 5.19.3
 
 ## 5.5.3
-
 - bumped polaris to 9.0.1
 
 ## 5.5.2
-
 - bumped tfsec to 1.28.6 for fixing vulnerabilities
 
 ## 5.5.1

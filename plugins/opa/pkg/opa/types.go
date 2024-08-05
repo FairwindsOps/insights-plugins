@@ -77,7 +77,7 @@ func (o *OutputFormat) SetDefaults(others ...OutputFormat) {
 }
 
 type clusterCheckModel struct {
-	Checks    []OPACustomCheck
+	Checks    []OPACustomCheck // contains both checks and libraries (IsLibrary)
 	Instances []CheckSetting
 }
 
@@ -90,6 +90,7 @@ type OPACustomCheck struct {
 	Remediation              *string
 	Category                 *string
 	AdditionalKubernetesData []string
+	IsLibrary                bool
 }
 
 type CheckSetting struct {
