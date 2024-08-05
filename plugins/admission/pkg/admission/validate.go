@@ -282,26 +282,27 @@ func ValidateIfControllerMatches(child map[string]any, controller map[string]any
 	}
 	childContainers := getChildContainers(child)
 	controllerContainers := getControllerContainers(controller)
-	if len(childContainers) != len(controllerContainers) {
-		return fmt.Errorf("number of controller container does not match child containers")
-	}
-	childContainerNames := lo.Map(childContainers, func(container any, _ int) string {
-		return getContainerKey(container.(map[string]any))
-	})
-	controllerContainerNames := lo.Map(controllerContainers, func(container any, _ int) string {
-		return getContainerKey(container.(map[string]any))
-	})
-	for _, childContainerName := range childContainerNames {
-		if !lo.Contains(controllerContainerNames, childContainerName) {
-			return fmt.Errorf("controller does not match child containers names")
+	/*
+		if len(childContainers) != len(controllerContainers) {
+			return fmt.Errorf("number of controller container does not match child containers")
 		}
-	}
-	err := validateSecurityContext(childContainers, controllerContainers)
-	if err != nil {
-		return err
-	}
-
-	err = validateContainersSpec(childContainers, controllerContainers)
+		childContainerNames := lo.Map(childContainers, func(container any, _ int) string {
+			return getContainerKey(container.(map[string]any))
+		})
+		controllerContainerNames := lo.Map(controllerContainers, func(container any, _ int) string {
+			return getContainerKey(container.(map[string]any))
+		})
+		for _, childContainerName := range childContainerNames {
+			if !lo.Contains(controllerContainerNames, childContainerName) {
+				return fmt.Errorf("controller does not match child containers names")
+			}
+		}
+		err := validateSecurityContext(childContainers, controllerContainers)
+		if err != nil {
+			return err
+		}
+	*/
+	err := validateContainersSpec(childContainers, controllerContainers)
 	if err != nil {
 		return err
 	}
