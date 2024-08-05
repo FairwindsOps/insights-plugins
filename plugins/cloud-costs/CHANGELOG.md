@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.3.6
-* Reverted alpine to 3.18
-
 ## 0.3.5
 * Bump alpine to 3.20
 
