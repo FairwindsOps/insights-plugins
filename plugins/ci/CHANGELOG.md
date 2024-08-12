@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.1
+- fixed docker vulnerability
+
 ## 5.7.0
 
 - Add support for OPA custom libs

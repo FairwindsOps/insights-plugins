@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.29.5
+* fixed docker vulnerability
+
 ## 0.29.4
 * fixed docker vulnerability
 
