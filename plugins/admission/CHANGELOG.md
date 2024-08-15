@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0
+## 1.17.0
 * fixed admission security issue
 
 ## 1.16.0
