@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.2
+- fixed helm vulnerability
+
 ## 5.7.1
 - fixed docker vulnerability
 
