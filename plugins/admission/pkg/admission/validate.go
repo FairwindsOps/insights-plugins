@@ -266,7 +266,3 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 	}
 	return results, warnings, errors, nil
 }
-
-func getContainerKey(container map[string]any) string {
-	return fmt.Sprintf("%s/%s/%s", container["name"], container["image"], container["tag"])
-}
