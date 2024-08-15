@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.0
+* Add support for OPA Custom libs
+
 ## 2.4.8
 * add support for go workspace
 

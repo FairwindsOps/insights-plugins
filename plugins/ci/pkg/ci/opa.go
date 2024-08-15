@@ -16,6 +16,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/rego"
 	"github.com/hashicorp/go-multierror"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
@@ -32,7 +33,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 		Version:  opaversion.String(),
 	}
 
-	instances, checks, err := refreshChecks(*ci.config)
+	instances, checks, libs, err := refreshChecks(*ci.config)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 	for fileNumber, nodeMap := range files {
 		apiVersion, resourceKind, resourceName, namespace, _ := util.ExtractMetadata(nodeMap)
 		apiGroup := strings.Split(apiVersion, "/")[0]
-		newActionItems, err := processObject(ctx, nodeMap, resourceName, resourceKind, apiGroup, namespace, instances, checks)
+		newActionItems, err := processObject(ctx, nodeMap, resourceName, resourceKind, apiGroup, namespace, instances, checks, libs)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
@@ -117,13 +118,13 @@ type opaChecks struct {
 	Instances []opa.CheckSetting
 }
 
-func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting, []opa.OPACustomCheck, error) {
+func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting, []opa.OPACustomCheck, []opa.OPACustomLibrary, error) {
 	url := fmt.Sprintf("%s/v0/organizations/%s/ci/opa", configurationObject.Options.Hostname, configurationObject.Options.Organization)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		logrus.Warn("Unable to create Request to retrieve checks")
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -135,33 +136,41 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	resp, err := client.Do(req)
 	if err != nil {
 		logrus.Warnf("Unable to Get Checks from Insights(%s)", configurationObject.Options.Hostname)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(resp.Body)
 		logrus.Warnf("Unable to Get Checks from Insights(%s)", configurationObject.Options.Hostname)
 		if err != nil {
 			logrus.Warn("Unable to read response body")
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		return nil, nil, fmt.Errorf("Insights returned unexpected HTTP status code: %d - %v", resp.StatusCode, string(body))
+		return nil, nil, nil, fmt.Errorf("Insights returned unexpected HTTP status code: %d - %v", resp.StatusCode, string(body))
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Warn("Unable to read results")
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	var checkBody opaChecks
 	err = json.Unmarshal(body, &checkBody)
 	if err != nil {
 		logrus.Warn("Unable to unmarshal results")
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return checkBody.Instances, checkBody.Checks, nil
+
+	checks := lo.Filter(checkBody.Checks, func(check opa.OPACustomCheck, _ int) bool { return !check.IsLibrary })
+
+	libsChecks := lo.Filter(checkBody.Checks, func(check opa.OPACustomCheck, _ int) bool { return check.IsLibrary })
+	libs := lo.Map(libsChecks, func(check opa.OPACustomCheck, _ int) opa.OPACustomLibrary {
+		return opa.OPACustomLibrary{Name: check.Name, Rego: check.Rego}
+	})
+
+	return checkBody.Instances, checks, libs, nil
 }
 
-func processObject(ctx context.Context, obj map[string]interface{}, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck) ([]opa.ActionItem, error) {
+func processObject(ctx context.Context, obj map[string]interface{}, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck, libs []opa.OPACustomLibrary) ([]opa.ActionItem, error) {
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
 	for _, check := range checks {
@@ -186,7 +195,7 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 				actionItems = append(actionItems, newActionItems...)
 			}
 		case 2.0:
-			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
+			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, libs, &rego.InsightsInfo{InsightsContext: "CI/CD"})
 			if err != nil {
 				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, err))
 			}
