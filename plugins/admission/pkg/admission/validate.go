@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/opa"
@@ -120,11 +121,11 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	if ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any); ok && len(ownerReferences) > 0 {
 		ownerReference := ownerReferences[0].(map[string]any)
 		client := kube.GetKubeClient()
-		controller, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
+		ctrl, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
 		if err != nil {
 			logrus.Infof("error retrieving owner for object %s - running checks: %v", req.Name, err)
 		} else {
-			err = ValidateIfControllerMatches(decoded, controller.Object)
+			err = controller.ValidateIfControllerMatches(decoded, ctrl.Object)
 			if err != nil {
 				logrus.Infof("object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
 			} else {
@@ -266,92 +267,6 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 	return results, warnings, errors, nil
 }
 
-// ValidateIfControllerMatches checks if a child object is controlled by a parent object
-func ValidateIfControllerMatches(child map[string]any, controller map[string]any) error {
-	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["uid"] != controller["metadata"].(map[string]any)["uid"] {
-		return fmt.Errorf("controller does not match ownerReference uid")
-	}
-	if child["metadata"].(map[string]any)["namespace"].(string) != controller["metadata"].(map[string]any)["namespace"].(string) {
-		return fmt.Errorf("controller namespace %s does not match ownerReference namespace %s", controller["metadata"].(map[string]any)["namespace"], child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["namespace"])
-	}
-	if child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["name"].(string) != controller["metadata"].(map[string]any)["name"].(string) {
-		return fmt.Errorf("controller name %s does not match ownerReference name %s", controller["metadata"].(map[string]any)["name"], child["metadata"].(map[string]any)["ownerReferences"].([]any)[0].(map[string]any)["name"])
-	}
-	if !lo.Contains(controllerValidKinds, controller["kind"].(string)) {
-		return fmt.Errorf("controller kind %s is not a valid controller kind", controller["kind"].(string))
-	}
-	childContainers := getChildContainers(child)
-	controllerContainers := getControllerContainers(controller)
-	if len(childContainers) != len(controllerContainers) {
-		return fmt.Errorf("number of controller container does not match child containers")
-	}
-	childContainerNames := lo.Map(childContainers, func(container any, _ int) string {
-		return getContainerKey(container.(map[string]any))
-	})
-	controllerContainerNames := lo.Map(controllerContainers, func(container any, _ int) string {
-		return getContainerKey(container.(map[string]any))
-	})
-	for _, childContainerName := range childContainerNames {
-		if !lo.Contains(controllerContainerNames, childContainerName) {
-			return fmt.Errorf("controller does not match child containers names")
-		}
-	}
-	err := validateSecurityContext(childContainers, controllerContainers)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func getContainerKey(container map[string]any) string {
 	return fmt.Sprintf("%s/%s/%s", container["name"], container["image"], container["tag"])
 }
-
-func getChildContainers(child map[string]any) []any {
-	if _, ok := child["spec"].(map[string]any)["containers"]; ok {
-		return child["spec"].(map[string]any)["containers"].([]any)
-	} else if _, ok := child["spec"].(map[string]any)["jobTemplate"]; ok {
-		return child["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-	}
-	return child["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-}
-
-func getControllerContainers(controller map[string]any) []any {
-	if _, ok := controller["spec"].(map[string]any)["jobTemplate"]; ok {
-		return controller["spec"].(map[string]any)["jobTemplate"].(map[string]any)["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-	}
-	return controller["spec"].(map[string]any)["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)
-}
-
-func validateSecurityContext(childContainers, controllerContainers []any) error {
-	childContainerSecurityContext := map[string]string{}
-	for _, container := range childContainers {
-		jsonSecurityContext, err := json.Marshal(container.(map[string]any)["securityContext"])
-		if err != nil {
-			logrus.Error(err, "Error marshaling child securityContext")
-			return err
-		}
-		childContainerSecurityContext[getContainerKey(container.(map[string]any))] = string(jsonSecurityContext)
-	}
-	controllerContainersSecurityContext := map[string]string{}
-	for _, container := range controllerContainers {
-		jsonSecurityContext, err := json.Marshal(container.(map[string]any)["securityContext"])
-		if err != nil {
-			logrus.Error(err, "Error marshaling controller securityContext")
-			return err
-		}
-		controllerContainersSecurityContext[getContainerKey(container.(map[string]any))] = string(jsonSecurityContext)
-	}
-	for key, childContainerSecurityContext := range childContainerSecurityContext {
-		controllerSecurityContext := controllerContainersSecurityContext[key]
-		if childContainerSecurityContext != controllerSecurityContext {
-			logrus.Infof("child container key: %s", key)
-			logrus.Infof("child container securityContext: %s", childContainerSecurityContext)
-			logrus.Infof("controller container securityContext: %s", controllerSecurityContext)
-			return fmt.Errorf("controller does not match child containers securityContext")
-		}
-	}
-	return nil
-}
-
-var controllerValidKinds = []string{"Deployment", "StatefulSet", "DaemonSet", "ReplicaSet", "CronJob", "Job"}
