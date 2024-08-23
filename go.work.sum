@@ -258,8 +258,6 @@ github.com/danieljoos/wincred v1.2.1/go.mod h1:uGaFL9fDn3OLTvzCGulzE+SzjEe5NGlh5
 github.com/devigned/tab v0.1.1/go.mod h1:XG9mPq0dFghrYvoBF3xdRrJzSTX1b7IQrvaL9mzjeJY=
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
-github.com/docker/docker v26.1.5+incompatible h1:NEAxTwEjxV6VbBMBoGG3zPqbiJosIApZjxlbrG9q3/g=
-github.com/docker/docker v26.1.5+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/go-connections v0.4.0/go.mod h1:Gbd7IOopHjR8Iph03tsViu4nIes5XhDvyHbTtUxmeec=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
@@ -284,6 +282,7 @@ github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20240214152350-40f
 github.com/fairwindsops/insights-plugins/plugins/workloads v0.0.0-20230601204422-5c789e15990c/go.mod h1:bNIBr22uoqvgi3JzUg7Hg9QidCsvXWAhquNQRyDGJCo=
 github.com/fairwindsops/pluto/v5 v5.20.0 h1:x5elsX9zUR5SHSIJ8BNeL2ieKhgwNTYLZKkMJYzFcSA=
 github.com/fairwindsops/pluto/v5 v5.20.0/go.mod h1:1bCdO7lfQLZUGurThNo/3dUsJOpOLVw6d2f6GG16rlI=
+github.com/fairwindsops/pluto/v5 v5.20.2/go.mod h1:UltMDTOrhza4cq433iRE29cNjdWjhREN50TEeNu2ooo=
 github.com/fatih/color v1.9.0/go.mod h1:eQcE1qtQxscV5RaZvpXrrb8Drkc3/DdQ+uUYCNjL+zU=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
 github.com/fatih/color v1.14.1/go.mod h1:2oHN61fhTpgcxD3TSWCgKDiH1+x4OiDVVGH8WlgGZGg=
