@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/admission
 
-go 1.22.6
+go 1.22
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
