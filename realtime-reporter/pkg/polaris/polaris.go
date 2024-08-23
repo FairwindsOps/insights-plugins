@@ -56,7 +56,7 @@ func GetPolarisReport(manifest []byte) (models.ReportInfo, error) {
 	return report, nil
 }
 
-func GetPolarisValidateResults(kind string, decoder *admission.Decoder, req admission.Request, config polarisconfiguration.Configuration) (*validator.Result, error) {
+func GetPolarisValidateResults(kind string, decoder admission.Decoder, req admission.Request, config polarisconfiguration.Configuration) (*validator.Result, error) {
 	var controller kube.GenericResource
 	var err error
 	if kind == "Pod" {
