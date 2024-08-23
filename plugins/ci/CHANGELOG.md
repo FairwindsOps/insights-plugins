@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.3
+- bumped pluto to 5.20.2
+
 ## 5.7.2
 - fixed helm vulnerability
 
