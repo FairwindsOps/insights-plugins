@@ -61,7 +61,7 @@ func GetPolarisValidateResults(kind string, decoder *admission.Decoder, req admi
 	var err error
 	if kind == "Pod" {
 		pod := corev1.Pod{}
-		err := decoder.Decode(req, &pod)
+		err := (*decoder).Decode(req, &pod)
 		if err != nil {
 			return nil, err
 		}
