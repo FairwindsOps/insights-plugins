@@ -14,7 +14,7 @@ import (
 
 // Mutator is the entry point for the admission webhook.
 type Mutator struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 	config  *models.Configuration
 }
 
