@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.2
+* Bumping libs
+
 ## 1.5.1
 * add support for go workspace
 
