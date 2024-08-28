@@ -22,9 +22,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-require github.com/fairwindsops/controller-utils v0.3.4
-
 require (
+	github.com/fairwindsops/controller-utils v0.3.4
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
