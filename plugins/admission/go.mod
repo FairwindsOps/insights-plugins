@@ -3,6 +3,7 @@ module github.com/fairwindsops/insights-plugins/plugins/admission
 go 1.22
 
 require (
+	github.com/fairwindsops/controller-utils v0.3.4
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
@@ -23,7 +24,6 @@ require (
 )
 
 require (
-	github.com/fairwindsops/controller-utils v0.3.4
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
