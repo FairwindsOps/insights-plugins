@@ -15,6 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/fairwindsops/controller-utils/pkg/controller"
+	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/pluto"
@@ -116,10 +118,31 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		logrus.Errorf("Error unmarshaling JSON")
 		return false, nil, nil, err
 	}
-	ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any)
-	if ok && len(ownerReferences) > 0 {
-		logrus.Infof("Object has an owner - skipping")
-		return true, nil, nil, nil
+	if ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any); ok && len(ownerReferences) > 0 {
+		allOwnersValid := true
+		for _, ownerReference := range ownerReferences {
+			ownerReference := ownerReference.(map[string]any)
+			client := kube.GetKubeClient()
+			ctrl, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
+			if err != nil {
+				allOwnersValid = false
+				logrus.Infof("error retrieving owner for object %s - running checks: %v", req.Name, err)
+				break
+			} else {
+				err = controller.ValidateIfControllerMatches(decoded, ctrl.Object)
+				if err != nil {
+					allOwnersValid = false
+					logrus.Infof("object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+					break
+				}
+			}
+		}
+		if allOwnersValid {
+			logrus.Infof("object %s has owner(s) and the owner(s) are valid - skipping", req.Name)
+			return true, nil, nil, nil
+		}
+	} else {
+		logrus.Infof("Object %s has no owner - running checks", req.Name)
 	}
 	var namespaceMetadata map[string]any
 	if namespace, ok := decoded["metadata"].(map[string]any)["namespace"].(string); ok && namespace != "" {

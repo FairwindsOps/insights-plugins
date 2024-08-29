@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.0
+* fixed admission security issue
+
 ## 1.16.0
 * Add support for OPA custom libs
 
