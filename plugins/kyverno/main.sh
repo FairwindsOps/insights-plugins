@@ -55,6 +55,7 @@ echo "$reports" | jq -c '.[]' | while read -r r; do
 	namespace=$(cat $report_file | jq -r '.metadata.namespace')
 	kind=$(cat $report_file | jq -r '.kind')
 
+  policyNameHash= echo "$(echo $policy_name | md5sum)"
 	# use lookup table to minimize control plane load
   if [[ "$policy_name" != "null" && (! "${policies[*]}" =~ ${policy_name}) ]]; then
     # determine if report refers to a policy or a clusterpolicy
@@ -67,11 +68,11 @@ echo "$reports" | jq -c '.[]' | while read -r r; do
     jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
 
     policies+=("$policy_name")
-    policy_titles["$policy_name"]=$policy_title
-    policy_descriptions["$policy_name"]=$policy_description
+    policy_titles[$policyNameHash]=$policy_title
+    policy_descriptions["$policyNameHash"]=$policy_description
   else
-    policy_title=${policy_titles[$policy_name]}
-    policy_description=${policy_descriptions[$policy_name]}
+    policy_title=${policy_titles["$policyNameHash"]}
+    policy_description=${policy_descriptions["$policyNameHash"]}
     jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
   fi
 
