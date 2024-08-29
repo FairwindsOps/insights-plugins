@@ -119,20 +119,23 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		return false, nil, nil, err
 	}
 	if ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any); ok && len(ownerReferences) > 0 {
-		ownerReference := ownerReferences[0].(map[string]any)
-		client := kube.GetKubeClient()
-		ctrl, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
-		if err != nil {
-			logrus.Infof("error retrieving owner for object %s - running checks: %v", req.Name, err)
-		} else {
-			err = controller.ValidateIfControllerMatches(decoded, ctrl.Object)
+		for _, ownerReference := range ownerReferences {
+			ownerReference := ownerReference.(map[string]any)
+			client := kube.GetKubeClient()
+			ctrl, err := client.GetObject(ctx, req.Namespace, ownerReference["kind"].(string), ownerReference["apiVersion"].(string), ownerReference["name"].(string), client.DynamicInterface, client.RestMapper)
 			if err != nil {
-				logrus.Infof("object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+				logrus.Infof("error retrieving owner for object %s - running checks: %v", req.Name, err)
+				break
 			} else {
-				logrus.Infof("object %s has an owner and the owner is valid - skipping", req.Name)
-				return true, nil, nil, nil
+				err = controller.ValidateIfControllerMatches(decoded, ctrl.Object)
+				if err != nil {
+					logrus.Infof("object %s has an owner but the owner is invalid - running checks: %v", req.Name, err)
+					break
+				}
 			}
 		}
+		logrus.Infof("object %s has owner(s) and the owner(s) are valid - skipping", req.Name)
+		return true, nil, nil, nil
 	} else {
 		logrus.Infof("Object %s has no owner - running checks", req.Name)
 	}
