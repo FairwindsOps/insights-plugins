@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+* fixed kyverno hash
+
 ## 0.2.1
 * Bump alpine to 3.20
 
