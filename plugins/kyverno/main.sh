@@ -68,7 +68,7 @@ echo "$reports" | jq -c '.[]' | while read -r r; do
     jq --arg title "$policy_title" --arg description "$policy_description" '. += {policyTitle: $title, policyDescription: $description}' < $report_file | sponge $report_file
 
     policies+=("$policy_name")
-    policy_titles[$policy_name_hash]=$policy_title
+    policy_titles["$policy_name_hash"]=$policy_title
     policy_descriptions["$policy_name_hash"]=$policy_description
   else
     policy_title=${policy_titles["$policy_name_hash"]}
