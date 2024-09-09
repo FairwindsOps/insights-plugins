@@ -11,11 +11,8 @@ RUN apk add unzip
 ENV google_cloud_sdk_version=491.0.0 
 
 RUN apk add python3
-
 RUN apk add --no-cache aws-cli
-
 RUN apk add --no-cache py3-setuptools
-
 
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
         googleArch="arm"; \
