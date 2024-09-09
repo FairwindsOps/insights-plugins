@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.6
+* Bump google cloud sdk tp 491.0.0
+
 ## 0.3.5
 * Bump alpine to 3.20
 
