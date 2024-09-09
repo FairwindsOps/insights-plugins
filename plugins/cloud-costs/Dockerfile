@@ -12,7 +12,6 @@ ENV google_cloud_sdk_version=491.0.0
 
 RUN apk add python3
 
-# upgrade setuptools to 70.3.0 using apk
 RUN apk add --no-cache py3-setuptools
 
 RUN apk add --no-cache aws-cli
