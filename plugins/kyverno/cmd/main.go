@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -21,6 +22,7 @@ type Client struct {
 }
 
 func main() {
+	logrus.Info("Starting Kyverno plugin")
 	client, err := getKubeClient()
 	if err != nil {
 		panic(err)
@@ -41,10 +43,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	logrus.Info("Policy reports violations found: ", len(policyReportsViolations))
 	clusterPolicyReportsViolations, err := filterViolations(clusterPolicyReports, policiesTitleAndDDescription)
 	if err != nil {
 		panic(err)
 	}
+	logrus.Info("Cluster policy reports violations found: ", len(clusterPolicyReportsViolations))
 	response := map[string]interface{}{
 		"policyReports":        policyReportsViolations,
 		"clusterPolicyReports": clusterPolicyReportsViolations,
@@ -53,10 +57,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	logrus.Info("Writing Kyverno plugin output to /output/kyverno.json")
 	err = os.WriteFile("/output/kyverno.json", jsonBytes, 0644)
 	if err != nil {
 		panic(err)
 	}
+	logrus.Info("Kyverno plugin finished")
 }
 
 func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDescription map[string]interface{}) ([]map[string]interface{}, error) {
