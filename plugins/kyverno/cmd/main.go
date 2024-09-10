@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"os"
 
-	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -16,48 +15,53 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+type Client struct {
+	RestMapper       meta.RESTMapper
+	DynamicInterface dynamic.Interface
+}
+
 func main() {
 	client, err := getKubeClient()
 	if err != nil {
 		panic(err)
 	}
-	policyReports, err := client.ListObjects(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
+	policiesTitleAndDDescription, err := createPoliciesTitleAndDescriptionMap(client)
 	if err != nil {
 		panic(err)
 	}
-	clusterPolicyReports, err := client.ListObjects(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
+	policyReports, err := client.ListPolicies(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		panic(err)
 	}
-
-	clusterPoliciesMetadata, err := client.ListObjects(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
+	clusterPolicyReports, err := client.ListPolicies(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		panic(err)
 	}
-
-	policiesTitleAndDDescription := map[string]interface{}{}
-	for _, p := range clusterPoliciesMetadata {
-		x := p.Object
-		metadata := x["metadata"].(map[string]interface{})
-		annotations := metadata["annotations"]
-		if annotations != nil {
-			annotationsMap := annotations.(map[string]interface{})
-			title := annotationsMap["policies.kyverno.io/title"]
-			description := annotationsMap["policies.kyverno.io/description"]
-			if title != nil && description != nil {
-				policiesTitleAndDDescription[p.GetName()] = map[string]interface{}{
-					"title":       title,
-					"description": description,
-				}
-			}
-		}
+	policyReportsViolations, err := getViolations(policyReports, policiesTitleAndDDescription)
+	if err != nil {
+		panic(err)
 	}
+	clusterPolicyReportsViolations, err := getViolations(clusterPolicyReports, policiesTitleAndDDescription)
+	if err != nil {
+		panic(err)
+	}
+	response := map[string]interface{}{
+		"policyReports":        policyReportsViolations,
+		"clusterPolicyReports": clusterPolicyReportsViolations,
+	}
+	jsonBytes, err := json.Marshal(response)
+	if err != nil {
+		panic(err)
+	}
+	err = os.WriteFile("/output/kyverno.json", jsonBytes, 0644)
+	if err != nil {
+		panic(err)
+	}
+}
 
-	var allPolicyReports []unstructured.Unstructured
-	allPolicyReports = append(allPolicyReports, policyReports...)
-	allPolicyReports = append(allPolicyReports, clusterPolicyReports...)
-	var allViolations []map[string]interface{}
-	for _, p := range allPolicyReports {
+func getViolations(policies []unstructured.Unstructured, policiesTitleAndDDescription map[string]interface{}) ([]map[string]interface{}, error) {
+	allViolations := []map[string]interface{}{}
+	for _, p := range policies {
 		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
 		results := p.Object["results"].([]interface{})
@@ -67,7 +71,6 @@ func main() {
 			if result["result"].(string) != "fail" && result["result"].(string) != "warn" {
 				continue
 			}
-			fmt.Println("X====", result["policy"].(string))
 			if titleAndDescription, ok := policiesTitleAndDDescription[result["policy"].(string)]; ok {
 				result["policyTitle"] = titleAndDescription.(map[string]interface{})["title"]
 				result["policyDescription"] = titleAndDescription.(map[string]interface{})["description"]
@@ -80,17 +83,35 @@ func main() {
 		p.Object["results"] = violations
 		allViolations = append(allViolations, p.Object)
 	}
-	// convert to json
-	jsonBytes, err := json.Marshal(allViolations)
-	if err != nil {
-		panic(err)
-	}
-	logrus.Infof("Results: %v", string(jsonBytes))
+	return allViolations, nil
 }
 
-type Client struct {
-	RestMapper       meta.RESTMapper
-	DynamicInterface dynamic.Interface
+func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]interface{}, error) {
+	clusterPoliciesMetadata, err := client.ListPolicies(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
+	if err != nil {
+		return map[string]interface{}{}, err
+	}
+	policiesTitleAndDDescription := map[string]interface{}{}
+	for _, p := range clusterPoliciesMetadata {
+		metadata := p.Object["metadata"].(map[string]interface{})
+		if annotations, ok := metadata["annotations"]; ok {
+			annotationsMap := annotations.(map[string]interface{})
+			title := ""
+			description := ""
+			if annotationsMap["policies.kyverno.io/title"] != nil {
+				title = annotationsMap["policies.kyverno.io/title"].(string)
+			}
+			if annotationsMap["policies.kyverno.io/description"] != nil {
+				description = annotationsMap["policies.kyverno.io/description"].(string)
+			}
+			policiesTitleAndDDescription[p.GetName()] = map[string]interface{}{
+				"title":       title,
+				"description": description,
+			}
+
+		}
+	}
+	return policiesTitleAndDDescription, nil
 }
 
 func getKubeClient() (*Client, error) {
@@ -119,7 +140,7 @@ func getKubeClient() (*Client, error) {
 	return &client, nil
 }
 
-func (c *Client) ListObjects(ctx context.Context, resourceType string, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) ([]unstructured.Unstructured, error) {
+func (c *Client) ListPolicies(ctx context.Context, resourceType string, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) ([]unstructured.Unstructured, error) {
 	gvr, err := restMapper.ResourceFor(schema.GroupVersionResource{
 		Resource: resourceType,
 	})

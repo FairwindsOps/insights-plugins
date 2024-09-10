@@ -16,7 +16,7 @@ before:
   hooks:
     - go mod download
 builds:
-- main: ./cmd/kyverno/main.go
+- main: ./cmd/main.go
   # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
   # minus those under `ignore`.
   goarch:
