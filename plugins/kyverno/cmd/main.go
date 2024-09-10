@@ -37,11 +37,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	policyReportsViolations, err := getViolations(policyReports, policiesTitleAndDDescription)
+	policyReportsViolations, err := filterViolations(policyReports, policiesTitleAndDDescription)
 	if err != nil {
 		panic(err)
 	}
-	clusterPolicyReportsViolations, err := getViolations(clusterPolicyReports, policiesTitleAndDDescription)
+	clusterPolicyReportsViolations, err := filterViolations(clusterPolicyReports, policiesTitleAndDDescription)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func main() {
 	}
 }
 
-func getViolations(policies []unstructured.Unstructured, policiesTitleAndDDescription map[string]interface{}) ([]map[string]interface{}, error) {
+func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDescription map[string]interface{}) ([]map[string]interface{}, error) {
 	allViolations := []map[string]interface{}{}
 	for _, p := range policies {
 		metadata := p.Object["metadata"].(map[string]interface{})
