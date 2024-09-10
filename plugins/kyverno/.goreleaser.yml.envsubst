@@ -4,8 +4,19 @@ release:
   disable: true
 changelog:
   skip: true
+# This avoids creating .tar.gz archives.
+archives:
+- format: binary
+env:
+  - CGO_ENABLED=0
+  # Avoid contaminating workstation Go directories.
+  - GOMODCACHE={{ .Env.TMPDIR }}/kyverno-go-mod-cache
+  - GOBIN={{ .Env.TMPDIR }}/kyverno-go-bin
+before:
+  hooks:
+    - go mod download
 builds:
-- skip: true
+- main: ./cmd/kyverno/main.go
   # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
   # minus those under `ignore`.
   goarch:
@@ -21,10 +32,6 @@ dockers:
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
-  # These files will be available to a COPY Dockerfile command.
-  # Note there are additional extra_files repeated below.
-  extra_files:
-    - main.sh
 - image_templates:
   - "quay.io/fairwinds/kyverno:{{ .FullCommit }}-arm64"
   use: buildx
@@ -32,8 +39,6 @@ dockers:
   goos: linux
   build_flag_templates:
   - "--platform=linux/arm64"
-  extra_files:
-    - main.sh
 docker_manifests:
 # Create DOcker manifests that make multiple architectures available within a tag,
 # and provide partial-version tags like 2, and 2.2.
