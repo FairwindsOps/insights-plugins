@@ -95,7 +95,7 @@ func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDes
 func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]interface{}, error) {
 	clusterPoliciesMetadata, err := client.ListPolicies(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
 	if err != nil {
-		return map[string]interface{}{}, err
+		return nil, err
 	}
 	policiesTitleAndDDescription := map[string]interface{}{}
 	for _, p := range clusterPoliciesMetadata {
