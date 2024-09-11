@@ -25,28 +25,28 @@ func main() {
 	logrus.Info("Starting Kyverno plugin")
 	client, err := getKubeClient()
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error getting kube client: ", err)
 	}
 	policiesTitleAndDDescription, err := createPoliciesTitleAndDescriptionMap(client)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error creating policies title and description map: ", err)
 	}
 	policyReports, err := client.ListPolicies(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error listing policy reports: ", err)
 	}
 	clusterPolicyReports, err := client.ListPolicies(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error listing cluster policy reports: ", err)
 	}
 	policyReportsViolations, err := filterViolations(policyReports, policiesTitleAndDDescription)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error filtering violations: ", err)
 	}
 	logrus.Info("Policy reports violations found: ", len(policyReportsViolations))
 	clusterPolicyReportsViolations, err := filterViolations(clusterPolicyReports, policiesTitleAndDDescription)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error filtering violations: ", err)
 	}
 	logrus.Info("Cluster policy reports violations found: ", len(clusterPolicyReportsViolations))
 	response := map[string]interface{}{
@@ -55,12 +55,12 @@ func main() {
 	}
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error marshalling response: ", err)
 	}
 	logrus.Info("Writing Kyverno plugin output to /output/kyverno.json")
 	err = os.WriteFile("/output/kyverno.json", jsonBytes, 0644)
 	if err != nil {
-		panic(err)
+		logrus.Fatal("Error writing output file: ", err)
 	}
 	logrus.Info("Kyverno plugin finished")
 }
