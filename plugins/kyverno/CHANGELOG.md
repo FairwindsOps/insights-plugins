@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.0
+* Converted kyverno plugin to golang
+
 ## 0.2.1
 * Bump alpine to 3.20
 
