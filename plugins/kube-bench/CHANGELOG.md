@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+* bumped kube-bench to 0.8.0
+
 ## 0.4.16
 * add support for go workspace
 
