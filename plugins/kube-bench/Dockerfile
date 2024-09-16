@@ -1,4 +1,4 @@
-FROM aquasec/kube-bench:v0.6.14
+FROM aquasec/kube-bench:v0.8.0
 RUN apk --no-cache add ca-certificates
 RUN apk -U upgrade
 
