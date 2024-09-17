@@ -101,7 +101,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 				PullRef:            image.PullRef,
 				Owners:             image.Owners,
 				RecommendationOnly: image.RecommendationOnly,
-				Error:              extractLastError(trivyErrors, image.PullRef),
+				Error:              extractLastError(image.PullRef, trivyErrors),
 			})
 			continue
 		}
@@ -125,7 +125,7 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 	return allReports
 }
 
-func extractLastError(trivyErrors map[string]*multierror.Error, pullRef string) string {
+func extractLastError(pullRef string, trivyErrors map[string]*multierror.Error) string {
 	if multiError, ok := trivyErrors[pullRef]; ok && multiError != nil {
 		length := multiError.Len()
 		if length > 0 {
