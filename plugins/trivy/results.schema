@@ -38,8 +38,7 @@
           "OSArch",
           "LastScan",
           "Report",
-          "RecommendationOnly",
-          "Error"
+          "RecommendationOnly"
         ],
         "properties": {
           "ID": {

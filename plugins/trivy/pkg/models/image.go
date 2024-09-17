@@ -92,7 +92,7 @@ type ImageDetailsWithRefs struct {
 	LastScan           *time.Time
 	Report             []VulnerabilityRefList
 	RecommendationOnly bool
-	Error              string
+	Error              string `json:"Error,omitempty"`
 }
 
 // VulnerabilityRefList is a list of vulnerability references.

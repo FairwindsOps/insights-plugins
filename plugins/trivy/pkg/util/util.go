@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -81,10 +82,10 @@ func RunCommand(cmd *exec.Cmd, message string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		outputString := string(output)
-		logrus.Errorf("Error %s: %s\n%s", message, err, outputString)
 		if strings.Contains(outputString, UnknownOSMessage) {
 			return errors.New(UnknownOSMessage)
 		}
+		return fmt.Errorf("error %s: %s\n%s", message, err, outputString)
 	}
-	return err
+	return nil
 }
