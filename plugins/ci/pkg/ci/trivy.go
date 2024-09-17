@@ -303,6 +303,7 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		return nil, "", fmt.Errorf("unable to download trivy database, %v: %s", err, output)
 	}
 	reportByRef := map[string]*trivymodels.TrivyResults{}
+	errorsByRef := map[string]*multierror.Error{}
 	for _, currentImage := range images {
 		_, ok := reportByRef[currentImage.PullRef]
 		if ok {
@@ -312,18 +313,20 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		results, err := ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder, "")
 		if err != nil {
 			logrus.Errorf("error scanning %s from file %s: %v", currentImage.Name, currentImage.PullRef, err)
-			allErrs = multierror.Append(allErrs, models.ScanErrorsReportResult{
+			scanError := models.ScanErrorsReportResult{
 				ErrorMessage: err.Error(),
 				ErrorContext: "running trivy to scan image",
 				Kind:         "Image",
 				ResourceName: currentImage.Name,
 				Filename:     currentImage.PullRef,
-			})
+			}
+			errorsByRef[currentImage.PullRef] = multierror.Append(errorsByRef[currentImage.PullRef], scanError)
+			allErrs = multierror.Append(allErrs, scanError)
 		}
 		reportByRef[currentImage.PullRef] = results
 	}
 
-	allReports := image.ConvertTrivyResultsToImageReport(images, reportByRef, false)
+	allReports := image.ConvertTrivyResultsToImageReport(images, reportByRef, errorsByRef)
 	// Collate results
 	results := image.Minimize(allReports, trivymodels.MinimizedReport{Images: make([]trivymodels.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]trivymodels.VulnerabilityDetails{}})
 	trivyResults, err := json.Marshal(results)

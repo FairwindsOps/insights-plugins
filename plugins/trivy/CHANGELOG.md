@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.30.0
+* improves logs on trivy scanning failure
+* adds `Error` to report output file
+
 ## 0.29.5
 * fixed docker vulnerability
 

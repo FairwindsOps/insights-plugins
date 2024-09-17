@@ -35,8 +35,7 @@ func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) 
 	logrus.Infof("started retrieving newest versions for %s:%s", repo, tag)
 	tags, err := fetchTags(ctx, repo)
 	if err != nil {
-		logrus.Errorf("error fetching tags for %s:%s: %v", repo, tag, err)
-		return nil, err
+		return nil, fmt.Errorf("error fetching tags for %s:%s: %w", repo, tag, err)
 	}
 	newest, err := filterAndSort(tags, tag)
 	if err != nil {

@@ -80,7 +80,7 @@ func main() {
 	logrus.Infof("%d images after removing recommendations that don't match", len(lastReport.Images))
 
 	logrus.Infof("Starting image scans")
-	allReports := image.ScanImages(imagesToScan, maxConcurrentScans, extraFlags, false)
+	allReports := image.ScanImages(image.ScanImage, imagesToScan, maxConcurrentScans, extraFlags)
 
 	if noRecommendations == "" {
 		logrus.Infof("Scanning recommendations")
@@ -89,7 +89,7 @@ func main() {
 		lastReport.Images = image.GetUnmatchingImages(lastReport.Images, recommendationsToScan, true)
 		logrus.Infof("%d images after removing recommendations that will be scanned", len(lastReport.Images))
 		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
-		recommendationReport := image.ScanImages(recommendationsToScan, maxConcurrentScans, extraFlags, true)
+		recommendationReport := image.ScanImages(image.ScanImage, recommendationsToScan, maxConcurrentScans, extraFlags)
 		logrus.Infof("Done scanning recommendations")
 		allReports = append(allReports, recommendationReport...)
 	}
