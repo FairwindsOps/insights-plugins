@@ -44,7 +44,7 @@ func GetImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []str
 
 	controllers, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve top controllers with pods: %v", err)
+		return nil, fmt.Errorf("could not retrieve top controllers with pods: %w", err)
 	}
 
 	// TODO: we're deduping by owner, which works in most cases, but might cause us

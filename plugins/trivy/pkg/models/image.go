@@ -36,6 +36,7 @@ type ImageReport struct {
 	Owners             []Resource
 	Reports            []VulnerabilityList `json:"Report"`
 	RecommendationOnly bool
+	Error              string // if trivy scan errored, this will contain the last error thrown
 }
 
 type TrivyResults struct {
