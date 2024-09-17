@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.3
+- upgrading due to trivy API change
+
 ## 5.7.2
 - fixed helm vulnerability
 
