@@ -28,7 +28,7 @@ func FetchLastReport(ctx context.Context, host, org, cluster, token string) (*mo
 		return &models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}}, nil
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Bad Status code on get last report: %d", resp.StatusCode)
+		return nil, fmt.Errorf("bad status code on get last report: %d", resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

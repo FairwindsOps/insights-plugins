@@ -36,6 +36,7 @@ type ImageReport struct {
 	Owners             []Resource
 	Reports            []VulnerabilityList `json:"Report"`
 	RecommendationOnly bool
+	Error              string
 }
 
 type TrivyResults struct {
@@ -84,13 +85,14 @@ type ImageDetailsWithRefs struct {
 	Name               string
 	OSArch             string
 	Owners             []Resource
-	OwnerName          string  // deprecated - use Owners.Name
-	OwnerKind          string  // deprecated - use Owners.Kind
-	OwnerContainer     *string // deprecated - use Owners.Container
-	Namespace          string  // deprecated - use Owners.Namespace
+	OwnerName          string  `json:"OwnerName,omitempty"`      // deprecated - use Owners.Name
+	OwnerKind          string  `json:"OwnerKind,omitempty"`      // deprecated - use Owners.Kind
+	OwnerContainer     *string `json:"OwnerContainer,omitempty"` // deprecated - use Owners.Container
+	Namespace          string  `json:"Namespace,omitempty"`      // deprecated - use Owners.Namespace
 	LastScan           *time.Time
 	Report             []VulnerabilityRefList
 	RecommendationOnly bool
+	Error              string `json:"Error,omitempty"`
 }
 
 // VulnerabilityRefList is a list of vulnerability references.
