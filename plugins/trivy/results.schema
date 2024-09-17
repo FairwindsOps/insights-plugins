@@ -1,176 +1,203 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
-    "type": "object",
-    "definitions": {
-        "Owner": {
-            "type": "object",
-            "properties": {
-                "Name": { "type": "string" },
-                "Kind": { "type": "string" },
-                "Namespace": { "type": "string" },
-                "Container": { "type": "string" }
-            },
-            "additionalProperties": false
-        }
-    },
-    "required": [
-        "Images",
-        "Vulnerabilities"
-    ],
-    "properties": {
-        "Images": {
-            "$id": "#/properties/Images",
-            "type": "array",
-            "items": {
-                "$id": "#/properties/Images/items",
-                "type": "object",
-                "required": [
-                    "ID",
-                    "Name",
-                    "OSArch",
-                    "OwnerName",
-                    "OwnerKind",
-                    "Namespace",
-                    "LastScan",
-                    "Report",
-                    "RecommendationOnly"
-                ],
-                "properties": {
-                    "ID": {
-                        "$id": "#/properties/Images/items/properties/ID",
-                        "type": "string"
-                    },
-                    "Name": {
-                        "$id": "#/properties/Images/items/properties/Name",
-                        "type": "string"
-                    },
-                    "OSArch": {
-                        "$id": "#/properties/Images/items/properties/OSArch",
-                        "type": "string"
-                    },
-                    "Owners": {
-                        "$id": "#/properties/Images/items/properties/Owners",
-                        "type": ["array", "null"],
-                        "items": { "$ref": "#/definitions/Owner" }
-                    },
-                    "OwnerName": {
-                        "$id": "#/properties/Images/items/properties/OwnerName",
-                        "type": "string"
-                    },
-                    "OwnerKind": {
-                        "$id": "#/properties/Images/items/properties/OwnerKind",
-                        "type": "string"
-                    },
-                    "OwnerContainer": {
-                        "$id": "#/properties/Images/items/properties/OwnerContainer",
-                        "type": ["string", "null"]
-                    },
-                    "Namespace": {
-                        "$id": "#/properties/Images/items/properties/Namespace",
-                        "type": "string"
-                    },
-                    "LastScan": {
-                        "$id": "#/properties/Images/items/properties/LastScan",
-                        "type": "string"
-                    },
-                    "Report": {
-                        "$id": "#/properties/Images/items/properties/Report",
-                        "type": ["array", "null"],
-                        "items": {
-                            "$id": "#/properties/Images/items/properties/Report/items",
-                            "type": "object",
-                            "required": [
-                                "Target",
-                                "Vulnerabilities"
-                            ],
-                            "properties": {
-                                "Target": {
-                                    "$id": "#/properties/Images/items/properties/Report/items/properties/Target",
-                                    "type": "string"
-                                },
-                                "Vulnerabilities": {
-                                    "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities",
-                                    "type": ["array", "null"],
-                                    "items": {
-                                        "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items",
-                                        "type": "object",
-                                        "required": [
-                                            "InstalledVersion",
-                                            "PkgName",
-                                            "VulnerabilityID",
-                                            "FixedVersion"
-                                        ],
-                                        "properties": {
-                                            "InstalledVersion": {
-                                                "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/InstalledVersion",
-                                                "type": "string"
-                                            },
-                                            "PkgName": {
-                                                "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/PkgName",
-                                                "type": "string"
-                                            },
-                                            "VulnerabilityID": {
-                                                "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/VulnerabilityID",
-                                                "type": "string"
-                                            },
-                                            "FixedVersion": {
-                                                "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/FixedVersion",
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "RecommendationOnly": {
-                        "$id": "#/properties/Images/items/properties/RecommendationOnly",
-                        "type": "boolean"
-                    }
-                }
-            }
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "definitions": {
+    "Owner": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
         },
-        "Vulnerabilities": {
-            "$id": "#/properties/Vulnerabilities",
-            "type": "object",
-            "additionalProperties": {
-                "type": "object",
-                "default": {},
-                "required": [
-                    "Title",
-                    "Description",
-                    "Severity",
-                    "VulnerabilityID",
-                    "References"
-                ],
-                "properties": {
-                    "Title": {
-                        "type": "string"
-                    },
-                    "Description": {
-                        "type": "string"
-                    },
-                    "Severity": {
-                        "type": "string",
-                        "enum": [
-                            "LOW",
-                            "MEDIUM",
-                            "HIGH",
-                            "CRITICAL",
-                            "UNKNOWN"
-                        ]
-                    },
-                    "VulnerabilityID": {
-                        "type": "string"
-                    },
-                    "References": {
-                        "type": ["array", "null"],
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
+        "Kind": {
+          "type": "string"
+        },
+        "Namespace": {
+          "type": "string"
+        },
+        "Container": {
+          "type": "string"
         }
+      },
+      "additionalProperties": false
     }
+  },
+  "required": [
+    "Images",
+    "Vulnerabilities"
+  ],
+  "properties": {
+    "Images": {
+      "$id": "#/properties/Images",
+      "type": "array",
+      "items": {
+        "$id": "#/properties/Images/items",
+        "type": "object",
+        "required": [
+          "ID",
+          "Name",
+          "OSArch",
+          "LastScan",
+          "Report",
+          "RecommendationOnly",
+          "Error"
+        ],
+        "properties": {
+          "ID": {
+            "$id": "#/properties/Images/items/properties/ID",
+            "type": "string"
+          },
+          "Name": {
+            "$id": "#/properties/Images/items/properties/Name",
+            "type": "string"
+          },
+          "OSArch": {
+            "$id": "#/properties/Images/items/properties/OSArch",
+            "type": "string"
+          },
+          "Owners": {
+            "$id": "#/properties/Images/items/properties/Owners",
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/definitions/Owner"
+            }
+          },
+          "OwnerName": {
+            "$id": "#/properties/Images/items/properties/OwnerName",
+            "type": "string"
+          },
+          "OwnerKind": {
+            "$id": "#/properties/Images/items/properties/OwnerKind",
+            "type": "string"
+          },
+          "OwnerContainer": {
+            "$id": "#/properties/Images/items/properties/OwnerContainer",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "Namespace": {
+            "$id": "#/properties/Images/items/properties/Namespace",
+            "type": "string"
+          },
+          "LastScan": {
+            "$id": "#/properties/Images/items/properties/LastScan",
+            "type": "string"
+          },
+          "Report": {
+            "$id": "#/properties/Images/items/properties/Report",
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$id": "#/properties/Images/items/properties/Report/items",
+              "type": "object",
+              "required": [
+                "Target",
+                "Vulnerabilities"
+              ],
+              "properties": {
+                "Target": {
+                  "$id": "#/properties/Images/items/properties/Report/items/properties/Target",
+                  "type": "string"
+                },
+                "Vulnerabilities": {
+                  "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items",
+                    "type": "object",
+                    "required": [
+                      "InstalledVersion",
+                      "PkgName",
+                      "VulnerabilityID",
+                      "FixedVersion"
+                    ],
+                    "properties": {
+                      "InstalledVersion": {
+                        "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/InstalledVersion",
+                        "type": "string"
+                      },
+                      "PkgName": {
+                        "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/PkgName",
+                        "type": "string"
+                      },
+                      "VulnerabilityID": {
+                        "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/VulnerabilityID",
+                        "type": "string"
+                      },
+                      "FixedVersion": {
+                        "$id": "#/properties/Images/items/properties/Report/items/properties/Vulnerabilities/items/properties/FixedVersion",
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "RecommendationOnly": {
+            "$id": "#/properties/Images/items/properties/RecommendationOnly",
+            "type": "boolean"
+          },
+          "Error": {
+            "$id": "#/properties/Images/items/properties/Error",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Vulnerabilities": {
+      "$id": "#/properties/Vulnerabilities",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "default": {},
+        "required": [
+          "Title",
+          "Description",
+          "Severity",
+          "VulnerabilityID",
+          "References"
+        ],
+        "properties": {
+          "Title": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL",
+              "UNKNOWN"
+            ]
+          },
+          "VulnerabilityID": {
+            "type": "string"
+          },
+          "References": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
 }
