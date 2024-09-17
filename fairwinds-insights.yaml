@@ -1,5 +1,4 @@
 options:
-options:
   organization: fairwinds-production
   baseBranch: main
 # run ./scripts/scan-all.sh to regenerate
