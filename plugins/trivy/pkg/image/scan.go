@@ -10,6 +10,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,6 +23,8 @@ var nonWordRegexp = regexp.MustCompile("\\W+")
 var registryPassword = os.Getenv("REGISTRY_PASSWORD")
 var registryUser = os.Getenv("REGISTRY_USER")
 var registryCertDir = os.Getenv("REGISTRY_CERT_DIR")
+
+type ImageScannerFunc = func(extraFlags, pullRef string) (*models.TrivyResults, error)
 
 func init() {
 	passwordFile := os.Getenv("REGISTRY_PASSWORD_FILE")
@@ -36,26 +39,39 @@ func init() {
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
-func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string, ignoreErrors bool) []models.ImageReport {
+func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurrentScans int, extraFlags string) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
 	reportByRef := map[string]*models.TrivyResults{}
+	errorsByRef := map[string]*multierror.Error{}
 	for _, image := range images {
 		reportByRef[image.PullRef] = nil
+		errorsByRef[image.PullRef] = nil
 	}
 	semaphore := make(chan bool, maxConcurrentScans)
 	for pullRef := range reportByRef {
 		semaphore <- true
 		go func(pullRef string) {
 			defer func() {
-				logrus.Infof("Finished scanning %s", pullRef)
 				<-semaphore
 			}()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
-				r, err := ScanImage(extraFlags, pullRef)
+				r, err := imgScanner(extraFlags, pullRef)
 				reportByRef[pullRef] = r
-				if err == nil || err.Error() == util.UnknownOSMessage {
+				if err == nil {
+					logrus.Infof("successfully scanned %s", pullRef)
 					break
+				}
+				errorsByRef[pullRef] = multierror.Append(errorsByRef[pullRef], err)
+				if err.Error() == util.UnknownOSMessage {
+					logrus.Errorf("known error scanning  %s: %v", pullRef, err)
+					break
+				}
+				lastTry := i == retryCount-1
+				if lastTry {
+					logrus.Errorf("error scanning %s: %v [%d/%d]... giving up", pullRef, err, i+1, retryCount)
+				} else {
+					logrus.Errorf("error scanning %s [%d/%d]... retrying", pullRef, i+1, retryCount)
 				}
 			}
 		}(pullRef)
@@ -64,29 +80,31 @@ func ScanImages(images []models.Image, maxConcurrentScans int, extraFlags string
 		semaphore <- true
 	}
 	logrus.Infof("Finished scanning all images")
-	return ConvertTrivyResultsToImageReport(images, reportByRef, ignoreErrors)
+	return ConvertTrivyResultsToImageReport(images, reportByRef, errorsByRef)
 }
 
 // ConvertTrivyResultsToImageReport maps results from Trivy with metadata about the image scanned.
-func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef map[string]*models.TrivyResults, ignoreErrors bool) []models.ImageReport {
+func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef map[string]*models.TrivyResults, trivyErrors map[string]*multierror.Error) []models.ImageReport {
 	logrus.Infof("Converting results to image report")
 	allReports := []models.ImageReport{}
 	for _, i := range images {
 		image := i
 		id := fmt.Sprintf("%s@%s", image.Name, image.GetSha())
-		if t, ok := reportResultByRef[image.PullRef]; !ok || t == nil {
-			if !ignoreErrors {
-				allReports = append(allReports, models.ImageReport{
-					Name:               image.Name,
-					ID:                 id,
-					PullRef:            image.PullRef,
-					Owners:             image.Owners,
-					RecommendationOnly: image.RecommendationOnly,
-				})
+		trivyResult, found := reportResultByRef[image.PullRef]
+		if !found || trivyResult == nil {
+			if i.RecommendationOnly {
+				continue // don't report on failed recommendation only images
 			}
+			allReports = append(allReports, models.ImageReport{
+				ID:                 id,
+				Name:               image.Name,
+				PullRef:            image.PullRef,
+				Owners:             image.Owners,
+				RecommendationOnly: image.RecommendationOnly,
+				Error:              extractLastError(image.PullRef, trivyErrors),
+			})
 			continue
 		}
-		trivyResult := reportResultByRef[image.PullRef]
 		if !strings.Contains(id, "sha256:") {
 			id = fmt.Sprintf("%s@%s", image.Name, trivyResult.Metadata.ImageID)
 			if len(trivyResult.Metadata.RepoDigests) > 0 {
@@ -105,6 +123,16 @@ func ConvertTrivyResultsToImageReport(images []models.Image, reportResultByRef m
 	}
 	logrus.Infof("Done converting results to image report")
 	return allReports
+}
+
+func extractLastError(pullRef string, trivyErrors map[string]*multierror.Error) string {
+	if multiError, ok := trivyErrors[pullRef]; ok && multiError != nil {
+		length := multiError.Len()
+		if length > 0 {
+			return multiError.Errors[length-1].Error()
+		}
+	}
+	return ""
 }
 
 func getOsArch(imageCfg models.TrivyImageConfig) string {
@@ -142,8 +170,7 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	logrus.Infof("Downloading image %s", pullRef)
 	imageFile, err := downloadPullRef(pullRef)
 	if err != nil {
-		logrus.Errorf("Error while downloading image: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("error while downloading image: %w", err)
 	}
 	defer func() {
 		logrus.Infof("removing image file %s", imageFile)
@@ -152,10 +179,8 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	args = append(args, "--input", imageFile)
 	cmd := exec.Command("trivy", args...)
 	err = util.RunCommand(cmd, "scanning "+pullRef)
-
 	if err != nil {
-		logrus.Errorf("Error scanning %s: %v", pullRef, err)
-		return nil, err
+		return nil, fmt.Errorf("error scanning %s: %w", pullRef, err)
 	}
 	defer func() {
 		os.Remove(reportFile)
@@ -164,17 +189,14 @@ func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	report := models.TrivyResults{}
 	data, err := os.ReadFile(reportFile)
 	if err != nil {
-		logrus.Errorf("Error reading report %s: %s", imageID, err)
-		return nil, err
+		return nil, fmt.Errorf("error reading report %s: %w", imageID, err)
 	}
 	err = json.Unmarshal(data, &report)
 	if err != nil {
-		logrus.Errorf("Error decoding report %s: %s", imageID, err)
-		return nil, err
+		return nil, fmt.Errorf("error decoding report %s: %w", imageID, err)
 	}
 
 	logrus.Infof("Successfully scanned %s", imageID)
-
 	return &report, nil
 }
 
@@ -211,5 +233,8 @@ func downloadPullRef(pullRef string) (string, error) {
 		logrus.Infof("Running command: skopeo %s", strings.Join(args, " "))
 	}
 	err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
-	return dest, err
+	if err != nil {
+		return "", fmt.Errorf("error pulling %s with skopeo: %w", pullRef, err)
+	}
+	return dest, nil
 }

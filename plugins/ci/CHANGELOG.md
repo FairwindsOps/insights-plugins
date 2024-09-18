@@ -1,7 +1,10 @@
 # Changelog
 
-## 5.7.3
+## 5.7.4
 - Bumpoed pluto to 5.20.2
+
+## 5.7.3
+- upgrading due to trivy API change
 
 ## 5.7.2
 - fixed helm vulnerability
