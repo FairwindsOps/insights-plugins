@@ -4,7 +4,7 @@ options:
 # run ./scripts/scan-all.sh to regenerate
 images:
   docker:
-    - quay.io/fairwinds/polaris:9.0
+    - quay.io/fairwinds/polaris:9.4
     - quay.io/fairwinds/nova:v3.10
     - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.20
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.13

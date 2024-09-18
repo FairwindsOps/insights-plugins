@@ -8,7 +8,7 @@ require (
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v5 v5.20.2
-	github.com/fairwindsops/polaris v0.0.0-20240315144335-a81bd296742c // 9.0.1
+	github.com/fairwindsops/polaris 9.4.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/samber/lo v1.46.0
