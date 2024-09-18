@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/ci
 
-go 1.22
+go 1.22.6
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
