@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+* upgraded goreleaser to v2
+
 ## 0.5.0
 * bumped kube-bench to 0.8.0
 

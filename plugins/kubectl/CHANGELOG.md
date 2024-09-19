@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.6
+* upgraded goreleaser to v2
+
 ## 0.20.5
 * Bump alpine to 3.20
 

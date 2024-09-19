@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.1
+* upgraded goreleaser to v2
+
 ## 2.5.0
 * Add support for OPA Custom libs
 
