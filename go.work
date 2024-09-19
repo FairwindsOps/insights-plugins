@@ -7,7 +7,6 @@ use (
 	./plugins/kube-bench
 	./plugins/kube-bench-aggregator
 	./plugins/opa
-	./plugins/prometheus
 	./plugins/rbac-reporter
 	./plugins/right-sizer
 	./plugins/trivy
