@@ -39,7 +39,7 @@ func GetClient(address, bearerToken string) (prometheusV1.API, error) {
 		Address: address,
 	}
 	if bearerToken != "" {
-		config.RoundTripper = p8sConfig.NewAuthorizationCredentialsRoundTripper("Bearer", p8sConfig.Secret(bearerToken), api.DefaultRoundTripper)
+		config.RoundTripper = p8sConfig.NewAuthorizationCredentialsRoundTripper("Bearer", p8sConfig.NewInlineSecret(bearerToken), api.DefaultRoundTripper)
 	} else {
 		config.RoundTripper = api.DefaultRoundTripper
 	}
