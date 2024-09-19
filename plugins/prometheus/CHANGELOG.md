@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.2
+* upgraded goreleaser to v2
+
 ## 1.5.1
 * add support for go workspace
 

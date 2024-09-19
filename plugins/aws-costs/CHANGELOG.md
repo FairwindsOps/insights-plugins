@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.2
+* upgraded goreleaser to v2
+
 ## 1.4.1
 * Fixed tag prefix on aws costs plugin
 
