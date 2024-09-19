@@ -1,14 +1,14 @@
 module github.com/fairwindsops/insights-plugins/plugins/kube-bench
 
-go 1.22
+go 1.22.6
 
 require (
-	github.com/aquasecurity/kube-bench v0.7.2
+	github.com/aquasecurity/kube-bench v0.8.0
 	github.com/sirupsen/logrus v1.9.3
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.24.1 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.26.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/securityhub v1.29.1 // indirect
 	github.com/aws/smithy-go v1.20.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -38,5 +38,5 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/client-go v0.29.2 // indirect
+	k8s.io/client-go v0.29.3 // indirect
 )
