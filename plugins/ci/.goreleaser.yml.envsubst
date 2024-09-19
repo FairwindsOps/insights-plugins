@@ -3,8 +3,6 @@ version: 2
 project_name: insights-ci
 release:
   disable: true
-changelog:
-  skip: true
 # This avoids creating .tar.gz archives.
 archives:
 - format: binary

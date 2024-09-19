@@ -1,9 +1,8 @@
 # The .goreleaser.yml.envsubst file is processed by ../../scripts/goreleaser.sh
+version: 2
 project_name: cloud-costs
 release:
   disable: true
-changelog:
-  skip: true
 builds:
 - skip: true
   # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
