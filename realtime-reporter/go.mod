@@ -5,8 +5,8 @@ go 1.22.6
 require (
 	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/fairwindsops/polaris v0.0.0-20190909171019-f8bb1712099d // 9.4.0
-	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20240723212203-c2a8403f3449	
+	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20240723212203-c2a8403f3449
+	github.com/fairwindsops/polaris v0.0.0-20240315144335-a81bd296742c
 	github.com/samber/lo v1.39.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0

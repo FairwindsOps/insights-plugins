@@ -43,6 +43,8 @@ github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20240723212203
 github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20240723212203-c2a8403f3449/go.mod h1:XWpRgDUwwlZ5wCls/bFynF33q9CO/eVmbGBd4B1zMZo=
 github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240214152350-40f728c8f865 h1:VPzJGf78ycFbkWzLrbXMhEvuzB0Kp6mqRJ9ugf1wl6I=
 github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240214152350-40f728c8f865/go.mod h1:FOe8DvBG1DLDoFUHkyMCN0p8FoTXFwhiXCUUEQ9p4Xo=
+github.com/fairwindsops/polaris v0.0.0-20240315144335-a81bd296742c h1:0+oIY7IdDSpxfh2UQYoBL+BnXCysmmsMgrOplLDvxJg=
+github.com/fairwindsops/polaris v0.0.0-20240315144335-a81bd296742c/go.mod h1:LEhLMl2axAq4MgzHxriRl5j2rQ9HDTYKrF+bgLCJG+M=
 github.com/fatih/color v1.16.0 h1:zmkK9Ngbjj+K0yRhTVONQh1p/HknKYSlNT+vZCzyokM=
 github.com/fatih/color v1.16.0/go.mod h1:fL2Sau1YI5c0pdGEVCbKQbLXB6edEj1ZgiY4NijnWvE=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
