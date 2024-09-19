@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.1
+* bumped pluto to 5.20.2
+
 ## 1.17.0
 * fixed admission security issue
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.4
+- Bumped pluto to 5.20.2
+
 ## 5.7.3
 - upgrading due to trivy API change
 

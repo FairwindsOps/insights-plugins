@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.17
+* upgraded goreleaser
+
 ## 0.1.16
 * remove redundant GO11MODULE
 

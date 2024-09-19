@@ -1,5 +1,8 @@
 # Changelog
 
+## 16.0.1
+* upgraded goreleaser to v2
+
 ## 16.0.0
 * upgrade to postgres 16.3
 * upgrade to pg_partman 5.1.0

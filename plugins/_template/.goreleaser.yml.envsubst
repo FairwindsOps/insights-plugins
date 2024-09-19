@@ -3,11 +3,10 @@
 # Also inspect the definitions under env, and under builds.main
 
 # This file is processed by the ../../scripts/goreleaser.sh wrapper.
+version: 2
 project_name: newplugin
 release:
   disable: true
-changelog:
-  skip: true
 # This avoids creating .tar.gz archives.
 archives:
 - format: binary

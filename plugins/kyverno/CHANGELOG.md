@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1
+* upgraded goreleaser to v2
+
 ## 0.3.0
 * Converted kyverno plugin to golang
 

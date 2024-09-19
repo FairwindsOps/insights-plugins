@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.7
+* upgraded goreleaser to v2
+
 ## 0.3.6
 * Bump google cloud sdk tp 491.0.0
 
