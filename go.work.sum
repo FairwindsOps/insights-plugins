@@ -517,6 +517,8 @@ github.com/fairwindsops/insights-plugins/plugins/workloads v0.0.0-20230601204422
 github.com/fairwindsops/insights-plugins/plugins/workloads v0.0.0-20240917173116-506f92bdf9a0/go.mod h1:J+1LlUXLrbYbCzk/oxe9NLTToUWtCRzfM3akvOV+VxM=
 github.com/fairwindsops/pluto/v5 v5.20.0 h1:x5elsX9zUR5SHSIJ8BNeL2ieKhgwNTYLZKkMJYzFcSA=
 github.com/fairwindsops/pluto/v5 v5.20.0/go.mod h1:1bCdO7lfQLZUGurThNo/3dUsJOpOLVw6d2f6GG16rlI=
+github.com/fairwindsops/pluto/v5 v5.20.3 h1:VznhtWQL5YETPOJdQro84cyK/Y0eZthwqTZ2smdWxrI=
+github.com/fairwindsops/pluto/v5 v5.20.3/go.mod h1:EyAsOnv93/1zXAuNjnoq/v3Taxz7YNOpmPPhAPEzb/A=
 github.com/fairwindsops/polaris v0.0.0-20190909171019-f8bb1712099d h1:sQk0+Ifq2hQRxcBTBkAEUDrw1g89H+BITa9FfPrBOZI=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fatih/color v1.9.0/go.mod h1:eQcE1qtQxscV5RaZvpXrrb8Drkc3/DdQ+uUYCNjL+zU=
