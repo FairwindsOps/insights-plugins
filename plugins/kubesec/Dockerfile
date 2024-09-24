@@ -8,7 +8,7 @@ RUN echo "TODO: this line just removes a cached layer"
 RUN apk update && apk upgrade
 RUN apk add curl python3 jq yq tar go bash py3-pip
 
-ENV kubectlVersion=1.29.0
+ENV kubectlVersion=1.31.1
 RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl
 RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
