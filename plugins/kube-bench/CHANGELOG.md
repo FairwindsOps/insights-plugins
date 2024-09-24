@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.2
+* fixing vulnerabilities
+
 ## 0.5.1
 * upgraded goreleaser to v2
 
