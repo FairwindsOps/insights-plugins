@@ -13,7 +13,7 @@ RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETA
 RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
 ENV GOPATH=/home/ubuntu/go/
-RUN curl -L "https://github.com/controlplaneio/kubesec/releases/download/v2.11.5/kubesec_${TARGETOS}_${TARGETARCH}.tar.gz" > kubesec.tar.gz && tar -xvf kubesec.tar.gz && mv kubesec /usr/bin/ && rm kubesec.tar.gz
+RUN curl -L "https://github.com/controlplaneio/kubesec/releases/download/v2.14.1/kubesec_${TARGETOS}_${TARGETARCH}.tar.gz" > kubesec.tar.gz && tar -xvf kubesec.tar.gz && mv kubesec /usr/bin/ && rm kubesec.tar.gz
 
 COPY main.sh .
 
