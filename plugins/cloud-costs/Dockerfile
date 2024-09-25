@@ -23,7 +23,9 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     ./google-cloud-sdk/install.sh && \
     ./google-cloud-sdk/bin/gcloud components install bq && \
     rm -rf /google-cloud-sdk/lib/googlecloudsdk/third_party /google-cloud-sdk/platform/gsutil/third_party /google-cloud-sdk/lib/googlecloudsdk/generated_clients/apis/appengine && \
-    rm -rf google-cloud-sdk.tar.gz
+    rm -rf google-cloud-sdk.tar.gz && \
+    rm -rf /google-cloud-sdk/bin/gcloud-crc32c
+    
 
 COPY cloud-costs.sh cloud-costs.sh
 
