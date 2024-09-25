@@ -1,12 +1,14 @@
 module github.com/FairwindsOps/insights-plugins/realtime-reporter
 
-go 1.22.6
+go 1.22.7
+
+toolchain go1.23.1
 
 require (
 	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20240919172428-9155958c3c0e
-	github.com/fairwindsops/polaris v0.0.0-20240918200750-8d5247e5017a
+	github.com/fairwindsops/polaris v0.0.0-20240925151750-be349a885dbb
 	github.com/samber/lo v1.46.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
