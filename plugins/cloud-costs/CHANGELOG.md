@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.8
+* upgraded google cloud sdk
+
 ## 0.3.7
 * upgraded goreleaser to v2
 
