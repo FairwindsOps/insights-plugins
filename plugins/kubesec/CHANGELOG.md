@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.10
+* fixing vulberabilities
+
 ## 1.4.9
 * upgraded goreleaser to v2
 

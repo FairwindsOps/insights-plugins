@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.2
+* upgraded go to 1.22.7
+
 ## 2.5.1
 * upgraded goreleaser to v2
 

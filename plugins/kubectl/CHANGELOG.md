@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.7
+* bumped kubectl version
+
 ## 0.20.6
 * upgraded goreleaser to v2
 

@@ -36,10 +36,10 @@ github.com/fairwindsops/controller-utils v0.3.4 h1:t1qulL2GVDVUJTIE4icpBy3KnsxFT
 github.com/fairwindsops/controller-utils v0.3.4/go.mod h1:9/hOHX70/LG40RgtFAjtXFiMWEpItqm6Scf+obRFB2Y=
 github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449 h1:KJf58JLQLcNE2ajuaHQsaCUdE30VLQg+TxyyQ3h9o1w=
 github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449/go.mod h1:O7exqY2twgCukf2ATiQuigzoDD/4uhYIc/cM3BpQhIc=
-github.com/fairwindsops/pluto/v5 v5.20.2 h1:V89BOtKM1kVLN7HXogZQH2Tytbd/kpYd2VkJya0i4wQ=
-github.com/fairwindsops/pluto/v5 v5.20.2/go.mod h1:UltMDTOrhza4cq433iRE29cNjdWjhREN50TEeNu2ooo=
-github.com/fairwindsops/polaris v0.0.0-20240918200750-8d5247e5017a h1:c4uyLNuaaSJlrle1KRDRbucni5iOj4JXyjtwTVpTjwk=
-github.com/fairwindsops/polaris v0.0.0-20240918200750-8d5247e5017a/go.mod h1:AOYmfuhipO8bxQyMWN9RGnNb0TCP0zoBNgdts52edm4=
+github.com/fairwindsops/pluto/v5 v5.20.3 h1:VznhtWQL5YETPOJdQro84cyK/Y0eZthwqTZ2smdWxrI=
+github.com/fairwindsops/pluto/v5 v5.20.3/go.mod h1:EyAsOnv93/1zXAuNjnoq/v3Taxz7YNOpmPPhAPEzb/A=
+github.com/fairwindsops/polaris v0.0.0-20240925151750-be349a885dbb h1:Rhg2wAqB+jsVZTseO5SdXuu0sGHaK7+yoABMJ0BQSGg=
+github.com/fairwindsops/polaris v0.0.0-20240925151750-be349a885dbb/go.mod h1:WV1ym0X0lnb7CJN/7/F6t0xfKx+HMiMyNOHtTaaCin4=
 github.com/fatih/color v1.17.0 h1:GlRw1BRJxkpqUCBKzKOw098ed57fEsKeNjpTe3cSjK4=
 github.com/fatih/color v1.17.0/go.mod h1:YZ7TlrGPkiz6ku9fK3TLD/pl3CpsiFyu8N92HLgmosI=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
