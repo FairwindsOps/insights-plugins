@@ -1,14 +1,14 @@
 module github.com/fairwindsops/insights-plugins/plugins/admission
 
-go 1.22.6
+go 1.22.7
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.20.2
-	github.com/fairwindsops/polaris v0.0.0-20240918200750-8d5247e5017a // 9.4.0
+	github.com/fairwindsops/pluto/v5 v5.20.3
+	github.com/fairwindsops/polaris v0.0.0-20240925151750-be349a885dbb
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/samber/lo v1.46.0

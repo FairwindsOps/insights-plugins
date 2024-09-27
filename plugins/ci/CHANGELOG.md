@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.5
+- Fixing vulnerabilities
+
 ## 5.7.4
 - Bumped pluto to 5.20.2
 

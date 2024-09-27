@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.20
+* upgraded go to 1.22.7
+
 ## 1.3.19
 * upgraded goreleaser to v2
 

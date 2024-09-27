@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/workloads
 
-go 1.22.6
+go 1.22.7
 
 require (
 	github.com/emicklei/go-restful/v3 v3.11.3 // indirect

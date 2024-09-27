@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.2
+* bumped pluto to 5.20.3
+
 ## 1.17.1
 * bumped pluto to 5.20.2
 
