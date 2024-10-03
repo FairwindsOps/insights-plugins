@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.6
+- bumped tfsec to 1.28.11 for fixing vulnerabilities
+
 ## 5.7.5
 - Fixing vulnerabilities
 
