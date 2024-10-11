@@ -21,7 +21,7 @@ func TestLoadFromEnvironmentDefault(t *testing.T) {
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
-	err := os.Setenv("SERVICE_ACCOUNT_ANNOTATIONS", `{"key1":"value1","key2":"value2"}`)
+	err := os.Setenv("SERVICE_ACCOUNT_ANNOTATIONS", `{"iam.gke.io/gcp-service-account":"my-gsa@my-project.iam.gserviceaccount.com","another-key":"another-value"}`)
 	assert.NoError(t, err)
 	err = os.Setenv("MAX_CONCURRENT_SCANS", "99")
 	assert.NoError(t, err)
