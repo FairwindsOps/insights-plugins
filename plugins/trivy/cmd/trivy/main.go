@@ -6,17 +6,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/config"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 )
-
-var maxConcurrentScans = 5
-var numberToScan = 10
-var extraFlags string
 
 const outputFile = image.TempDir + "/final-report.json"
 
@@ -29,7 +25,24 @@ const outputFile = image.TempDir + "/final-report.json"
 func main() {
 	ctx := context.TODO()
 	setLogLevel(os.Getenv("LOGRUS_LEVEL"))
-	setEnv()
+	cfg, err := config.LoadFromEnvironment()
+	if err != nil {
+		logrus.Fatalf("could not set environment variables: %v", err)
+	}
+
+	logrus.Debugf("config is %#v", *cfg)
+
+	err = util.CheckEnvironmentVariables()
+	if err != nil {
+		logrus.Fatal("error checking environment variables: ", err)
+	}
+
+	if !cfg.Offline {
+		err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+	}
 
 	host := os.Getenv("FAIRWINDS_INSIGHTS_HOST")
 	org := os.Getenv("FAIRWINDS_ORG")
@@ -58,10 +71,10 @@ func main() {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
 
-	imagesToScan := image.GetUnscannedImagesToScan(inClusterImages, lastReport.Images, numberToScan)
+	imagesToScan := image.GetUnscannedImagesToScan(inClusterImages, lastReport.Images, cfg.NumberToScan)
 	unscannedCount := len(imagesToScan)
 	logrus.Infof("Found %d images that have never been scanned", unscannedCount)
-	imagesToScan = image.GetImagesToReScan(inClusterImages, *lastReport, imagesToScan, numberToScan)
+	imagesToScan = image.GetImagesToReScan(inClusterImages, *lastReport, imagesToScan, cfg.NumberToScan)
 	logrus.Infof("Will re-scan %d additional images", len(imagesToScan)-unscannedCount)
 	for _, i := range imagesToScan {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
@@ -80,7 +93,7 @@ func main() {
 	logrus.Infof("%d images after removing recommendations that don't match", len(lastReport.Images))
 
 	logrus.Infof("Starting image scans")
-	allReports := image.ScanImages(image.ScanImage, imagesToScan, maxConcurrentScans, extraFlags)
+	allReports := image.ScanImages(image.ScanImage, imagesToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags)
 
 	if noRecommendations == "" {
 		logrus.Infof("Scanning recommendations")
@@ -89,7 +102,7 @@ func main() {
 		lastReport.Images = image.GetUnmatchingImages(lastReport.Images, recommendationsToScan, true)
 		logrus.Infof("%d images after removing recommendations that will be scanned", len(lastReport.Images))
 		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
-		recommendationReport := image.ScanImages(image.ScanImage, recommendationsToScan, maxConcurrentScans, extraFlags)
+		recommendationReport := image.ScanImages(image.ScanImage, recommendationsToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags)
 		logrus.Infof("Done scanning recommendations")
 		allReports = append(allReports, recommendationReport...)
 	}
@@ -130,48 +143,5 @@ func setLogLevel(logLevel string) {
 		logrus.SetLevel(lvl)
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
-	}
-}
-
-func setEnv() {
-	concurrencyStr := os.Getenv("MAX_CONCURRENT_SCANS")
-	if concurrencyStr != "" {
-		var err error
-		maxConcurrentScans, err = strconv.Atoi(concurrencyStr)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	numberToScanStr := os.Getenv("MAX_SCANS")
-	if numberToScanStr != "" {
-		var err error
-		numberToScan, err = strconv.Atoi(numberToScanStr)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	ignoreUnfixedStr := os.Getenv("IGNORE_UNFIXED")
-	if ignoreUnfixedStr != "" {
-		ignoreUnfixedBool, err := strconv.ParseBool(ignoreUnfixedStr)
-		if err != nil {
-			panic(err)
-		}
-		if ignoreUnfixedBool {
-			extraFlags += "--ignore-unfixed"
-		}
-	}
-
-	if os.Getenv("OFFLINE") == "" {
-		err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	err := util.CheckEnvironmentVariables()
-	if err != nil {
-		panic(err)
 	}
 }

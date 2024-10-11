@@ -70,9 +70,13 @@ func CreateKubeClientResources() KubeClientResources {
 	return r
 }
 
+var requiredEnvVars = []string{"FAIRWINDS_INSIGHTS_HOST", "FAIRWINDS_ORG", "FAIRWINDS_CLUSTER", "FAIRWINDS_TOKEN"}
+
 func CheckEnvironmentVariables() error {
-	if os.Getenv("FAIRWINDS_INSIGHTS_HOST") == "" || os.Getenv("FAIRWINDS_ORG") == "" || os.Getenv("FAIRWINDS_CLUSTER") == "" || os.Getenv("FAIRWINDS_TOKEN") == "" {
-		return errors.New("Proper environment variables not set.")
+	for _, env := range requiredEnvVars {
+		if os.Getenv(env) == "" {
+			return fmt.Errorf("missing required environment variable: %s", env)
+		}
 	}
 	return nil
 }
