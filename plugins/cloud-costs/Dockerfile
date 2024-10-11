@@ -25,7 +25,8 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     rm -rf /google-cloud-sdk/lib/googlecloudsdk/third_party /google-cloud-sdk/platform/gsutil/third_party /google-cloud-sdk/lib/googlecloudsdk/generated_clients/apis/appengine && \
     rm -rf google-cloud-sdk.tar.gz && \
     rm -rf /google-cloud-sdk/bin/gcloud-crc32c \
-    rm /google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc
+    rm /google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc \
+    rm /google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
     
 
 COPY cloud-costs.sh cloud-costs.sh
