@@ -13,13 +13,13 @@ const (
 )
 
 type config struct {
-	Offline                   bool
-	MaxConcurrentScans        int
-	NumberToScan              int
-	ExtraFlags                string
-	ServiceAccountAnnotations map[string]string
-	NamespaceBlocklist        []string
-	NamespaceAllowlist        []string
+	Offline            bool
+	MaxConcurrentScans int
+	NumberToScan       int
+	ExtraFlags         string
+	NamespaceBlocklist []string
+	NamespaceAllowlist []string
+	HasGKESAAnnotation bool
 }
 
 func LoadFromEnvironment() (*config, error) {
@@ -81,13 +81,18 @@ func LoadFromEnvironment() (*config, error) {
 		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
 	}
 
+	hasGKESAAnnotation := false
+	if _, ok := serviceAccountAnnotations["iam.gke.io/gcp-service-account"]; ok {
+		hasGKESAAnnotation = true
+	}
+
 	return &config{
-		Offline:                   offline,
-		MaxConcurrentScans:        maxConcurrentScans,
-		NumberToScan:              numberToScan,
-		ExtraFlags:                extraFlags,
-		ServiceAccountAnnotations: serviceAccountAnnotations,
-		NamespaceBlocklist:        namespaceBlocklist,
-		NamespaceAllowlist:        namespaceAllowlist,
+		Offline:            offline,
+		MaxConcurrentScans: maxConcurrentScans,
+		NumberToScan:       numberToScan,
+		ExtraFlags:         extraFlags,
+		NamespaceBlocklist: namespaceBlocklist,
+		NamespaceAllowlist: namespaceAllowlist,
+		HasGKESAAnnotation: hasGKESAAnnotation,
 	}, nil
 }

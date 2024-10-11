@@ -11,7 +11,7 @@ func TestLoadFromEnvironmentDefault(t *testing.T) {
 	cfg, err := LoadFromEnvironment()
 	assert.NoError(t, err)
 
-	assert.Empty(t, cfg.ServiceAccountAnnotations)
+	assert.False(t, cfg.HasGKESAAnnotation)
 	assert.Empty(t, cfg.NamespaceBlocklist)
 	assert.Empty(t, cfg.NamespaceAllowlist)
 	assert.Equal(t, 5, cfg.MaxConcurrentScans)
@@ -40,7 +40,7 @@ func TestLoadFromEnvironment(t *testing.T) {
 	cfg, err := LoadFromEnvironment()
 	assert.NoError(t, err)
 
-	assert.Len(t, cfg.ServiceAccountAnnotations, 2)
+	assert.True(t, cfg.HasGKESAAnnotation, 1)
 	assert.Len(t, cfg.NamespaceBlocklist, 2)
 	assert.Len(t, cfg.NamespaceAllowlist, 2)
 	assert.Equal(t, 99, cfg.MaxConcurrentScans)
