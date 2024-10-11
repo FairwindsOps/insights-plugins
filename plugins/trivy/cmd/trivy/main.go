@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/config"
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/image"
@@ -59,10 +58,8 @@ func main() {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
 
-	namespaceBlocklist, namespaceAllowlist := getNamespaceBlocklistAllowlistFromEnv()
-	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(namespaceAllowlist), len(namespaceBlocklist))
-
-	inClusterImages, err := image.GetImages(ctx, namespaceBlocklist, namespaceAllowlist)
+	logrus.Infof("%d namespaces allowed, %d namespaces blocked", len(cfg.NamespaceAllowlist), len(cfg.NamespaceBlocklist))
+	inClusterImages, err := image.GetImages(ctx, cfg.NamespaceBlocklist, cfg.NamespaceAllowlist)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -118,20 +115,6 @@ func main() {
 		logrus.Fatalf("could not write to output file: %v", err)
 	}
 	logrus.Info("Finished writing file ", outputFile)
-}
-
-func getNamespaceBlocklistAllowlistFromEnv() ([]string, []string) {
-	var namespaceBlocklist, namespaceAllowlist []string
-	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
-		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
-	}
-	if os.Getenv("NAMESPACE_BLOCKLIST") != "" {
-		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ",")
-	}
-	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
-		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
-	}
-	return namespaceBlocklist, namespaceAllowlist
 }
 
 func setLogLevel(logLevel string) {
