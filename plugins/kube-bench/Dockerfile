@@ -6,7 +6,6 @@ WORKDIR /usr/local/bin
 RUN apk -U upgrade
 RUN apk --no-cache add bash ca-certificates curl
 
-# delete usr/local/bin/kubectl
 RUN rm /usr/local/bin/kubectl
 
 ENV kubectlVersion=1.31.0
