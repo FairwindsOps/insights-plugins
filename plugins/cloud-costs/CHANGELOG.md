@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.9
+* upgraded google cloud sdk
+
 ## 0.3.8
 * upgraded google cloud sdk
 
