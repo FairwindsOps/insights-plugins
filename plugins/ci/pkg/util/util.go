@@ -49,34 +49,6 @@ func ExactlyOneOf(inputs ...bool) bool {
 	return foundAtLeastOne
 }
 
-// RemoveTokensAndPassword sanitizes output to remove token
-func RemoveTokensAndPassword(s string) string {
-	// based on x-access-token
-	index := strings.Index(s, "x-access-token")
-	index2 := strings.Index(s, "@github.com")
-	if index > 0 && index2 > 0 {
-		return strings.ReplaceAll(s, s[index+15:index2], "<TOKEN>")
-	}
-
-	// based on --src-creds
-	index = strings.Index(s, "--src-creds")
-	if index > 0 {
-		f := index + 12 // start of credentials
-		l := strings.Index(s, " docker")
-		return strings.ReplaceAll(s, s[f:l], "<CREDENTIALS>")
-	}
-
-	// based on --src-registry-token
-	index = strings.Index(s, "--src-registry-token")
-	if index > 0 {
-		f := index + 21 // start of credentials
-		l := strings.Index(s, " docker")
-		return strings.ReplaceAll(s, s[f:l], "<TOKEN>")
-	}
-
-	return s
-}
-
 func PrettyPrint(i any) string {
 	s, _ := json.Marshal(i)
 	return string(s)

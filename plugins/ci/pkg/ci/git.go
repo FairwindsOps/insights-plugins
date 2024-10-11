@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
-	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/util"
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
