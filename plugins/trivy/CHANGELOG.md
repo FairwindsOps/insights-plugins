@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.30.3
-* bump trivy for fixing vulberabilities
+* bump trivy for fixing vulnerabilities
 
 ## 0.30.2
 * fixing vulberabilities
