@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -17,15 +18,12 @@ type config struct {
 	NumberToScan              int
 	ExtraFlags                string
 	ServiceAccountAnnotations map[string]string
+	NamespaceBlocklist        []string
+	NamespaceAllowlist        []string
 }
 
 func LoadFromEnvironment() (*config, error) {
 	maxConcurrentScans := MAX_CONCURRENT_SCANS
-	numberToScan := NUMBER_TO_SCAN
-	var extraFlags string
-	var serviceAccountAnnotations map[string]string
-	var offline bool
-
 	concurrencyStr := os.Getenv("MAX_CONCURRENT_SCANS")
 	if concurrencyStr != "" {
 		var err error
@@ -35,6 +33,7 @@ func LoadFromEnvironment() (*config, error) {
 		}
 	}
 
+	numberToScan := NUMBER_TO_SCAN
 	numberToScanStr := os.Getenv("MAX_SCANS")
 	if numberToScanStr != "" {
 		var err error
@@ -44,6 +43,7 @@ func LoadFromEnvironment() (*config, error) {
 		}
 	}
 
+	var extraFlags string
 	ignoreUnfixedStr := os.Getenv("IGNORE_UNFIXED")
 	if ignoreUnfixedStr != "" {
 		ignoreUnfixedBool, err := strconv.ParseBool(ignoreUnfixedStr)
@@ -55,17 +55,30 @@ func LoadFromEnvironment() (*config, error) {
 		}
 	}
 
+	var offline bool
 	if os.Getenv("OFFLINE") != "" {
 		offline = true
 	}
 
+	var serviceAccountAnnotations map[string]string
 	serviceAccountAnnotationsStr := os.Getenv("SERVICE_ACCOUNT_ANNOTATIONS")
 	if len(serviceAccountAnnotationsStr) > 0 {
-		// format is JSON with {string:string} "{"iam.gke.io/gcp-service-account":"my-gsa@my-project.iam.gserviceaccount.com","another-key":"another-value"}"
+		// format is JSON with {string:string} '{"iam.gke.io/gcp-service-account":"my-gsa@my-project.iam.gserviceaccount.com","another-key":"another-value"}'
 		err := json.Unmarshal([]byte(serviceAccountAnnotationsStr), &serviceAccountAnnotations)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	var namespaceBlocklist, namespaceAllowlist []string
+	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_BLOCKLIST") != "" {
+		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLOCKLIST"), ",")
+	}
+	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
+		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
 	}
 
 	return &config{
@@ -74,5 +87,7 @@ func LoadFromEnvironment() (*config, error) {
 		NumberToScan:              numberToScan,
 		ExtraFlags:                extraFlags,
 		ServiceAccountAnnotations: serviceAccountAnnotations,
+		NamespaceBlocklist:        namespaceBlocklist,
+		NamespaceAllowlist:        namespaceAllowlist,
 	}, nil
 }
