@@ -11,11 +11,10 @@ RUN apk add --no-cache --virtual .build-deps bash gcc musl-dev openssl go
 # download go tar 
 RUN wget -O go.tgz https://dl.google.com/go/go1.22.7.src.tar.gz 
 RUN tar -C /usr/local -xzf go.tgz 
-RUN cd /usr/local/go/src/
 
 # compile code
-RUN ./make.bash
-RUN apk del .build-deps
+RUN /usr/local/go/src/make.bash
+RUN apk del /usr/local/go/src/build-deps
 
 COPY kube-bench-daemon /usr/local/bin/
 
