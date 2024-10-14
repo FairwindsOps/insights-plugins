@@ -23,9 +23,9 @@ ENV CLOUD_SDK_VERSION=496.0.0
 RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
-  google-cloud-sdk/install.sh --quiet
+  google-cloud-sdk/install.sh --quiet --path-update=false
 
-ENV PATH=$PATH:./google-cloud-sdk/bin
+ENV PATH=$PATH:/trivy/google-cloud-sdk/bin
 
 COPY scan ./scan
 COPY --from=downloader /usr/local/bin/kubectl /usr/local/bin/kubectl
