@@ -8,7 +8,7 @@ RUN apk update && apk upgrade
 RUN apk add jq bash curl moreutils coreutils
 RUN apk add unzip
 
-ENV google_cloud_sdk_version=494.0.0
+ENV google_cloud_sdk_version=496.0.0
 
 RUN apk add python3
 RUN apk add --no-cache aws-cli
@@ -22,9 +22,11 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     tar -xvf google-cloud-sdk.tar.gz && \
     ./google-cloud-sdk/install.sh && \
     ./google-cloud-sdk/bin/gcloud components install bq && \
-    rm -rf /google-cloud-sdk/lib/googlecloudsdk/third_party /google-cloud-sdk/platform/gsutil/third_party /google-cloud-sdk/lib/googlecloudsdk/generated_clients/apis/appengine && \
+    rm -rf /google-cloud-sdk/platform/gsutil/third_party && \
+    rm -rf /google-cloud-sdk/bin/gcloud-crc32c && \
     rm -rf google-cloud-sdk.tar.gz && \
-    rm -rf /google-cloud-sdk/bin/gcloud-crc32c
+    rm /google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc && \
+    rm /google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
     
 
 COPY cloud-costs.sh cloud-costs.sh
