@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -46,7 +45,6 @@ func updateModel() {
 	cmd := exec.Command("kube-bench", "--json")
 	response, err := cmd.Output()
 	if err != nil {
-		fmt.Println("err====", err)
 		logrus.Fatal(err, string(response))
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(response)))
