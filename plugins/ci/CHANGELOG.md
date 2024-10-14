@@ -1,7 +1,6 @@
 # Changelog
 
 ## 5.7.8
-- Bump trivy version
 - Use `RemoveTokensAndPassword` function from trivy
 
 ## 5.7.7
