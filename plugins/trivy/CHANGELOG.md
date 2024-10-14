@@ -3,7 +3,9 @@
 ## 0.31.0
 * Add new env. variable support `SERVICE_ACCOUNT_ANNOTATIONS`
 * Add private GCP containers / registry support for skopeo copy
-* Bump trivy version
+
+## 0.30.3
+* bump trivy for fixing vulnerabilities
 
 ## 0.30.2
 * fixing vulnerabilities

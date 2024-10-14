@@ -2,8 +2,6 @@ module github.com/fairwindsops/insights-plugins/plugins/kube-bench-aggregator
 
 go 1.22.0
 
-toolchain go1.22.7
-
 require github.com/aquasecurity/kube-bench v0.9.0
 
 require (
