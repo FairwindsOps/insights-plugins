@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.7
+- bumped trivy to v0.56.2
+
 ## 5.7.6
 - bumped tfsec to 1.28.11 for fixing vulnerabilities
 
