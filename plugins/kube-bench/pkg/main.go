@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -93,7 +94,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		err = os.WriteFile(outputFile, []byte(outputBytes), 0644)
+		err = ioutil.WriteFile(outputFile, []byte(outputBytes), 0644)
 		if err != nil {
 			panic(err)
 		}
