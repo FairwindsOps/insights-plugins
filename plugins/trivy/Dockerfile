@@ -33,6 +33,7 @@ COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 
 RUN TRIVY_CACHE_DIR=/var/tmp trivy image --download-db-only
 
+ENV CLOUDSDK_CONFIG=/tmp/gcloud
 ENV HOME=/
 RUN mkdir $HOME/.docker
 
