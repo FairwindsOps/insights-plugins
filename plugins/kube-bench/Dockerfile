@@ -1,4 +1,4 @@
-FROM aquasec/kube-bench:v0.9.0
+FROM aquasec/kube-bench:v0.9.1
 
 ARG TARGETARCH
 ARG TARGETOS
