@@ -91,7 +91,7 @@ func filterAndSort(suggestedTags []string, curTagStr string) ([]string, error) {
 		cPre := curVersion.Prerelease()
 		vPre := v.Prerelease()
 		if cPre != "" && vPre != "" && cPre != vPre {
-			logrus.Infof("pre-releases does not match: %s != %s", cPre, vPre)
+			logrus.Debugf("pre-releases does not match: %s != %s", cPre, vPre)
 			continue
 		}
 

@@ -452,7 +452,7 @@ func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels
 	if extraFlags != "" {
 		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
 	}
-	err := util.RunCommand(cmd, "scanning "+imageID)
+	_, err := util.RunCommand(cmd, "scanning "+imageID)
 	if err != nil {
 		logrus.Errorf("Error scanning %s at %s: %v", imageID, imagePath, err)
 		return nil, err
