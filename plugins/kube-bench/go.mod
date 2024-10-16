@@ -3,7 +3,7 @@ module github.com/fairwindsops/insights-plugins/plugins/kube-bench
 go 1.22.6
 
 require (
-	github.com/aquasecurity/kube-bench v0.9.0
+	github.com/aquasecurity/kube-bench v0.9.1
 	github.com/sirupsen/logrus v1.9.3
 )
 
@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/securityhub v1.53.3 // indirect
 	github.com/aws/smithy-go v1.21.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/golang/glog v1.2.0 // indirect
+	github.com/golang/glog v1.2.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
