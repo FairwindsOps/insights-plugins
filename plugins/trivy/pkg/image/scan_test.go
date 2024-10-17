@@ -12,7 +12,7 @@ var extraFlags = ""
 var maxConcurrentScans = 25
 
 func TestScanImages(t *testing.T) {
-	scannerMock := func(extraFlags, pullRef string, registryOAuth2AccessToken map[string]string) (*models.TrivyResults, error) {
+	scannerMock := func(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		return &models.TrivyResults{
 			Metadata: models.TrivyMetadata{},
 			Results: []models.VulnerabilityList{
@@ -29,7 +29,7 @@ func TestScanImages(t *testing.T) {
 			PullRef: "paulbouwerhellokubernetes17",
 		},
 	}
-	imgReports := ScanImages(scannerMock, images, maxConcurrentScans, extraFlags, nil)
+	imgReports := ScanImages(scannerMock, images, maxConcurrentScans, extraFlags)
 	assert.NotEmpty(t, imgReports)
 	for _, r := range imgReports {
 		assert.Len(t, r.Reports, 1)
@@ -39,7 +39,7 @@ func TestScanImages(t *testing.T) {
 
 func TestScanImagesError(t *testing.T) {
 	i := 0
-	errorScannerMock := func(extraFlags, pullRef string, registryOAuth2AccessToken map[string]string) (*models.TrivyResults, error) {
+	errorScannerMock := func(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		i++
 		return nil, fmt.Errorf("could not scan image: %d", i)
 	}
@@ -49,7 +49,7 @@ func TestScanImagesError(t *testing.T) {
 			PullRef: "paulbouwerhellokubernetes17",
 		},
 	}
-	imgReports := ScanImages(errorScannerMock, images, maxConcurrentScans, extraFlags, nil)
+	imgReports := ScanImages(errorScannerMock, images, maxConcurrentScans, extraFlags)
 	assert.NotEmpty(t, imgReports)
 	for _, r := range imgReports {
 		assert.Len(t, r.Reports, 0)
@@ -59,7 +59,7 @@ func TestScanImagesError(t *testing.T) {
 
 func TestScanImagesSuccessOnRetry(t *testing.T) {
 	i := 0
-	successOnRetryScannerMock := func(extraFlags, pullRef string, registryOAuth2AccessToken map[string]string) (*models.TrivyResults, error) {
+	successOnRetryScannerMock := func(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		i++
 		if i == 3 {
 			return &models.TrivyResults{
@@ -80,7 +80,7 @@ func TestScanImagesSuccessOnRetry(t *testing.T) {
 			PullRef: "paulbouwerhellokubernetes17",
 		},
 	}
-	imgReports := ScanImages(successOnRetryScannerMock, images, maxConcurrentScans, extraFlags, nil)
+	imgReports := ScanImages(successOnRetryScannerMock, images, maxConcurrentScans, extraFlags)
 	assert.NotEmpty(t, imgReports)
 	for _, r := range imgReports {
 		assert.Len(t, r.Reports, 1)
@@ -89,7 +89,7 @@ func TestScanImagesSuccessOnRetry(t *testing.T) {
 }
 
 func TestScanRecommendationImages(t *testing.T) {
-	scannerMock := func(extraFlags, pullRef string, registryOAuth2AccessToken map[string]string) (*models.TrivyResults, error) {
+	scannerMock := func(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		return &models.TrivyResults{
 			Metadata: models.TrivyMetadata{},
 			Results: []models.VulnerabilityList{
@@ -107,7 +107,7 @@ func TestScanRecommendationImages(t *testing.T) {
 			RecommendationOnly: true,
 		},
 	}
-	imgReports := ScanImages(scannerMock, images, maxConcurrentScans, extraFlags, nil)
+	imgReports := ScanImages(scannerMock, images, maxConcurrentScans, extraFlags)
 	assert.NotEmpty(t, imgReports)
 	for _, r := range imgReports {
 		assert.Len(t, r.Reports, 1)
@@ -117,7 +117,7 @@ func TestScanRecommendationImages(t *testing.T) {
 
 func TestScanRecommendationImagesError(t *testing.T) {
 	i := 0
-	errorScannerMock := func(extraFlags, pullRef string, registryOAuth2AccessToken map[string]string) (*models.TrivyResults, error) {
+	errorScannerMock := func(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		i++
 		return nil, fmt.Errorf("could not scan image: %d", i)
 	}
@@ -128,13 +128,13 @@ func TestScanRecommendationImagesError(t *testing.T) {
 			RecommendationOnly: true,
 		},
 	}
-	imgReports := ScanImages(errorScannerMock, images, maxConcurrentScans, extraFlags, nil)
+	imgReports := ScanImages(errorScannerMock, images, maxConcurrentScans, extraFlags)
 	assert.Empty(t, imgReports, "should not report on errored recommendation only images")
 }
 
 func TestScanRecommendationImagesSuccessOnRetry(t *testing.T) {
 	i := 0
-	successOnRetryScannerMock := func(extraFlags, pullRef string, registryOAuth2AccessToken map[string]string) (*models.TrivyResults, error) {
+	successOnRetryScannerMock := func(extraFlags, pullRef string) (*models.TrivyResults, error) {
 		i++
 		if i == 3 {
 			return &models.TrivyResults{
@@ -156,7 +156,7 @@ func TestScanRecommendationImagesSuccessOnRetry(t *testing.T) {
 			RecommendationOnly: true,
 		},
 	}
-	imgReports := ScanImages(successOnRetryScannerMock, images, maxConcurrentScans, extraFlags, nil)
+	imgReports := ScanImages(successOnRetryScannerMock, images, maxConcurrentScans, extraFlags)
 	assert.NotEmpty(t, imgReports)
 	for _, r := range imgReports {
 		assert.Len(t, r.Reports, 1)

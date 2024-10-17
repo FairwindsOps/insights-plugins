@@ -25,7 +25,7 @@ var registryPassword = os.Getenv("REGISTRY_PASSWORD")
 var registryUser = os.Getenv("REGISTRY_USER")
 var registryCertDir = os.Getenv("REGISTRY_CERT_DIR")
 
-type ImageScannerFunc = func(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error)
+type ImageScannerFunc = func(extraFlags, pullRef string) (*models.TrivyResults, error)
 
 func init() {
 	passwordFile := os.Getenv("REGISTRY_PASSWORD_FILE")
@@ -40,7 +40,7 @@ func init() {
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
-func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurrentScans int, extraFlags string, registryOAuth2AccessTokenMap map[string]string) []models.ImageReport {
+func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurrentScans int, extraFlags string) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
 	reportByRef := map[string]*models.TrivyResults{}
 	reportByRefLock := sync.RWMutex{}
@@ -59,7 +59,7 @@ func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurren
 			}()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
-				r, err := imgScanner(extraFlags, pullRef, registryOAuth2AccessTokenMap)
+				r, err := imgScanner(extraFlags, pullRef)
 				reportByRefLock.Lock()
 				reportByRef[pullRef] = r
 				if err == nil {
@@ -152,7 +152,7 @@ func getOsArch(imageCfg models.TrivyImageConfig) string {
 }
 
 // ScanImage will scan a single image with Trivy and return the results.
-func ScanImage(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error) {
+func ScanImage(extraFlags, pullRef string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
 	args := []string{"-d", "image", "--skip-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile}
@@ -177,7 +177,7 @@ func ScanImage(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[stri
 	}
 
 	logrus.Infof("Downloading image %s", pullRef)
-	imageFile, err := downloadPullRef(pullRef, registryOAuth2AccessTokenMap)
+	imageFile, err := downloadPullRef(pullRef)
 	if err != nil {
 		return nil, fmt.Errorf("error while downloading image: %w", err)
 	}
@@ -209,7 +209,7 @@ func ScanImage(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[stri
 	return &report, nil
 }
 
-func downloadPullRef(pullRef string, registryOAuth2AccessTokenMap map[string]string) (string, error) {
+func downloadPullRef(pullRef string) (string, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	dest := TempDir + "/" + imageID
 	imageMessage := fmt.Sprintf("image %s", pullRef)
@@ -224,9 +224,7 @@ func downloadPullRef(pullRef string, registryOAuth2AccessTokenMap map[string]str
 		args = append(args, "--src-tls-verify=false")
 		args = append(args, "--dest-tls-verify=false")
 	}
-	if token, ok := hasOAuth2AccessToken(registryOAuth2AccessTokenMap, pullRef); ok {
-		args = append(args, "--src-creds", "oauth2accesstoken:"+token)
-	}
+	args = append(args, "--authfile", "~/.docker/config.json")
 	if registryUser != "" || registryPassword != "" {
 		args = append(args, "--src-creds", registryUser+":"+registryPassword)
 	}
@@ -246,13 +244,4 @@ func downloadPullRef(pullRef string, registryOAuth2AccessTokenMap map[string]str
 		return "", fmt.Errorf("error pulling %s with skopeo: %w", pullRef, err)
 	}
 	return dest, nil
-}
-
-func hasOAuth2AccessToken(registryOAuth2AccessTokenMap map[string]string, pullRef string) (string, bool) {
-	for registry, token := range registryOAuth2AccessTokenMap {
-		if strings.Contains(pullRef, registry) {
-			return token, true
-		}
-	}
-	return "", false
 }

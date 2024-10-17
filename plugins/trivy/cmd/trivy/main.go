@@ -89,19 +89,17 @@ func main() {
 	lastReport.Images = image.GetMatchingImages(lastReport.Images, inClusterImages, true)
 	logrus.Infof("%d images after removing recommendations that don't match", len(lastReport.Images))
 
-	registryOAuth2AccessTokenMap := map[string]string{}
 	if cfg.HasGKESAAnnotation {
-		// it seems that AWS IRSA is support but not GKE SA, so we need to get the token manually and inject into skopeo
-		oauth2AccessToken, err := util.RunCommand(exec.Command("gcloud", "auth", "print-access-token"), "getting gcloud access token")
+		// this command should be run before trivy and skopeo commands
+		// it configures ~/.docker/config.json with registries and access tokens
+		_, err := util.RunCommand(exec.Command("gcloud", "-q", "auth", "configure-docker"), "setting up gcloud docker authentication")
 		if err != nil {
 			logrus.Fatalf("could not get gcloud access token: %v", err)
 		}
-		registryOAuth2AccessTokenMap["gcr.io"] = oauth2AccessToken
-		registryOAuth2AccessTokenMap["docker.pkg.dev"] = oauth2AccessToken
 	}
 
 	logrus.Infof("Starting image scans")
-	allReports := image.ScanImages(image.ScanImage, imagesToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, registryOAuth2AccessTokenMap)
+	allReports := image.ScanImages(image.ScanImage, imagesToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags)
 
 	if noRecommendations == "" {
 		logrus.Infof("Scanning recommendations")
@@ -110,7 +108,7 @@ func main() {
 		lastReport.Images = image.GetUnmatchingImages(lastReport.Images, recommendationsToScan, true)
 		logrus.Infof("%d images after removing recommendations that will be scanned", len(lastReport.Images))
 		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
-		recommendationReport := image.ScanImages(image.ScanImage, recommendationsToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, registryOAuth2AccessTokenMap)
+		recommendationReport := image.ScanImages(image.ScanImage, recommendationsToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags)
 		logrus.Infof("Done scanning recommendations")
 		allReports = append(allReports, recommendationReport...)
 	}
