@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.3
+- bumped kube-bench to v0.9.1
+
 ## 0.5.2
 - bumped kube-bench to v0.9.0
 
