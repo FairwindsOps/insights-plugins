@@ -105,7 +105,7 @@ func main() {
 
 	if noRecommendations == "" {
 		logrus.Infof("Scanning recommendations")
-		recommendationsToScan := image.GetNewestVersionsToScan(ctx, allReports, imagesToScan)
+		recommendationsToScan := image.GetNewestVersionsToScan(ctx, allReports, imagesToScan, registryOAuth2AccessTokenMap)
 		// Remove any recommendations from the report that we're going to re-scan now
 		lastReport.Images = image.GetUnmatchingImages(lastReport.Images, recommendationsToScan, true)
 		logrus.Infof("%d images after removing recommendations that will be scanned", len(lastReport.Images))

@@ -97,6 +97,6 @@ func TestGetNewestVersionsToScan(t *testing.T) {
 	err = json.Unmarshal(b, &allImages)
 	assert.NoError(t, err)
 
-	images := GetNewestVersionsToScan(context.Background(), allReports, allImages)
+	images := GetNewestVersionsToScan(context.Background(), allReports, allImages, map[string]string{})
 	assert.NotZero(t, images)
 }
