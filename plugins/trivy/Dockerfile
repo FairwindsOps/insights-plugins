@@ -31,7 +31,7 @@ COPY scan ./scan
 COPY --from=downloader /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 
-RUN TRIVY_CACHE_DIR=/var/tmp trivy image --download-db-only
+RUN TRIVY_CACHE_DIR=/var/tmp TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db:2 TRIVY_JAVA_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-java-db,public.ecr.aws/aquasecurity/trivy-java-db:2 trivy image --download-db-only
 
 ENV CLOUDSDK_CONFIG=/tmp/gcloud
 ENV HOME=/
