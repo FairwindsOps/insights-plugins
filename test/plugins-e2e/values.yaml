@@ -36,9 +36,12 @@ trivy:
       memory: 64Mi
       cpu: 1m
   namespaceBlacklist:
-  - kube-system
-  - default
-  - insights-agent
+    - kube-system
+    - default
+    - insights-agent
+  env:
+    TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db,public.ecr.aws/aquasecurity/trivy-db:2
+    TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db,public.ecr.aws/aquasecurity/trivy-java-db:2
 
 uploader:
   resources:
