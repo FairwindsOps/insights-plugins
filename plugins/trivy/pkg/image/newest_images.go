@@ -55,7 +55,7 @@ func fetchTags(ctx context.Context, imageRepoName string, registryOAuth2AccessTo
 	}
 
 	auth := remote.WithAuthFromKeychain(authn.DefaultKeychain)
-	if token, ok := registryOAuth2AccessTokenMap[imageRepoName]; ok {
+	if token, ok := hasOAuth2AccessToken(registryOAuth2AccessTokenMap, imageRepoName); ok {
 		auth = remote.WithAuth(&authn.Bearer{Token: token})
 	}
 
