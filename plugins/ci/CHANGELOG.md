@@ -2,6 +2,7 @@
 
 ## 5.7.8
 - Use `RemoveTokensAndPassword` function from trivy
+- Add trivy OCI repositories fallback
 
 ## 5.7.7
 - bumped trivy to v0.56.2
