@@ -20,23 +20,9 @@ RUN apk --no-cache add bash curl python3 libc6-compat ca-certificates
 
 ENV CLOUD_SDK_VERSION=497.0.0
 
-ENV MAPPED_ARCH=""
-RUN case "$TARGETARCH" in \
-  "amd64" | "x86_64" | "x64") \
-  MAPPED_ARCH="x86_64" ;; \
-  "arm64" | "aarch64" | "armv8" | "armv8l") \
-  MAPPED_ARCH="arm" ;; \
-  "arm" | "armhf" | "armel" | "armv6" | "armv7" | "armv7l") \
-  MAPPED_ARCH="arm" ;; \
-  "386" | "i386" | "i486" | "i586" | "i686") \
-  MAPPED_ARCH="x86" ;; \
-  *) \
-  echo "Unsupported architecture: $TARGETARCH" && exit 1 ;; \
-  esac
-
-RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-${TARGETOS}-${MAPPED_ARCH}.tar.gz && \ 
-  tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-${TARGETOS}-${MAPPED_ARCH}.tar.gz && \ 
-  rm google-cloud-cli-${CLOUD_SDK_VERSION}-${TARGETOS}-${MAPPED_ARCH}.tar.gz && \ 
+RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
+  tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
+  rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   google-cloud-sdk/install.sh --quiet --path-update=false
 
 ENV PATH=$PATH:/trivy/google-cloud-sdk/bin
@@ -59,9 +45,9 @@ RUN apk add --no-cache skopeo
 COPY report.sh ./
 
 # remove all unused components that have HIGH/CRITICAL vulnerabilities
-RUN rm -rf /trivy/google-cloud-sdk/platform/gsutil/third_party
-RUN rm -rf /trivy/google-cloud-sdk/bin/gcloud-crc32c
-RUN rm -f /trivy/google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc
-RUN rm -f /trivy/google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
+RUN rm -rf /trivy/google-cloud-sdk/platform/gsutil/third_party && \
+  rm -rf /trivy/google-cloud-sdk/bin/gcloud-crc32c && \
+  rm -f /trivy/google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc && \
+  rm -f /trivy/google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
 
 CMD ./report.sh
