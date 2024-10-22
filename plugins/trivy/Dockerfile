@@ -25,6 +25,12 @@ RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-c
   rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   google-cloud-sdk/install.sh --quiet --path-update=false
 
+# remove all unused components that have HIGH/CRITICAL vulnerabilities
+RUN rm -rf google-cloud-sdk/platform/gsutil/third_party
+RUN rm -rf google-cloud-sdk/bin/gcloud-crc32c
+RUN rm -f google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc
+RUN rm -f google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
+
 ENV PATH=$PATH:/trivy/google-cloud-sdk/bin
 
 COPY scan ./scan
@@ -43,11 +49,4 @@ RUN mkdir $HOME/.docker
 RUN apk add --no-cache skopeo
 
 COPY report.sh ./
-
-# remove all unused components that have HIGH/CRITICAL vulnerabilities
-RUN rm -rf /trivy/google-cloud-sdk/platform/gsutil/third_party && \
-  rm -rf /trivy/google-cloud-sdk/bin/gcloud-crc32c && \
-  rm -f /trivy/google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc && \
-  rm -f /trivy/google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
-
 CMD ./report.sh
