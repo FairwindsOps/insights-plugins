@@ -37,7 +37,12 @@ func main() {
 	}
 
 	if !cfg.Offline {
-		_, err := util.RunCommand(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+		args := []string{
+			"image", "--download-db-only",
+			"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
+			"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
+		}
+		_, err := util.RunCommand(exec.Command("trivy", args...), "downloading trivy database")
 		if err != nil {
 			logrus.Fatal(err)
 		}
