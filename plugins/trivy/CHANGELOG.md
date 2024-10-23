@@ -1,10 +1,14 @@
 # Changelog
 
+## 0.31.0
+* Add new env. variable support `SERVICE_ACCOUNT_ANNOTATIONS`
+* Add private GCP containers / registry support for skopeo copy
+
 ## 0.30.3
 * bump trivy for fixing vulnerabilities
 
 ## 0.30.2
-* fixing vulberabilities
+* fixing vulnerabilities
 
 ## 0.30.1
 * upgraded goreleaser to v2
