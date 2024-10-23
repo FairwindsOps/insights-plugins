@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.7.8
+- Use `RemoveTokensAndPassword` function from trivy
+- Add trivy OCI repositories fallback
+
 ## 5.7.7
 - bumped trivy to v0.56.2
 
@@ -22,31 +26,24 @@
 - fixed docker vulnerability
 
 ## 5.7.0
-
 - Add support for OPA custom libs
 
 ## 5.6.2
-
 - fixed docker vulnerability
 
 ## 5.6.1
-
 - add support for go workspace
 
 ## 5.6.0
-
 - Add support for scan-workloads labels
 
 ## 5.5.9
-
 - Bumped trivy version
 
 ## 5.5.8
-
 - Fixed CI vulnerability
 
 ## 5.5.7
-
 - Bump alpine to 3.20
 
 ## 5.5.6

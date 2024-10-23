@@ -298,7 +298,13 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 		return nil, "", fmt.Errorf("unable to get trivy version: %v", err)
 	}
 	trivyVersion = strings.Split(strings.Split(trivyVersion, "\n")[0], " ")[1]
-	output, err := commands.ExecWithMessage(exec.Command("trivy", "image", "--download-db-only"), "downloading trivy database")
+
+	args := []string{
+		"image", "--download-db-only",
+		"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
+		"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
+	}
+	output, err := commands.ExecWithMessage(exec.Command("trivy", args...), "downloading trivy database")
 	if err != nil {
 		return nil, "", fmt.Errorf("unable to download trivy database, %v: %s", err, output)
 	}
@@ -452,7 +458,7 @@ func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels
 	if extraFlags != "" {
 		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
 	}
-	err := util.RunCommand(cmd, "scanning "+imageID)
+	_, err := util.RunCommand(cmd, "scanning "+imageID)
 	if err != nil {
 		logrus.Errorf("Error scanning %s at %s: %v", imageID, imagePath, err)
 		return nil, err
