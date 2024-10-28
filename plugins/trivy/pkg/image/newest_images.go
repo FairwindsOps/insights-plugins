@@ -31,9 +31,9 @@ var knownPreReleases = []string{
 const MaxNewestVersionsToScan = 1
 
 // GetNewestVersions returns newest versions and newest version within same major version
-func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) {
+func GetNewestVersions(ctx context.Context, repo, tag string, registryOAuth2AccessTokenMap map[string]string) ([]string, error) {
 	logrus.Infof("started retrieving newest versions for %s:%s", repo, tag)
-	tags, err := fetchTags(ctx, repo)
+	tags, err := fetchTags(ctx, repo, registryOAuth2AccessTokenMap)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching tags for %s:%s: %w", repo, tag, err)
 	}
@@ -48,14 +48,19 @@ func GetNewestVersions(ctx context.Context, repo, tag string) ([]string, error) 
 	return newest[len(newest)-MaxNewestVersionsToScan:], nil
 }
 
-func fetchTags(ctx context.Context, imageRepoName string) ([]string, error) {
+func fetchTags(ctx context.Context, imageRepoName string, registryOAuth2AccessTokenMap map[string]string) ([]string, error) {
 	repository, err := name.NewRepository(imageRepoName)
 	if err != nil {
 		return nil, err
 	}
 
+	auth := remote.WithAuthFromKeychain(authn.DefaultKeychain)
+	if token, ok := hasOAuth2AccessToken(registryOAuth2AccessTokenMap, imageRepoName); ok {
+		auth = remote.WithAuth(&authn.Bearer{Token: token})
+	}
+
 	// GET @ https://{quay.io|index.docker.io|k8s.gcr.io}/v2/fairwinds/insights-uploader/tags/list
-	tags, err := remote.List(repository, remote.WithAuthFromKeychain(authn.DefaultKeychain), remote.WithContext(ctx))
+	tags, err := remote.List(repository, auth, remote.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +96,7 @@ func filterAndSort(suggestedTags []string, curTagStr string) ([]string, error) {
 		cPre := curVersion.Prerelease()
 		vPre := v.Prerelease()
 		if cPre != "" && vPre != "" && cPre != vPre {
-			logrus.Infof("pre-releases does not match: %s != %s", cPre, vPre)
+			logrus.Debugf("pre-releases does not match: %s != %s", cPre, vPre)
 			continue
 		}
 
@@ -136,7 +141,7 @@ type NewestVersions struct {
 	err      error
 }
 
-func GetNewestVersionsToScan(ctx context.Context, allReports []models.ImageReport, imagesToScan []models.Image) []models.Image {
+func GetNewestVersionsToScan(ctx context.Context, allReports []models.ImageReport, imagesToScan []models.Image, registryOAuth2AccessTokenMap map[string]string) []models.Image {
 	var imageWithVulns []models.ImageReport
 	for _, img := range imagesToScan {
 		imageSha := img.GetSha()
@@ -153,7 +158,7 @@ func GetNewestVersionsToScan(ctx context.Context, allReports []models.ImageRepor
 	versionsChan := make(chan NewestVersions, len(imageWithVulns))
 	for _, i := range imageWithVulns {
 		logrus.Infof("launching go-routine to fetch newer versions for image %s", i.Name)
-		go getNewestVersions(versionsChan, ctx, i)
+		go getNewestVersions(versionsChan, ctx, i, registryOAuth2AccessTokenMap)
 	}
 
 	newImagesToScan := []models.Image{}
@@ -175,7 +180,7 @@ func GetNewestVersionsToScan(ctx context.Context, allReports []models.ImageRepor
 	return newImagesToScan
 }
 
-func getNewestVersions(versionsChan chan NewestVersions, ctx context.Context, img models.ImageReport) {
+func getNewestVersions(versionsChan chan NewestVersions, ctx context.Context, img models.ImageReport, registryOAuth2AccessTokenMap map[string]string) {
 	parts := strings.Split(img.Name, ":")
 	if len(parts) != 2 {
 		versionsChan <- NewestVersions{
@@ -195,7 +200,7 @@ func getNewestVersions(versionsChan chan NewestVersions, ctx context.Context, im
 		}
 		return
 	}
-	versions, err := GetNewestVersions(ctx, repo, tag)
+	versions, err := GetNewestVersions(ctx, repo, tag, registryOAuth2AccessTokenMap)
 	if err != nil {
 		versionsChan <- NewestVersions{
 			repo: repo,

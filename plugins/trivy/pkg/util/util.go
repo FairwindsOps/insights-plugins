@@ -70,22 +70,54 @@ func CreateKubeClientResources() KubeClientResources {
 	return r
 }
 
+var requiredEnvVars = []string{"FAIRWINDS_INSIGHTS_HOST", "FAIRWINDS_ORG", "FAIRWINDS_CLUSTER", "FAIRWINDS_TOKEN"}
+
 func CheckEnvironmentVariables() error {
-	if os.Getenv("FAIRWINDS_INSIGHTS_HOST") == "" || os.Getenv("FAIRWINDS_ORG") == "" || os.Getenv("FAIRWINDS_CLUSTER") == "" || os.Getenv("FAIRWINDS_TOKEN") == "" {
-		return errors.New("Proper environment variables not set.")
+	for _, env := range requiredEnvVars {
+		if os.Getenv(env) == "" {
+			return fmt.Errorf("missing required environment variable: %s", env)
+		}
 	}
 	return nil
 }
 
-func RunCommand(cmd *exec.Cmd, message string) error {
+func RunCommand(cmd *exec.Cmd, message string) (string, error) {
 	logrus.Info(message)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		outputString := string(output)
+		outputString := RemoveTokensAndPassword(string(output))
 		if strings.Contains(outputString, UnknownOSMessage) {
-			return errors.New(UnknownOSMessage)
+			return "", errors.New(UnknownOSMessage)
 		}
-		return fmt.Errorf("error %s: %s\n%s", message, err, outputString)
+		return "", fmt.Errorf("error %s: %s\n%s", message, err, outputString)
 	}
-	return nil
+	return strings.TrimSpace(string(output)), nil
+}
+
+// RemoveTokensAndPassword sanitizes output to remove token
+func RemoveTokensAndPassword(s string) string {
+	// based on x-access-token
+	index := strings.Index(s, "x-access-token")
+	index2 := strings.Index(s, "@github.com")
+	if index > 0 && index2 > 0 {
+		return strings.ReplaceAll(s, s[index+15:index2], "<TOKEN>")
+	}
+
+	// based on --src-creds
+	index = strings.Index(s, "--src-creds")
+	if index > 0 {
+		f := index + 12 // start of credentials
+		l := strings.Index(s, " docker")
+		return strings.ReplaceAll(s, s[f:l], "<CREDENTIALS>")
+	}
+
+	// based on --src-registry-token
+	index = strings.Index(s, "--src-registry-token")
+	if index > 0 {
+		f := index + 21 // start of credentials
+		l := strings.Index(s, " docker")
+		return strings.ReplaceAll(s, s[f:l], "<TOKEN>")
+	}
+
+	return s
 }
