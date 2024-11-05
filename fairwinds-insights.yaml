@@ -4,13 +4,13 @@ options:
 # run ./scripts/scan-all.sh to regenerate
 images:
   docker:
-    - quay.io/fairwinds/polaris:9.4
+    - quay.io/fairwinds/polaris:9.5
     - quay.io/fairwinds/nova:v3.11
     - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.20
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.13
     - quay.io/fairwinds/insights-admission-controller:1.17.1
     - quay.io/fairwinds/aws-costs:1.4.2
-    - quay.io/fairwinds/insights-ci:5.7.4
+    - quay.io/fairwinds/insights-ci:5.7
     - quay.io/fairwinds/cloud-costs:0.3.7
     - quay.io/fairwinds/falco-agent:0.3.10
     - quay.io/fairwinds/fw-kube-bench-aggregator:0.3.18
