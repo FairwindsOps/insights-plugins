@@ -34,7 +34,7 @@ echo "Running CI/CD on sample repo"
 echo "The fairwinds-insights.yaml contents:"
 cat $CONFIG_FILE
 
-$ci_script &> output.txt || failed=false
+image_version=5.7 $ci_script &> output.txt || failed=false
 if [[ -n $failed ]]; then
   cat output.txt
   echo "CI script returned non-zero. Exiting."

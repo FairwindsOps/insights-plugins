@@ -62,7 +62,7 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 	}
 	if tempConfig.Polaris == nil {
 		logrus.Infoln("no admission polaris config is present in Insights, using the polaris default")
-		polarisConfig, err := polarisconfiguration.ParseFile("")
+		polarisConfig, err := polarisconfiguration.MergeConfigAndParseFile("", false)
 		if err != nil {
 			return err
 		}
