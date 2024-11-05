@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.3
+* bumped polaris to 9.5.0
+
 ## 1.17.2
 * bumped pluto to 5.20.3
 
