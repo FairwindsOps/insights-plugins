@@ -302,12 +302,21 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 	args := []string{
 		"image", "--download-db-only",
 		"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
-		"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
 	}
 	output, err := commands.ExecWithMessage(exec.Command("trivy", args...), "downloading trivy database")
 	if err != nil {
 		return nil, "", fmt.Errorf("unable to download trivy database, %v: %s", err, output)
 	}
+
+	args = []string{
+		"image", "--download-java-db-only",
+		"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
+	}
+	output, err = commands.ExecWithMessage(exec.Command("trivy", args...), "downloading trivy java database")
+	if err != nil {
+		return nil, "", fmt.Errorf("unable to download trivy java database, %v: %s", err, output)
+	}
+
 	reportByRef := map[string]*trivymodels.TrivyResults{}
 	errorsByRef := map[string]*multierror.Error{}
 	for _, currentImage := range images {
@@ -454,9 +463,9 @@ func (ci *CIScan) SkipTrivyManifests() bool {
 // ScanImageFile will scan a single file with Trivy and return the results.
 func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels.TrivyResults, error) {
 	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
-	cmd := exec.Command("trivy", "-d", "image", "--skip-update", "-f", "json", "-o", reportFile, "--input", imagePath)
+	cmd := exec.Command("trivy", "-d", "image", "--skip-db-update", "--skip-java-db-update", "-f", "json", "-o", reportFile, "--input", imagePath)
 	if extraFlags != "" {
-		cmd = exec.Command("trivy", "-d", "image", "--skip-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
+		cmd = exec.Command("trivy", "-d", "image", "--skip-db-update", "--skip-java-db-update", extraFlags, "-f", "json", "-o", reportFile, "--input", imagePath)
 	}
 	_, err := util.RunCommand(cmd, "scanning "+imageID)
 	if err != nil {

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.31.2
+* fix trivy db / java-db cache
+
 ## 0.31.1
 * bumped trivy to 0.57.0
 
