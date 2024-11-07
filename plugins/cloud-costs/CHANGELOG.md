@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.10
+* improved big query logs
+
 ## 0.3.9
 * upgraded google cloud sdk
 
