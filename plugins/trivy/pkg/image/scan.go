@@ -155,7 +155,7 @@ func getOsArch(imageCfg models.TrivyImageConfig) string {
 func ScanImage(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
-	args := []string{"-d", "image", "--skip-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile}
+	args := []string{"-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile}
 	if extraFlags != "" {
 		args = append(args, extraFlags)
 	}

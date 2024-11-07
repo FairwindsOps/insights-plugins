@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.10
+- fix trivy db / java-db downloading
+
 ## 5.7.9
 - bumped trivy to v0.57.0
 
