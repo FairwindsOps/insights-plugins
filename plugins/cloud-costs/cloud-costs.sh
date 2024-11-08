@@ -191,7 +191,7 @@ if [[ "$provider" == "gcp" ]]; then
     exit 1
   fi
 
-  echo "Google bigquey finished......"
+  echo "Google BigQuey finished..."
   awk '$0 == "[" {p=1} p' < /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clean.json
 
   mv /output/cloudcosts-tmp-clean.json /output/cloudcosts.json
