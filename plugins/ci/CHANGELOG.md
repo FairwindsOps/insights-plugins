@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.11
+* bumped polaris to 9.6.0
+
 ## 5.7.10
 - fix trivy db / java-db downloading
 
