@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.4
+* bumped polaris to 9.6.0
+
 ## 1.17.3
 * bumped polaris to 9.5.0
 

@@ -8,18 +8,19 @@ require (
 	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20240919172428-9155958c3c0e
-	github.com/fairwindsops/polaris v0.0.0-20240925151750-be349a885dbb
+	github.com/fairwindsops/polaris v0.0.0-20241113112437-4dd3a81bbd44
 	github.com/samber/lo v1.46.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.18.2
-	k8s.io/api v0.31.1
-	k8s.io/apimachinery v0.31.1
-	k8s.io/client-go v0.31.1
-	sigs.k8s.io/controller-runtime v0.19.0
+	k8s.io/api v0.31.2
+	k8s.io/apimachinery v0.31.2
+	k8s.io/client-go v0.31.2
+	sigs.k8s.io/controller-runtime v0.19.1
 )
 
 require (
+	github.com/AlecAivazis/survey/v2 v2.3.7 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -29,7 +30,8 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/fairwindsops/controller-utils v0.3.4 // indirect
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449 // indirect
-	github.com/fatih/color v1.17.0 // indirect
+	github.com/fairwindsops/insights-plugins/plugins/workloads v0.0.0-20240917173116-506f92bdf9a0 // indirect
+	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
@@ -54,10 +56,12 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -93,7 +97,7 @@ require (
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/term v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
