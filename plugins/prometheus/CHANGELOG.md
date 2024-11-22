@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.4
+* upgraded prometheus lib
+
 ## 1.5.3
 * upgraded go to 1.22.7
 
