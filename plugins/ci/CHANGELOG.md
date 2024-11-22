@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.12
+- bumped trivy to v0.57.1
+
 ## 5.7.11
 * bumped polaris to 9.6.0
 
