@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.5
+* bumped opa libs
+
 ## 1.17.4
 * bumped polaris to 9.6.0
 
