@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.31.4
+* bumped libs
+
 ## 0.31.3
 * bumped trivy to 0.57.1
 

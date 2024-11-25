@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.5
+* bumped libs
+
 ## 1.5.4
 * upgraded prometheus lib
 

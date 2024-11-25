@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.13
+* bumped libs
+
 ## 5.7.12
 - bumped trivy to v0.57.1
 

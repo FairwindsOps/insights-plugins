@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.10
+* bumped libs
+
 ## 0.5.9
 * upgraded go to 1.22.7
 
