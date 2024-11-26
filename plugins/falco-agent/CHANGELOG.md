@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.11
+* bumped libs
+
 ## 0.3.10
 * upgraded goreleaser to v2
 

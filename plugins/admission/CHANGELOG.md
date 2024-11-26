@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.6
+* bumped libs
+
 ## 1.17.5
 * bumped opa libs
 

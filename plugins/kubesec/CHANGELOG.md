@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.11
+* bumped kubesec to 2.14.2
+
 ## 1.4.10
 * fixing vulberabilities
 
