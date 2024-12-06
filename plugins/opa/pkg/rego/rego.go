@@ -156,8 +156,7 @@ func getOutputArray(results rego.ResultSet) []interface{} {
 	for _, result := range results {
 		for _, pack := range result.Bindings["results"].(map[string]interface{}) {
 			for _, outputArray := range pack.(map[string]interface{}) {
-				_, ok := outputArray.([]interface{})
-				if ok {
+				if _, ok := outputArray.([]interface{}); ok {
 					returnSet = append(returnSet, outputArray.([]interface{})...)
 				}
 			}
