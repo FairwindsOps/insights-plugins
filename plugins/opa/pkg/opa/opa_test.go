@@ -291,7 +291,7 @@ func TestK8sAPI(t *testing.T) {
 	assert.Equal(t, "Found a deployment in test", ais[0].Description)
 }
 
-func TestMaxReplicas(t *testing.T) {
+func TestMultipleRules(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
 	params := map[string]interface{}{}
