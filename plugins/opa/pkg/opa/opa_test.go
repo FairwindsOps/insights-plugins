@@ -100,6 +100,27 @@ requestinsightsinfo[description] {
 }
 `
 
+const maxReplicas = `
+package fairwinds
+
+foo := {"s": "foo"}
+
+envMaxReplicasDeployments[actionItem] {
+    print(foo.s)
+    input.kind == "Deployment"
+    env_suffix := array.reverse(split(input.metadata.namespace, "-"))[0]
+    replicas := input.spec.replicas
+
+    actionItem := {
+      "title": "Non-production environment replica count exceeds maximum",
+      "description": sprintf("The Deployment %v in the %v environment replicas exceed the maximum replica count for this environment.", [input.metadata.name, env_suffix]),
+      "severity": 0.5,
+      "remediation": "Reduce the number of replicas",
+      "category": "Reliability"
+    }
+}
+`
+
 func TestOPAParseFail(t *testing.T) {
 	kube.SetFakeClient()
 	ctx := context.TODO()
@@ -268,4 +289,12 @@ func TestK8sAPI(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(ais))
 	assert.Equal(t, "Found a deployment in test", ais[0].Description)
+}
+
+func TestMultipleRules(t *testing.T) {
+	kube.SetFakeClient()
+	ctx := context.TODO()
+	params := map[string]interface{}{}
+	_, err := runRegoForItem(ctx, maxReplicas, params, fakeObj.Object, &rego.InsightsInfo{})
+	assert.NoError(t, err)
 }

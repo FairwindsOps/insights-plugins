@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.4
+* multiple rules values in OPA
+
 ## 2.5.3
 * bumped libs
 
