@@ -105,7 +105,7 @@ package fairwinds
 
 foo := {"s": "foo"}
 
-envMaxReplicasDeployments {
+envMaxReplicasDeployments[actionItem] {
     print(foo.s)
     input.kind == "Deployment"
     env_suffix := array.reverse(split(input.metadata.namespace, "-"))[0]
