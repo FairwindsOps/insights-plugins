@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.5
+## 1.5.6
 * bumped libs
 
 ## 1.5.4
