@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.11
+* bumped alpine to 3.21
+
 ## 0.3.10
 * improved big query logs
 
