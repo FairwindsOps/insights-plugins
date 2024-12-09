@@ -5,7 +5,11 @@ ARG TARGETOS
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
-RUN apk add jq bash curl moreutils coreutils
+RUN apk add jq 
+RUN apk add curl
+RUN apk add bash
+RUN apk add moreutils
+RUN apk add coreutils
 RUN apk add unzip
 
 ENV google_cloud_sdk_version=496.0.0
