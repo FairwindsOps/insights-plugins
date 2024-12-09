@@ -1,14 +1,18 @@
-FROM alpine:3.20
+FROM alpine:3.21
 
 ARG TARGETARCH
 ARG TARGETOS
 
 RUN apk -U upgrade
 RUN apk update && apk upgrade
-RUN apk add jq bash curl moreutils coreutils
+RUN apk add jq 
+RUN apk add curl
+RUN apk add bash
+RUN apk add moreutils
+RUN apk add coreutils
 RUN apk add unzip
 
-ENV google_cloud_sdk_version=496.0.0
+ENV google_cloud_sdk_version=502.0.0
 
 RUN apk add python3
 RUN apk add --no-cache aws-cli
