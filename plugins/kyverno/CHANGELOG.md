@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.3
+* bumped alpine to 3.21
+
 ## 0.3.2
 * upgraded go to 1.22.7
 

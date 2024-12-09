@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.5
+* bumped alpine to 3.21
+
 ## 2.5.4
 * multiple rules values in OPA
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.7
+* bumped alpine to 3.21
+
 ## 1.17.6
 * bumped libs
 
