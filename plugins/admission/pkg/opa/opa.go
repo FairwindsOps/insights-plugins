@@ -30,10 +30,12 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 
 	opaCustomChecks, opaCustomLibs := opa.GetOPACustomChecksAndLibraries(configuration.OPA.CustomChecks)
 	logrus.Infof("Found %d checks, %d instances and %d libs", len(opaCustomChecks), len(configuration.OPA.CustomCheckInstances), len(opaCustomLibs))
+	anyChekIsV1 := false
 	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
+			anyChekIsV1 = true
 			newActionItems, err := ProcessOPAV1(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, configuration.OPA.CustomCheckInstances, &requestInfo)
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
@@ -48,6 +50,9 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 		default:
 			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause admission control to be blocked", check.Name, check.Version))
 		}
+	}
+	if anyChekIsV1 {
+		logrus.Info("OPA v1 will be deprecated after Mar 31, 2025. Visit: https://insights.docs.fairwinds.com/features/insights-cli/#opa-v1-deprecation for more information.")
 	}
 	results := map[string]any{
 		"ActionItems": actionItems,

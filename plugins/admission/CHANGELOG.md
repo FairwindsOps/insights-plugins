@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.8
+* OPA v1 deprecation message
+
 ## 1.17.7
 * bumped alpine to 3.21
 

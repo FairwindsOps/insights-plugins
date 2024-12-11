@@ -56,6 +56,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 		logrus.Debugf("Check %s is version %.1f", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
+			logrus.Info("OPA v1 will be deprecated after Mar 31, 2025. Visit: https://insights.docs.fairwinds.com/features/insights-cli/#opa-v1-deprecation for more information.")
 			for _, checkInstance := range checkInstances {
 				if check.Name == checkInstance.CheckName {
 					logrus.Debugf("Found instance %s to match check %s", checkInstance.AdditionalData.Name, check.Name)
