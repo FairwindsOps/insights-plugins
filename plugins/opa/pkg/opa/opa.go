@@ -52,11 +52,12 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 
 	opaCustomChecks, opaCustomLibs := GetOPACustomChecksAndLibraries(checksAndLibs)
 	logrus.Infof("Found %d checks, %d instances and %d libs", len(opaCustomChecks), len(checkInstances), len(opaCustomLibs))
+	anyChekIsV1 := false
 	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f", check.Name, check.Version)
 		switch check.Version {
 		case 1.0:
-			logrus.Info("OPA v1 will be deprecated after Mar 31, 2025. Visit: https://insights.docs.fairwinds.com/features/insights-cli/#opa-v1-deprecation for more information.")
+			anyChekIsV1 = true
 			for _, checkInstance := range checkInstances {
 				if check.Name == checkInstance.CheckName {
 					logrus.Debugf("Found instance %s to match check %s", checkInstance.AdditionalData.Name, check.Name)
@@ -78,6 +79,9 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 		default:
 			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run", check.Name, check.Version))
 		}
+	}
+	if anyChekIsV1 {
+		logrus.Info("OPA v1 will be deprecated after Mar 31, 2025. Visit: https://insights.docs.fairwinds.com/features/insights-cli/#opa-v1-deprecation for more information.")
 	}
 	return actionItems, allErrs
 }
