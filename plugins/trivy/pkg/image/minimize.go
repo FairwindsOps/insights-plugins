@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/sirupsen/logrus"
 )
 
 // Minimize compresses the format of the Trivy report to de-duplicate information about vulnerabilities.
@@ -42,6 +43,7 @@ func Minimize(images []models.ImageReport, lastReport models.MinimizedReport) mo
 			Error:              imageDetails.Error,
 		}
 		for _, vulnList := range imageDetails.Reports {
+			logrus.Infof("vulnList.Target: %s", vulnList.Target)
 			vulnRefList := models.VulnerabilityRefList{
 				Target: vulnList.Target,
 			}

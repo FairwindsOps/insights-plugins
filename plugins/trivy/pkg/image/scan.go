@@ -206,12 +206,15 @@ func ScanImage(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[stri
 	}
 
 	logrus.Infof("Successfully scanned %s", imageID)
+	for _, r := range report.Results {
+		logrus.Infof("Vulnerabilities found in %s: %d", r.Target, len(r.Vulnerabilities))
+	}
 	return &report, nil
 }
 
 func downloadPullRef(pullRef string, registryOAuth2AccessTokenMap map[string]string) (string, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
-	dest := TempDir + "/" + imageID
+	destinationPath := TempDir + "/" + imageID
 	imageMessage := fmt.Sprintf("image %s", pullRef)
 
 	args := []string{"copy"}
@@ -238,14 +241,14 @@ func downloadPullRef(pullRef string, registryOAuth2AccessTokenMap map[string]str
 	// args = append(args, "--override-arch", "amd64")
 	// args = append(args, "--override-os", "linux")
 
-	args = append(args, "docker://"+pullRef, "docker-archive:"+dest)
+	args = append(args, "docker://"+pullRef, "docker-archive:"+destinationPath)
 
 	logrus.Infof(util.RemoveTokensAndPassword(fmt.Sprintf("Running command: skopeo %s", strings.Join(args, " "))))
 	_, err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
 	if err != nil {
 		return "", fmt.Errorf("error pulling %s with skopeo: %w", pullRef, err)
 	}
-	return dest, nil
+	return destinationPath, nil
 }
 
 func hasOAuth2AccessToken(registryOAuth2AccessTokenMap map[string]string, pullRef string) (string, bool) {

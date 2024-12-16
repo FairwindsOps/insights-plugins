@@ -25,7 +25,8 @@ func FetchLastReport(ctx context.Context, host, org, cluster, token string) (*mo
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return &models.MinimizedReport{Images: make([]models.ImageDetailsWithRefs, 0), Vulnerabilities: map[string]models.VulnerabilityDetails{}}, nil
+		emptyReport := models.MinimizedReport{Images: []models.ImageDetailsWithRefs{}, Vulnerabilities: map[string]models.VulnerabilityDetails{}}
+		return &emptyReport, nil
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("bad status code on get last report: %d", resp.StatusCode)
