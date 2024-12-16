@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.31.6
+* include original `Target` value
+
 ## 0.31.5
 * bumped alpine to 3.21
 
