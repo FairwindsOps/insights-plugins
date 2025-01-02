@@ -16,7 +16,6 @@ images:
     - quay.io/fairwinds/fw-kube-bench-aggregator:0.3.22
     - quay.io/fairwinds/fw-kube-bench:0.5.4
     - quay.io/fairwinds/kubectl:0.20.8
-    - quay.io/fairwinds/fw-kubesec:1.4.12
     - quay.io/fairwinds/kyverno:0.3.3
     - quay.io/fairwinds/fw-opa:2.5.6
     - quay.io/fairwinds/postgres-partman:16.0.1
