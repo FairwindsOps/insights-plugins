@@ -86,7 +86,7 @@ executors:
     docker:
       - image: quay.io/reactiveops/ci-images:v11-stretch
   goreleaser:
-    resource_class: large
+    resource_class: x-large
     docker:
       # The goreleaser image tag determines the version of Go.
       # Manually check goreleaser images for their version of Go.
