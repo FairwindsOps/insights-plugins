@@ -7,7 +7,7 @@ require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20240723212203-c2a8403f3449
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.20.3
+	github.com/fairwindsops/pluto/v5 v5.21.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/rogpeppe/go-internal v1.12.0
 	github.com/samber/lo v1.47.0
@@ -89,11 +89,11 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
 	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/term v0.25.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect

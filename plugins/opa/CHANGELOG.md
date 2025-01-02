@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.7
+* Fixing vulnerabilities
+
 ## 2.5.6
 * OPA v1 deprecation message
 

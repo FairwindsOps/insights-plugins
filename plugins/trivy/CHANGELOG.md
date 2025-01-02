@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.31.6
+* Fixing vulnerabilities
+
 ## 0.31.5
 * bumped alpine to 3.21
 
