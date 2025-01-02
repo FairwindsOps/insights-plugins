@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.5
+* Bumped libs version
+
 ## 0.3.4
 * Fixing vulnerabilities
 

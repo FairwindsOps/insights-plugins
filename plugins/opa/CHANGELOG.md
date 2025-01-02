@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.8
+* Bumped libs version
+
 ## 2.5.7
 * Fixing vulnerabilities
 
