@@ -1,8 +1,5 @@
 # Changelog
 
-## 5.7.17
-* Bumped libs version
-
 ## 5.7.16
 * Fixing vulnerabilities
 
