@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.15
+* Fixing vulnerabilities
+
 ## 5.7.14
 * bumped alpine to 3.21
 
