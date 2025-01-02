@@ -33,7 +33,6 @@ commands:
           vault_path: repo/global/env
 
   goreleaser:
-    resource_class: large
     description: Build binaries and build/push docker Images depending on the git branch
     steps:
     - checkout
@@ -110,6 +109,7 @@ jobs:
   test:
     docker:
       - image: cimg/go:1.22
+    resource_class: large
     steps:
       - checkout
       - set_vault
