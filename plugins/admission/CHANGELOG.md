@@ -1,8 +1,5 @@
 # Changelog
 
-## 1.17.11
-* Bumped libs version
-
 ## 1.17.10
 * Fixing vulnerabilities
 
