@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.15
+* Bumped libs version
+
 ## 2.6.14
 * Fixing vulnerabilities
 

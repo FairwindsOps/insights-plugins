@@ -47,7 +47,6 @@ plugin_map["quay.io/fairwinds/falco-agent"]="falco-agent"
 plugin_map["quay.io/fairwinds/fw-kube-bench-aggregator"]="kube-bench-aggregator"
 plugin_map["quay.io/fairwinds/fw-kube-bench"]="kube-bench"
 plugin_map["quay.io/fairwinds/kubectl"]="kubectl"
-plugin_map["quay.io/fairwinds/fw-kubesec"]="kubesec"
 plugin_map["quay.io/fairwinds/kyverno"]="kyverno"
 plugin_map["quay.io/fairwinds/fw-opa"]="opa"
 plugin_map["quay.io/fairwinds/prometheus-collector"]="prometheus"
@@ -73,7 +72,9 @@ for name in "${images[@]}"; do
         name=$(echo $name_without_tag:$branch_name)
       fi
     fi
-
+    if [[ $name_without_tag == "quay.io/fairwinds/fw-kubesec" ]]; then
+      continue
+    fi
     echo "scanning $name"
     docker pull $name
 

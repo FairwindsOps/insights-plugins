@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.16
+* Fixing vulnerabilities
+
 ## 5.7.15
 * Fixing vulnerabilities
 
