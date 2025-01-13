@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.17
+* Fixed tfsec vulnerability
+
 ## 5.7.16
 * Fixing vulnerabilities
 
