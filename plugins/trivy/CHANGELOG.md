@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.31.8
+* Fixed trivy vulnerability
+
 ## 0.31.7
 * Bumped libs version
 
