@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.18
+* Fixed trivy vulnerability
+
 ## 5.7.17
 * Fixed tfsec vulnerability
 
