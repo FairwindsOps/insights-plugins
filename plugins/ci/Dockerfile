@@ -15,13 +15,15 @@ RUN curl -L https://github.com/aquasecurity/tfsec/releases/download/v${tfsecVers
 RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/$polarisVersion/polaris_${TARGETOS}_${TARGETARCH}.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
 RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 
-RUN DESIRED_VERSION=$helmVersion curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+RUN curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
 FROM alpine:3.21
 WORKDIR /insights
 RUN apk -U upgrade
 RUN apk add --no-cache skopeo libc6-compat
 RUN apk add --no-cache git
+
+RUN helm version
 
 RUN mkdir -p /output/tmp
 COPY insights-ci /usr/local/bin
