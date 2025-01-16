@@ -23,7 +23,7 @@ RUN apk add --no-cache skopeo libc6-compat
 RUN apk add --no-cache git
 
 RUN mkdir -p /output/tmp
-#COPY insights-ci /usr/local/bin
+COPY insights-ci /usr/local/bin
 COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=downloader /usr/local/bin/tfsec /usr/local/bin/tfsec
 COPY --from=downloader /usr/local/bin/polaris /usr/local/bin/polaris
