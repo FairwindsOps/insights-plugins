@@ -17,13 +17,12 @@ RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVers
 
 RUN curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
+
 FROM alpine:3.21
 WORKDIR /insights
 RUN apk -U upgrade
 RUN apk add --no-cache skopeo libc6-compat
 RUN apk add --no-cache git
-
-RUN helm version
 
 RUN mkdir -p /output/tmp
 COPY insights-ci /usr/local/bin
@@ -32,5 +31,8 @@ COPY --from=downloader /usr/local/bin/tfsec /usr/local/bin/tfsec
 COPY --from=downloader /usr/local/bin/polaris /usr/local/bin/polaris
 COPY --from=downloader /usr/local/bin/helm /usr/local/bin/helm
 COPY --from=downloader /usr/local/bin/pluto /usr/local/bin/pluto
+
+
+RUN helm version
 
 CMD ["insights-ci"]
