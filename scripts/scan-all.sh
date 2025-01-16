@@ -72,9 +72,6 @@ for name in "${images[@]}"; do
         name=$(echo $name_without_tag:$branch_name)
       fi
     fi
-    if [[ $name_without_tag == "quay.io/fairwinds/fw-kubesec" ]]; then
-      continue
-    fi
     echo "scanning $name"
     docker pull $name
 
