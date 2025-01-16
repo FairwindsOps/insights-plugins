@@ -14,7 +14,7 @@ RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="$
 RUN curl -L https://github.com/aquasecurity/tfsec/releases/download/v${tfsecVersion}/tfsec_${tfsecVersion}_${TARGETOS}_${TARGETARCH}.tar.gz > tfsec.tar.gz && tar -xvf tfsec.tar.gz && mv ./tfsec /usr/local/bin/tfsec && chmod +x /usr/local/bin/tfsec && rm tfsec.tar.gz
 RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/$polarisVersion/polaris_${TARGETOS}_${TARGETARCH}.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
 RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
-RUN curl -L https://get.helm.sh/helm-v${helmVersion}-${TARGETOS}-${TARGETARCH}.tar.gz > helm.tar.gz && tar -xvf helm.tar.gz && mv ./linux-${TARGETARCH}/helm /usr/local/bin/helm && rm helm.tar.gz
+RUN curl DESIRED_VERSION=$helmVersion https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > helm.sh && chmod +x helm.sh && ./helm.sh && rm helm.sh && mv /usr/local/bin/helm /usr/local/bin/helm3 && ln -s /usr/local/bin/helm3 /usr/local/bin/helm
 
 FROM alpine:3.21
 WORKDIR /insights
