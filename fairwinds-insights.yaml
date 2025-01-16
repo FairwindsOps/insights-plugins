@@ -10,7 +10,7 @@ images:
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.13
     - quay.io/fairwinds/insights-admission-controller:1.17.8
     - quay.io/fairwinds/aws-costs:1.4.2
-    - quay.io/fairwinds/insights-ci:5.7.14
+    - quay.io/fairwinds/insights-ci:5.7
     - quay.io/fairwinds/cloud-costs:0.3.11
     - quay.io/fairwinds/falco-agent:0.3.12
     - quay.io/fairwinds/fw-kube-bench-aggregator:0.3.22
