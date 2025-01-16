@@ -4,7 +4,7 @@ go 1.23.0
 
 toolchain go1.23.4
 
-require github.com/aquasecurity/kube-bench v0.9.4
+require github.com/aquasecurity/kube-bench v0.10.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.32.7 // indirect
