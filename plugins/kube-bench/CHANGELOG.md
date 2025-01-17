@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.7
+* Bumped docker image
+
 ## 0.5.6
 * Bumped libs version
 

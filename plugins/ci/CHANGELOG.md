@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.7.19
+* Fixed helm vulnerability
+
 ## 5.7.18
 * Fixed trivy vulnerability
 
