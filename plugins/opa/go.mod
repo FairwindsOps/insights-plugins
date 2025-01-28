@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/open-policy-agent/opa v1.0.0
+	github.com/open-policy-agent/opa v0.70.0
 	github.com/samber/lo v1.47.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
