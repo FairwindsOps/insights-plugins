@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.5.9
+* Reverted OPA to 0.70.0
+
 ## 2.5.8
 * Bumped libs version
 
