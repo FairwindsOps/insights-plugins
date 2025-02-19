@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.17.11
+* Fixing vulnerabilities
+
 ## 1.17.10
 * Fixing vulnerabilities
 

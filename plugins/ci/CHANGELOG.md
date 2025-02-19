@@ -1,5 +1,7 @@
 # Changelog
 
+## 5.7.20
+* Fixing vulnerabilities
 ## 5.7.19
 * Fixed helm vulnerability
 
