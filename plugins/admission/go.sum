@@ -36,8 +36,8 @@ github.com/fairwindsops/controller-utils v0.3.4 h1:t1qulL2GVDVUJTIE4icpBy3KnsxFT
 github.com/fairwindsops/controller-utils v0.3.4/go.mod h1:9/hOHX70/LG40RgtFAjtXFiMWEpItqm6Scf+obRFB2Y=
 github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20250102141532-902b8fb31375 h1:4m3+21svu8xwfGzyWTEcLU2i28nllx5A082651px4us=
 github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20250102141532-902b8fb31375/go.mod h1:AZQqMQwqAhje9WaKVtn6FaegjWVC37x+o6Ajo2/8oLo=
-github.com/fairwindsops/pluto/v5 v5.21.1 h1:w+9lwXmmIRZtZsKpS3zN38ktQzSsuJJgO0e5qVac81Q=
-github.com/fairwindsops/pluto/v5 v5.21.1/go.mod h1:xVluG5XjaVGCAraBz3mDnt80DauFxo0hmnBoNpLDMYA=
+github.com/fairwindsops/pluto/v5 v5.21.2 h1:7wTJFZHuwn2MPwnT/IeXPevVdkECKEW/AKM2OG5yyEI=
+github.com/fairwindsops/pluto/v5 v5.21.2/go.mod h1:xVluG5XjaVGCAraBz3mDnt80DauFxo0hmnBoNpLDMYA=
 github.com/fairwindsops/polaris v0.0.0-20250102160137-80e6f7214ee6 h1:gnj/bpsCegpkqtko7dc3MGzj2YytNp0hknMGfKtTRZQ=
 github.com/fairwindsops/polaris v0.0.0-20250102160137-80e6f7214ee6/go.mod h1:Wc75hCi4Lt0havmzF5Xloj3rxdQ2lnpQcLeK2IHyFu4=
 github.com/fatih/color v1.18.0 h1:S8gINlzdQ840/4pfAwic/ZE0djQEH3wM94VfqLTZcOM=
@@ -160,6 +160,7 @@ github.com/prometheus/common v0.61.0 h1:3gv/GThfX0cV2lpO7gkTUwZru38mxevy90Bj8YFS
 github.com/prometheus/common v0.61.0/go.mod h1:zr29OCN/2BsJRaFwG8QOBr41D6kkchKbpeNH7pAjb/s=
 github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
+github.com/qri-io/jsonpointer v0.1.0/go.mod h1:DnJPaYgiKu56EuDp8TU5wFLdZIcAnb/uH9v37ZaMV64=
 github.com/qri-io/jsonpointer v0.1.1 h1:prVZBZLL6TW5vsSB9fFHFAMBLI4b0ri5vribQlTJiBA=
 github.com/qri-io/jsonpointer v0.1.1/go.mod h1:DnJPaYgiKu56EuDp8TU5wFLdZIcAnb/uH9v37ZaMV64=
 github.com/qri-io/jsonschema v0.1.2 h1:JlI7JAlxBbxh5Y641ctf+3kxcwYM6QbKDiqiQRkIBr0=
