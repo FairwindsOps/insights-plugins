@@ -183,7 +183,7 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 // ProcessCheckForItemV2 is a runRegoForItemV2() wrapper that uses the specified
 // Kubernetes Kind/Namespace/Name to construct an action item.
 func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]any, resourceName, resourceKind, resourceNamespace string, opaCustomLibs []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
-	results, err := runRegoForItemV2(ctx, check.Rego, obj, opaCustomLibs, insightsInfo)
+	results, err := runRegoForItemV2(ctx, check.Rego, check.RegoVersion, obj, opaCustomLibs, insightsInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
 	}
@@ -199,15 +199,15 @@ func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[st
 // the executing rego policy (the latter via a function).
 func runRegoForItem(ctx context.Context, body string, params map[string]any, obj map[string]any, insightsInfo *rego.InsightsInfo) ([]any, error) {
 	client := kube.GetKubeClient()
-	return rego.RunRegoForItem(ctx, body, params, obj, *client, insightsInfo)
+	return rego.RunRegoForItem(ctx, body, nil, params, obj, *client, insightsInfo)
 }
 
 // runRegoForItemV2 accepts rego, a Kube object, and InsightsInfo, running the
 // rego policy with the Kubernetes object as input.  The Insights Info struct
 // is also made available to the executing rego policy via a function.
-func runRegoForItemV2(ctx context.Context, body string, obj map[string]any, opaCustomLibs []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]any, error) {
+func runRegoForItemV2(ctx context.Context, body string, regoVersion *string, obj map[string]any, opaCustomLibs []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]any, error) {
 	client := kube.GetKubeClient()
-	return rego.RunRegoForItemV2(ctx, body, obj, *client, toOPACustomLibsMap(opaCustomLibs), insightsInfo)
+	return rego.RunRegoForItemV2(ctx, body, regoVersion, obj, *client, toOPACustomLibsMap(opaCustomLibs), insightsInfo)
 }
 
 func getInsightsChecks() (*clusterCheckModel, error) {
