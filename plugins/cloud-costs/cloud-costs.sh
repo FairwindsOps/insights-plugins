@@ -162,6 +162,11 @@ fi
 if [[ "$provider" == "gcp" ]]; then
   echo "Google Cloud integration......"
 
+  if [[ "$tagvalue" = "" ]]; then
+    usage
+    exit 1
+  fi
+
   if [[ "$tagkey" = "" ]]; then
     tagkey="goog-k8s-cluster-name"
   fi
