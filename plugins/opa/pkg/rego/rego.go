@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/open-policy-agent/opa/ast"
-	"github.com/open-policy-agent/opa/rego"
-	"github.com/open-policy-agent/opa/types"
+	"github.com/open-policy-agent/opa/v1/ast"
+	"github.com/open-policy-agent/opa/v1/rego"
+	"github.com/open-policy-agent/opa/v1/types"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -33,7 +33,7 @@ func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]int
 	return nil, nil
 }
 
-func GetRegoQuery(body string, dataFn KubeDataFunction, opaCustomLibs map[string]string, insightsInfo *InsightsInfo) *rego.Rego {
+func GetRegoQuery(body string, regoVersion *string, dataFn KubeDataFunction, opaCustomLibs map[string]string, insightsInfo *InsightsInfo) *rego.Rego {
 	opts := []func(r *rego.Rego){
 		rego.Query("results = data"),
 		rego.Module("fairwinds", body),
@@ -52,14 +52,19 @@ func GetRegoQuery(body string, dataFn KubeDataFunction, opaCustomLibs map[string
 			GetInsightsInfoFunction(insightsInfo),
 		),
 	}
+	if regoVersion != nil && *regoVersion == "v1" {
+		opts = append(opts, rego.SetRegoVersion(ast.RegoV1))
+	} else {
+		opts = append(opts, rego.SetRegoVersion(ast.RegoV0))
+	}
 	for name, regoDef := range opaCustomLibs {
 		opts = append(opts, rego.Module(name, regoDef))
 	}
 	return rego.New(opts...)
 }
 
-func RunRegoForItem(ctx context.Context, regoStr string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
-	r := GetRegoQuery(regoStr, dataFn, nil, insightsInfo)
+func RunRegoForItem(ctx context.Context, regoStr string, regoVersion *string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
+	r := GetRegoQuery(regoStr, regoVersion, dataFn, nil, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return nil, err
@@ -81,8 +86,8 @@ func RunRegoForItem(ctx context.Context, regoStr string, params map[string]inter
 
 // func RunRegoForItemV2 evaluates rego against a Kube object. IT replaces
 // RunRegoForItemV() and supports v2 of Insights OPACustomChecks.
-func RunRegoForItemV2(ctx context.Context, regoStr string, obj map[string]interface{}, dataFn KubeDataFunction, opaCustomLibs map[string]string, insightsInfo *InsightsInfo) ([]interface{}, error) {
-	r := GetRegoQuery(regoStr, dataFn, opaCustomLibs, insightsInfo)
+func RunRegoForItemV2(ctx context.Context, regoStr string, regoVersion *string, obj map[string]interface{}, dataFn KubeDataFunction, opaCustomLibs map[string]string, insightsInfo *InsightsInfo) ([]interface{}, error) {
+	r := GetRegoQuery(regoStr, regoVersion, dataFn, opaCustomLibs, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error while preparing rego query for evaluation: %v", err)

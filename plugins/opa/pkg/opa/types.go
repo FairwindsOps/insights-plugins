@@ -91,6 +91,7 @@ type OPACustomCheck struct {
 	Category                 *string
 	AdditionalKubernetesData []string
 	IsLibrary                bool
+	RegoVersion              *string
 }
 
 type CheckSetting struct {
