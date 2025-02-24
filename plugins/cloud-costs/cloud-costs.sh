@@ -15,12 +15,12 @@ usage: cloud-costs \
   --tagkey <tag key - required for AWS, optional for GCP> \
   --tagvalue <tag value - required for AWS and GCP> \
   --database <database name - required for AWS> \
-  --table <table name for - required for AWS> \
+  --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
   --workgroup <workgroup - required for AWS> \
-  --projectname <project name - required for GCP> \
-  --dataset <dataset name - required for GCP> \
-  --billingaccount <billing account - required for GCP> \
+  --projectname <project name - required for GCP if table is not provided> \
+  --dataset <dataset name - required for GCP if table is not provided> \
+  --billingaccount <billing account - required for GCP if table is not provided> \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
 
@@ -162,7 +162,7 @@ fi
 if [[ "$provider" == "gcp" ]]; then
   echo "Google Cloud integration......"
 
-  if [[ "$tagvalue" = "" || "$projectname" = "" || "$dataset" = "" || "$billingaccount" = "" || "$days" = "" ]]; then
+  if [[ "$tagvalue" = "" ]]; then
     usage
     exit 1
   fi
@@ -170,9 +170,14 @@ if [[ "$provider" == "gcp" ]]; then
   if [[ "$tagkey" = "" ]]; then
     tagkey="goog-k8s-cluster-name"
   fi
-
-  billingaccount=${billingaccount//-/_}
-  table="$projectname.$dataset.gcp_billing_export_resource_v1_$billingaccount"
+  if [[ "$table" = "" ]]; then
+    if [[ "$projectname" = "" || "$dataset" = "" || "$billingaccount" = "" ]]; then
+      usage
+      exit 1
+    fi
+    billingaccount=${billingaccount//-/_}
+    table="$projectname.$dataset.gcp_billing_export_resource_v1_$billingaccount"
+  fi
 
   echo "Google bigquey is running......"
 
