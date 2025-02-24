@@ -102,8 +102,8 @@ if [[ "$days" = "" ]]; then
   days='5'
 fi
 
-initial_date_time=$(date)
-final_date_time=$(date)
+initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
+final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 
 if  [[ "$provider" = "aws" ]]; then
    echo "AWS CUR Integration......"
