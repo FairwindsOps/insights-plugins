@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.0
+* Support to OPA v0 and v1
+
 ## 2.5.9
 * Reverted OPA to 0.70.0
 
