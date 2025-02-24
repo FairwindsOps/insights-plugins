@@ -15,12 +15,12 @@ usage: cloud-costs \
   --tagkey <tag key - required for AWS, optional for GCP> \
   --tagvalue <tag value - required for AWS and GCP> \
   --database <database name - required for AWS> \
-  --table <table name for - required for AWS> \
+  --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
   --workgroup <workgroup - required for AWS> \
-  --projectname <project name - required for GCP> \
-  --dataset <dataset name - required for GCP> \
-  --billingaccount <billing account - required for GCP> \
+  --projectname <project name - required for GCP if table is not provided> \
+  --dataset <dataset name - required for GCP if table is not provided> \
+  --billingaccount <billing account - required for GCP if table is not provided> \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
 
@@ -102,8 +102,8 @@ if [[ "$days" = "" ]]; then
   days='5'
 fi
 
-initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
-final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
+initial_date_time=$(date)
+final_date_time=$(date)
 
 if  [[ "$provider" = "aws" ]]; then
    echo "AWS CUR Integration......"
@@ -162,17 +162,17 @@ fi
 if [[ "$provider" == "gcp" ]]; then
   echo "Google Cloud integration......"
 
-  if [[ "$tagvalue" = "" || "$projectname" = "" || "$dataset" = "" || "$billingaccount" = "" || "$days" = "" ]]; then
-    usage
-    exit 1
-  fi
-  
   if [[ "$tagkey" = "" ]]; then
     tagkey="goog-k8s-cluster-name"
   fi
-
-  billingaccount=${billingaccount//-/_}
-  table="$projectname.$dataset.gcp_billing_export_resource_v1_$billingaccount"
+  if [[ "$table" = "" ]]; then
+    if [[ "$projectname" = "" || "$dataset" = "" || "$billingaccount" = "" ]]; then
+      usage
+      exit 1
+    fi
+    billingaccount=${billingaccount//-/_}
+    table="$projectname.$dataset.gcp_billing_export_resource_v1_$billingaccount"
+  fi
 
   echo "Google bigquey is running......"
 
