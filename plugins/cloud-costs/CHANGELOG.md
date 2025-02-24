@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.12
+* allowing to input table name for GCP cloud costs
+
 ## 0.3.11
 * bumped alpine to 3.21
 
