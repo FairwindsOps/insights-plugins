@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.1
+* Added parameter to retrieve rego v1 checks
+
 ## 2.6.0
 * Support to OPA v0 and v1
 

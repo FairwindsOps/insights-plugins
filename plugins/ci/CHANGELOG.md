@@ -1,7 +1,11 @@
 # Changelog
 
+## 5.8.0
+* Support to Rego V1
+
 ## 5.7.20
 * Fixing vulnerabilities
+
 ## 5.7.19
 * Fixed helm vulnerability
 
