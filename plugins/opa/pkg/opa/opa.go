@@ -212,7 +212,7 @@ func runRegoForItemV2(ctx context.Context, body string, regoVersion *string, obj
 
 func getInsightsChecks() (*clusterCheckModel, error) {
 	url := os.Getenv("FAIRWINDS_INSIGHTS_HOST") + "/v0/organizations/" + os.Getenv("FAIRWINDS_ORG") + "/clusters/" + os.Getenv("FAIRWINDS_CLUSTER") +
-		"/data/opa/customChecks"
+		"/data/opa/customChecks?includeRegoV1=true"
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err

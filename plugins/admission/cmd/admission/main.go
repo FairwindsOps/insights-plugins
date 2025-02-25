@@ -35,7 +35,7 @@ func exitWithError(message string, err error) {
 }
 
 func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mutatorHandler *fadmission.Mutator) error {
-	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration", cfg.Hostname, cfg.Organization, cfg.Cluster)
+	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/configuration?includeRegoV1=true", cfg.Hostname, cfg.Organization, cfg.Cluster)
 	logrus.Infof("Refreshing configuration from url %s", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

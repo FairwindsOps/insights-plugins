@@ -119,7 +119,7 @@ type opaChecks struct {
 }
 
 func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting, []opa.OPACustomCheck, []opa.OPACustomLibrary, error) {
-	url := fmt.Sprintf("%s/v0/organizations/%s/ci/opa", configurationObject.Options.Hostname, configurationObject.Options.Organization)
+	url := fmt.Sprintf("%s/v0/organizations/%s/ci/opa?includeRegoV1=true", configurationObject.Options.Hostname, configurationObject.Options.Organization)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

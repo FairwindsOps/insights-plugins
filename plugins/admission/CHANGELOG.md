@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.0
+* Support to Rego v1
+
 ## 1.17.11
 * Fixing vulnerabilities
 
