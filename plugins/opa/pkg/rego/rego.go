@@ -86,8 +86,13 @@ func RunRegoForItem(ctx context.Context, regoStr string, regoVersion *string, pa
 
 // func RunRegoForItemV2 evaluates rego against a Kube object. IT replaces
 // RunRegoForItemV() and supports v2 of Insights OPACustomChecks.
-func RunRegoForItemV2(ctx context.Context, regoStr string, regoVersion *string, obj map[string]interface{}, dataFn KubeDataFunction, opaCustomLibs map[string]string, insightsInfo *InsightsInfo) ([]interface{}, error) {
-	r := GetRegoQuery(regoStr, regoVersion, dataFn, opaCustomLibs, insightsInfo)
+func RunRegoForItemV2(ctx context.Context, regoStr string, regoVersion *string, obj map[string]interface{}, dataFn KubeDataFunction, opaCustomLibsV0, opaCustomLibsV1 map[string]string, insightsInfo *InsightsInfo) ([]interface{}, error) {
+	var r *rego.Rego
+	if regoVersion != nil && *regoVersion == "v1" {
+		r = GetRegoQuery(regoStr, regoVersion, dataFn, opaCustomLibsV1, insightsInfo)
+	} else {
+		r = GetRegoQuery(regoStr, regoVersion, dataFn, opaCustomLibsV0, insightsInfo)
+	}
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Error while preparing rego query for evaluation: %v", err)
