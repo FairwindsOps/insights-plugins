@@ -166,7 +166,7 @@ if [[ "$provider" == "gcp" ]]; then
     usage
     exit 1
   fi
-  if [["$projectname" = ""]]; then
+  if [[ "$projectname" = "" ]]; then
     usage
     exit 1
   fi
