@@ -18,7 +18,7 @@ usage: cloud-costs \
   --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
   --workgroup <workgroup - required for AWS> \
-  --projectname <project name - required for GCP if table is not provided> \
+  --projectname <project name - required for GCP> \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
   [--timeout <time in seconds>] \
