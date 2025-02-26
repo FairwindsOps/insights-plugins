@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.8.1
+* Support to Rego V0 and V1 libs
+
 ## 5.8.0
 * Support to Rego V1
 
