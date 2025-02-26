@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.13
+* added parameter project_id to bq
+
 ## 0.3.12
 * allowing to input table name for GCP cloud costs
 

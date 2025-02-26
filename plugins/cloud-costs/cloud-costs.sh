@@ -18,7 +18,7 @@ usage: cloud-costs \
   --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
   --workgroup <workgroup - required for AWS> \
-  --projectname <project name - required for GCP if table is not provided> \
+  --projectname <project name - required for GCP> \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
   [--timeout <time in seconds>] \
@@ -166,6 +166,10 @@ if [[ "$provider" == "gcp" ]]; then
     usage
     exit 1
   fi
+  if [[ "$projectname" = "" ]]; then
+    usage
+    exit 1
+  fi
   
   if [[ "$tagkey" = "" ]]; then
     tagkey="goog-k8s-cluster-name"
@@ -179,11 +183,11 @@ if [[ "$provider" == "gcp" ]]; then
     table="$projectname.$dataset.gcp_billing_export_resource_v1_$billingaccount"
   fi
 
-  echo "Google bigquey is running......"
+  echo "Google BigQuery is running......"
 
   sql="SELECT cost, 0.0 AS cost_at_list, '' AS cost_type, service, sku, usage, usage_start_time, usage_end_time, CASE WHEN machine_spec IS NOT NULL THEN [ STRUCT('compute.googleapis.com/machine_spec' AS key, machine_spec AS value), STRUCT('compute.googleapis.com/cores' AS key, total_cores AS value), STRUCT('compute.googleapis.com/memory' AS key, total_memory AS value)  ] ELSE NULL END AS system_labels FROM (  SELECT SUM(main.cost) AS cost, STRUCT(main.service.description) AS service, STRUCT(main.sku.description AS description) AS sku, main.usage_start_time, main.usage_end_time, STRUCT(SUM(main.usage.amount) AS amount, SUM(main.usage.amount_in_pricing_units) AS amount_in_pricing_units, '' AS pricing_unit, '' AS unit) AS usage, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/machine_spec') AS machine_spec, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/cores') AS total_cores, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/memory') AS total_memory FROM \`$table\` AS main LEFT JOIN UNNEST(labels) AS labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' and usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) >= '$initial_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) <= '$final_date_time' GROUP BY main.service.description, usage_start_time, usage_end_time, main.sku.description, machine_spec, total_memory, total_cores) order by usage_start_time desc"
 
-  /google-cloud-sdk/bin/bq --format=prettyjson query --max_rows=10000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json  && echo "Executing..."
+  /google-cloud-sdk/bin/bq --format=prettyjson --project_id $projectname  query --max_rows=10000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json  && echo "Executing..."
   if grep -q "BigQuery error" /output/cloudcosts-tmp.json; then
     echo "Error executing the query"
     cat /output/cloudcosts-tmp.json
