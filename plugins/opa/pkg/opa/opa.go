@@ -50,8 +50,8 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 	actionItems := make([]ActionItem, 0)
 	var allErrs error = nil
 
-	opaCustomChecks, opaCustomLibs := GetOPACustomChecksAndLibraries(checksAndLibs)
-	logrus.Infof("Found %d checks, %d instances and %d libs", len(opaCustomChecks), len(checkInstances), len(opaCustomLibs))
+	opaCustomChecks, opaCustomLibsV0, opaCustomLibsV1 := GetOPACustomChecksAndLibraries(checksAndLibs)
+	logrus.Infof("Found %d checks, %d instances, %d libs V0 and %d libs V1 ", len(opaCustomChecks), len(checkInstances), len(opaCustomLibsV0), len(opaCustomLibsV1))
 	anyChekIsV1 := false
 	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f", check.Name, check.Version)
@@ -71,7 +71,7 @@ func processAllChecks(ctx context.Context, checkInstances []CheckSetting, checks
 				}
 			}
 		case 2.0:
-			newItems, err := processCheckV2(ctx, check, opaCustomLibs)
+			newItems, err := processCheckV2(ctx, check, opaCustomLibsV0, opaCustomLibsV1)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, multierror.Prefix(err, " ")))
 			}
@@ -104,12 +104,12 @@ func processCheck(ctx context.Context, check OPACustomCheck, checkInstance Custo
 
 // processCheckV2 accepts a OPACustomCheck, returning both action items and
 // errors accumulated while processing the check.
-func processCheckV2(ctx context.Context, check OPACustomCheck, opaCustomLibs []OPACustomLibrary) ([]ActionItem, error) {
+func processCheckV2(ctx context.Context, check OPACustomCheck, opaCustomLibsV0, opaCustomLibsV1 []OPACustomLibrary) ([]ActionItem, error) {
 	actionItems := make([]ActionItem, 0)
 	var allErrs *multierror.Error = new(multierror.Error)
 	allErrs.ErrorFormat = multierrorListFormatLimiterFunc
 	for _, gr := range getGroupResources(*CLIKubeTargets) {
-		newAI, err := processCheckTargetV2(ctx, check, gr, opaCustomLibs)
+		newAI, err := processCheckTargetV2(ctx, check, gr, opaCustomLibsV0, opaCustomLibsV1)
 		if err != nil {
 			allErrs = multierror.Append(allErrs, err)
 		}
@@ -145,7 +145,7 @@ func processCheckTarget(ctx context.Context, check OPACustomCheck, checkInstance
 
 // processCheckTarget runs the specified OPACustomCheck against all in-cluster
 // objects of the specified schema.GroupResource, returning any action items.
-func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.GroupResource, opaCustomLibs []OPACustomLibrary) ([]ActionItem, error) {
+func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.GroupResource, opaCustomLibsV0, opaCustomLibsV1 []OPACustomLibrary) ([]ActionItem, error) {
 	client := kube.GetKubeClient()
 	actionItems := make([]ActionItem, 0)
 	gvr, err := client.RestMapper.ResourceFor(gr.WithVersion("")) // The empty APIVersion causes RESTMapper to provide one.
@@ -158,7 +158,7 @@ func processCheckTargetV2(ctx context.Context, check OPACustomCheck, gr schema.G
 	}
 	logrus.Debugf("Listed %d %q objects for check %s, target %s", len(list.Items), gvr, check.Name, gr)
 	for _, obj := range list.Items {
-		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), opaCustomLibs, &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
+		newItems, err := ProcessCheckForItemV2(ctx, check, obj.Object, obj.GetName(), obj.GetKind(), obj.GetNamespace(), opaCustomLibsV0, opaCustomLibsV1, &rego.InsightsInfo{InsightsContext: "Agent", Cluster: os.Getenv("FAIRWINDS_CLUSTER")})
 		if err != nil {
 			return nil, err
 		}
@@ -182,8 +182,8 @@ func ProcessCheckForItem(ctx context.Context, check OPACustomCheck, instance Cus
 
 // ProcessCheckForItemV2 is a runRegoForItemV2() wrapper that uses the specified
 // Kubernetes Kind/Namespace/Name to construct an action item.
-func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]any, resourceName, resourceKind, resourceNamespace string, opaCustomLibs []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
-	results, err := runRegoForItemV2(ctx, check.Rego, check.RegoVersion, obj, opaCustomLibs, insightsInfo)
+func ProcessCheckForItemV2(ctx context.Context, check OPACustomCheck, obj map[string]any, resourceName, resourceKind, resourceNamespace string, opaCustomLibsV0, opaCustomLibsV1 []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]ActionItem, error) {
+	results, err := runRegoForItemV2(ctx, check.Rego, check.RegoVersion, obj, opaCustomLibsV0, opaCustomLibsV1, insightsInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error while running rego for check %s on item %s/%s/%s: %v", check.Name, resourceKind, resourceNamespace, resourceName, err)
 	}
@@ -205,9 +205,9 @@ func runRegoForItem(ctx context.Context, body string, regoVersion *string, param
 // runRegoForItemV2 accepts rego, a Kube object, and InsightsInfo, running the
 // rego policy with the Kubernetes object as input.  The Insights Info struct
 // is also made available to the executing rego policy via a function.
-func runRegoForItemV2(ctx context.Context, body string, regoVersion *string, obj map[string]any, opaCustomLibs []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]any, error) {
+func runRegoForItemV2(ctx context.Context, body string, regoVersion *string, obj map[string]any, opaCustomLibsV0, opaCustomLibsV1 []OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]any, error) {
 	client := kube.GetKubeClient()
-	return rego.RunRegoForItemV2(ctx, body, regoVersion, obj, *client, toOPACustomLibsMap(opaCustomLibs), insightsInfo)
+	return rego.RunRegoForItemV2(ctx, body, regoVersion, obj, *client, toOPACustomLibsMap(opaCustomLibsV0), toOPACustomLibsMap(opaCustomLibsV1), insightsInfo)
 }
 
 func getInsightsChecks() (*clusterCheckModel, error) {
@@ -419,15 +419,22 @@ type OPACustomLibrary struct {
 	Rego string
 }
 
-func GetOPACustomChecksAndLibraries(customChecks []OPACustomCheck) ([]OPACustomCheck, []OPACustomLibrary) {
+func GetOPACustomChecksAndLibraries(customChecks []OPACustomCheck) ([]OPACustomCheck, []OPACustomLibrary, []OPACustomLibrary) {
 	checks := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool { return !check.IsLibrary })
 
-	libChecks := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool { return check.IsLibrary })
-	libs := lo.Map(libChecks, func(lib OPACustomCheck, _ int) OPACustomLibrary {
+	libChecksV0 := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool {
+		return check.IsLibrary && (check.RegoVersion == nil || *check.RegoVersion != "v1")
+	})
+	libChecksV1 := lo.Filter(customChecks, func(check OPACustomCheck, _ int) bool {
+		return check.IsLibrary && check.RegoVersion != nil && *check.RegoVersion == "v1"
+	})
+	libsV0 := lo.Map(libChecksV0, func(lib OPACustomCheck, _ int) OPACustomLibrary {
 		return OPACustomLibrary{Name: lib.Name, Rego: lib.Rego}
 	})
-
-	return checks, libs
+	libsV1 := lo.Map(libChecksV1, func(lib OPACustomCheck, _ int) OPACustomLibrary {
+		return OPACustomLibrary{Name: lib.Name, Rego: lib.Rego}
+	})
+	return checks, libsV0, libsV1
 }
 
 func toOPACustomLibsMap(opaCustomLibs []OPACustomLibrary) map[string]string {

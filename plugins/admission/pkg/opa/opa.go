@@ -28,8 +28,8 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 	var allErrs error = nil
 	requestInfo := rego.InsightsInfo{InsightsContext: "AdmissionController", Cluster: iConfig.Cluster, AdmissionRequest: &req}
 
-	opaCustomChecks, opaCustomLibs := opa.GetOPACustomChecksAndLibraries(configuration.OPA.CustomChecks)
-	logrus.Infof("Found %d checks, %d instances and %d libs", len(opaCustomChecks), len(configuration.OPA.CustomCheckInstances), len(opaCustomLibs))
+	opaCustomChecks, opaCustomLibsV0, opaCustomLibsV1 := opa.GetOPACustomChecksAndLibraries(configuration.OPA.CustomChecks)
+	logrus.Infof("Found %d checks, %d instances, %d libs V0 and %d libs V1", len(opaCustomChecks), len(configuration.OPA.CustomCheckInstances), len(opaCustomLibsV0), len(opaCustomLibsV1))
 	anyChekIsV1 := false
 	for _, check := range opaCustomChecks {
 		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
@@ -42,7 +42,7 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 				allErrs = multierror.Append(allErrs, err)
 			}
 		case 2.0:
-			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, opaCustomLibs, &requestInfo)
+			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, opaCustomLibsV0, opaCustomLibsV1, &requestInfo)
 			actionItems = append(actionItems, newActionItems...)
 			if err != nil {
 				allErrs = multierror.Append(allErrs, err)
@@ -114,7 +114,7 @@ func ProcessOPAV1(ctx context.Context, obj map[string]any, resourceName, apiGrou
 // ProcessOPAV2 runs a V2 CustomCheck against a Kubernetes object,
 // returning action items and any error encountered while processing the
 // check.
-func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, opaCustomLibs []opa.OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
-	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, opaCustomLibs, insightsInfo)
+func ProcessOPAV2(ctx context.Context, obj map[string]any, resourceName, apiGroup, resourceKind, resourceNamespace string, check opa.OPACustomCheck, opaCustomLibsV0, opaCustomLibsV1 []opa.OPACustomLibrary, insightsInfo *rego.InsightsInfo) ([]opa.ActionItem, error) {
+	newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, opaCustomLibsV0, opaCustomLibsV1, insightsInfo)
 	return newActionItems, err
 }
