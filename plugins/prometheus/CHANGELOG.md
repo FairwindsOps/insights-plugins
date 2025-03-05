@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.9
+* Making kube state metrics non zero validation off by default
+
 ## 1.5.8
 * Bumped libs version
 

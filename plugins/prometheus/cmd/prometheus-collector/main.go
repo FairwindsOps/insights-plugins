@@ -44,6 +44,7 @@ func main() {
 	}
 	clusterName := os.Getenv("CLUSTER_NAME")
 	skipNonZeroMetricsValidation := strings.ToLower(os.Getenv("SKIP_NON_ZERO_METRICS_CHECK")) == "true"
+	skipKSMNonZeroMetricsValidation := strings.ToLower(os.Getenv("SKIP_KSM_NON_ZERO_METRICS_CHECK")) == "" || strings.ToLower(os.Getenv("SKIP_KSM_NON_ZERO_METRICS_CHECK")) == "true"
 
 	accessToken := ""
 	if strings.Contains(address, monitoringGoogleApis) {
@@ -68,7 +69,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName, skipNonZeroMetricsValidation)
+	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName, skipNonZeroMetricsValidation, skipKSMNonZeroMetricsValidation)
 	if err != nil {
 		panic(err)
 	}
