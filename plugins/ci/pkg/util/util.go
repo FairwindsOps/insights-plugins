@@ -5,12 +5,12 @@ import (
 	"strings"
 )
 
-func ExtractMetadata(obj map[string]any) (apiVersion, kind, name, namespace string, labels map[string]string) {
+func ExtractMetadata(obj map[string]any) (apiVersion, kind, name, namespace string, labels map[string]string, annotations map[string]string) {
 	kind, _ = obj["kind"].(string)
 	apiVersion, _ = obj["apiVersion"].(string)
 	metadata, ok := obj["metadata"].(map[string]any)
 	if !ok {
-		return apiVersion, kind, "", "", nil
+		return apiVersion, kind, "", "", nil, nil
 	}
 	name, _ = metadata["name"].(string)
 	namespace, _ = metadata["namespace"].(string)
@@ -23,7 +23,16 @@ func ExtractMetadata(obj map[string]any) (apiVersion, kind, name, namespace stri
 			}
 		}
 	}
-	return apiVersion, kind, name, namespace, labels
+	annotationsMap, ok := metadata["annotations"].(map[string]any)
+	if ok && len(annotationsMap) > 0 {
+		annotations = make(map[string]string, len(annotationsMap))
+		for k, v := range annotationsMap {
+			if s, ok := v.(string); ok {
+				annotations[k] = s
+			}
+		}
+	}
+	return apiVersion, kind, name, namespace, labels, annotations
 }
 
 // GetRepoDetails splits the repo name

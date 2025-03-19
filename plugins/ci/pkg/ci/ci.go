@@ -155,7 +155,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 						logrus.Infof("Found a malformed YAML list item at %s", path+info.Name())
 						logrus.Warningf("Found a malformed YAML list item at %s", path+info.Name())
 					}
-					_, kind, name, namespace, labels := util.ExtractMetadata(obj)
+					_, kind, name, namespace, labels, annotations := util.ExtractMetadata(obj)
 					if kind == "" {
 						logrus.Infof("Found a YAML list item without kind at %s", path+info.Name())
 						logrus.Warningf("Found a YAML list item without kind at %s", path+info.Name())
@@ -170,12 +170,13 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 					images = append(images, newImages...)
 					logrus.Infof("Found %d images in %s", len(newImages), path+info.Name())
 					resources = append(resources, models.Resource{
-						Kind:      kind,
-						Name:      name,
-						Namespace: namespace,
-						Labels:    labels,
-						Filename:  displayFilename,
-						HelmName:  helmName,
+						Kind:        kind,
+						Name:        name,
+						Namespace:   namespace,
+						Labels:      labels,
+						Annotations: annotations,
+						Filename:    displayFilename,
+						HelmName:    helmName,
 						Containers: lo.Map(containers, func(c models.Container, _ int) string {
 							return c.Name
 						}),
@@ -183,7 +184,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 				}
 			} else {
 				logrus.Info("ELSE Processing YAML NODE", yamlNode)
-				_, kind, name, namespace, labels := util.ExtractMetadata(yamlNode)
+				_, kind, name, namespace, labels, annotations := util.ExtractMetadata(yamlNode)
 				if kind == "" {
 					logrus.Infof("Found a YAML file without kind at %s", path+info.Name())
 					logrus.Warningf("Found a YAML file without kind at %s", path+info.Name())
@@ -198,12 +199,13 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 				logrus.Infof("Found %d images in %s", len(newImages), path+info.Name())
 				images = append(images, newImages...)
 				resources = append(resources, models.Resource{
-					Kind:      kind,
-					Name:      name,
-					Namespace: namespace,
-					Labels:    labels,
-					Filename:  displayFilename,
-					HelmName:  helmName,
+					Kind:        kind,
+					Name:        name,
+					Namespace:   namespace,
+					Labels:      labels,
+					Annotations: annotations,
+					Filename:    displayFilename,
+					HelmName:    helmName,
 					Containers: lo.Map(containers, func(c models.Container, _ int) string {
 						return c.Name
 					}),
@@ -275,7 +277,7 @@ func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, er
 }
 
 func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
-	_, kind, name, namespace, _ := util.ExtractMetadata(yamlNode)
+	_, kind, name, namespace, _, _ := util.ExtractMetadata(yamlNode)
 	if kind == "" || name == "" {
 		return nil, nil
 	}
