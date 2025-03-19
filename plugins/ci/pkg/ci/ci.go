@@ -98,19 +98,23 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 	var images []trivymodels.Image
 	var resources []models.Resource
 	var errors *multierror.Error
+	logrus.Infof("Scanning %s for resources", ci.configFolder)
 	err := filepath.Walk(ci.configFolder, func(path string, info os.FileInfo, err error) error {
 		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
+			logrus.Infof("Skipping file %s", path+info.Name())
 			return nil
 		}
 
 		displayFilename, helmName, err := ci.getDisplayFilenameAndHelmName(path)
 		if err != nil {
 			errors = multierror.Append(errors, fmt.Errorf("error getting displayFilename and helmName for file %s: %v", path, err))
+			logrus.Infof("Skipping file %s", path+info.Name())
 			return nil
 		}
 
 		fileHandler, err := os.Open(path)
 		if err != nil {
+			logrus.Infof("Skipping file %s", path+info.Name())
 			errors = multierror.Append(errors, fmt.Errorf("error opening file %s: %v", path, err))
 			return nil
 		}
@@ -124,6 +128,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 			err = decoder.Decode(&yamlNodeOriginal)
 			if err != nil {
 				if err != io.EOF {
+					logrus.Infof("Skipping file %s", path+info.Name())
 					errors = multierror.Append(errors, fmt.Errorf("error decoding file %s: %v", path, err))
 					return nil
 				}
@@ -139,24 +144,31 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 			if !ok {
 				continue
 			}
+			logrus.Infof("Processing %s", path+info.Name())
+			logrus.Infof("Kind: %s", kind)
 			if kind == "list" {
+				logrus.Info("Processing YAML NODE LIST", yamlNode)
 				nodes := yamlNode["items"].([]interface{})
 				for _, node := range nodes {
 					obj, ok := node.(map[string]interface{})
 					if !ok {
+						logrus.Infof("Found a malformed YAML list item at %s", path+info.Name())
 						logrus.Warningf("Found a malformed YAML list item at %s", path+info.Name())
 					}
 					_, kind, name, namespace, labels := util.ExtractMetadata(obj)
 					if kind == "" {
+						logrus.Infof("Found a YAML list item without kind at %s", path+info.Name())
 						logrus.Warningf("Found a YAML list item without kind at %s", path+info.Name())
 						continue
 					}
 					if name == "" {
+						logrus.Infof("Found a YAML list item without metadata.name at %s", path+info.Name())
 						logrus.Warningf("Found a YAML list item without metadata.name at %s", path+info.Name())
 						continue
 					}
 					newImages, containers := processYamlNode(node.(map[string]interface{}))
 					images = append(images, newImages...)
+					logrus.Infof("Found %d images in %s", len(newImages), path+info.Name())
 					resources = append(resources, models.Resource{
 						Kind:      kind,
 						Name:      name,
@@ -170,16 +182,20 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 					})
 				}
 			} else {
+				logrus.Info("ELSE Processing YAML NODE", yamlNode)
 				_, kind, name, namespace, labels := util.ExtractMetadata(yamlNode)
 				if kind == "" {
+					logrus.Infof("Found a YAML file without kind at %s", path+info.Name())
 					logrus.Warningf("Found a YAML file without kind at %s", path+info.Name())
 					continue
 				}
 				if name == "" {
+					logrus.Infof("Found a YAML file without metadata.name at %s", path+info.Name())
 					logrus.Warningf("Found a YAML file without metadata.name at %s", path+info.Name())
 					continue
 				}
 				newImages, containers := processYamlNode(yamlNode)
+				logrus.Infof("Found %d images in %s", len(newImages), path+info.Name())
 				images = append(images, newImages...)
 				resources = append(resources, models.Resource{
 					Kind:      kind,
@@ -200,7 +216,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 		errors = multierror.Append(errors, fmt.Errorf("error walking directory %s: %v", ci.configFolder, err))
 		return nil, nil, errors
 	}
-
+	logrus.Infof("AFETR Found %d images in %s", len(images), ci.configFolder)
 	// multiple images with the same name may belong to different owners, so we need to deduplicate them
 	dedupedImages := dedupImages(images)
 
@@ -228,7 +244,7 @@ func dedupImages(images []trivymodels.Image) []trivymodels.Image {
 			RecommendationOnly: i.RecommendationOnly,
 		})
 	}
-
+	logrus.Infof("Deduped %d images to %d", len(images), len(dedupedImages))
 	return dedupedImages
 }
 
