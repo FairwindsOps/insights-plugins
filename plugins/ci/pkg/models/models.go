@@ -13,13 +13,14 @@ import (
 
 // Resource represents a Kubernetes resource with information about what file it came from.
 type Resource struct {
-	Kind       string
-	Name       string
-	Filename   string
-	Namespace  string
-	HelmName   string
-	Labels     map[string]string
-	Containers []string
+	Kind        string
+	Name        string
+	Filename    string
+	Namespace   string
+	HelmName    string
+	Labels      map[string]string
+	Containers  []string
+	Annotations map[string]string
 }
 
 // ReportInfo is the information about a run of one of the reports.

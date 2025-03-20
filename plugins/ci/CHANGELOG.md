@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.0
+* Added annotations to scan workloads
+
 ## 5.8.1
 * Support to Rego V0 and V1 libs
 
