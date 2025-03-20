@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.1
+* Fixed trivy vulnerability
+
 ## 5.9.0
 * Added annotations to scan workloads
 
