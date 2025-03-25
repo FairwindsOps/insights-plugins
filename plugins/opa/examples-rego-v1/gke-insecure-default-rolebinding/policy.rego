@@ -1,6 +1,8 @@
 package fairwinds
 
-checkRoleBinding[actionItem] {
+import rego.v1
+
+checkRoleBinding contains actionItem if {
 	input.kind == "RoleBinding"
 	subject := input.subjects[_]
 
