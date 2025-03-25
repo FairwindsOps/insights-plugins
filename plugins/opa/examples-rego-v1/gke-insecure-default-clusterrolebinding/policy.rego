@@ -1,11 +1,13 @@
 package fairwinds
 
-isAllowedClusterRoleBindingRoleRef(roleRefName) {
+import rego.v1
+
+isAllowedClusterRoleBindingRoleRef(roleRefName) if {
 	allowedRoleRefNames := {"system:basic-user", "system:discovery", "system:public-info-viewer"}
 	allowedRoleRefNames[roleRefName]
 }
 
-checkClusterRoleBinding[actionItem] {
+checkClusterRoleBinding contains actionItem if {
 	input.kind == "ClusterRoleBinding"
 	defaultSubjects := {"system:anonymous", "system:unauthenticated", "system:authenticated"}
 	inputSubjectsSet := {x | x = input.subjects[_]}
