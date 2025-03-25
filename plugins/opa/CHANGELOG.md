@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.3
+* duplicating Rego example for V1
+
 ## 2.6.2
 * Support to OPA libs V0 and V1
 
