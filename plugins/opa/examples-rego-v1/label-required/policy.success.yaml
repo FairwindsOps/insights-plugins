@@ -1,0 +1,23 @@
+# This manifest is used to test the accompanying OPA policy.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-test
+  namespace: default
+  labels:
+    # This label will cause the policy to succeed.
+    app: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: Always
+        name: nginx

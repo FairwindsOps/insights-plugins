@@ -1,0 +1,14 @@
+# Creating this HPA will cause this policy to stop failing for the accompanying Deployment.
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: policy-test
+  namespace: default
+spec:
+  minReplicas: 1
+  maxReplicas: 2
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: policy-test
+  targetCPUUtilizationPercentage: 80

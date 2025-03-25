@@ -1,0 +1,14 @@
+# This manifest is used to test the accompanying OPA policy.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: policy-test
+  # This namespace other than `default` will cause the policy to succeed.
+  namespace: myapp
+  labels:
+    app: myapp
+spec:
+  containers:
+  - image: nginx
+    imagePullPolicy: Always
+    name: nginx

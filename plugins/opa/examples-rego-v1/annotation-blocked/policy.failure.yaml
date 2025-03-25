@@ -1,0 +1,21 @@
+# This manifest is used to test the accompanying OPA policy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: policy-test
+  namespace: default
+  annotations:
+    # This annotation will cause the policy to fail.
+    certmanager.k8s.io/issuer: dummy-value-to-test-this-policy
+spec:
+  rules:
+  - host: localhost
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: myapp
+            port:
+              number: 80

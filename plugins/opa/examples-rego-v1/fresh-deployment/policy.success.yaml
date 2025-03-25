@@ -1,0 +1,5 @@
+# This manifest is used to test the accompanying OPA policy.
+# This empty manifest matches a success condition to pass validation.
+# It is currently not possible to fully validate policies that use the rego
+# kubernetes() function.
+# See testing-notes.md for detail about testing challenges.

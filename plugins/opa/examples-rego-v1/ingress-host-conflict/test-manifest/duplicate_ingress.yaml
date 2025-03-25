@@ -1,0 +1,19 @@
+# This manifest is used to test the accompanying OPA policy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: another_ingress
+  namespace: default
+spec:
+  rules:
+  # This hostname already exists and the policy will fail creating it
+  - host: example.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 80
