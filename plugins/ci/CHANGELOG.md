@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.2
+* upgaded trivy to 0.61.0
+
 ## 5.9.1
 * Fixed trivy vulnerability
 
