@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.0
+* upgraded cli image
+
 ## 1.4.2
 * upgraded goreleaser to v2
 
