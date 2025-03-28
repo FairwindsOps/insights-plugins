@@ -9,7 +9,6 @@ images:
     - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.21
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.13
     - quay.io/fairwinds/insights-admission-controller:1.18.1
-    - quay.io/fairwinds/aws-costs:1.4.2
     - quay.io/fairwinds/insights-ci:5.9.1
     - quay.io/fairwinds/cloud-costs:0.3.13
     - quay.io/fairwinds/falco-agent:0.3.14
