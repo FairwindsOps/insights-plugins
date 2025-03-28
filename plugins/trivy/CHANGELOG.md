@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.31.10
+* upgaded trivy to 0.61.0
+
 ## 0.31.9
 * Fixed trivy vulnerability
 
