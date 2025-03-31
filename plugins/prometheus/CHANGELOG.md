@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.10
+* Making sure only files are updaloded only when they are ready to
+
 ## 1.5.9
 * Making kube state metrics non zero validation off by default
 
