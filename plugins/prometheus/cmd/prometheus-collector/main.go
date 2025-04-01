@@ -17,7 +17,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -33,6 +32,7 @@ import (
 )
 
 const outputFile = "/output/prometheus-metrics.json"
+const outputTempFile = "/output/prometheus-metrics-temp.json"
 const monitoringReadScope = "https://www.googleapis.com/auth/monitoring.read"
 const monitoringGoogleApis = "monitoring.googleapis.com"
 
@@ -85,7 +85,11 @@ func main() {
 		panic(err)
 	}
 	logrus.Infof("Aggregated to %d statistics", len(stats))
-	err = ioutil.WriteFile(outputFile, data, 0644)
+	err = os.WriteFile(outputTempFile, data, 0644)
+	if err != nil {
+		panic(err)
+	}
+	err = os.Rename(outputTempFile, outputFile)
 	if err != nil {
 		panic(err)
 	}

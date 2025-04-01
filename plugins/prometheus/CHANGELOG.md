@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.9
+* Fixed file temp output
+
 ## 1.4.8
 * Bump alpine to 3.20
 
