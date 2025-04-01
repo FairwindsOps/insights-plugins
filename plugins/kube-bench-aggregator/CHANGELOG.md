@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.26
+* Added output temp file
+
 ## 0.3.25
 * Bumped kube-bench lib
 

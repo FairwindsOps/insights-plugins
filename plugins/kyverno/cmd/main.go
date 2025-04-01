@@ -58,9 +58,13 @@ func main() {
 		logrus.Fatal("Error marshalling response: ", err)
 	}
 	logrus.Info("Writing Kyverno plugin output to /output/kyverno.json")
-	err = os.WriteFile("/output/kyverno.json", jsonBytes, 0644)
+	err = os.WriteFile("/output/kyverno-temp.json", jsonBytes, 0644)
 	if err != nil {
 		logrus.Fatal("Error writing output file: ", err)
+	}
+	err = os.Rename("/output/kyverno-temp.json", "/output/kyverno.json")
+	if err != nil {
+		logrus.Fatal("Error renaming output file: ", err)
 	}
 	logrus.Info("Kyverno plugin finished")
 }

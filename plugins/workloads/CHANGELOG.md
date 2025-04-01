@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.16
+* Added output temp file
+
 ## 2.6.15
 * Bumped libs version
 

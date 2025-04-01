@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.4
+* Added output temp file
+
 ## 2.6.3
 * duplicating Rego example for V1
 

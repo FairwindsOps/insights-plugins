@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.8
+* Added output temp file
+
 ## 0.5.7
 * Bumped docker image
 

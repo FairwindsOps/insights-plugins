@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
+
+const tempFile = "/output/rbac-reporter-temp.json"
 
 func main() {
 	auditOutputFile := flag.String("output-file", "", "Destination file for audit results")
@@ -47,9 +49,13 @@ func main() {
 	}
 
 	if *auditOutputFile != "" {
-		err := ioutil.WriteFile(*auditOutputFile, []byte(outputBytes), 0644)
+		err := os.WriteFile(tempFile, outputBytes, 0644)
 		if err != nil {
 			logrus.Fatalf("Error writing output to file: %v", err)
+		}
+		err = os.Rename(tempFile, *auditOutputFile)
+		if err != nil {
+			logrus.Fatalf("Error renaming output file: %v", err)
 		}
 	}
 }

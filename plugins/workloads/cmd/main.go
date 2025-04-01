@@ -16,6 +16,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+const tempFile = "/output/workloads-temp.json"
+
 func main() {
 	ctx := context.Background()
 	auditOutputFile := flag.String("output-file", "", "Destination file for audit results")
@@ -40,9 +42,13 @@ func main() {
 	}
 
 	if *auditOutputFile != "" {
-		err := os.WriteFile(*auditOutputFile, []byte(outputBytes), 0644)
+		err := os.WriteFile(tempFile, outputBytes, 0644)
 		if err != nil {
 			logrus.Fatalf("error writing output to file: %v", err)
+		}
+		err = os.Rename(tempFile, *auditOutputFile)
+		if err != nil {
+			logrus.Fatalf("error renaming output file: %v", err)
 		}
 	}
 }
