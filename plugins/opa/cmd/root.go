@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 FairwindsOps Inc
-
 */
 package cmd
 
@@ -8,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -77,6 +75,7 @@ func initConfig() {
 }
 
 const outputFile = "/output/opa.json"
+const outputTempFile = "/output/opa-temp.json"
 
 // Output is the format for the output file
 type Output struct {
@@ -101,7 +100,11 @@ func startOPAReporter() {
 			panic(err)
 		}
 
-		err = ioutil.WriteFile(outputFile, value, 0644)
+		err = os.WriteFile(outputTempFile, value, 0644)
+		if err != nil {
+			panic(err)
+		}
+		err = os.Rename(outputTempFile, outputFile)
 		if err != nil {
 			panic(err)
 		}

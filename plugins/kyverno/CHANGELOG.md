@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.6
+* Added output temp file
+
 ## 0.3.5
 * Bumped libs version
 

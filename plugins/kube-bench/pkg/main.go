@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -18,6 +17,7 @@ import (
 
 const port = "8080"
 const outputFile = "/output/kube-bench.json"
+const outputTempFile = "/output/kube-bench-temp.json"
 
 // ID for the Policies category, which is not node specific.
 const policiesID = "5"
@@ -94,7 +94,11 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		err = ioutil.WriteFile(outputFile, []byte(outputBytes), 0644)
+		err = os.WriteFile(outputTempFile, outputBytes, 0644)
+		if err != nil {
+			panic(err)
+		}
+		err = os.Rename(outputTempFile, outputFile)
 		if err != nil {
 			panic(err)
 		}
