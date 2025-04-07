@@ -40,7 +40,6 @@ done
 # create a map to match images in images array to the plugin name
 declare -A plugin_map
 plugin_map["quay.io/fairwinds/insights-admission-controller"]="admission"
-plugin_map["quay.io/fairwinds/aws-costs"]="aws-costs"
 plugin_map["quay.io/fairwinds/insights-ci"]="ci"
 plugin_map["quay.io/fairwinds/cloud-costs"]="cloud-costs"
 plugin_map["quay.io/fairwinds/falco-agent"]="falco-agent"

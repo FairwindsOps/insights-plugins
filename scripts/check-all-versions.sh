@@ -29,12 +29,11 @@ for proj in ${cloned_projects[@]}; do
   used_versions[$proj]=$(yq e ".$proj.image.tag" $values_file)
 done
 
-plugin_projects=( aws-costs falco-agent kube-bench kube-bench-aggregator opa prometheus rbac-reporter right-sizer trivy uploader workloads )
+plugin_projects=( falco-agent kube-bench kube-bench-aggregator opa prometheus rbac-reporter right-sizer trivy uploader workloads )
 declare -A rewrites=()
 for proj in ${plugin_projects[@]}; do
   rewrites[$proj]=$proj
 done
-rewrites["aws-costs"]="awscosts"
 rewrites["falco-agent"]="falco"
 rewrites["kube-bench-aggregator"]="kube-bench.aggregator"
 rewrites["prometheus"]="prometheus-metrics"
