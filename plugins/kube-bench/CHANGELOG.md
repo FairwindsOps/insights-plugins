@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.9
+* Bumped kube-brench
+
 ## 0.5.8
 * Added output temp file
 
