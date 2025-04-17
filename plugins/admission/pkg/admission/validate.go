@@ -97,12 +97,13 @@ func (v *Validator) InjectDecoder(d admission.Decoder) error {
 
 // InjectConfig injects the config.
 func (v *Validator) InjectConfig(c models.Configuration) error {
-	logrus.Info("Injecting config")
+	logrus.Info("Validator: Injecting config")
 	v.config = &c
 	return nil
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
+	logrus.Infof("Handling %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	username := req.UserInfo.Username
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
@@ -119,6 +120,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		return false, nil, nil, err
 	}
 	if ownerReferences, ok := decoded["metadata"].(map[string]any)["ownerReferences"].([]any); ok && len(ownerReferences) > 0 {
+		logrus.Infof("Object %s has owner(s)", req.Name)
 		allOwnersValid := true
 		for _, ownerReference := range ownerReferences {
 			ownerReference := ownerReference.(map[string]any)
@@ -151,6 +153,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 			return false, nil, nil, err
 		}
 	}
+	logrus.Infof("Namespace metadata: %v", namespaceMetadata)
 	return processInputYAML(ctx, v.iConfig, *v.config, decoded, req, namespaceMetadata)
 }
 

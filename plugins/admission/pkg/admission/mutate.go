@@ -20,7 +20,7 @@ type Mutator struct {
 
 // InjectConfig injects the config.
 func (m *Mutator) InjectConfig(c models.Configuration) error {
-	logrus.Info("Injecting config")
+	logrus.Info("Mutator: Injecting config")
 	m.config = &c
 	return nil
 }

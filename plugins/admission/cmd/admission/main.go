@@ -64,11 +64,12 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		logrus.Infoln("no admission polaris config is present in Insights, using the polaris default")
 		polarisConfig, err := polarisconfiguration.MergeConfigAndParseFile("", false)
 		if err != nil {
+			logrus.Errorf("Error parsing default polaris config: %v", err)
 			return err
 		}
 		tempConfig.Polaris = &polarisConfig
 	}
-	logrus.Debugf("The config for Polaris is: %#v", tempConfig.Polaris)
+	logrus.Infof("The config for Polaris is: %#v", tempConfig.Polaris)
 	handler.InjectConfig(tempConfig)
 	mutatorHandler.InjectConfig(tempConfig)
 	return nil
