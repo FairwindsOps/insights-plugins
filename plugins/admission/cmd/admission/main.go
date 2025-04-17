@@ -95,10 +95,12 @@ func keepConfigurationRefreshed(ctx context.Context, cfg models.InsightsConfig, 
 
 func main() {
 	setLogLevel()
+	logrus.Infof("Starting admission controller")
 	interval, err := getIntervalOrDefault(1)
 	if err != nil {
 		exitWithError("could not get interval", err)
 	}
+	logrus.Infof("Configuration refresh interval: %d minutes", interval)
 	k8sCfg := k8sConfig.GetConfigOrDie()
 	iConfig := mustGetInsightsConfigFromEnvVars()
 	clientset, err := kubernetes.NewForConfig(k8sCfg)

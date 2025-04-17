@@ -26,12 +26,14 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 }
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
+	logrus.Infof("mutating %s/%s", req.RequestKind.Kind, req.Name)
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
+	logrus.Infof("got %d results from polaris", len(results.Results))
 	if err != nil {
 		logrus.Errorf("got an error getting validated results: %v", err)
 		return nil, err
 	}
-	logrus.Debugf("polaris returned %d results during mutation of %s/%s: %v", len(results.Results), req.RequestKind.Kind, req.Name, *results)
+	logrus.Infof("polaris returned %d results during mutation of %s/%s: %v", len(results.Results), req.RequestKind.Kind, req.Name, *results)
 	patches := mutation.GetMutationsFromResult(results)
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {

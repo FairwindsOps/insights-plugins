@@ -70,6 +70,7 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	var resultMap map[string]interface{}
 	err = json.Unmarshal(body, &resultMap)
 	if err != nil {
+		logrus.Infof("Unable to unmarshal results")
 		return
 	}
 	passed = resultMap["Success"].(bool)

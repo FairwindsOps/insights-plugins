@@ -62,6 +62,7 @@ func GetPolarisValidateResults(kind string, d *admission.Decoder, req admission.
 		controller, err = kube.NewGenericResourceFromBytes(req.Object.Raw)
 	}
 	if err != nil {
+		logrus.Errorf("Error creating GenericResource from bytes: %v", err)
 		return nil, err
 	}
 	// TODO: consider enabling multi-resource checks
