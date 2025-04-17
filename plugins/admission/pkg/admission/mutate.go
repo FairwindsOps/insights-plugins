@@ -41,6 +41,8 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 		return nil, err
 	}
 	mutatedYamlStr, err := mutation.ApplyAllMutations(string(originalYaml), patches)
+	logrus.Info("string(originalYaml)))=====", string(originalYaml))
+	logrus.Info("mutatedYamlStr=====", mutatedYamlStr)
 	if err != nil {
 		logrus.Errorf("got an error applying mutations: %v", err)
 		return nil, err
