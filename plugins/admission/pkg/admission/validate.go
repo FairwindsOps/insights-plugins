@@ -157,6 +157,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (map[string]any, error) {
 	ns, err := clientset.CoreV1().Namespaces().Get(context.Background(), namespace, v1.GetOptions{})
 	if err != nil {
+		logrus.Errorf("Error getting namespace %s: %v", namespace, err)
 		return nil, err
 	}
 	return map[string]any{

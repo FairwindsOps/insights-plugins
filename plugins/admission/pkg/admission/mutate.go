@@ -28,24 +28,29 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
+		logrus.Errorf("got an error getting validated results: %v", err)
 		return nil, err
 	}
 	logrus.Debugf("polaris returned %d results during mutation of %s/%s: %v", len(results.Results), req.RequestKind.Kind, req.Name, *results)
 	patches := mutation.GetMutationsFromResult(results)
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
+		logrus.Errorf("got an error converting original object to yaml: %v", err)
 		return nil, err
 	}
 	mutatedYamlStr, err := mutation.ApplyAllMutations(string(originalYaml), patches)
 	if err != nil {
+		logrus.Errorf("got an error applying mutations: %v", err)
 		return nil, err
 	}
 	mutatedJson, err := yaml.YAMLToJSON([]byte(mutatedYamlStr))
 	if err != nil {
+		logrus.Errorf("got an error converting mutated object to json: %v", err)
 		return nil, err
 	}
 	returnPatch, err := jsonpatch.CreatePatch(kubeResources.OriginalObjectJSON, mutatedJson)
 	if err != nil {
+		logrus.Errorf("got an error creating json patch: %v", err)
 		return nil, err
 	}
 	logrus.Debugf("the patch to mutate %s/%s is: %v", req.RequestKind.Kind, req.Name, returnPatch)

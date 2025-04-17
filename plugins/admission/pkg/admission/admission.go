@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 
@@ -26,13 +25,13 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 		var fw io.Writer
 		fw, err = w.CreateFormFile(report.Report, report.Report+".json")
 		if err != nil {
-			logrus.Warnf("Unable to create form for %s", report.Report)
+			logrus.Infof("Unable to create form for %s", report.Report)
 			return false, nil, nil, err
 		}
 		_, err = fw.Write(report.Contents)
-		logrus.Debugf("Adding report %s %s", report.Report, string(report.Contents))
+		logrus.Infof("Adding report %s %s", report.Report, string(report.Contents))
 		if err != nil {
-			logrus.Warnf("Unable to write contents for %s", report.Report)
+			logrus.Infof("Unable to write contents for %s", report.Report)
 			return
 		}
 	}
@@ -41,7 +40,7 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/submit", iConfig.Hostname, iConfig.Organization, iConfig.Cluster)
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
-		logrus.Warn("Unable to create Request")
+		logrus.Infof("Unable to create Request")
 		return
 	}
 
@@ -55,13 +54,13 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		logrus.Warn("Unable to Post results to Insights")
+		logrus.Infof("Unable to Post results to Insights")
 		return
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logrus.Warn("Unable to read results")
+		logrus.Infof("Unable to read results")
 		return
 	}
 	if resp.StatusCode != http.StatusOK {
