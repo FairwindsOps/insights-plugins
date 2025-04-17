@@ -80,11 +80,13 @@ func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder stri
 	var helmRelease HelmReleaseModel
 	err = yaml.Unmarshal(fluxFileContent, &helmRelease)
 	if err != nil {
+		logrus.Infof("Error unmarshalling file %v: %v", helm.FluxFile, err)
 		return fmt.Errorf("Unable to unmarshal file %v: %v", helm.FluxFile, err)
 	}
 
 	chartName := helmRelease.Spec.Chart.Spec.Chart
 	if chartName == "" {
+		logrus.Infof("Error unmarshalling file %v: %v", helm.FluxFile, err)
 		return fmt.Errorf("Could not find required spec.chart.spec.chart in fluxFile %v", helm.FluxFile)
 	}
 
@@ -161,6 +163,7 @@ func handleLocalHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder str
 
 	helmValuesFiles, err := processHelmValues(helm, nil, tempFolder)
 	if err != nil {
+		logrus.Infof("Error processing helm values files for %s: %v", helm.Name, err)
 		return models.ScanErrorsReportResult{
 			ErrorMessage: err.Error(),
 			ErrorContext: "processing helm values files",
@@ -177,6 +180,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 	cleanHelmPath := filepath.Clean(helmPath) // Remove things like `./`
 	output, err := commands.ExecWithMessage(exec.Command("helm", "dependency", "update", fullHelmPath), "Updating dependencies for "+helm.Name)
 	if err != nil {
+		logrus.Infof("Error updating dependencies for helm chart %s: %v", helm.Name, err)
 		return models.ScanErrorsReportResult{
 			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
 			ErrorContext: fmt.Sprintf("updating dependencies for helm chart %s", helm.Name),
@@ -198,6 +202,7 @@ func doHandleLocalHelmChart(helm models.HelmConfig, repoPath string, helmPath st
 	params := append([]string{"template", helm.Name, fullHelmPath, "--output-dir", configFolder + helm.Name}, helmValuesFileArgs...)
 	output, err = commands.ExecWithMessage(exec.Command("helm", params...), "Templating: "+helm.Name)
 	if err != nil {
+		logrus.Infof("Error templating helm chart %s: %v", helm.Name, err)
 		return models.ScanErrorsReportResult{
 			ErrorMessage: fmt.Sprintf("%v: %s", err, output),
 			ErrorContext: fmt.Sprintf("templating helm chart %s", helm.Name),
