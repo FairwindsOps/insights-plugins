@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.2
+* Support to OPA libs v0 and v1
+
 ## 1.18.1
 * Support to OPA libs v0 and v1
 
