@@ -79,7 +79,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		logrus.Infof("Mutator got an empty request kind for %s/%s", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
 	}
-	logrus.Infof("Mutaror starting %s request for %s%s/%s %s in namespace %s",
+	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s",
 		req.Operation,
 		req.RequestKind.Group,
 		req.RequestKind.Version,
