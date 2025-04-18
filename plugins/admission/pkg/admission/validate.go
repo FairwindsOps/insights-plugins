@@ -159,7 +159,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	logrus.Infof("Namespace metadata: %v", namespaceMetadata)
 	if v.config == nil {
 		logrus.Infof("Config is nil!!!!!!!!")
-		return false, nil, nil, fmt.Errorf("config is nil")
+		return true, nil, nil, nil
 	}
 	return processInputYAML(ctx, v.iConfig, *v.config, decoded, req, namespaceMetadata)
 }
