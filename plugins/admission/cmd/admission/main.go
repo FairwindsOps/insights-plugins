@@ -86,6 +86,7 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		filteredChecks[key] = check
 	}
 	tempConfig.Polaris.Checks = filteredChecks
+	handler.InjectConfig(tempConfig)
 	mutatorHandler.InjectConfig(tempConfig)
 	return nil
 }
