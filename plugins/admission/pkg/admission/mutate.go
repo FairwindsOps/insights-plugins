@@ -28,6 +28,7 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 }
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
+	return []jsonpatch.Operation{}, nil
 	if m == nil {
 		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
@@ -80,7 +81,6 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 
 // Handle for Validator to run validation checks.
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	return admission.Allowed("Allowed")
 	logrus.Info("XXXXXXXXXXXXXXXXX")
 	if m == nil {
 		logrus.Errorf("got NIL mutator")
