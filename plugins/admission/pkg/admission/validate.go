@@ -246,7 +246,7 @@ func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (
 func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config models.Configuration, decoded map[string]any, req admission.Request, namespaceMetadata map[string]any) (bool, []string, []string, error) {
 	metadataReport, err := getRequestReport(req, namespaceMetadata)
 	if err != nil {
-		logrus.Infof("Error marshaling admission request")
+		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
 	reports := []models.ReportInfo{metadataReport}
