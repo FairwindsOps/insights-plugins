@@ -109,8 +109,7 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	}
 	if v.config == nil {
 		logrus.Infof("Config is nil!!!!!!!!")
-		msg := fmt.Sprintf("Insights admission controller is ignoring request for %s%s/%s %s in namespace %s because the config is nil.", req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
-		return true, []string{msg}, nil, nil
+		return true, nil, nil, nil
 	}
 	rawBytes := req.Object.Raw
 	if req.Operation == "DELETE" {
