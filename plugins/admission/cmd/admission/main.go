@@ -68,14 +68,6 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		}
 		tempConfig.Polaris = &polarisConfig
 	}
-	filteredChecks := map[string]polarisconfiguration.Severity{}
-	for key, check := range tempConfig.Polaris.Checks {
-		if strings.HasPrefix(key, "metadata") {
-			continue
-		}
-		filteredChecks[key] = check
-	}
-	tempConfig.Polaris.Checks = filteredChecks
 	handler.InjectConfig(tempConfig)
 	mutatorHandler.InjectConfig(tempConfig)
 	return nil
