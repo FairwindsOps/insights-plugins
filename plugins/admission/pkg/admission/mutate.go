@@ -20,11 +20,19 @@ type Mutator struct {
 
 // InjectConfig injects the config.
 func (m *Mutator) InjectConfig(c models.Configuration) error {
+	if m == nil {
+		return nil
+	}
 	m.config = &c
 	return nil
 }
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
+	if m == nil {
+		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
+		return []jsonpatch.Operation{}, nil
+	}
+	return []jsonpatch.Operation{}, nil
 	logrus.Infof("mutating %s/%s", req.RequestKind.Kind, req.Name)
 	if m.config == nil || m.config.Polaris == nil {
 		logrus.Errorf("got an empty config for %s/%s", req.RequestKind.Kind, req.Name)
@@ -74,6 +82,10 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 
 // Handle for Validator to run validation checks.
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	if m == nil {
+		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
+	}
+	return admission.Allowed("Allowed")
 	if req.Name == "" {
 		logrus.Infof("Mutator got an empty name for %s/%s", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")

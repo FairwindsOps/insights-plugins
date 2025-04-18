@@ -73,6 +73,9 @@ func NewValidator(clientset *kubernetes.Clientset, iConfig models.InsightsConfig
 // the Validator struct. SetWebhookFailurePolicy returns true if the string is
 // parsed successfully.
 func (v *Validator) SetWebhookFailurePolicy(s string) bool {
+	if v == nil {
+		return true
+	}
 	switch strings.ToLower(s) {
 	case "":
 		v.webhookFailurePolicy = 0 // set empty string to the default iota
@@ -90,17 +93,25 @@ func (v *Validator) SetWebhookFailurePolicy(s string) bool {
 
 // InjectDecoder injects the decoder.
 func (v *Validator) InjectDecoder(d admission.Decoder) error {
+	if v == nil {
+		return nil
+	}
 	v.decoder = &d
 	return nil
 }
 
 // InjectConfig injects the config.
 func (v *Validator) InjectConfig(c models.Configuration) error {
+	if v == nil {
+		return nil
+	}
 	v.config = &c
+
 	return nil
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
+	return true, nil, nil, nil
 	logrus.Infof("Handling %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	username := req.UserInfo.Username
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
@@ -181,12 +192,15 @@ func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (ma
 
 // Handle for Validator to run validation checks.
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	return admission.Allowed("Allowed")
 	fairwindsInsightsIndicator := "[Fairwinds Insights]"
 	blockedIndicator := "[Blocked]"
 	logrus.Infof("Validator Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
-	if v == nil {
-		logrus.Infof("Validator is nil!!!!!!!!!!")
+	if req.Name == "" {
+		logrus.Infof("Validator got an empty name for %s/%s", req.RequestKind.Kind, req.Name)
+		return admission.Allowed("Allowed")
 	}
+
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	logrus.Infof("Validator got %d warnings and %d errors", len(warnings), len(errors))
 	if err != nil {
