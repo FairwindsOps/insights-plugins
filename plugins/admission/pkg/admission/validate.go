@@ -245,6 +245,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 	}
 	reports := []models.ReportInfo{metadataReport}
 	if config.Reports.Polaris && len(req.Object.Raw) > 0 && config.Polaris != nil {
+		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
 		polarisConfig := *config.Polaris
 		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, req.Object.Raw)
