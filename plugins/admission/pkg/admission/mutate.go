@@ -43,7 +43,7 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 		logrus.Errorf("got an error getting validated results: %v", err)
 		return nil, err
 	}
-	if len(results.Results) == 0 {
+	if results == nil || len(results.Results) == 0 {
 		logrus.Infof("no results to mutate for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
 	}
