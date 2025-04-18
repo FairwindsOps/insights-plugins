@@ -111,7 +111,6 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
-	return true, nil, nil, nil
 	logrus.Infof("Handling %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	username := req.UserInfo.Username
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
@@ -192,7 +191,6 @@ func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (ma
 
 // Handle for Validator to run validation checks.
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	return admission.Allowed("Allowed")
 	fairwindsInsightsIndicator := "[Fairwinds Insights]"
 	blockedIndicator := "[Blocked]"
 	logrus.Infof("Validator Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
