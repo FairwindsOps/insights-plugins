@@ -38,6 +38,10 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 		return []jsonpatch.Operation{}, nil
 	}
 	patches := mutation.GetMutationsFromResult(results)
+	if len(patches) == 0 {
+		logrus.Infof("no patches to apply for %s/%s", req.RequestKind.Kind, req.Name)
+		return []jsonpatch.Operation{}, nil
+	}
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
 		logrus.Errorf("got an error converting original object to yaml: %v", err)
