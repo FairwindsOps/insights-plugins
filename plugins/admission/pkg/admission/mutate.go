@@ -72,7 +72,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		return admission.Allowed("Allowed")
 	}
 	if req.RequestKind == nil {
-		logrus.Infof("Mutator got an empty request kind for %s/%s", req.RequestKind.Kind, req.Name)
+		logrus.Infof("Mutator got an empty request kind for %s", req.Name)
 		return admission.Allowed("Allowed")
 	}
 	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s",
