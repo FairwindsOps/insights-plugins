@@ -271,7 +271,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		}
 	}
 	logrus.Infof("Polaris checks: %v", config.Polaris.Checks)
-	if config.Reports.Polaris && len(req.Object.Raw) > 0 {
+	if config.Reports.Polaris && len(req.Object.Raw) > 0 && config.Polaris != nil {
 		logrus.Info("Running Polaris...............")
 		// Scan manifests with Polaris
 		polarisConfig := *config.Polaris

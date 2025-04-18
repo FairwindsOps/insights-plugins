@@ -26,6 +26,10 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	logrus.Infof("mutating %s/%s", req.RequestKind.Kind, req.Name)
+	if m.config == nil || m.config.Polaris == nil {
+		logrus.Errorf("got an empty config for %s/%s", req.RequestKind.Kind, req.Name)
+		return []jsonpatch.Operation{}, nil
+	}
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	logrus.Infof("got %d results from polaris", len(results.Results))
 	if err != nil {
@@ -94,4 +98,5 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 	}
 	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
 	return admission.Patched("", patches...)
+
 }
