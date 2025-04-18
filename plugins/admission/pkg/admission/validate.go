@@ -207,13 +207,13 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 			response.Warnings = append(response.Warnings, fmt.Sprintf("%s %s", fairwindsInsightsIndicator, warnString))
 		}
 	}
-	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
 	if len(errors) > 0 {
 		// add errors to warnings for increased readability in command-line
 		for _, errString := range errors {
 			response.Warnings = append(response.Warnings, fmt.Sprintf("%s %s %s", fairwindsInsightsIndicator, blockedIndicator, errString))
 		}
 	}
+	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
 	logrus.Infof("%d errors returned: %s", len(errors), strings.Join(errors, ", "))
 	logrus.Infof("Allowed: %t", allowed)
 	return response
