@@ -80,14 +80,20 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 
 // Handle for Validator to run validation checks.
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	logrus.Info("XXXXXXXXXXXXXXXXX")
 	if m == nil {
-		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
+		logrus.Errorf("got NIL mutator")
 		return admission.Allowed("Allowed")
 	}
 	if req.Name == "" {
 		logrus.Infof("Mutator got an empty name for %s/%s", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
 	}
+	if req.RequestKind == nil {
+		logrus.Infof("Mutator got an empty request kind for %s/%s", req.RequestKind.Kind, req.Name)
+		return admission.Allowed("Allowed")
+	}
+	logrus.Info("XXXXXXXXXXXXXXXXX1")
 	logrus.Infof("Mutaror starting %s request for %s%s/%s %s in namespace %s",
 		req.Operation,
 		req.RequestKind.Group,
@@ -95,6 +101,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.RequestKind.Kind,
 		req.Name,
 		req.Namespace)
+	logrus.Info("XXXXXXXXXXXXXXXXX2")
 	logrus.Infof("OPERATION============== got %s request for %s/%s/%s", req.Operation, req.RequestKind.Kind, req.Name, req.Operation)
 	patches, err := m.mutate(req)
 	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
