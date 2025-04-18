@@ -70,15 +70,6 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 	}
 	filteredChecks := map[string]polarisconfiguration.Severity{}
 	for key, check := range tempConfig.Polaris.Checks {
-		if strings.HasPrefix(key, "pdb") {
-			continue
-		}
-		if strings.HasPrefix(key, "host") {
-			continue
-		}
-		if strings.HasPrefix(key, "proc") {
-			continue
-		}
 		if strings.HasPrefix(key, "metadata") {
 			continue
 		}
