@@ -49,7 +49,7 @@ func GetPolarisValidateResults(kind string, d *admission.Decoder, req admission.
 	if kind == "Pod" {
 		pod := corev1.Pod{}
 		decoder := *d
-		err := decoder.Decode(req, &pod)
+		err = decoder.Decode(req, &pod)
 		if err != nil {
 			return nil, err
 		}
@@ -58,12 +58,14 @@ func GetPolarisValidateResults(kind string, d *admission.Decoder, req admission.
 			return nil, nil
 		}
 		controller, err = kube.NewGenericResourceFromPod(pod, pod)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		controller, err = kube.NewGenericResourceFromBytes(req.Object.Raw)
-	}
-	if err != nil {
-		logrus.Errorf("Error creating GenericResource from bytes: %v", err)
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 	// TODO: consider enabling multi-resource checks
 	controllerResult, err := validator.ApplyAllSchemaChecks(&config, nil, controller)
