@@ -64,7 +64,6 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		logrus.Infoln("no admission polaris config is present in Insights, using the polaris default")
 		polarisConfig, err := polarisconfiguration.MergeConfigAndParseFile("", false)
 		if err != nil {
-			logrus.Errorf("Error parsing default polaris config: %v", err)
 			return err
 		}
 		tempConfig.Polaris = &polarisConfig
@@ -112,12 +111,10 @@ func keepConfigurationRefreshed(ctx context.Context, cfg models.InsightsConfig, 
 
 func main() {
 	setLogLevel()
-	logrus.Infof("Starting admission controller")
 	interval, err := getIntervalOrDefault(1)
 	if err != nil {
 		exitWithError("could not get interval", err)
 	}
-	logrus.Infof("Configuration refresh interval: %d minutes", interval)
 	k8sCfg := k8sConfig.GetConfigOrDie()
 	iConfig := mustGetInsightsConfigFromEnvVars()
 	clientset, err := kubernetes.NewForConfig(k8sCfg)
