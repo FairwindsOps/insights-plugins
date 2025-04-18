@@ -86,7 +86,6 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		filteredChecks[key] = check
 	}
 	tempConfig.Polaris.Checks = filteredChecks
-	logrus.Infof("The config for Polaris is: %#v", tempConfig.Polaris)
 	mutatorHandler.InjectConfig(tempConfig)
 	return nil
 }
