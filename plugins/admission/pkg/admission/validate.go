@@ -185,8 +185,8 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 	fairwindsInsightsIndicator := "[Fairwinds Insights]"
 	blockedIndicator := "[Blocked]"
 	if req.Name == "" {
-		logrus.Infof("Validator got an empty name for %s/%s", req.RequestKind.Kind, req.Name)
-		return admission.Allowed("Allowed")
+		logrus.Info("Validator got an empty name")
+		//return admission.Allowed("Allowed")
 	}
 
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
