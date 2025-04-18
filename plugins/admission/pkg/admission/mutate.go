@@ -32,7 +32,6 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
 	}
-	return []jsonpatch.Operation{}, nil
 	logrus.Infof("mutating %s/%s", req.RequestKind.Kind, req.Name)
 	if m.config == nil || m.config.Polaris == nil {
 		logrus.Errorf("got an empty config for %s/%s", req.RequestKind.Kind, req.Name)
@@ -85,7 +84,6 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 	if m == nil {
 		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
 	}
-	return admission.Allowed("Allowed")
 	if req.Name == "" {
 		logrus.Infof("Mutator got an empty name for %s/%s", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
