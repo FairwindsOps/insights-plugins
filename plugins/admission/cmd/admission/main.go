@@ -69,10 +69,23 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		}
 		tempConfig.Polaris = &polarisConfig
 	}
+	filteredChecks := map[string]polarisconfiguration.Severity{}
+	for key, check := range tempConfig.Polaris.Checks {
+		if strings.HasPrefix(key, "pdb") {
+			continue
+		}
+		if strings.HasPrefix(key, "host") {
+			continue
+		}
+		if strings.HasPrefix(key, "proc") {
+			continue
+		}
+		filteredChecks[key] = check
+	}
+	tempConfig.Polaris.Checks = filteredChecks
 	logrus.Infof("The config for Polaris is: %#v", tempConfig.Polaris)
 
 	tempConfig.Polaris.Checks = nil
-	handler.InjectConfig(tempConfig)
 	mutatorHandler.InjectConfig(tempConfig)
 	return nil
 }
