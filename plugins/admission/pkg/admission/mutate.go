@@ -28,29 +28,22 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 }
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
-	return []jsonpatch.Operation{}, nil
 	if m == nil {
-		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
 	}
-	logrus.Infof("mutating %s/%s", req.RequestKind.Kind, req.Name)
 	if m.config == nil || m.config.Polaris == nil {
-		logrus.Errorf("got an empty config for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
 	}
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
-	logrus.Infof("got %d results from polaris", len(results.Results))
 	if err != nil {
 		logrus.Errorf("got an error getting validated results: %v", err)
 		return nil, err
 	}
 	if results == nil || len(results.Results) == 0 {
-		logrus.Infof("no results to mutate for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
 	}
 	patches := mutation.GetMutationsFromResult(results)
 	if len(patches) == 0 {
-		logrus.Infof("no patches to apply for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
 	}
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
@@ -75,7 +68,6 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 		logrus.Errorf("got an error creating json patch: %v", err)
 		return nil, err
 	}
-	logrus.Debugf("the patch to mutate %s/%s is: %v", req.RequestKind.Kind, req.Name, returnPatch)
 	return returnPatch, err
 }
 
