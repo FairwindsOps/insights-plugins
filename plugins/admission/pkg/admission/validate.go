@@ -227,7 +227,7 @@ func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (
 }
 
 func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config models.Configuration, decoded map[string]any, req admission.Request, namespaceMetadata map[string]any) (bool, []string, []string, error) {
-	logrus.Debugf("Processing with config %+v", config)
+	logrus.Infof("Processing with config %+v", config)
 	metadataReport, err := getRequestReport(req, namespaceMetadata)
 	if err != nil {
 		logrus.Errorf("Error marshaling admission request")
@@ -236,29 +236,36 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 	reports := []models.ReportInfo{metadataReport}
 
 	for key := range config.Polaris.Checks {
+		logrus.Infof("Checking if %s is enabled", key)
 		if strings.HasPrefix(key, "pdb") {
-			// remove
+			logrus.Infof("Skipping %s check", key)
 			delete(config.Polaris.Checks, key)
 			continue
 		}
 		if strings.HasPrefix(key, "host") {
+			logrus.Infof("Skipping %s check", key)
 			delete(config.Polaris.Checks, key)
 			continue
 		}
 		if strings.HasPrefix(key, "proc") {
+			logrus.Infof("Skipping %s check", key)
 			delete(config.Polaris.Checks, key)
 			continue
 		}
 	}
+	logrus.Infof("Polaris checks: %v", config.Polaris.Checks)
 	if config.Reports.Polaris && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
 		polarisConfig := *config.Polaris
+		logrus.Infof("Polaris config: %v", polarisConfig)
 		polarisReport, err := polaris.GetPolarisReport(ctx, polarisConfig, req.Object.Raw)
+		logrus.Infof("Polaris report: %v", polarisReport)
 		if err != nil {
 			logrus.Errorf("Error while running Polaris: %v", err)
 			return false, nil, nil, err
 		}
+		logrus.Infof("Polaris report: %v", polarisReport)
 		reports = append(reports, polarisReport)
 	}
 
@@ -271,6 +278,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		}
 		reports = append(reports, opaReport)
 	}
+	logrus.Infof("OPA report: %v", reports)
 
 	if config.Reports.Pluto && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Pluto")
