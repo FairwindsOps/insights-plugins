@@ -184,11 +184,6 @@ func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (ma
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	fairwindsInsightsIndicator := "[Fairwinds Insights]"
 	blockedIndicator := "[Blocked]"
-	if req.Name == "" {
-		logrus.Info("Validator got an empty name")
-		//return admission.Allowed("Allowed")
-	}
-
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
