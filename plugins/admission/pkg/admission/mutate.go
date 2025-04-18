@@ -36,7 +36,6 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	}
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
-		logrus.Errorf("got an error getting validated results: %v", err)
 		return nil, err
 	}
 	if results == nil || len(results.Results) == 0 {
@@ -68,7 +67,7 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 // Handle for Validator to run validation checks.
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	if m == nil {
-		logrus.Errorf("got NIL mutator")
+		logrus.Infof("Mutator got an empty Mutaror for %s", req.Name)
 		return admission.Allowed("Allowed")
 	}
 	if req.RequestKind == nil {
