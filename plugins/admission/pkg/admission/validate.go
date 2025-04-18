@@ -177,8 +177,12 @@ func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (ma
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	fairwindsInsightsIndicator := "[Fairwinds Insights]"
 	blockedIndicator := "[Blocked]"
-	logrus.Infof("Validato rStarting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
+	logrus.Infof("Validator Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
+	if v == nil {
+		logrus.Infof("Validator is nil!!!!!!!!!!")
+	}
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
+	logrus.Infof("Validator got %d warnings and %d errors", len(warnings), len(errors))
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
 		if v.webhookFailurePolicy != webhookFailurePolicyIgnore {
@@ -189,7 +193,7 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 			logrus.Warningf("allowing request despite errors, as webhook failurePolicy is set to %s", v.webhookFailurePolicy)
 		}
 	}
-	logrus.Infof("Before returning response: %s", req.Operation)
+	logrus.Infof("Before returning response: %s", req.Operation, errors)
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
 	logrus.Infof("Response: %v", response)
 	if len(warnings) > 0 {
@@ -233,14 +237,15 @@ func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (
 }
 
 func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config models.Configuration, decoded map[string]any, req admission.Request, namespaceMetadata map[string]any) (bool, []string, []string, error) {
-	logrus.Infof("Processing with config %+v", config)
+	logrus.Infof("Processing with config===========")
 	metadataReport, err := getRequestReport(req, namespaceMetadata)
+	logrus.Infof("Metadata report: =======")
 	if err != nil {
-		logrus.Errorf("Error marshaling admission request")
+		logrus.Infof("Error marshaling admission request")
 		return false, nil, nil, err
 	}
 	reports := []models.ReportInfo{metadataReport}
-
+	logrus.Info("Metadata report:", metadataReport)
 	for key := range config.Polaris.Checks {
 		logrus.Infof("Checking if %s is enabled", key)
 		if strings.HasPrefix(key, "pdb") {
@@ -261,7 +266,7 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 	}
 	logrus.Infof("Polaris checks: %v", config.Polaris.Checks)
 	if config.Reports.Polaris && len(req.Object.Raw) > 0 {
-		logrus.Info("Running Polaris")
+		logrus.Info("Running Polaris...............")
 		// Scan manifests with Polaris
 		polarisConfig := *config.Polaris
 		logrus.Infof("Polaris config: %v", polarisConfig)
