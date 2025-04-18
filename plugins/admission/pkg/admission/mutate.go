@@ -49,10 +49,13 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if err != nil {
 		return nil, err
 	}
+	logrus.Info("originalYaml====", string(originalYaml))
+	logrus.Info("patches====", patches)
 	mutatedYamlStr, err := mutation.ApplyAllMutations(string(originalYaml), patches)
 	if err != nil {
 		return nil, err
 	}
+	logrus.Info("mutatedYamlStr====", mutatedYamlStr)
 	mutatedJson, err := yaml.YAMLToJSON([]byte(mutatedYamlStr))
 	if err != nil {
 		return nil, err
@@ -83,7 +86,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.Namespace)
 	patches, err := m.mutate(req)
 	if err != nil {
-		logrus.Errorf("got an error getting patches: %v", err)
+		logrus.Errorf("got an error getting patches: %v", err) // ERROR IS HERE NOW -- //got an error getting patches: parent node is array, use /*/ or /0/../1/ instead of .-1 to access its item(s) first"
 		return admission.Errored(403, err)
 	}
 	if len(patches) == 0 {
