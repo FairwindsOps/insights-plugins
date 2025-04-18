@@ -34,19 +34,23 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if m.config == nil || m.config.Polaris == nil {
 		return []jsonpatch.Operation{}, nil
 	}
+	logrus.Infof("-----Mutator got a config for %s", req.Name)
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
+		logrus.Errorf("xxxxxxxxx got an error getting results: %v", err)
 		return nil, err
 	}
 	if results == nil || len(results.Results) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
+	logrus.Infof("======Mutator got results for %s", req.Name)
 	patches := mutation.GetMutationsFromResult(results)
 	if len(patches) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
+		logrus.Errorf("xxxxxxxxx got an error converting json to yaml: %v", err)
 		return nil, err
 	}
 	logrus.Info("originalYaml====", string(originalYaml))
