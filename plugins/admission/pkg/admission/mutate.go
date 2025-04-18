@@ -48,24 +48,18 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	}
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
-		logrus.Errorf("got an error converting original object to yaml: %v", err)
 		return nil, err
 	}
 	mutatedYamlStr, err := mutation.ApplyAllMutations(string(originalYaml), patches)
-	logrus.Info("string(originalYaml)))=====", string(originalYaml))
-	logrus.Info("mutatedYamlStr=====", mutatedYamlStr)
 	if err != nil {
-		logrus.Errorf("got an error applying mutations: %v", err)
 		return nil, err
 	}
 	mutatedJson, err := yaml.YAMLToJSON([]byte(mutatedYamlStr))
 	if err != nil {
-		logrus.Errorf("got an error converting mutated object to json: %v", err)
 		return nil, err
 	}
 	returnPatch, err := jsonpatch.CreatePatch(kubeResources.OriginalObjectJSON, mutatedJson)
 	if err != nil {
-		logrus.Errorf("got an error creating json patch: %v", err)
 		return nil, err
 	}
 	return returnPatch, err
@@ -73,7 +67,6 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 
 // Handle for Validator to run validation checks.
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
-	logrus.Info("XXXXXXXXXXXXXXXXX")
 	if m == nil {
 		logrus.Errorf("got NIL mutator")
 		return admission.Allowed("Allowed")
@@ -86,7 +79,6 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		logrus.Infof("Mutator got an empty request kind for %s/%s", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
 	}
-	logrus.Info("XXXXXXXXXXXXXXXXX1")
 	logrus.Infof("Mutaror starting %s request for %s%s/%s %s in namespace %s",
 		req.Operation,
 		req.RequestKind.Group,
@@ -94,10 +86,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.RequestKind.Kind,
 		req.Name,
 		req.Namespace)
-	logrus.Info("XXXXXXXXXXXXXXXXX2")
-	logrus.Infof("OPERATION============== got %s request for %s/%s/%s", req.Operation, req.RequestKind.Kind, req.Name, req.Operation)
 	patches, err := m.mutate(req)
-	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
 	if err != nil {
 		logrus.Errorf("got an error getting patches: %v", err)
 		return admission.Errored(403, err)
@@ -106,7 +95,6 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		logrus.Infof("no patches to apply for %s/%s: ALLOWED", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
 	}
-	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
 	return admission.Patched("", patches...)
 
 }

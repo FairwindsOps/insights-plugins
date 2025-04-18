@@ -40,7 +40,7 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/admission/submit", iConfig.Hostname, iConfig.Organization, iConfig.Cluster)
 	req, err := http.NewRequest("POST", url, &b)
 	if err != nil {
-		logrus.Warnf("Unable to create Request")
+		logrus.Warn("Unable to create Request")
 		return
 	}
 
@@ -54,13 +54,13 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		logrus.Warnf("Unable to Post results to Insights")
+		logrus.Warn("Unable to Post results to Insights")
 		return
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logrus.Warnf("Unable to read results")
+		logrus.Warn("Unable to read results")
 		return
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -70,7 +70,6 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	var resultMap map[string]interface{}
 	err = json.Unmarshal(body, &resultMap)
 	if err != nil {
-		logrus.Warnf("Unable to unmarshal results")
 		return
 	}
 	passed = resultMap["Success"].(bool)
