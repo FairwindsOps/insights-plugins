@@ -43,7 +43,6 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 		logrus.Errorf("got an error getting validated results: %v", err)
 		return nil, err
 	}
-	logrus.Infof("polaris returned %d results during mutation of %s/%s: %v", len(results.Results), req.RequestKind.Kind, req.Name, *results)
 	if len(results.Results) == 0 {
 		logrus.Infof("no results to mutate for %s/%s", req.RequestKind.Kind, req.Name)
 		return []jsonpatch.Operation{}, nil
@@ -83,6 +82,7 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	if m == nil {
 		logrus.Errorf("got NIL mutator for %s/%s", req.RequestKind.Kind, req.Name)
+		return admission.Allowed("Allowed")
 	}
 	if req.Name == "" {
 		logrus.Infof("Mutator got an empty name for %s/%s", req.RequestKind.Kind, req.Name)
