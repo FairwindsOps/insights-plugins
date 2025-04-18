@@ -111,14 +111,12 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 }
 
 func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (bool, []string, []string, error) {
-	logrus.Infof("Handling %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	username := req.UserInfo.Username
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
 		return true, []string{msg}, nil, nil
 	}
 	if v.config == nil {
-		logrus.Infof("Config is nil!!!!!!!!")
 		return true, nil, nil, nil
 	}
 	rawBytes := req.Object.Raw
@@ -167,7 +165,6 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	}
 	logrus.Infof("Namespace metadata: %v", namespaceMetadata)
 	if v.config == nil {
-		logrus.Infof("Config is nil!!!!!!!!")
 		return true, nil, nil, nil
 	}
 	return processInputYAML(ctx, v.iConfig, *v.config, decoded, req, namespaceMetadata)
@@ -223,7 +220,6 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 			response.Warnings = append(response.Warnings, fmt.Sprintf("%s %s %s", fairwindsInsightsIndicator, blockedIndicator, errString))
 		}
 	}
-	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
 	logrus.Infof("%d errors returned: %s", len(errors), strings.Join(errors, ", "))
 	logrus.Infof("Allowed: %t", allowed)
 	return response
