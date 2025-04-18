@@ -234,6 +234,22 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		return false, nil, nil, err
 	}
 	reports := []models.ReportInfo{metadataReport}
+
+	for key := range config.Polaris.Checks {
+		if strings.HasPrefix(key, "pdb") {
+			// remove
+			delete(config.Polaris.Checks, key)
+			continue
+		}
+		if strings.HasPrefix(key, "host") {
+			delete(config.Polaris.Checks, key)
+			continue
+		}
+		if strings.HasPrefix(key, "proc") {
+			delete(config.Polaris.Checks, key)
+			continue
+		}
+	}
 	if config.Reports.Polaris && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
