@@ -43,7 +43,7 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if results == nil || len(results.Results) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
-	logrus.Infof("======Mutator got results for %s", req.Name)
+	logrus.Info("======Mutator got results for ", req.Name, results.Results)
 	patches := mutation.GetMutationsFromResult(results)
 	if len(patches) == 0 {
 		return []jsonpatch.Operation{}, nil
