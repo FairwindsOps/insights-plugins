@@ -107,6 +107,11 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
 		return true, []string{msg}, nil, nil
 	}
+	if v.config == nil {
+		logrus.Infof("Config is nil!!!!!!!!")
+		msg := fmt.Sprintf("Insights admission controller is ignoring request for %s%s/%s %s in namespace %s because the config is nil.", req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
+		return true, []string{msg}, nil, nil
+	}
 	rawBytes := req.Object.Raw
 	if req.Operation == "DELETE" {
 		rawBytes = req.OldObject.Raw // Object.Raw is empty for DELETEs
@@ -152,6 +157,10 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 		}
 	}
 	logrus.Infof("Namespace metadata: %v", namespaceMetadata)
+	if v.config == nil {
+		logrus.Infof("Config is nil!!!!!!!!")
+		return false, nil, nil, fmt.Errorf("config is nil")
+	}
 	return processInputYAML(ctx, v.iConfig, *v.config, decoded, req, namespaceMetadata)
 }
 

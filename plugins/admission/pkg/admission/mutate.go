@@ -78,6 +78,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.Name,
 		req.Namespace)
 	logrus.Infof("OPERATION============== got %s request for %s/%s/%s", req.Operation, req.RequestKind.Kind, req.Name, req.Operation)
+	logrus.Infof("Req=============", req)
 	patches, err := m.mutate(req)
 	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
 	if err != nil {
