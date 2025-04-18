@@ -80,6 +80,9 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		if strings.HasPrefix(key, "proc") {
 			continue
 		}
+		if strings.HasPrefix(key, "metadata") {
+			continue
+		}
 		filteredChecks[key] = check
 	}
 	tempConfig.Polaris.Checks = filteredChecks
