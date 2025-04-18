@@ -244,7 +244,6 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		return false, nil, nil, err
 	}
 	reports := []models.ReportInfo{metadataReport}
-	logrus.Info("Metadata report:", metadataReport)
 	for key := range config.Polaris.Checks {
 		logrus.Infof("Checking if %s is enabled", key)
 		if strings.HasPrefix(key, "proc") {
