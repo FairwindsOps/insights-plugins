@@ -90,14 +90,12 @@ func (v *Validator) SetWebhookFailurePolicy(s string) bool {
 
 // InjectDecoder injects the decoder.
 func (v *Validator) InjectDecoder(d admission.Decoder) error {
-	logrus.Info("Injecting decoder")
 	v.decoder = &d
 	return nil
 }
 
 // InjectConfig injects the config.
 func (v *Validator) InjectConfig(c models.Configuration) error {
-	logrus.Info("Validator: Injecting config")
 	v.config = &c
 	return nil
 }

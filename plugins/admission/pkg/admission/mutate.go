@@ -20,7 +20,6 @@ type Mutator struct {
 
 // InjectConfig injects the config.
 func (m *Mutator) InjectConfig(c models.Configuration) error {
-	logrus.Info("Mutator: Injecting config")
 	m.config = &c
 	return nil
 }
@@ -81,7 +80,8 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		return admission.Errored(403, err)
 	}
 	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
-	if patches == nil {
+	if len(patches) == 0 {
+		logrus.Infof("no patches to apply for %s/%s: ALLOWED", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
 	}
 	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
