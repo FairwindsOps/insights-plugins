@@ -193,14 +193,12 @@ func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (ma
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	fairwindsInsightsIndicator := "[Fairwinds Insights]"
 	blockedIndicator := "[Blocked]"
-	logrus.Infof("Validator Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	if req.Name == "" {
 		logrus.Infof("Validator got an empty name for %s/%s", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
 	}
 
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
-	logrus.Infof("Validator got %d warnings and %d errors", len(warnings), len(errors))
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
 		if v.webhookFailurePolicy != webhookFailurePolicyIgnore {
@@ -211,22 +209,17 @@ func (v *Validator) Handle(ctx context.Context, req admission.Request) admission
 			logrus.Warningf("allowing request despite errors, as webhook failurePolicy is set to %s", v.webhookFailurePolicy)
 		}
 	}
-	logrus.Infof("Before returning response: %s", req.Operation, errors)
 	response := admission.ValidationResponse(allowed, strings.Join(errors, ", "))
-	logrus.Infof("Response: %v", response)
 	if len(warnings) > 0 {
 		response.Result.Code = httpStatusMiscPersistentWarning
 		for _, warnString := range warnings {
-			logrus.Infof("Adding warning: %s", warnString)
 			response.Warnings = append(response.Warnings, fmt.Sprintf("%s %s", fairwindsInsightsIndicator, warnString))
 		}
 	}
 	logrus.Infof("%d warnings returned: %s", len(warnings), strings.Join(warnings, ", "))
 	if len(errors) > 0 {
-		logrus.Infof("Adding errors to warnings for increased readability in command-line")
 		// add errors to warnings for increased readability in command-line
 		for _, errString := range errors {
-			logrus.Infof("Adding error: %s", errString)
 			response.Warnings = append(response.Warnings, fmt.Sprintf("%s %s %s", fairwindsInsightsIndicator, blockedIndicator, errString))
 		}
 	}
@@ -255,9 +248,7 @@ func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (
 }
 
 func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config models.Configuration, decoded map[string]any, req admission.Request, namespaceMetadata map[string]any) (bool, []string, []string, error) {
-	logrus.Infof("Processing with config===========")
 	metadataReport, err := getRequestReport(req, namespaceMetadata)
-	logrus.Infof("Metadata report: =======")
 	if err != nil {
 		logrus.Infof("Error marshaling admission request")
 		return false, nil, nil, err
@@ -307,7 +298,6 @@ func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config
 		}
 		reports = append(reports, opaReport)
 	}
-	logrus.Infof("OPA report: %v", reports)
 
 	if config.Reports.Pluto && len(req.Object.Raw) > 0 {
 		logrus.Info("Running Pluto")

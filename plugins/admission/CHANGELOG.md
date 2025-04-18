@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.18.2
-* Support to OPA libs v0 and v1
+* Fixed nil pointer bugs
 
 ## 1.18.1
 * Support to OPA libs v0 and v1
