@@ -35,7 +35,7 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	logrus.Infof("polaris returned %d results during mutation of %s/%s: %v", len(results.Results), req.RequestKind.Kind, req.Name, *results)
 	if len(results.Results) == 0 {
 		logrus.Infof("no results to mutate for %s/%s", req.RequestKind.Kind, req.Name)
-		return nil, nil
+		return []jsonpatch.Operation{}, nil
 	}
 	patches := mutation.GetMutationsFromResult(results)
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
