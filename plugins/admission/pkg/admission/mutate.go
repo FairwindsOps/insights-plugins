@@ -79,7 +79,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		logrus.Errorf("got an error getting patches: %v", err)
 		return admission.Errored(403, err)
 	}
-	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name)
+	logrus.Infof("Mutator got %d patches for %s/%s", len(patches), req.RequestKind.Kind, req.Name, patches)
 	if len(patches) == 0 {
 		logrus.Infof("no patches to apply for %s/%s: ALLOWED", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
