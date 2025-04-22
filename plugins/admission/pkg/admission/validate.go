@@ -73,6 +73,9 @@ func NewValidator(clientset *kubernetes.Clientset, iConfig models.InsightsConfig
 // the Validator struct. SetWebhookFailurePolicy returns true if the string is
 // parsed successfully.
 func (v *Validator) SetWebhookFailurePolicy(s string) bool {
+	if v == nil {
+		return true
+	}
 	switch strings.ToLower(s) {
 	case "":
 		v.webhookFailurePolicy = 0 // set empty string to the default iota
@@ -90,14 +93,18 @@ func (v *Validator) SetWebhookFailurePolicy(s string) bool {
 
 // InjectDecoder injects the decoder.
 func (v *Validator) InjectDecoder(d admission.Decoder) error {
-	logrus.Info("Injecting decoder")
+	if v == nil {
+		return nil
+	}
 	v.decoder = &d
 	return nil
 }
 
 // InjectConfig injects the config.
 func (v *Validator) InjectConfig(c models.Configuration) error {
-	logrus.Info("Injecting config")
+	if v == nil {
+		return nil
+	}
 	v.config = &c
 	return nil
 }
@@ -107,6 +114,9 @@ func (v *Validator) handleInternal(ctx context.Context, req admission.Request) (
 	if lo.Contains(v.iConfig.IgnoreUsernames, username) {
 		msg := fmt.Sprintf("Insights admission controller is ignoring service account %s.", username)
 		return true, []string{msg}, nil, nil
+	}
+	if v.config == nil {
+		return true, nil, nil, nil
 	}
 	rawBytes := req.Object.Raw
 	if req.Operation == "DELETE" {
@@ -173,7 +183,6 @@ func getNamespaceMetadata(clientset *kubernetes.Clientset, namespace string) (ma
 func (v *Validator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	fairwindsInsightsIndicator := "[Fairwinds Insights]"
 	blockedIndicator := "[Blocked]"
-	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s", req.Operation, req.RequestKind.Group, req.RequestKind.Version, req.RequestKind.Kind, req.Name, req.Namespace)
 	allowed, warnings, errors, err := v.handleInternal(ctx, req)
 	if err != nil {
 		logrus.Errorf("Error validating request: %v", err)
@@ -223,14 +232,13 @@ func getRequestReport(req admission.Request, namespaceMetadata map[string]any) (
 }
 
 func processInputYAML(ctx context.Context, iConfig models.InsightsConfig, config models.Configuration, decoded map[string]any, req admission.Request, namespaceMetadata map[string]any) (bool, []string, []string, error) {
-	logrus.Debugf("Processing with config %+v", config)
 	metadataReport, err := getRequestReport(req, namespaceMetadata)
 	if err != nil {
 		logrus.Errorf("Error marshaling admission request")
 		return false, nil, nil, err
 	}
 	reports := []models.ReportInfo{metadataReport}
-	if config.Reports.Polaris && len(req.Object.Raw) > 0 {
+	if config.Reports.Polaris && len(req.Object.Raw) > 0 && config.Polaris != nil {
 		logrus.Info("Running Polaris")
 		// Scan manifests with Polaris
 		polarisConfig := *config.Polaris

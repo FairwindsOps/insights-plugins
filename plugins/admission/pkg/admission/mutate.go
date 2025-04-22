@@ -20,18 +20,31 @@ type Mutator struct {
 
 // InjectConfig injects the config.
 func (m *Mutator) InjectConfig(c models.Configuration) error {
-	logrus.Info("Injecting config")
+	if m == nil {
+		return nil
+	}
 	m.config = &c
 	return nil
 }
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
+	if m == nil {
+		return []jsonpatch.Operation{}, nil
+	}
+	if m.config == nil || m.config.Polaris == nil {
+		return []jsonpatch.Operation{}, nil
+	}
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
 		return nil, err
 	}
-	logrus.Debugf("polaris returned %d results during mutation of %s/%s: %v", len(results.Results), req.RequestKind.Kind, req.Name, *results)
+	if results == nil || len(results.Results) == 0 {
+		return []jsonpatch.Operation{}, nil
+	}
 	patches := mutation.GetMutationsFromResult(results)
+	if len(patches) == 0 {
+		return []jsonpatch.Operation{}, nil
+	}
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
 		return nil, err
@@ -48,12 +61,17 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if err != nil {
 		return nil, err
 	}
-	logrus.Debugf("the patch to mutate %s/%s is: %v", req.RequestKind.Kind, req.Name, returnPatch)
 	return returnPatch, err
 }
 
 // Handle for Validator to run validation checks.
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	if m == nil {
+		return admission.Allowed("Allowed")
+	}
+	if req.RequestKind == nil {
+		return admission.Allowed("Allowed")
+	}
 	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s",
 		req.Operation,
 		req.RequestKind.Group,
@@ -66,8 +84,9 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		logrus.Errorf("got an error getting patches: %v", err)
 		return admission.Errored(403, err)
 	}
-	if patches == nil {
+	if len(patches) == 0 {
 		return admission.Allowed("Allowed")
 	}
 	return admission.Patched("", patches...)
+
 }

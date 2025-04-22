@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.3
+* Fixed nil pointer bugs
+
 ## 1.18.2
 * Bumped polaris
 
