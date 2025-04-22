@@ -90,7 +90,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.Namespace)
 	patches, err := m.mutate(req)
 	if err != nil {
-		logrus.Errorf("got an error getting patches: %v", err) // ERROR IS HERE NOW -- //got an error getting patches: parent node is array, use /*/ or /0/../1/ instead of .-1 to access its item(s) first"
+		logrus.Errorf("got an error getting patches: %v", err)
 		return admission.Errored(403, err)
 	}
 	if len(patches) == 0 {
