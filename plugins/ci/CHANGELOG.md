@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.4
+* bumped libs
+
 ## 5.9.3
 * bumped libs
 
