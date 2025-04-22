@@ -106,7 +106,6 @@ func (v *Validator) InjectConfig(c models.Configuration) error {
 		return nil
 	}
 	v.config = &c
-
 	return nil
 }
 
