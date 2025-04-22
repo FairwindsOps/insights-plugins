@@ -34,32 +34,25 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if m.config == nil || m.config.Polaris == nil {
 		return []jsonpatch.Operation{}, nil
 	}
-	logrus.Infof("-----Mutator got a config for %s", req.Name)
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
-		logrus.Errorf("xxxxxxxxx got an error getting results: %v", err)
 		return nil, err
 	}
 	if results == nil || len(results.Results) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
-	logrus.Info("======Mutator got results for ", req.Name, results.Results)
 	patches := mutation.GetMutationsFromResult(results)
 	if len(patches) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
-		logrus.Errorf("xxxxxxxxx got an error converting json to yaml: %v", err)
 		return nil, err
 	}
-	logrus.Info("originalYaml====", string(originalYaml))
-	logrus.Info("patches====", patches)
 	mutatedYamlStr, err := mutation.ApplyAllMutations(string(originalYaml), patches)
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info("mutatedYamlStr====", mutatedYamlStr)
 	mutatedJson, err := yaml.YAMLToJSON([]byte(mutatedYamlStr))
 	if err != nil {
 		return nil, err
@@ -74,11 +67,9 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 // Handle for Validator to run validation checks.
 func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.Response {
 	if m == nil {
-		logrus.Infof("Mutator got an empty Mutaror for %s", req.Name)
 		return admission.Allowed("Allowed")
 	}
 	if req.RequestKind == nil {
-		logrus.Infof("Mutator got an empty request kind for %s", req.Name)
 		return admission.Allowed("Allowed")
 	}
 	logrus.Infof("Starting %s request for %s%s/%s %s in namespace %s",
@@ -94,7 +85,6 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		return admission.Errored(403, err)
 	}
 	if len(patches) == 0 {
-		logrus.Infof("no patches to apply for %s/%s: ALLOWED", req.RequestKind.Kind, req.Name)
 		return admission.Allowed("Allowed")
 	}
 	return admission.Patched("", patches...)
