@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.4
+* Support for polaris config from values.yaml
+
 ## 1.18.3
 * Fixed nil pointer bugs
 

@@ -61,8 +61,14 @@ func refreshConfig(cfg models.InsightsConfig, handler *fadmission.Validator, mut
 		return err
 	}
 	if tempConfig.Polaris == nil {
-		logrus.Infoln("no admission polaris config is present in Insights, using the polaris default")
-		polarisConfig, err := polarisconfiguration.MergeConfigAndParseFile("", false)
+		logrus.Infoln("no admission polaris config is present in Insights, using the polaris + config from insights-agent values.yaml field insights.admission.polaris.config")
+		configFromValuesPath := ""
+		if _, err := os.Stat("/opt/app/polaris-config.yaml"); err == nil {
+			configFromValuesPath = "/opt/app/polaris-config.yaml"
+		} else {
+			logrus.Infoln("no polaris config from values.yaml found, using default config")
+		}
+		polarisConfig, err := polarisconfiguration.MergeConfigAndParseFile(configFromValuesPath, true)
 		if err != nil {
 			return err
 		}
