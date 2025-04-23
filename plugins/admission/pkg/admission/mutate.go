@@ -25,7 +25,14 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 		return nil
 	}
 	m.config = &c
-	logrus.Info("Mutator config: ", *m.config)
+	//logrus.Info("Mutator config: ", *m.config)
+	for _, mutations := range m.config.Polaris.Mutations {
+		logrus.Info("Polaris config: ", mutations)
+	}
+	for _, custom := range m.config.Polaris.CustomChecks {
+		logrus.Info("CUSTOM mutations: ", custom.ID, custom.Category, custom.Mutations)
+	}
+
 	return nil
 }
 
