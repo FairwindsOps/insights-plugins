@@ -2,7 +2,6 @@ package admission
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 	"github.com/fairwindsops/polaris/pkg/mutation"
@@ -21,21 +20,24 @@ type Mutator struct {
 
 // InjectConfig injects the config.
 func (m *Mutator) InjectConfig(c models.Configuration) error {
+	logrus.Info("Injecting config into mutator--------")
 	if m == nil {
 		return nil
 	}
 	m.config = &c
+	logrus.Info("Mutator config: ", *m.config)
 	return nil
 }
 
 func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
+	logrus.Info("-------------Mutating request")
 	if m == nil {
 		return []jsonpatch.Operation{}, nil
 	}
 	if m.config == nil || m.config.Polaris == nil {
 		return []jsonpatch.Operation{}, nil
 	}
-	fmt.Println("*m.config.Polaris: ", *m.config.Polaris)
+	logrus.Info("*m.config.Polaris: ", *m.config.Polaris)
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
 		return nil, err
@@ -43,16 +45,16 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if results == nil || len(results.Results) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
-	fmt.Println("V=======")
+	logrus.Info("V=======")
 	for _, result := range results.Results {
-		fmt.Println("Result: ", result)
+		logrus.Info("Result: ", result)
 	}
 	patches := mutation.GetMutationsFromResult(results)
 	if len(patches) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
 	for _, patch := range patches {
-		fmt.Println("Patch========= ", patch)
+		logrus.Info("Patch========= ", patch)
 	}
 
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
