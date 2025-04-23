@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.5
+* Fix validating custom checks
+
 ## 1.18.4
 * Support for polaris config from values.yaml
 
