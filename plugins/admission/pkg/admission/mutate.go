@@ -2,6 +2,7 @@ package admission
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/fairwindsops/insights-plugins/plugins/admission/pkg/models"
 	"github.com/fairwindsops/polaris/pkg/mutation"
@@ -34,6 +35,7 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if m.config == nil || m.config.Polaris == nil {
 		return []jsonpatch.Operation{}, nil
 	}
+	fmt.Println("*m.config.Polaris: ", *m.config.Polaris)
 	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
 		return nil, err
@@ -41,10 +43,18 @@ func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
 	if results == nil || len(results.Results) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
+	fmt.Println("V=======")
+	for _, result := range results.Results {
+		fmt.Println("Result: ", result)
+	}
 	patches := mutation.GetMutationsFromResult(results)
 	if len(patches) == 0 {
 		return []jsonpatch.Operation{}, nil
 	}
+	for _, patch := range patches {
+		fmt.Println("Patch========= ", patch)
+	}
+
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
 		return nil, err
