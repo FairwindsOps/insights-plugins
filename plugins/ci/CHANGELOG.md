@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.5
+* bumped tfsec
+
 ## 5.9.4
 * bumped libs
 
