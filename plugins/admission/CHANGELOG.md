@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.5
+* Bumped libs version
+
 ## 1.18.4
 * Support for polaris config from values.yaml
 
