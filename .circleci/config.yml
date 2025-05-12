@@ -91,7 +91,7 @@ executors:
       # The goreleaser image tag determines the version of Go.
       # Manually check goreleaser images for their version of Go.
       # Ref: https://hub.docker.com/r/goreleaser/goreleaser/tags
-      - image: goreleaser/goreleaser:v2.10.0
+      - image: goreleaser/goreleaser:v2.9.0
 
 
 jobs:
