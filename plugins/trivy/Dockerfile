@@ -8,13 +8,8 @@ ENV kubectlVersion=1.31.0
 RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl
 RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
-
-RUN echo "Downloading tools for ${TARGETOS}/${TARGETARCH}..."
-RUN echo "https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz"
-
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
-
 
 FROM alpine:3.21
 WORKDIR /trivy
