@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.5
+* Fixed OPA vulnerabilities
+
 ## 2.6.4
 * Added output temp file
 

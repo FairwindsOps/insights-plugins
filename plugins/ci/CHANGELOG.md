@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.6
+* Fixed OPA vulnerabilities
+
 ## 5.9.5
 * bumped tfsec
 
