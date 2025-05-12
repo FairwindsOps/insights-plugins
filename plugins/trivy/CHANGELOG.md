@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.31.11
-* Fixed OPA vulnerabilities
+* Upgaded trivy to 0.62.1
 
 ## 0.31.10
 * upgaded trivy to 0.61.0
