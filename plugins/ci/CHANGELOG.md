@@ -1,7 +1,7 @@
 # Changelog
 
 ## 5.9.6
-* Fixed OPA vulnerabilities
+* Upgaded trivy to 0.62.1
 
 ## 5.9.5
 * bumped tfsec
