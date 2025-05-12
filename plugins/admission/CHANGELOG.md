@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.5
+* Bumped OPA to latest
+
 ## 1.18.4
 * Support for polaris config from values.yaml
 
