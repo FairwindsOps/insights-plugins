@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.5.11
-* Bumped all libs
+* Fixed CPU bug on millicores
 
 ## 1.5.10
 * Making sure only files are updaloded only when they are ready to
