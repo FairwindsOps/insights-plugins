@@ -31,14 +31,14 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/prometheus/pkg/data"
 )
 
-const outputFile = "/output/prometheus-metrics.json"
-const outputTempFile = "/output/prometheus-metrics-tmp.json"
+const outputFile = "prometheus-metrics.json"
+const outputTempFile = "prometheus-metrics-tmp.json"
 const monitoringReadScope = "https://www.googleapis.com/auth/monitoring.read"
 const monitoringGoogleApis = "monitoring.googleapis.com"
 
 func main() {
 	setLogLevel()
-	address := os.Getenv("PROMETHEUS_ADDRESS")
+	address := "http://localhost:9090" ///api/v1/query"
 	if address == "" {
 		panic("prometheus-metrics.address must be set")
 	}
