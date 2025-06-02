@@ -32,7 +32,11 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     rm /google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc && \
     rm /google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
     
-RUN pip uninstall setuptools
+# install pip3 just to uninstall python3 setuptools and then remove pip3
+RUN python3 -m ensurepip && \
+    pip3 install --upgrade pip && \
+    pip3 uninstall -y setuptools && \
+    rm -rf /usr/lib/python3.12/site-packages/pip*
 
 COPY cloud-costs.sh cloud-costs.sh
 
