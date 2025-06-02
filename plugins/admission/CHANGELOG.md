@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.6
+* bumped alpine to 3.22
+
 ## 1.18.5
 * Bumped OPA to latest
 

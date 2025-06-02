@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.9
+* bumped alpine to 3.22
+
 ## 0.20.8
 * bumped alpine to 3.21
 

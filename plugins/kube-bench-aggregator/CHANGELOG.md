@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.27
+* bumped alpine to 3.22
+
 ## 0.3.26
 * Added output temp file
 

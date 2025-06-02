@@ -1,4 +1,4 @@
-FROM alpine:3.21 AS downloader
+FROM alpine:3.22 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV tfsecVersion=1.28.14
@@ -17,7 +17,7 @@ RUN curl -L "https://github.com/FairwindsOps/polaris/releases/download/$polarisV
 RUN curl -L "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 RUN curl -L https://get.helm.sh/helm-v${helmVersion}-${TARGETOS}-${TARGETARCH}.tar.gz > helm.tar.gz && tar -xvf helm.tar.gz && mv ${TARGETOS}-${TARGETARCH}/helm /usr/local/bin/helm && rm helm.tar.gz
 
-FROM alpine:3.21
+FROM alpine:3.22
 WORKDIR /insights
 RUN apk -U upgrade
 RUN apk add --no-cache skopeo libc6-compat
