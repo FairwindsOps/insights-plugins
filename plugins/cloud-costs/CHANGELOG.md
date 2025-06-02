@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.14
+* fixing vulnerability
+
 ## 0.3.13
 * added parameter project_id to bq
 
