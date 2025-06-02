@@ -49,5 +49,8 @@ RUN mkdir $HOME/.docker
 
 RUN apk add --no-cache skopeo
 
+RUN apk add py-pip
+RUN pip3 uninstall -y setuptools
+
 COPY report.sh ./
 CMD ./report.sh
