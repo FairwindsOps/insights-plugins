@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.7
+* bumped alpine to 3.22
+
 ## 5.9.6
 * Upgaded trivy to 0.62.1
 
