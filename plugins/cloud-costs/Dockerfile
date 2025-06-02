@@ -32,7 +32,9 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     rm /google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-312.pyc && \
     rm /google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-312.pyc
     
-RUN rm -rf /usr/lib/python3.12/site-packages/setuptools
+RUN apk add py-pip && \
+    pip uninstall -y setuptools && \
+    rm -rf /usr/lib/python3.12/site-packages/pip*
 
 COPY cloud-costs.sh cloud-costs.sh
 
