@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.14
+* bumped alpine to 3.22
+
 ## 0.3.13
 * added parameter project_id to bq
 

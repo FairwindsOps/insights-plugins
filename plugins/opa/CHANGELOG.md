@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.6
+* bumped alpine to 3.22
+
 ## 2.6.5
 * Fixed OPA vulnerabilities
 

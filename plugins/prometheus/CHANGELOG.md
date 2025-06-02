@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.12
+* bumped alpine to 3.22
+
 ## 1.5.11
 * Fixed CPU bug on millicores
 
