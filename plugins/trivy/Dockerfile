@@ -15,6 +15,9 @@ FROM python:alpine3.22
 WORKDIR /trivy
 RUN apk -U upgrade
 
+# update setuptools
+RUN pip3 install --no-cache --upgrade pip setuptools
+
 # for gcloud
 RUN apk --no-cache add bash curl libc6-compat ca-certificates
 
