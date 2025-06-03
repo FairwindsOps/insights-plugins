@@ -12,7 +12,7 @@ RUN apk add moreutils
 RUN apk add coreutils
 RUN apk add unzip
 
-ENV google_cloud_sdk_version=502.0.0
+ENV google_cloud_sdk_version=524.0.0
 
 RUN apk add python3
 RUN pip3 install --upgrade pip setuptools
