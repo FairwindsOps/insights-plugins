@@ -11,14 +11,14 @@ RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
-FROM alpine:3.22
+FROM python:3.9.22-alpine3.22
 WORKDIR /trivy
 RUN apk -U upgrade
 
 # for gcloud
-RUN apk --no-cache add bash curl python3 libc6-compat ca-certificates
+RUN apk --no-cache add bash curl libc6-compat ca-certificates
 
-ENV CLOUD_SDK_VERSION=502.0.0
+ENV CLOUD_SDK_VERSION=524.0.0
 
 RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
@@ -48,9 +48,6 @@ ENV HOME=/
 RUN mkdir $HOME/.docker
 
 RUN apk add --no-cache skopeo
-
-RUN apk add py-pip
-RUN pip3 uninstall -y setuptools
 
 COPY report.sh ./
 CMD ./report.sh
