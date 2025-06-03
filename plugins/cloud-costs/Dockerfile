@@ -1,4 +1,4 @@
-FROM python:alpine3.22
+FROM python:3.13-alpine3.22
 
 ARG TARGETARCH
 ARG TARGETOS
