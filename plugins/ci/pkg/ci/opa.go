@@ -135,7 +135,7 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		logrus.Warnf("Unable to Get Checks from Insights(%s): %w", configurationObject.Options.Hostname, err)
+		logrus.Warnf("Unable to Get Checks from Insights(%s): %v", configurationObject.Options.Hostname, err)
 		return nil, nil, nil, nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
