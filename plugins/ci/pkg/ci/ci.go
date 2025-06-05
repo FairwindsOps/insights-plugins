@@ -711,18 +711,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 	}
 
 	if ci.TerraformEnabled() {
-		terraformReports, err := ci.ProcessTerraformPaths()
-		if err != nil {
-			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
-				ErrorContext: "processing terraform",
-				Kind:         "InternalOperation",
-				ResourceName: "ProcessTerraformPaths",
-			})
-		}
-		if terraformReports != nil {
-			logrus.Debugln("the Terraform report contains results")
-			reports = append(reports, terraformReports)
-		}
+		logrus.Warn("Terraform scanning support has been removed, configured terraform.paths will be ignored.")
 	}
 
 	if len(scanErrorsReportProperties.Items) > 0 {
@@ -804,7 +793,7 @@ func (ci *CIScan) printScannedFilesInfo() {
 
 	s = len(ci.config.Terraform.Paths)
 	if s > 0 {
-		fmt.Println("Terraform files scanned:")
+		fmt.Println("Terraform files ignored:")
 		for i, p := range ci.config.Terraform.Paths {
 			fmt.Printf("\t[%d/%d] - %s\n", i+1, s, p)
 		}

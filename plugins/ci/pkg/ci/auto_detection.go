@@ -27,7 +27,6 @@ type KubernetesManifest struct {
 func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 	k8sManifests := []string{}
 	helmFolders := []string{}
-	terraformPaths := []string{}
 
 	err := filepath.Walk(basePath,
 		func(path string, info os.FileInfo, err error) error {
@@ -50,14 +49,6 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 						return err
 					}
 					helmFolders = append(helmFolders, relPath)
-					return filepath.SkipDir
-				}
-				terraformFolder, err := isTerraformFolder(path)
-				if err != nil {
-					return err
-				}
-				if terraformFolder {
-					terraformPaths = append(terraformPaths, path)
 					return filepath.SkipDir
 				}
 				logrus.Debugf("this is a directory: %s", info.Name())
@@ -101,9 +92,6 @@ func ConfigFileAutoDetection(basePath string) (*models.Configuration, error) {
 		Manifests: models.ManifestConfig{
 			YamlPaths: k8sManifests,
 			Helm:      toHelmConfigs(basePath, helmFolders),
-		},
-		Terraform: models.TerraformConfig{
-			Paths: terraformPaths,
 		},
 	}
 	return &config, nil
@@ -157,26 +145,6 @@ func isHelmBaseFolder(path string) (bool, error) {
 			if file.Name() == "Chart."+ext {
 				return true, nil
 			}
-		}
-	}
-	return false, nil
-}
-
-// isTerraformFOlder returns true if the specified directory contains a file
-// with a .tf extension.
-func isTerraformFolder(path string) (bool, error) {
-	files, err := os.ReadDir(path)
-	if err != nil {
-		return false, fmt.Errorf("Could not read dir %s: %v", path, err)
-	}
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		fileExtension := filepath.Ext(file.Name())
-		if strings.EqualFold(fileExtension, ".tf") {
-			logrus.Debugf("Directory %q contains Terraform because a .tf file was found", path)
-			return true, nil
 		}
 	}
 	return false, nil

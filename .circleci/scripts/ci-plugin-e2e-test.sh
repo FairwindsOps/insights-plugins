@@ -44,5 +44,13 @@ fi
 echo -e "\n\nCI/CD is done. Validating output..."
 cat output.txt
 set +x
-cat output.txt | grep "35 new Action Items"
-cat output.txt | grep "0 fixed Action Items"
+
+if ! grep -q "33 new Action Items" output.txt; then
+  echo "[ERROR] Expected '33 new Action Items' not found in output:"
+  exit 1
+fi
+
+if ! grep -q "0 fixed Action Items" output.txt; then
+  echo "[ERROR] Expected '0 fixed Action Items' not found in output:"
+  exit 1
+fi

@@ -240,7 +240,7 @@ func downloadPullRef(pullRef string, registryOAuth2AccessTokenMap map[string]str
 
 	args = append(args, "docker://"+pullRef, "docker-archive:"+dest)
 
-	logrus.Infof(util.RemoveTokensAndPassword(fmt.Sprintf("Running command: skopeo %s", strings.Join(args, " "))))
+	logrus.Info(util.RemoveTokensAndPassword(fmt.Sprintf("Running command: skopeo %s", strings.Join(args, " "))))
 	_, err := util.RunCommand(exec.Command("skopeo", args...), "pulling "+imageMessage)
 	if err != nil {
 		return "", fmt.Errorf("error pulling %s with skopeo: %w", pullRef, err)
