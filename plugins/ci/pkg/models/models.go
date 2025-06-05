@@ -315,7 +315,7 @@ func (c *Configuration) SetDefaults() error {
 		c.Reports.Trivy.SkipManifests = &falsehood
 	}
 	if c.Reports.TFSec.Enabled == nil {
-		c.Reports.TFSec.Enabled = &truth
+		c.Reports.TFSec.Enabled = &falsehood
 	}
 	if c.Reports.Goldilocks.Enabled == nil {
 		c.Reports.Goldilocks.Enabled = &truth
