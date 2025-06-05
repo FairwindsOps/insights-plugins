@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.11
+* Update libraries
+
 ## 0.5.10
 * Bumped kube-brench
 

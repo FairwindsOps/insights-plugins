@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.9.8
+* Remove tfsec support
+* Update libraries
+
 ## 5.9.7
 * bumped alpine to 3.22
 

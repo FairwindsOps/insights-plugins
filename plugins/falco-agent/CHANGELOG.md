@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.16
+* Update libraries
+
 ## 0.3.15
 * bumped alpine to 3.22
 
