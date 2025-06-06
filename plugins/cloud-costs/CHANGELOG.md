@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.15
+* updated image to python-alpine
+
 ## 0.3.14
 * bumped alpine to 3.22
 

@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM python:3-alpine3.22
 
 ARG TARGETARCH
 ARG TARGETOS
@@ -14,7 +14,6 @@ RUN apk add unzip
 
 ENV google_cloud_sdk_version=502.0.0
 
-RUN apk add python3
 RUN apk add --no-cache aws-cli
 
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
