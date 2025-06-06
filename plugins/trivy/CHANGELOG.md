@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.3.14
-* updated image to python-alpine
+* updated image to python-alpine 
 
 ## 0.31.13
 * Update libraries
