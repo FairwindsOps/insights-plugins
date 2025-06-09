@@ -58,12 +58,17 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error listing validating admission policies: ", err)
 	}
-	logrus.Info("Validating admission policies found: ", len(validatingAdmissionPolicies))
+	filteredValidatingAdmissionPolicies, err := filterValidationAdmissionPolicies(validatingAdmissionPolicies)
+	if err != nil {
+		logrus.Fatal("Error filtering validating admission policies: ", err)
+	}
+
+	logrus.Info("Validating admission policies found: ", len(filteredValidatingAdmissionPolicies))
 	response := map[string]interface{}{
 		"policyReports":                    policyReportsViolations,
 		"clusterPolicyReports":             clusterPolicyReportsViolations,
 		"validatingAdmissionPolicyReports": validatingAdmissionPolicyReports,
-		"validatingAdmissionPolicies":      validatingAdmissionPolicies,
+		"validatingAdmissionPolicies":      filteredValidatingAdmissionPolicies,
 	}
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
@@ -129,6 +134,16 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 			continue
 		}
 		p.Object["results"] = violations
+		result = append(result, p.Object)
+	}
+	return result, nil
+}
+
+func filterValidationAdmissionPolicies(policies []unstructured.Unstructured) ([]map[string]interface{}, error) {
+	result := []map[string]interface{}{}
+	for _, p := range policies {
+		metadata := p.Object["metadata"].(map[string]interface{})
+		delete(metadata, "managedFields")
 		result = append(result, p.Object)
 	}
 	return result, nil
