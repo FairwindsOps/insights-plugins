@@ -31,11 +31,11 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error creating policies title and description map: ", err)
 	}
-	policyReports, err := client.ListPolicies(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
+	policyReports, err := client.ListResources(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		logrus.Fatal("Error listing policy reports: ", err)
 	}
-	clusterPolicyReports, err := client.ListPolicies(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
+	clusterPolicyReports, err := client.ListResources(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		logrus.Fatal("Error listing cluster policy reports: ", err)
 	}
@@ -54,10 +54,15 @@ func main() {
 		logrus.Fatal("Error filtering validating admission policy reports: ", err)
 	}
 	logrus.Info("Validating admission policy reports found: ", len(validatingAdmissionPolicyReports))
+	validatingAdmissionPolicies, err := client.ListResources(context.Background(), "ValidatingAdmissionPolicy", client.DynamicInterface, client.RestMapper)
+	if err != nil {
+		logrus.Fatal("Error listing validating admission policies: ", err)
+	}
 	response := map[string]interface{}{
 		"policyReports":                    policyReportsViolations,
 		"clusterPolicyReports":             clusterPolicyReportsViolations,
 		"validatingAdmissionPolicyReports": validatingAdmissionPolicyReports,
+		"validatingAdmissionPolicies":      validatingAdmissionPolicies,
 	}
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
@@ -129,7 +134,7 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 }
 
 func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]interface{}, error) {
-	clusterPoliciesMetadata, err := client.ListPolicies(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
+	clusterPoliciesMetadata, err := client.ListResources(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +187,7 @@ func getKubeClient() (*Client, error) {
 	return &client, nil
 }
 
-func (c *Client) ListPolicies(ctx context.Context, resourceType string, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) ([]unstructured.Unstructured, error) {
+func (c *Client) ListResources(ctx context.Context, resourceType string, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) ([]unstructured.Unstructured, error) {
 	gvr, err := restMapper.ResourceFor(schema.GroupVersionResource{
 		Resource: resourceType,
 	})
