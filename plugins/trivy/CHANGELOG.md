@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.31.15
+* added validation policy reports and policies to report
+
 ## 0.31.14
 * updated image to python-alpine
 
