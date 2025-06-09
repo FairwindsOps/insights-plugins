@@ -58,6 +58,7 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error listing validating admission policies: ", err)
 	}
+	logrus.Info("Validating admission policies found: ", len(validatingAdmissionPolicies))
 	response := map[string]interface{}{
 		"policyReports":                    policyReportsViolations,
 		"clusterPolicyReports":             clusterPolicyReportsViolations,
