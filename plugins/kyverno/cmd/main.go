@@ -49,9 +49,15 @@ func main() {
 		logrus.Fatal("Error filtering violations: ", err)
 	}
 	logrus.Info("Cluster policy reports violations found: ", len(clusterPolicyReportsViolations))
+	validatingAdmissionPolicyReports, err := filterValidationAdmissionPolicyReports(policyReports)
+	if err != nil {
+		logrus.Fatal("Error filtering validating admission policy reports: ", err)
+	}
+	logrus.Info("Validating admission policy reports found: ", len(validatingAdmissionPolicyReports))
 	response := map[string]interface{}{
-		"policyReports":        policyReportsViolations,
-		"clusterPolicyReports": clusterPolicyReportsViolations,
+		"policyReports":                    policyReportsViolations,
+		"clusterPolicyReports":             clusterPolicyReportsViolations,
+		"validatingAdmissionPolicyReports": validatingAdmissionPolicyReports,
 	}
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
@@ -78,6 +84,9 @@ func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDes
 		violations := []map[string]interface{}{}
 		for _, r := range results {
 			result := r.(map[string]interface{})
+			if result["result"] != nil && result["source"] == "ValidatingAdmissionPolicy" {
+				continue
+			}
 			if result["result"].(string) != "fail" && result["result"].(string) != "warn" {
 				continue
 			}
@@ -94,6 +103,29 @@ func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDes
 		allViolations = append(allViolations, p.Object)
 	}
 	return allViolations, nil
+}
+
+func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured) ([]map[string]interface{}, error) {
+	result := []map[string]interface{}{}
+	for _, p := range policies {
+		metadata := p.Object["metadata"].(map[string]interface{})
+		delete(metadata, "managedFields")
+		results := p.Object["results"].([]interface{})
+		violations := []map[string]interface{}{}
+		for _, r := range results {
+			result := r.(map[string]interface{})
+			if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
+				continue
+			}
+			violations = append(violations, result)
+		}
+		if len(violations) == 0 {
+			continue
+		}
+		p.Object["results"] = violations
+		result = append(result, p.Object)
+	}
+	return result, nil
 }
 
 func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]interface{}, error) {
