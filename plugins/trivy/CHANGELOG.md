@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.31.15
-* trying to fix vulnerability
-
 ## 0.31.14
 * updated image to python-alpine
 
