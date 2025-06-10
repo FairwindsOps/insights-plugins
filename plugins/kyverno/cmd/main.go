@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -67,12 +66,11 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error listing cluster policies: ", err)
 	}
-	logrus.Info("Cluster policies found: ", len(clusterPolicies))
 	filteredClusterPolicies, err := removeManagedFields(clusterPolicies)
 	if err != nil {
 		logrus.Fatal("Error filtering cluster policies: ", err)
 	}
-	logrus.Info("Filtered cluster policies found: ", len(filteredClusterPolicies))
+	logrus.Info("Cluster policies found: ", len(filteredClusterPolicies))
 
 	logrus.Info("Validating admission policies found: ", len(filteredValidatingAdmissionPolicies))
 	response := map[string]interface{}{
@@ -130,7 +128,6 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 	for _, p := range policies {
 		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
-		fmt.Println("x=======", p.Object["results"])
 		if _, ok := p.Object["results"].([]interface{}); ok {
 			results := p.Object["results"].([]interface{})
 			violations := []map[string]interface{}{}
