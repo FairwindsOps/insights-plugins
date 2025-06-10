@@ -31,11 +31,11 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error creating policies title and description map: ", err)
 	}
-	policyReports, err := client.ListPolicies(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
+	policyReports, err := client.ListResources(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		logrus.Fatal("Error listing policy reports: ", err)
 	}
-	clusterPolicyReports, err := client.ListPolicies(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
+	clusterPolicyReports, err := client.ListResources(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		logrus.Fatal("Error listing cluster policy reports: ", err)
 	}
@@ -49,9 +49,36 @@ func main() {
 		logrus.Fatal("Error filtering violations: ", err)
 	}
 	logrus.Info("Cluster policy reports violations found: ", len(clusterPolicyReportsViolations))
+	validatingAdmissionPolicyReports, err := filterValidationAdmissionPolicyReports(policyReports)
+	if err != nil {
+		logrus.Fatal("Error filtering validating admission policy reports: ", err)
+	}
+	logrus.Info("Validating admission policy reports found: ", len(validatingAdmissionPolicyReports))
+	validatingAdmissionPolicies, err := client.ListResources(context.Background(), "ValidatingAdmissionPolicy", client.DynamicInterface, client.RestMapper)
+	if err != nil {
+		logrus.Fatal("Error listing validating admission policies: ", err)
+	}
+	filteredValidatingAdmissionPolicies, err := removeManagedFields(validatingAdmissionPolicies)
+	if err != nil {
+		logrus.Fatal("Error filtering validating admission policies: ", err)
+	}
+	clusterPolicies, err := client.ListResources(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
+	if err != nil {
+		logrus.Fatal("Error listing cluster policies: ", err)
+	}
+	filteredClusterPolicies, err := removeManagedFields(clusterPolicies)
+	if err != nil {
+		logrus.Fatal("Error filtering cluster policies: ", err)
+	}
+	logrus.Info("Cluster policies found: ", len(filteredClusterPolicies))
+
+	logrus.Info("Validating admission policies found: ", len(filteredValidatingAdmissionPolicies))
 	response := map[string]interface{}{
-		"policyReports":        policyReportsViolations,
-		"clusterPolicyReports": clusterPolicyReportsViolations,
+		"policyReports":                    policyReportsViolations,
+		"clusterPolicyReports":             clusterPolicyReportsViolations,
+		"validatingAdmissionPolicyReports": validatingAdmissionPolicyReports,
+		"validatingAdmissionPolicies":      filteredValidatingAdmissionPolicies,
+		"clusterPolicies":                  filteredClusterPolicies,
 	}
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
@@ -96,8 +123,64 @@ func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDes
 	return allViolations, nil
 }
 
+func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured) ([]map[string]interface{}, error) {
+	result := []map[string]interface{}{}
+	for _, p := range policies {
+		metadata := p.Object["metadata"].(map[string]interface{})
+		delete(metadata, "managedFields")
+		if _, ok := p.Object["results"].([]interface{}); ok {
+			results := p.Object["results"].([]interface{})
+			violations := []map[string]interface{}{}
+			for _, r := range results {
+				result := r.(map[string]interface{})
+				if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
+					continue
+				}
+				violations = append(violations, result)
+			}
+			if len(violations) == 0 {
+				continue
+			}
+			p.Object["results"] = violations
+			result = append(result, p.Object)
+			continue
+		}
+		if _, ok := p.Object["results"].([]map[string]interface{}); !ok {
+			results := p.Object["results"].([]map[string]interface{})
+			violations := []map[string]interface{}{}
+			for _, r := range results {
+				result := r
+				if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
+					continue
+				}
+				violations = append(violations, result)
+			}
+			if len(violations) == 0 {
+				continue
+			}
+			p.Object["results"] = violations
+			result = append(result, p.Object)
+			continue
+		}
+
+	}
+	return result, nil
+}
+
+func removeManagedFields(policies []unstructured.Unstructured) ([]map[string]interface{}, error) {
+	result := []map[string]interface{}{}
+	for _, p := range policies {
+		if _, ok := p.Object["metadata"].(map[string]interface{}); ok {
+			metadata := p.Object["metadata"].(map[string]interface{})
+			delete(metadata, "managedFields")
+		}
+		result = append(result, p.Object)
+	}
+	return result, nil
+}
+
 func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]interface{}, error) {
-	clusterPoliciesMetadata, err := client.ListPolicies(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
+	clusterPoliciesMetadata, err := client.ListResources(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +233,7 @@ func getKubeClient() (*Client, error) {
 	return &client, nil
 }
 
-func (c *Client) ListPolicies(ctx context.Context, resourceType string, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) ([]unstructured.Unstructured, error) {
+func (c *Client) ListResources(ctx context.Context, resourceType string, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) ([]unstructured.Unstructured, error) {
 	gvr, err := restMapper.ResourceFor(schema.GroupVersionResource{
 		Resource: resourceType,
 	})
