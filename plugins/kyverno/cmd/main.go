@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -129,10 +130,11 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 	for _, p := range policies {
 		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
-		results := p.Object["results"].([]map[string]interface{})
+		fmt.Println("x=======", p.Object["results"])
+		results := p.Object["results"].([]interface{})
 		violations := []map[string]interface{}{}
 		for _, r := range results {
-			result := r
+			result := r.(map[string]interface{})
 			if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
 				continue
 			}
