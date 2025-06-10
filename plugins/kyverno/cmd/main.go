@@ -131,20 +131,41 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
 		fmt.Println("x=======", p.Object["results"])
-		results := p.Object["results"].([]interface{})
-		violations := []map[string]interface{}{}
-		for _, r := range results {
-			result := r.(map[string]interface{})
-			if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
+		if _, ok := p.Object["results"].([]interface{}); ok {
+			results := p.Object["results"].([]interface{})
+			violations := []map[string]interface{}{}
+			for _, r := range results {
+				result := r.(map[string]interface{})
+				if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
+					continue
+				}
+				violations = append(violations, result)
+			}
+			if len(violations) == 0 {
 				continue
 			}
-			violations = append(violations, result)
-		}
-		if len(violations) == 0 {
+			p.Object["results"] = violations
+			result = append(result, p.Object)
 			continue
 		}
-		p.Object["results"] = violations
-		result = append(result, p.Object)
+		if _, ok := p.Object["results"].([]map[string]interface{}); !ok {
+			results := p.Object["results"].([]map[string]interface{})
+			violations := []map[string]interface{}{}
+			for _, r := range results {
+				result := r
+				if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
+					continue
+				}
+				violations = append(violations, result)
+			}
+			if len(violations) == 0 {
+				continue
+			}
+			p.Object["results"] = violations
+			result = append(result, p.Object)
+			continue
+		}
+
 	}
 	return result, nil
 }
