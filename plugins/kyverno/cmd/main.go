@@ -129,10 +129,10 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 	for _, p := range policies {
 		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
-		results := p.Object["results"].([]interface{})
+		results := p.Object["results"].([]map[string]interface{})
 		violations := []map[string]interface{}{}
 		for _, r := range results {
-			result := r.(map[string]interface{})
+			result := r
 			if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
 				continue
 			}
