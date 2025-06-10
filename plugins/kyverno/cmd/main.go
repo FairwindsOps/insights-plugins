@@ -74,7 +74,7 @@ func main() {
 	logrus.Info("Filtered cluster policies found: ", len(filteredClusterPolicies))
 
 	logrus.Info("Validating admission policies found: ", len(filteredValidatingAdmissionPolicies))
-	response := map[string]any{
+	response := map[string]interface{}{
 		"policyReports":                    policyReportsViolations,
 		"clusterPolicyReports":             clusterPolicyReportsViolations,
 		"validatingAdmissionPolicyReports": validatingAdmissionPolicyReports,
@@ -97,24 +97,21 @@ func main() {
 	logrus.Info("Kyverno plugin finished")
 }
 
-func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDescription map[string]any) ([]map[string]any, error) {
-	allViolations := []map[string]any{}
+func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDescription map[string]interface{}) ([]map[string]interface{}, error) {
+	allViolations := []map[string]interface{}{}
 	for _, p := range policies {
-		metadata := p.Object["metadata"].(map[string]any)
+		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
-		results := p.Object["results"].([]any)
-		violations := []map[string]any{}
+		results := p.Object["results"].([]interface{})
+		violations := []map[string]interface{}{}
 		for _, r := range results {
-			result := r.(map[string]any)
-			if result["result"] != nil && result["source"] == "ValidatingAdmissionPolicy" {
-				continue
-			}
+			result := r.(map[string]interface{})
 			if result["result"].(string) != "fail" && result["result"].(string) != "warn" {
 				continue
 			}
 			if titleAndDescription, ok := policiesTitleAndDDescription[result["policy"].(string)]; ok {
-				result["policyTitle"] = titleAndDescription.(map[string]any)["title"]
-				result["policyDescription"] = titleAndDescription.(map[string]any)["description"]
+				result["policyTitle"] = titleAndDescription.(map[string]interface{})["title"]
+				result["policyDescription"] = titleAndDescription.(map[string]interface{})["description"]
 			}
 			violations = append(violations, result)
 		}
@@ -127,15 +124,15 @@ func filterViolations(policies []unstructured.Unstructured, policiesTitleAndDDes
 	return allViolations, nil
 }
 
-func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured) ([]map[string]any, error) {
-	result := []map[string]any{}
+func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured) ([]map[string]interface{}, error) {
+	result := []map[string]interface{}{}
 	for _, p := range policies {
-		metadata := p.Object["metadata"].(map[string]any)
+		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
-		results := p.Object["results"].([]any)
-		violations := []map[string]any{}
+		results := p.Object["results"].([]interface{})
+		violations := []map[string]interface{}{}
 		for _, r := range results {
-			result := r.(map[string]any)
+			result := r.(map[string]interface{})
 			if result["result"] == nil || result["source"] != "ValidatingAdmissionPolicy" {
 				continue
 			}
@@ -150,26 +147,26 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 	return result, nil
 }
 
-func removeManagedFields(policies []unstructured.Unstructured) ([]map[string]any, error) {
-	result := []map[string]any{}
+func removeManagedFields(policies []unstructured.Unstructured) ([]map[string]interface{}, error) {
+	result := []map[string]interface{}{}
 	for _, p := range policies {
-		metadata := p.Object["metadata"].(map[string]any)
+		metadata := p.Object["metadata"].(map[string]interface{})
 		delete(metadata, "managedFields")
 		result = append(result, p.Object)
 	}
 	return result, nil
 }
 
-func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]any, error) {
+func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]interface{}, error) {
 	clusterPoliciesMetadata, err := client.ListResources(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		return nil, err
 	}
-	policiesTitleAndDDescription := map[string]any{}
+	policiesTitleAndDDescription := map[string]interface{}{}
 	for _, p := range clusterPoliciesMetadata {
-		metadata := p.Object["metadata"].(map[string]any)
+		metadata := p.Object["metadata"].(map[string]interface{})
 		if annotations, ok := metadata["annotations"]; ok {
-			annotationsMap := annotations.(map[string]any)
+			annotationsMap := annotations.(map[string]interface{})
 			title := ""
 			description := ""
 			if annotationsMap["policies.kyverno.io/title"] != nil {
@@ -178,7 +175,7 @@ func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]any, error
 			if annotationsMap["policies.kyverno.io/description"] != nil {
 				description = annotationsMap["policies.kyverno.io/description"].(string)
 			}
-			policiesTitleAndDDescription[p.GetName()] = map[string]any{
+			policiesTitleAndDDescription[p.GetName()] = map[string]interface{}{
 				"title":       title,
 				"description": description,
 			}
