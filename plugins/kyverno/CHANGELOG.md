@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.3.8
-* added validation policy reports and policies to report
-
 ## 0.3.7
 * bumped alpine to 3.22
 
