@@ -170,8 +170,10 @@ func filterValidationAdmissionPolicyReports(policies []unstructured.Unstructured
 func removeManagedFields(policies []unstructured.Unstructured) ([]map[string]interface{}, error) {
 	result := []map[string]interface{}{}
 	for _, p := range policies {
-		metadata := p.Object["metadata"].(map[string]interface{})
-		delete(metadata, "managedFields")
+		if _, ok := p.Object["metadata"].(map[string]interface{}); ok {
+			metadata := p.Object["metadata"].(map[string]interface{})
+			delete(metadata, "managedFields")
+		}
 		result = append(result, p.Object)
 	}
 	return result, nil
