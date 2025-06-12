@@ -14,6 +14,7 @@ RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="$
 FROM python:3-alpine3.22
 WORKDIR /trivy
 RUN apk -U upgrade
+RUN apk add py3-setuptools
 
 # for gcloud
 RUN apk --no-cache add bash curl libc6-compat ca-certificates

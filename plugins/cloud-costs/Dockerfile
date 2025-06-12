@@ -11,6 +11,7 @@ RUN apk add bash
 RUN apk add moreutils
 RUN apk add coreutils
 RUN apk add unzip
+RUN apk add py3-setuptools
 
 ENV google_cloud_sdk_version=502.0.0
 
