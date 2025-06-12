@@ -13,6 +13,12 @@ RUN apk add coreutils
 RUN apk add unzip
 
 
+ENV google_cloud_sdk_version=502.0.0
+
+RUN apk add --no-cache aws-cli
+
+    
+
 COPY cloud-costs.sh cloud-costs.sh
 
 CMD ["cloud-costs.sh"]
