@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.14
+* Fixing vulnerabilities
+
 ## 1.5.13
 * Update libraries
 

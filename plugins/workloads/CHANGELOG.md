@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.19
+* Fixing vulnerabilities
+
 ## 2.6.18
 * Update libraries
 
