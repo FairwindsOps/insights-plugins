@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.1
+* fixing vulnerabilities
+
 ## 0.4.0
 * added validation policy reports and policies to report
 
