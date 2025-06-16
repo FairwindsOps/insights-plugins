@@ -1,8 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/ci
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.24.4
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20250602134839-859ca241e9ef
