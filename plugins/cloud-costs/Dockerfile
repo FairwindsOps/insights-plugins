@@ -27,6 +27,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     ./google-cloud-sdk/bin/gcloud components install bq && \
     rm -rf google-cloud-sdk.tar.gz && \
     rm -rf /google-cloud-sdk/platform/gsutil/third_party && \
+    rm /google-cloud-sdk/bin/gcloud-crc32c && \
     rm /google-cloud-sdk/lib/third_party/google/auth/crypt/__pycache__/_python_rsa.cpython-313.pyc && \
     rm /google-cloud-sdk/lib/third_party/oauth2client/__pycache__/_pure_python_crypt.cpython-313.pyc
 

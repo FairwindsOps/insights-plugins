@@ -2,7 +2,7 @@ module github.com/fairwindsops/insights-plugins/plugins/opa
 
 go 1.24.0
 
-toolchain go1.24.2
+toolchain go1.24.4
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1

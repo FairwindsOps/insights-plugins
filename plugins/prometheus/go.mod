@@ -2,7 +2,7 @@ module github.com/fairwindsops/insights-plugins/plugins/prometheus
 
 go 1.24.0
 
-toolchain go1.24.2
+toolchain go1.24.4
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc

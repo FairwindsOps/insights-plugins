@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.17
+* Fixing vulnerabilities
+
 ## 0.3.16
 * fixing vulnerabilities
 

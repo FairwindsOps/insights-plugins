@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.8
+* Fixing vulnerabilities
+
 ## 2.6.7
 * Update libraries
 
