@@ -62,7 +62,7 @@ require (
 	github.com/prometheus/common v0.64.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/qri-io/jsonpointer v0.1.1 // indirect
-	github.com/qri-io/jsonschema v0.2.1 // indirect
+	github.com/qri-io/jsonschema v0.1.2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
