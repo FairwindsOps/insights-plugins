@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.28
+* Fixing vulnerabilities
+
 ## 1.3.27
 * Update libraries
 

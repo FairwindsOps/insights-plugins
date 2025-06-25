@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.13
+* Fixing vulnerabilities
+
+## 0.5.12
+* Fixing vulnerabilities
+
 ## 0.5.11
 * Update libraries
 

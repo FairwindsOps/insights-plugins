@@ -1,7 +1,13 @@
 # Changelog
 
-## 0.32.0
-* Add support for `IMAGES_TO_SCAN` env var to specify a comma-separated list of images to scan
+## 0.31.16
+* Fixing vulnerabilities
+
+## 0.31.15
+* fixing vulnerabilities
+
+## 0.31.14
+* updated image to python-alpine
 
 ## 0.31.13
 * Update libraries

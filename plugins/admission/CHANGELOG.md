@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.18.9
+* Fixing vulnerabilities
+
+## 1.18.8
+* Fixing vulnerabilities
+
 ## 1.18.7
 * Update libraries
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.10
+* Fixing vulnerabilities
+
 ## 0.20.9
 * bumped alpine to 3.22
 

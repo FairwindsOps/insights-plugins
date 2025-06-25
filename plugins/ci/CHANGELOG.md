@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.9.10
+* Fixing vulnerabilities
+
+## 5.9.9
+* Fixing vulnerabilities
+
 ## 5.9.8
 * Remove tfsec support
 * Update libraries
