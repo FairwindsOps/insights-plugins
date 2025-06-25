@@ -37,7 +37,7 @@ func main() {
 	}
 
 	if !cfg.Offline {
-		err := updateTrivyDatabase()
+		err := updateTrivyDatabases()
 		if err != nil {
 			logrus.Fatalf("could not update trivy database: %v", err)
 		}
@@ -145,7 +145,7 @@ func setLogLevel(logLevel string) {
 	}
 }
 
-func updateTrivyDatabase() error {
+func updateTrivyDatabases() error {
 	args := []string{
 		"image", "--download-db-only",
 		"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
