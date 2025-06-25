@@ -31,28 +31,15 @@ func main() {
 
 	logrus.Debugf("config is %#v", *cfg)
 
-	err = util.CheckEnvironmentVariables()
+	err = util.CheckRequiredEnvironmentVariables()
 	if err != nil {
 		logrus.Fatal("error checking environment variables: ", err)
 	}
 
 	if !cfg.Offline {
-		args := []string{
-			"image", "--download-db-only",
-			"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
-		}
-		_, err := util.RunCommand(exec.Command("trivy", args...), "downloading trivy database")
+		err := updateTrivyDatabase()
 		if err != nil {
-			logrus.Fatal(err)
-		}
-
-		args = []string{
-			"image", "--download-java-db-only",
-			"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
-		}
-		_, err = util.RunCommand(exec.Command("trivy", args...), "downloading trivy java database")
-		if err != nil {
-			logrus.Fatal(err)
+			logrus.Fatalf("could not update trivy database: %v", err)
 		}
 	}
 
@@ -81,10 +68,15 @@ func main() {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
 	}
 
-	imagesToScan := image.GetUnscannedImagesToScan(inClusterImages, lastReport.Images, cfg.NumberToScan)
+	if len(cfg.ImagesToScan) > 0 {
+		logrus.Infof("Images to scan is set on the environment, we will only scan those images")
+		inClusterImages = util.FilterImagesByName(inClusterImages, cfg.ImagesToScan)
+	}
+
+	imagesToScan := image.GetUnscannedImagesToScan(inClusterImages, lastReport.Images, cfg.MaxImagesToScan)
 	unscannedCount := len(imagesToScan)
 	logrus.Infof("Found %d images that have never been scanned", unscannedCount)
-	imagesToScan = image.GetImagesToReScan(inClusterImages, *lastReport, imagesToScan, cfg.NumberToScan)
+	imagesToScan = image.GetImagesToReScan(inClusterImages, *lastReport, imagesToScan, cfg.MaxImagesToScan)
 	logrus.Infof("Will re-scan %d additional images", len(imagesToScan)-unscannedCount)
 	for _, i := range imagesToScan {
 		logrus.Debugf("%v - %v", i.Name, i.ID)
@@ -151,4 +143,25 @@ func setLogLevel(logLevel string) {
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
+}
+
+func updateTrivyDatabase() error {
+	args := []string{
+		"image", "--download-db-only",
+		"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
+	}
+	_, err := util.RunCommand(exec.Command("trivy", args...), "downloading trivy database")
+	if err != nil {
+		return fmt.Errorf("downloading trivy database: %w", err)
+	}
+
+	args = []string{
+		"image", "--download-java-db-only",
+		"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
+	}
+	_, err = util.RunCommand(exec.Command("trivy", args...), "downloading trivy java database")
+	if err != nil {
+		return fmt.Errorf("downloading trivy java database: %w", err)
+	}
+	return nil
 }

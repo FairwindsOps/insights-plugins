@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
+	"github.com/fairwindsops/insights-plugins/plugins/trivy/pkg/models"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
@@ -72,7 +75,7 @@ func CreateKubeClientResources() KubeClientResources {
 
 var requiredEnvVars = []string{"FAIRWINDS_INSIGHTS_HOST", "FAIRWINDS_ORG", "FAIRWINDS_CLUSTER", "FAIRWINDS_TOKEN"}
 
-func CheckEnvironmentVariables() error {
+func CheckRequiredEnvironmentVariables() error {
 	for _, env := range requiredEnvVars {
 		if os.Getenv(env) == "" {
 			return fmt.Errorf("missing required environment variable: %s", env)
@@ -120,4 +123,10 @@ func RemoveTokensAndPassword(s string) string {
 	}
 
 	return s
+}
+
+func FilterImagesByName(inClusterImages []models.Image, imagesToMatch []string) []models.Image {
+	return lo.Filter(inClusterImages, func(i models.Image, _ int) bool {
+		return slices.Contains(imagesToMatch, i.Name)
+	})
 }

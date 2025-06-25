@@ -26,3 +26,4 @@ plugins/*/.goreleaser.yml
 
 # Plugin binaries
 /plugins/ci/insights-ci
+.tool-versions

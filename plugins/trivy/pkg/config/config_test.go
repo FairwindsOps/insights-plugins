@@ -1,7 +1,6 @@
 package config
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,27 +14,21 @@ func TestLoadFromEnvironmentDefault(t *testing.T) {
 	assert.Empty(t, cfg.NamespaceBlocklist)
 	assert.Empty(t, cfg.NamespaceAllowlist)
 	assert.Equal(t, 5, cfg.MaxConcurrentScans)
-	assert.Equal(t, 10, cfg.NumberToScan)
+	assert.Equal(t, 10, cfg.MaxImagesToScan)
 	assert.Empty(t, cfg.ExtraFlags)
 	assert.False(t, cfg.Offline)
+	assert.Empty(t, cfg.ImagesToScan)
 }
 
 func TestLoadFromEnvironment(t *testing.T) {
-	err := os.Setenv("SERVICE_ACCOUNT_ANNOTATIONS", `{"iam.gke.io/gcp-service-account":"my-gsa@my-project.iam.gserviceaccount.com","another-key":"another-value"}`)
-	assert.NoError(t, err)
-	err = os.Setenv("MAX_CONCURRENT_SCANS", "99")
-	assert.NoError(t, err)
-	err = os.Setenv("MAX_SCANS", "88")
-	assert.NoError(t, err)
-	err = os.Setenv("IGNORE_UNFIXED", "true")
-	assert.NoError(t, err)
-	err = os.Setenv("OFFLINE", "true")
-	assert.NoError(t, err)
-	err = os.Setenv("NAMESPACE_BLOCKLIST", "kube-system,kube-public")
-	assert.NoError(t, err)
-	err = os.Setenv("NAMESPACE_ALLOWLIST", "default,fw-insights")
-	assert.NoError(t, err)
-	defer resetEnvVars("SERVICE_ACCOUNT_ANNOTATIONS", "MAX_CONCURRENT_SCANS", "MAX_SCANS", "IGNORE_UNFIXED", "OFFLINE", "NAMESPACE_BLOCKLIST", "NAMESPACE_ALLOWLIST")
+	t.Setenv("SERVICE_ACCOUNT_ANNOTATIONS", `{"iam.gke.io/gcp-service-account":"my-gsa@my-project.iam.gserviceaccount.com","another-key":"another-value"}`)
+	t.Setenv("MAX_CONCURRENT_SCANS", "99")
+	t.Setenv("MAX_SCANS", "88")
+	t.Setenv("IGNORE_UNFIXED", "true")
+	t.Setenv("OFFLINE", "true")
+	t.Setenv("NAMESPACE_BLOCKLIST", "kube-system,kube-public")
+	t.Setenv("NAMESPACE_ALLOWLIST", "default,fw-insights")
+	t.Setenv("IMAGES_TO_SCAN", "nginx:latest,redis:alpine")
 
 	cfg, err := LoadFromEnvironment()
 	assert.NoError(t, err)
@@ -44,13 +37,8 @@ func TestLoadFromEnvironment(t *testing.T) {
 	assert.Len(t, cfg.NamespaceBlocklist, 2)
 	assert.Len(t, cfg.NamespaceAllowlist, 2)
 	assert.Equal(t, 99, cfg.MaxConcurrentScans)
-	assert.Equal(t, 88, cfg.NumberToScan)
+	assert.Equal(t, 88, cfg.MaxImagesToScan)
 	assert.Equal(t, "--ignore-unfixed", cfg.ExtraFlags)
 	assert.True(t, cfg.Offline)
-}
-
-func resetEnvVars(keys ...string) {
-	for _, key := range keys {
-		os.Unsetenv(key)
-	}
+	assert.Equal(t, []string{"nginx:latest", "redis:alpine"}, cfg.ImagesToScan)
 }
