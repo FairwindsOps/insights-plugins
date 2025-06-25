@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.32.0
+* Add support for `IMAGES_TO_SCAN` env var to specify a comma-separated list of images to scan
+
 ## 0.31.16
 * Fixing vulnerabilities
 
@@ -16,10 +19,10 @@
 * bumped alpine to 3.22
 
 ## 0.31.11
-* Upgaded trivy to 0.62.1
+* update trivy to 0.62.1
 
 ## 0.31.10
-* upgaded trivy to 0.61.0
+* update trivy to 0.61.0
 
 ## 0.31.9
 * Fixed trivy vulnerability

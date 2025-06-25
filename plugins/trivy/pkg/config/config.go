@@ -9,17 +9,18 @@ import (
 
 const (
 	MAX_CONCURRENT_SCANS = 5
-	NUMBER_TO_SCAN       = 10
+	MAX_IMAGES_TO_SCAN   = 10
 )
 
 type config struct {
 	Offline            bool
 	MaxConcurrentScans int
-	NumberToScan       int
+	MaxImagesToScan    int
 	ExtraFlags         string
 	NamespaceBlocklist []string
 	NamespaceAllowlist []string
 	HasGKESAAnnotation bool
+	ImagesToScan       []string
 }
 
 func LoadFromEnvironment() (*config, error) {
@@ -33,11 +34,11 @@ func LoadFromEnvironment() (*config, error) {
 		}
 	}
 
-	numberToScan := NUMBER_TO_SCAN
-	numberToScanStr := os.Getenv("MAX_SCANS")
-	if numberToScanStr != "" {
+	maxImagesToScan := MAX_IMAGES_TO_SCAN
+	maxScansEnvVar := os.Getenv("MAX_SCANS")
+	if maxScansEnvVar != "" {
 		var err error
-		numberToScan, err = strconv.Atoi(numberToScanStr)
+		maxImagesToScan, err = strconv.Atoi(maxScansEnvVar)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +71,7 @@ func LoadFromEnvironment() (*config, error) {
 		}
 	}
 
-	var namespaceBlocklist, namespaceAllowlist []string
+	var namespaceBlocklist, namespaceAllowlist, imagesToScan []string
 	if os.Getenv("NAMESPACE_BLACKLIST") != "" {
 		namespaceBlocklist = strings.Split(os.Getenv("NAMESPACE_BLACKLIST"), ",")
 	}
@@ -79,6 +80,9 @@ func LoadFromEnvironment() (*config, error) {
 	}
 	if os.Getenv("NAMESPACE_ALLOWLIST") != "" {
 		namespaceAllowlist = strings.Split(os.Getenv("NAMESPACE_ALLOWLIST"), ",")
+	}
+	if os.Getenv("IMAGES_TO_SCAN") != "" {
+		imagesToScan = strings.Split(os.Getenv("IMAGES_TO_SCAN"), ",")
 	}
 
 	hasGKESAAnnotation := false
@@ -89,10 +93,11 @@ func LoadFromEnvironment() (*config, error) {
 	return &config{
 		Offline:            offline,
 		MaxConcurrentScans: maxConcurrentScans,
-		NumberToScan:       numberToScan,
+		MaxImagesToScan:    maxImagesToScan,
 		ExtraFlags:         extraFlags,
 		NamespaceBlocklist: namespaceBlocklist,
 		NamespaceAllowlist: namespaceAllowlist,
 		HasGKESAAnnotation: hasGKESAAnnotation,
+		ImagesToScan:       imagesToScan,
 	}, nil
 }
