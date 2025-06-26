@@ -27,9 +27,9 @@ func NewClient(host, token, organization, cluster string, devMode bool) Client {
 	client := req.C().
 		SetBaseURL(host).
 		SetCommonHeaders(commonHeaders).
-		SetTimeout(30*60).
-		SetCommonRetryBackoffInterval(1*time.Second, 60*time.Second).
-		SetCommonRetryCount(5)
+		SetTimeout(10*time.Second).
+		SetCommonRetryBackoffInterval(1*time.Second, 5*time.Second).
+		SetCommonRetryCount(3)
 
 	if devMode {
 		slog.Info("running HTTP Client in development mode")
@@ -46,9 +46,7 @@ type HTTPClient struct {
 
 func (c HTTPClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
 	slog.Info("Claiming on-demand jobs", "organization", c.organization, "cluster", c.cluster)
-	// /v0/organizations/fairwinds-production/clusters/staging-eks/reports/configs
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/reports/on-demand-jobs/claim?limit=1", c.organization, c.cluster)
-
 	resp, err := c.client.R().Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query on-demand jobs: %w", err)
@@ -69,7 +67,6 @@ func (c HTTPClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
 
 func (c HTTPClient) UpdateOnDemandJobStatus(jobID int64, status OnDemandJobStatus) error {
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/reports/on-demand-jobs/%d/status", c.organization, c.cluster, jobID)
-
 	resp, err := c.client.R().SetBody(map[string]string{"status": string(status)}).Patch(url)
 	if err != nil {
 		return fmt.Errorf("failed to update on-demand job status: %w", err)

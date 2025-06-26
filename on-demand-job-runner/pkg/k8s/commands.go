@@ -74,15 +74,15 @@ func WaitForJobCompletion(ctx context.Context, clientset *kubernetes.Clientset, 
 
 		for _, cond := range job.Status.Conditions {
 			if cond.Type == batchv1.JobComplete && cond.Status == "True" {
-				fmt.Println("✅ Job completed successfully")
+				slog.Info("job completed successfully", "jobName", jobName, "namespace", namespace)
 				return nil
 			}
 			if cond.Type == batchv1.JobFailed && cond.Status == "True" {
-				return fmt.Errorf("❌ job failed: %s", cond.Reason)
+				return fmt.Errorf("job failed: %s", cond.Reason)
 			}
 		}
 
-		slog.Info("waiting for job to complete..", "jobName", jobName, "namespace", namespace)
+		slog.Info("waiting for job to complete...", "jobName", jobName, "namespace", namespace)
 		time.Sleep(5 * time.Second)
 	}
 }

@@ -15,7 +15,7 @@ import (
 
 func loadConfig() (*ondemandjobs.Config, error) {
 	// viper order of precedence:
-	// 	1. Environment variables (e.g., FAIRWINDS_ORGANIZATION, FAIRWINDS_CLUSTER, FAIRWINDS_TOKEN, FAIRWINDS_BASE_URL)
+	// 	1. Environment variables (e.g., ORGANIZATION, CLUSTER, TOKEN, HOST)
 	// 	2. Config file (config.yaml)
 	// 	3. Default values (if set in code)
 
