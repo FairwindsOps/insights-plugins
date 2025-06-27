@@ -14,7 +14,7 @@ To run the service, you must provide a configuration file. A sample config is av
 ```yaml
 organization: "example_org"
 cluster: "example_cluster"
-token: "your_base64_encoded_token_here"
+token: "your_decoded_token_here"
 host: "https://example.com"
 devMode: true
 ```
@@ -24,7 +24,7 @@ Alternatively, you can define these values using **environment variables**:
 ```bash
 export ORGANIZATION="example_org"
 export CLUSTER="example_cluster"
-export TOKEN="your_base64_encoded_token_here"
+export TOKEN="your_decoded_token_here"
 export HOST="https://example.com"
 export DEV_MODE=true
 ```
