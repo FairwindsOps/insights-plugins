@@ -24,6 +24,7 @@ var reportTypeJobConfigMap = map[string]JobConfig{
 	"pluto":              {cronJobName: "pluto", timeout: 5 * time.Minute},
 	"polaris":            {cronJobName: "polaris", timeout: 5 * time.Minute},
 	"prometheus-metrics": {cronJobName: "prometheus-metrics", timeout: 5 * time.Minute},
+	"goldilocks":         {cronJobName: "goldilocks", timeout: 5 * time.Minute},
 	"rbac-reporter":      {cronJobName: "rbac-reporter", timeout: 5 * time.Minute},
 	"right-sizer":        {cronJobName: "right-sizer", timeout: 5 * time.Minute},
 	"workloads":          {cronJobName: "workloads", timeout: 5 * time.Minute},
@@ -37,6 +38,11 @@ func FetchAndProcessOnDemandJobs(insightsClient insights.Client, clientset *kube
 	onDemandJobs, err := insightsClient.ClaimOnDemandJobs(1)
 	if err != nil {
 		return fmt.Errorf("failed to fetch on-demand jobs: %w", err)
+	}
+
+	if len(onDemandJobs) == 0 {
+		slog.Info("no on-demand jobs to process")
+		return nil
 	}
 
 	for _, onDemandJob := range onDemandJobs {

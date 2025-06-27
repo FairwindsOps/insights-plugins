@@ -15,7 +15,7 @@ const (
 
 type OnDemandJob struct {
 	ID         int64             `json:"id"`
-	ReportType string            `json:"report_type"`
+	ReportType string            `json:"reportType"`
 	Status     string            `json:"status"`
 	Options    map[string]string `json:"options"`
 }

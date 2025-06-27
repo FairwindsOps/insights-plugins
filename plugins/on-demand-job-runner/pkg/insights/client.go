@@ -47,7 +47,7 @@ type HTTPClient struct {
 func (c HTTPClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
 	slog.Info("Claiming on-demand jobs", "organization", c.organization, "cluster", c.cluster)
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/reports/on-demand-jobs/claim?limit=1", c.organization, c.cluster)
-	resp, err := c.client.R().Get(url)
+	resp, err := c.client.R().Post(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query on-demand jobs: %w", err)
 	}
@@ -56,18 +56,17 @@ func (c HTTPClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
 		return nil, fmt.Errorf("error querying on-demand jobs: status %d, body %s", resp.StatusCode, resp.String())
 	}
 
-	slog.Info("Successfully queried on-demand jobs", "status", resp.StatusCode, "body", resp.String())
 	var onDemandJobs []OnDemandJob
 	if err := resp.UnmarshalJson(&onDemandJobs); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal on-demand jobs response: %w", err)
 	}
-
 	return onDemandJobs, nil
 }
 
 func (c HTTPClient) UpdateOnDemandJobStatus(jobID int64, status OnDemandJobStatus) error {
+	payload := map[string]string{"status": string(status)}
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/reports/on-demand-jobs/%d/status", c.organization, c.cluster, jobID)
-	resp, err := c.client.R().SetBody(map[string]string{"status": string(status)}).Patch(url)
+	resp, err := c.client.R().SetBody(payload).Patch(url)
 	if err != nil {
 		return fmt.Errorf("failed to update on-demand job status: %w", err)
 	}
