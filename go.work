@@ -1,8 +1,7 @@
 go 1.24.4
 
-
-
 use (
+	./plugins/on-demand-job-runner
 	./plugins/admission
 	./plugins/ci
 	./plugins/falco-agent
