@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/securityhub v1.57.5 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.36.1 // indirect
