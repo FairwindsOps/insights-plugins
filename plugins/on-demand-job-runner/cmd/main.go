@@ -28,6 +28,7 @@ func loadConfig() (*ondemandjobs.Config, error) {
 	viper.SetDefault("cluster", "")
 	viper.SetDefault("token", "")
 	viper.SetDefault("host", "https://insights.fairwinds.com")
+	viper.SetDefault("maxConcurrentJobs", 10)
 	viper.SetDefault("devMode", false)
 
 	err := viper.ReadInConfig()
@@ -77,7 +78,7 @@ func main() {
 	defer ticket.Stop()
 
 	for range ticket.C {
-		err := ondemandjobs.FetchAndProcessOnDemandJobs(insightsClient, clientset)
+		err := ondemandjobs.FetchAndProcessOnDemandJobs(insightsClient, clientset, config.MaxConcurrentJobs)
 		if err != nil {
 			slog.Error("error processing on-demand jobs", "error", err)
 			continue

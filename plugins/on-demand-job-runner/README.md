@@ -16,6 +16,7 @@ organization: "example_org"
 cluster: "example_cluster"
 token: "your_decoded_token_here"
 host: "https://example.com"
+maxConcurrentJobs: 10
 devMode: true
 ```
 
@@ -26,6 +27,7 @@ export ORGANIZATION="example_org"
 export CLUSTER="example_cluster"
 export TOKEN="your_decoded_token_here"
 export HOST="https://example.com"
+export MAX_CONCURRENT_JOBS=10
 export DEV_MODE=true
 ```
 

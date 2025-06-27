@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/insights"
@@ -34,8 +35,9 @@ var reportTypeJobConfigMap = map[string]JobConfig{
 	"gonogo":             {cronJobName: "gonogo", timeout: 5 * time.Minute},
 }
 
-func FetchAndProcessOnDemandJobs(insightsClient insights.Client, clientset *kubernetes.Clientset) error {
-	onDemandJobs, err := insightsClient.ClaimOnDemandJobs(1)
+// FetchAndProcessOnDemandJobs fetches on-demand jobs from the insights client and processes them concurrently.
+func FetchAndProcessOnDemandJobs(insightsClient insights.Client, clientset *kubernetes.Clientset, maxConcurrentJobs int) error {
+	onDemandJobs, err := insightsClient.ClaimOnDemandJobs(maxConcurrentJobs)
 	if err != nil {
 		return fmt.Errorf("failed to fetch on-demand jobs: %w", err)
 	}
@@ -45,28 +47,38 @@ func FetchAndProcessOnDemandJobs(insightsClient insights.Client, clientset *kube
 		return nil
 	}
 
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, maxConcurrentJobs)
 	for _, onDemandJob := range onDemandJobs {
-		err := processOnDemandJob(clientset, onDemandJob)
-		if err != nil {
-			slog.Error("failed to process on-demand job", "jobID", onDemandJob.ID, "reportType", onDemandJob.ReportType, "error", err)
-			err := insightsClient.UpdateOnDemandJobStatus(onDemandJob.ID, insights.JobStatusFailed)
-			if err != nil {
-				slog.Error("failed to update on-demand job status to failed", "jobID", onDemandJob.ID, "error", err)
-			} else {
-				slog.Info("updated on-demand job status to failed", "jobID", onDemandJob.ID)
-			}
-			continue
-		}
+		wg.Add(1)
+		semaphore <- struct{}{} // acquire
 
-		err = insightsClient.UpdateOnDemandJobStatus(onDemandJob.ID, insights.JobStatusCompleted)
-		if err != nil {
-			slog.Error("failed to update on-demand job status to completed", "jobID", onDemandJob.ID, "error", err)
-		} else {
-			slog.Info("updated on-demand job status to completed", "jobID", onDemandJob.ID)
-		}
-		slog.Info("processed on-demand job successfully", "jobID", onDemandJob.ID, "reportType", onDemandJob.ReportType)
+		go func(job insights.OnDemandJob) {
+			defer wg.Done()
+			defer func() { <-semaphore }() // release
+
+			err := processOnDemandJob(clientset, job)
+			if err != nil {
+				slog.Error("failed to process on-demand job", "jobID", job.ID, "reportType", job.ReportType, "error", err)
+				if updateErr := insightsClient.UpdateOnDemandJobStatus(job.ID, insights.JobStatusFailed); updateErr != nil {
+					slog.Error("failed to update on-demand job status to failed", "jobID", job.ID, "error", updateErr)
+				} else {
+					slog.Info("updated on-demand job status to failed", "jobID", job.ID)
+				}
+				return
+			}
+
+			if updateErr := insightsClient.UpdateOnDemandJobStatus(job.ID, insights.JobStatusCompleted); updateErr != nil {
+				slog.Error("failed to update on-demand job status to completed", "jobID", job.ID, "error", updateErr)
+			} else {
+				slog.Info("updated on-demand job status to completed", "jobID", job.ID)
+			}
+
+			slog.Info("processed on-demand job successfully", "jobID", job.ID, "reportType", job.ReportType)
+		}(onDemandJob)
 	}
 
+	wg.Wait()
 	return nil
 }
 
