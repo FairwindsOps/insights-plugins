@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.32.1
+* Bump trivy to 0.64.1
+
 ## 0.32.0
 * Add support for `IMAGES_TO_SCAN` env var to specify a comma-separated list of images to scan
 

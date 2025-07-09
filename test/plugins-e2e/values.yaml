@@ -9,6 +9,9 @@ kube-bench:
       memory: 64Mi
       cpu: 1m
 
+onDemandJobRunner:
+  enabled: false
+  
 opa:
   enabled: true
   resources:

@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.11
+* Bump trivy to 0.64.1
+
 ## 5.9.10
 * Fixing vulnerabilities
 
