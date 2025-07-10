@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.18.10
+* Bump pluto to 5.21.9
+
 ## 1.18.9
 * Fixing vulnerabilities
 

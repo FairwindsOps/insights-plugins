@@ -1,5 +1,8 @@
 # Changelog
 
+## 5.9.12
+* Bump pluto to 5.21.9
+
 ## 5.9.11
 * Bump trivy to 0.64.1
 
