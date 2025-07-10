@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.9
+* Bumped libs versions
+
 ## 2.6.8
 * Fixing vulnerabilities
 
