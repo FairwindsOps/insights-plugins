@@ -3,7 +3,6 @@ package opa
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	opaVersion "github.com/fairwindsops/insights-plugins/plugins/opa"
 	"github.com/fairwindsops/insights-plugins/plugins/opa/pkg/opa"
@@ -29,16 +28,10 @@ func ProcessOPA(ctx context.Context, obj map[string]any, req admission.Request, 
 	logrus.Infof("Found %d checks, %d instances, %d libs V0 and %d libs V1", len(opaCustomChecks), len(configuration.OPA.CustomCheckInstances), len(opaCustomLibsV0), len(opaCustomLibsV1))
 	anyChekIsV1 := false
 	for _, check := range opaCustomChecks {
-		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
-		switch check.Version {
-		case 2.0:
-			newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, opaCustomLibsV0, opaCustomLibsV1, &requestInfo)
-			actionItems = append(actionItems, newActionItems...)
-			if err != nil {
-				allErrs = multierror.Append(allErrs, err)
-			}
-		default:
-			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause admission control to be blocked", check.Name, check.Version))
+		newActionItems, err := ProcessOPAV2(ctx, obj, req.AdmissionRequest.Name, req.AdmissionRequest.RequestKind.Group, req.AdmissionRequest.RequestKind.Kind, req.AdmissionRequest.Namespace, check, opaCustomLibsV0, opaCustomLibsV1, &requestInfo)
+		actionItems = append(actionItems, newActionItems...)
+		if err != nil {
+			allErrs = multierror.Append(allErrs, err)
 		}
 	}
 	if anyChekIsV1 {
