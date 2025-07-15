@@ -181,35 +181,11 @@ func processObject(ctx context.Context, obj map[string]interface{}, resourceName
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
 	for _, check := range checks {
-		logrus.Debugf("Check %s is version %.1f\n", check.Name, check.Version)
-		switch check.Version {
-		case 1.0:
-			for _, instanceObject := range instances {
-				if instanceObject.CheckName != check.Name {
-					continue
-				}
-				logrus.Debugf("Found instance %s to match check %s", instanceObject.AdditionalData.Name, check.Name)
-				instance := instanceObject.GetCustomCheckInstance()
-				foundTargetInInstance := instance.MatchesTarget(apiGroup, resourceKind)
-				if !foundTargetInInstance {
-					logrus.Debugf("No Kubernetes target matches for APIGroup %s and resource %s in check %s / instance %s targets: %v\n", apiGroup, resourceKind, check.Name, instanceObject.AdditionalData.Name, instance.Spec.Targets)
-					continue
-				}
-				newActionItems, err := opa.ProcessCheckForItem(ctx, check, instance, obj, resourceName, resourceKind, resourceNamespace, &rego.InsightsInfo{InsightsContext: "CI/CD"})
-				if err != nil {
-					allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s / instance %s: %v", check.Name, instanceObject.AdditionalData.Name, err))
-				}
-				actionItems = append(actionItems, newActionItems...)
-			}
-		case 2.0:
-			newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, libsV0, libsV1, &rego.InsightsInfo{InsightsContext: "CI/CD"})
-			if err != nil {
-				allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, err))
-			}
-			actionItems = append(actionItems, newActionItems...)
-		default:
-			allErrs = multierror.Append(allErrs, fmt.Errorf("CustomCheck %s is an unexpected version %.1f and will not be run - this could cause CI to be blocked", check.Name, check.Version))
+		newActionItems, err := opa.ProcessCheckForItemV2(ctx, check, obj, resourceName, resourceKind, resourceNamespace, libsV0, libsV1, &rego.InsightsInfo{InsightsContext: "CI/CD"})
+		if err != nil {
+			allErrs = multierror.Append(allErrs, fmt.Errorf("error while processing check %s: %v", check.Name, err))
 		}
+		actionItems = append(actionItems, newActionItems...)
 	}
 	return actionItems, allErrs
 }
