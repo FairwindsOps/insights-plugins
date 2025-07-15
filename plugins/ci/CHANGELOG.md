@@ -1,6 +1,6 @@
 # Changelog
 
-# 6.0.0
+## 6.0.0
 * Remove support to OPA V1
 
 ## 5.9.12
