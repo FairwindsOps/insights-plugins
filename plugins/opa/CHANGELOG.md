@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0.0
+* Remove support to OPA V1
+
 ## 2.6.9
 * Bumped libs versions
 
