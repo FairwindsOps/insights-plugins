@@ -37,40 +37,6 @@ func TestProcessOPA(t *testing.T) {
 			"labelS": map[string]string{},
 		},
 	}
-	check := opa.OPACustomCheck{
-		Name:    "check1",
-		Version: 1.0,
-		Rego: `
-package fairwinds
-labelrequired[results] {
-  provided := {label | input.metadata.labels[label]}
-  required := {label | label := input.parameters.labels[_]}
-  missing := required - provided
-  count(missing) > 0
-  description := sprintf("Label %v is missing", [missing])
-  severity := 0.1 * count(missing)
-  results := {
-    "description": description,
-    "severity": severity,
-  }
-}
-		`,
-	}
-	checks = append(checks, check)
-	instance := opa.CheckSetting{
-		CheckName: "check1",
-		Targets: []string{
-			"/Pod",
-		},
-	}
-	instance.AdditionalData.Name = "check-instance"
-	instance.AdditionalData.Parameters = map[string]interface{}{
-		"labels": []string{"hr"},
-	}
-	instances = append(instances, instance)
-
-	config.OPA.CustomChecks = checks
-	config.OPA.CustomCheckInstances = instances
 	req := admission.Request{
 		AdmissionRequest: v1.AdmissionRequest{
 			Name:      "test",
@@ -81,14 +47,7 @@ labelrequired[results] {
 			},
 		},
 	}
-	report, err = ProcessOPA(context.TODO(), object, req, config, iConfig)
-	assert.NoError(t, err)
-	assert.Equal(t, "opa", report.Report)
-	err = json.Unmarshal(report.Contents, &reportObject)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(reportObject["ActionItems"].([]interface{})))
-
-	check = opa.OPACustomCheck{
+	check := opa.OPACustomCheck{
 		Name:    "check2",
 		Version: 2.0,
 		Rego: `
@@ -114,5 +73,5 @@ labelrequired[results] {
 	assert.Equal(t, "opa", report.Report)
 	err = json.Unmarshal(report.Contents, &reportObject)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(reportObject["ActionItems"].([]interface{})))
+	assert.Equal(t, 1, len(reportObject["ActionItems"].([]interface{})))
 }

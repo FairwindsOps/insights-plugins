@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.0.0
+* Remove support to OPA V1
+
 ## 5.9.12
 * Bump pluto to 5.21.9
 
