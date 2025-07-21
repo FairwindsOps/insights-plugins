@@ -84,7 +84,7 @@ commands:
 executors:
   ci-images:
     docker:
-      - image: quay.io/reactiveops/ci-images:v12.0-buster
+      - image: quay.io/reactiveops/ci-images:v14.1-bullseye
   goreleaser:
     resource_class: large
     docker:
@@ -146,7 +146,7 @@ jobs:
 
   check_versions:
     docker:
-      - image: quay.io/reactiveops/ci-images:v11.13.5-alpine
+      - image: quay.io/reactiveops/ci-images:v14.1-bullseye
     steps:
       - checkout
       - set_vault
