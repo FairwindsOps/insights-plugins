@@ -6,8 +6,13 @@ declare -a changed_plugins=($2)
 
 branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
+novaVersion=3.11
+plutoVersion=5.22
+goldilocksVersion=4.14
+polarisVersion=9.6
+
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
-images=(quay.io/fairwinds/polaris:9.6 quay.io/fairwinds/nova:v3.11 us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.21 us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.13)
+images=(quay.io/fairwinds/polaris:${polarisVersion} quay.io/fairwinds/nova:${novaVersion} us-docker.pkg.dev/fairwinds-ops/oss/pluto:${plutoVersion} us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:${goldilocksVersion})
 have_vulns=()
 
 for d in ./plugins/*/ ; do
