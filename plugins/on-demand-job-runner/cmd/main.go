@@ -65,7 +65,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("Configuration loaded successfully", "organization", config.Organization, "cluster", config.Cluster, "host", config.Host, "token", strings.Repeat("*", len(config.Token)))
+	slog.Info("Configuration loaded successfully", "organization", config.Organization, "cluster", config.Cluster, "host", config.Host, "token", strings.Repeat("*", len(config.Token)), "pollInterval", config.PollInterval)
 
 	insightsClient := insights.NewClient(config.Host, config.Token, config.Organization, config.Cluster, config.DevMode)
 

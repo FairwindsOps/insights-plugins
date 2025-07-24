@@ -45,7 +45,7 @@ type HTTPClient struct {
 }
 
 func (c HTTPClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
-	slog.Info("Claiming on-demand jobs", "organization", c.organization, "cluster", c.cluster)
+	slog.Debug("Claiming on-demand jobs", "organization", c.organization, "cluster", c.cluster)
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/reports/on-demand-jobs/claim?limit=%d", c.organization, c.cluster, limit)
 	resp, err := c.client.R().Post(url)
 	if err != nil {
