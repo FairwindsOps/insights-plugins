@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -25,7 +26,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 	handler.AddFunc = func(obj interface{}) {
 		timestamp := getTimestampUnixNanos()
 		logrus.WithField("resourceType", resourceType).Debug("add event")
-
+		ctx := context.Background()
 		bytes, err := json.Marshal(obj)
 		if err != nil {
 			logrus.Errorf("unable to marshal object: %v", err)
@@ -45,7 +46,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 			}
 		}
 
-		report, err := polaris.GetPolarisReport(bytes)
+		report, err := polaris.GetPolarisReport(ctx, bytes)
 		if err != nil {
 			logrus.Errorf("unable to retrieve polaris report: %v", err)
 			return
@@ -73,7 +74,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 	handler.UpdateFunc = func(old, new interface{}) {
 		timestamp := getTimestampUnixNanos()
 		logrus.WithField("resourceType", resourceType).Debug("update event")
-
+		ctx := context.Background()
 		oldObj := old.(*unstructured.Unstructured)
 		newObj := new.(*unstructured.Unstructured)
 
@@ -84,7 +85,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 				return
 			}
 
-			report, err := polaris.GetPolarisReport(bytes)
+			report, err := polaris.GetPolarisReport(ctx, bytes)
 			if err != nil {
 				logrus.Errorf("unable to retrieve polaris report: %v", err)
 				return
