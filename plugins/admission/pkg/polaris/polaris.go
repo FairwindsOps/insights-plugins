@@ -25,7 +25,7 @@ func GetPolarisReport(ctx context.Context, config polarisconfiguration.Configura
 	if err != nil {
 		return report, err
 	}
-	controllerResult, err := validator.ApplyAllSchemaChecks(&config, nil, controller)
+	controllerResult, err := validator.ApplyAllSchemaChecks(ctx, &config, nil, controller)
 	if err != nil {
 		return report, err
 	}
@@ -65,7 +65,7 @@ func GetPolarisValidateResults(kind string, d *admission.Decoder, req admission.
 		return nil, err
 	}
 	// TODO: consider enabling multi-resource checks
-	controllerResult, err := validator.ApplyAllSchemaChecks(&config, nil, controller)
+	controllerResult, err := validator.ApplyAllSchemaChecks(context.Background(), &config, nil, controller)
 	if err != nil {
 		return nil, err
 	}
