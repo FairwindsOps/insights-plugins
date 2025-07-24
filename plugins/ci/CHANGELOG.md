@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.0.1
+* Fixing some vulnerabilities
+
 ## 6.0.0
 * Remove support to OPA V1
 
