@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.1
+* Bumped some libs
+
 ## 2.0.0
 * Remove support to OPA v1
 
