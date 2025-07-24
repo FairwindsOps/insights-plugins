@@ -1,6 +1,7 @@
 package polaris
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 
@@ -21,7 +22,7 @@ func init() {
 	configPath := viper.GetString("polaris-config")
 	var err error
 
-	config, err = polarisconfiguration.ParseFile(configPath)
+	config, err = polarisconfiguration.MergeConfigAndParseFile(configPath, true)
 	if err != nil {
 		logrus.Errorf("error parsing config at %s: %v", configPath, err)
 		os.Exit(1)
@@ -29,7 +30,7 @@ func init() {
 }
 
 // GetPolarisReport returns the polaris report for the provided manifest.
-func GetPolarisReport(manifest []byte) (models.ReportInfo, error) {
+func GetPolarisReport(ctx context.Context, manifest []byte) (models.ReportInfo, error) {
 	report := models.ReportInfo{
 		Report: "polaris",
 	}
@@ -38,7 +39,7 @@ func GetPolarisReport(manifest []byte) (models.ReportInfo, error) {
 	if err != nil {
 		return report, err
 	}
-	controllerResult, err := validator.ApplyAllSchemaChecks(&config, nil, controller)
+	controllerResult, err := validator.ApplyAllSchemaChecks(ctx, &config, nil, controller)
 	if err != nil {
 		return report, err
 	}
@@ -56,7 +57,7 @@ func GetPolarisReport(manifest []byte) (models.ReportInfo, error) {
 	return report, nil
 }
 
-func GetPolarisValidateResults(kind string, d *admission.Decoder, req admission.Request, config polarisconfiguration.Configuration) (*validator.Result, error) {
+func GetPolarisValidateResults(ctx context.Context, kind string, d *admission.Decoder, req admission.Request, config polarisconfiguration.Configuration) (*validator.Result, error) {
 	var controller kube.GenericResource
 	var err error
 	if kind == "Pod" {
@@ -78,7 +79,7 @@ func GetPolarisValidateResults(kind string, d *admission.Decoder, req admission.
 		return nil, err
 	}
 	// TODO: consider enabling multi-resource checks
-	controllerResult, err := validator.ApplyAllSchemaChecks(&config, nil, controller)
+	controllerResult, err := validator.ApplyAllSchemaChecks(ctx, &config, nil, controller)
 	if err != nil {
 		return nil, err
 	}

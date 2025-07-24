@@ -27,14 +27,14 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 	return nil
 }
 
-func (m *Mutator) mutate(req admission.Request) ([]jsonpatch.Operation, error) {
+func (m *Mutator) mutate(ctx context.Context, req admission.Request) ([]jsonpatch.Operation, error) {
 	if m == nil {
 		return []jsonpatch.Operation{}, nil
 	}
 	if m.config == nil || m.config.Polaris == nil {
 		return []jsonpatch.Operation{}, nil
 	}
-	results, kubeResources, err := polariswebhook.GetValidatedResults(req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
+	results, kubeResources, err := polariswebhook.GetValidatedResults(ctx, req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.RequestKind.Kind,
 		req.Name,
 		req.Namespace)
-	patches, err := m.mutate(req)
+	patches, err := m.mutate(ctx, req)
 	if err != nil {
 		logrus.Errorf("got an error getting patches: %v", err)
 		return admission.Errored(403, err)
