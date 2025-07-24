@@ -30,6 +30,7 @@ func loadConfig() (*ondemandjobs.Config, error) {
 	viper.SetDefault("host", "https://insights.fairwinds.com")
 	viper.SetDefault("maxConcurrentJobs", 10)
 	viper.SetDefault("devMode", false)
+	viper.SetDefault("pollInterval", "15s")
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -64,7 +65,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("Configuration loaded successfully", "organization", config.Organization, "cluster", config.Cluster, "host", config.Host, "token", strings.Repeat("*", len(config.Token)))
+	slog.Info("Configuration loaded successfully", "organization", config.Organization, "cluster", config.Cluster, "host", config.Host, "token", strings.Repeat("*", len(config.Token)), "pollInterval", config.PollInterval)
 
 	insightsClient := insights.NewClient(config.Host, config.Token, config.Organization, config.Cluster, config.DevMode)
 
@@ -74,10 +75,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	ticket := time.NewTicker(5 * time.Second)
-	defer ticket.Stop()
+	pollInterval, err := time.ParseDuration(config.PollInterval)
+	if err != nil {
+		slog.Error("error parsing poll interval", "error", err)
+		os.Exit(1)
+	}
 
-	for range ticket.C {
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for range ticker.C {
 		err := ondemandjobs.FetchAndProcessOnDemandJobs(insightsClient, clientset, config.MaxConcurrentJobs)
 		if err != nil {
 			slog.Error("error processing on-demand jobs", "error", err)
