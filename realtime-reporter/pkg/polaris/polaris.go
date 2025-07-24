@@ -22,7 +22,7 @@ func init() {
 	configPath := viper.GetString("polaris-config")
 	var err error
 
-	config, err = polarisconfiguration.MergeConfigAndParseFile(configPath, false)
+	config, err = polarisconfiguration.MergeConfigAndParseFile(configPath, true)
 	if err != nil {
 		logrus.Errorf("error parsing config at %s: %v", configPath, err)
 		os.Exit(1)
