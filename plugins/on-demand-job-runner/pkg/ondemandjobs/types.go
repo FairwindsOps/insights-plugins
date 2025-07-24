@@ -7,4 +7,5 @@ type Config struct {
 	Host              string `mapstructure:"host"`
 	MaxConcurrentJobs int    `mapstructure:"maxConcurrentJobs"`
 	DevMode           bool   `mapstructure:"devMode"`
+	PollInterval      string `mapstructure:"pollInterval"`
 }
