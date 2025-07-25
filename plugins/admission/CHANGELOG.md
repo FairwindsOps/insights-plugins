@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.0
+* Bumped polaris version to 10.0.0
+
 ## 2.0.1
 * Bumped some libs
 

@@ -23,7 +23,7 @@ require (
 )
 
 require (
-	github.com/fairwindsops/polaris v0.0.0-20250724164637-2b17c3195752
+	github.com/fairwindsops/polaris v0.0.0-20250724194823-38e540e0cfa5
 	golang.org/x/mod v0.26.0
 )
 
