@@ -155,15 +155,19 @@ func getOsArch(imageCfg models.TrivyImageConfig) string {
 func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
-	args := []string{"-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile}
+	args := []string{}
+	if trivyServerURL == "" {
+		args = append(args, "-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile)
+	} else {
+		args = append(args, "image", "vuln", "-f", "json", "-o", reportFile)
+		args = append(args, "--server", trivyServerURL)
+	}
+
 	if extraFlags != "" {
 		args = append(args, extraFlags)
 	}
 	if os.Getenv("OFFLINE") != "" {
 		args = append(args, "--offline-scan")
-	}
-	if trivyServerURL != "" {
-		args = append(args, "--server", trivyServerURL)
 	}
 	if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
 		replacements := strings.Split(refReplacements, ";")
