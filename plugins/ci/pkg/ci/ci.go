@@ -669,7 +669,7 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 			manifestImagesToScan = []trivymodels.Image{}
 		}
 		dockerImages := getDockerImages(ci.config.Images.Docker, ci.autoScan)
-		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan)
+		trivyReport, err := ci.GetTrivyReport(dockerImages, manifestImagesToScan, "")
 		if err != nil {
 			scanErrorsReportProperties.AddScanErrorsReportResultFromError(err, models.ScanErrorsReportResult{
 				ErrorContext: "downloading images and running trivy",

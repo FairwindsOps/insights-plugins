@@ -1,6 +1,9 @@
 # Changelog
 
-## 6.1.0
+## 6.2.0
+* Added support to trivy server
+
+## 6.1.1
 * Bumped polaris version to 10.0.0
 
 ## 6.0.0
