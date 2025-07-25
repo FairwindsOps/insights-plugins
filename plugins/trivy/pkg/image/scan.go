@@ -158,30 +158,30 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 	args := []string{}
 	if trivyServerURL == "" {
 		args = append(args, "-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile)
+		if extraFlags != "" {
+			args = append(args, extraFlags)
+		}
+		if os.Getenv("OFFLINE") != "" {
+			args = append(args, "--offline-scan")
+		}
+
 	} else {
-		args = append(args, "--server", trivyServerURL)
-		args = append(args, "image", "vuln", "-f", "json", "-o", reportFile)
+		args = append(args, "image", "--server", trivyServerURL, "--scanners", "vuln", "-f", "json", "-o", reportFile)
 	}
 
-	if extraFlags != "" {
-		args = append(args, extraFlags)
-	}
-	if os.Getenv("OFFLINE") != "" {
-		args = append(args, "--offline-scan")
-	}
-	if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
-		replacements := strings.Split(refReplacements, ";")
-		for _, replacement := range replacements {
-			parts := strings.Split(replacement, ",")
-			if len(parts) != 2 {
-				logrus.Errorf("PULL_REF_REPLACEMENTS is badly formatted, can't interpret %s", replacement)
-				continue
-			}
-			pullRef = strings.ReplaceAll(pullRef, parts[0], parts[1])
-			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
-		}
-	}
 	if os.Getenv("TRIVY_SERVER_URL") == "" {
+		if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
+			replacements := strings.Split(refReplacements, ";")
+			for _, replacement := range replacements {
+				parts := strings.Split(replacement, ",")
+				if len(parts) != 2 {
+					logrus.Errorf("PULL_REF_REPLACEMENTS is badly formatted, can't interpret %s", replacement)
+					continue
+				}
+				pullRef = strings.ReplaceAll(pullRef, parts[0], parts[1])
+				logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
+			}
+		}
 		logrus.Infof("Downloading image %s", pullRef)
 		imageFile, err := downloadPullRef(pullRef, registryOAuth2AccessTokenMap)
 		if err != nil {
