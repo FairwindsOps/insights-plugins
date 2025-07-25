@@ -36,7 +36,7 @@ func main() {
 		logrus.Fatal("error checking environment variables: ", err)
 	}
 
-	if !cfg.Offline {
+	if !cfg.Offline && cfg.TrivyServerURL == "" {
 		err := updateTrivyDatabases()
 		if err != nil {
 			logrus.Fatalf("could not update trivy database: %v", err)

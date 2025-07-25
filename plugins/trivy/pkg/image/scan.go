@@ -25,7 +25,7 @@ var registryPassword = os.Getenv("REGISTRY_PASSWORD")
 var registryUser = os.Getenv("REGISTRY_USER")
 var registryCertDir = os.Getenv("REGISTRY_CERT_DIR")
 
-type ImageScannerFunc = func(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error)
+type ImageScannerFunc = func(extraFlags, pullRef string, trivyServerURL string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error)
 
 func init() {
 	passwordFile := os.Getenv("REGISTRY_PASSWORD_FILE")
@@ -40,7 +40,7 @@ func init() {
 }
 
 // ScanImages will download the set of images given and scan them with Trivy.
-func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurrentScans int, extraFlags string, registryOAuth2AccessTokenMap map[string]string) []models.ImageReport {
+func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurrentScans int, extraFlags string, trivyServerURL string, registryOAuth2AccessTokenMap map[string]string) []models.ImageReport {
 	logrus.Infof("Scanning %d images", len(images))
 	reportByRef := map[string]*models.TrivyResults{}
 	reportByRefLock := sync.RWMutex{}
@@ -59,7 +59,7 @@ func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurren
 			}()
 			for i := 0; i < retryCount; i++ { // Retry logic
 				var err error
-				r, err := imgScanner(extraFlags, pullRef, registryOAuth2AccessTokenMap)
+				r, err := imgScanner(extraFlags, pullRef, trivyServerURL, registryOAuth2AccessTokenMap)
 				reportByRefLock.Lock()
 				reportByRef[pullRef] = r
 				if err == nil {
@@ -152,7 +152,7 @@ func getOsArch(imageCfg models.TrivyImageConfig) string {
 }
 
 // ScanImage will scan a single image with Trivy and return the results.
-func ScanImage(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error) {
+func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
 	args := []string{"-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile}
@@ -162,7 +162,9 @@ func ScanImage(extraFlags, pullRef string, registryOAuth2AccessTokenMap map[stri
 	if os.Getenv("OFFLINE") != "" {
 		args = append(args, "--offline-scan")
 	}
-
+	if trivyServerURL != "" {
+		args = append(args, "--server", trivyServerURL)
+	}
 	if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
 		replacements := strings.Split(refReplacements, ";")
 		for _, replacement := range replacements {
