@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.0
+* Added support to trivy server
+
 ## 6.0.0
 * Remove support to OPA V1
 
