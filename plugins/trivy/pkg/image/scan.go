@@ -159,8 +159,8 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 	if trivyServerURL == "" {
 		args = append(args, "-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile)
 	} else {
-		args = append(args, "image", "vuln", "-f", "json", "-o", reportFile)
 		args = append(args, "--server", trivyServerURL)
+		args = append(args, "image", "vuln", "-f", "json", "-o", reportFile)
 	}
 
 	if extraFlags != "" {
@@ -181,19 +181,20 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 			logrus.Infof("Replaced %s with %s, pullRef is now %s", parts[0], parts[1], pullRef)
 		}
 	}
-
-	logrus.Infof("Downloading image %s", pullRef)
-	imageFile, err := downloadPullRef(pullRef, registryOAuth2AccessTokenMap)
-	if err != nil {
-		return nil, fmt.Errorf("error while downloading image: %w", err)
+	if os.Getenv("TRIVY_SERVER_URL") == "" {
+		logrus.Infof("Downloading image %s", pullRef)
+		imageFile, err := downloadPullRef(pullRef, registryOAuth2AccessTokenMap)
+		if err != nil {
+			return nil, fmt.Errorf("error while downloading image: %w", err)
+		}
+		defer func() {
+			logrus.Infof("removing image file %s", imageFile)
+			os.Remove(imageFile)
+		}()
+		args = append(args, "--input", imageFile)
 	}
-	defer func() {
-		logrus.Infof("removing image file %s", imageFile)
-		os.Remove(imageFile)
-	}()
-	args = append(args, "--input", imageFile)
 	cmd := exec.Command("trivy", args...)
-	_, err = util.RunCommand(cmd, "scanning "+pullRef)
+	_, err := util.RunCommand(cmd, "scanning "+pullRef)
 	if err != nil {
 		return nil, fmt.Errorf("error scanning %s: %w", pullRef, err)
 	}
