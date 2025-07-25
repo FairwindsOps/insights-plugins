@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.0
+* Bumped polaris version to 10.0.0
+
 ## 6.0.0
 * Remove support to OPA V1
 

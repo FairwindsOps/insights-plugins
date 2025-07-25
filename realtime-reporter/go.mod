@@ -6,7 +6,7 @@ require (
 	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20250616152108-a82e67e3b1b2
-	github.com/fairwindsops/polaris v0.0.0-20250617115810-813d9c0a2aaf
+	github.com/fairwindsops/polaris v0.0.0-20250724194823-38e540e0cfa5
 	github.com/samber/lo v1.51.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
@@ -62,7 +62,7 @@ require (
 	github.com/prometheus/common v0.64.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/qri-io/jsonpointer v0.1.1 // indirect
-	github.com/qri-io/jsonschema v0.1.2 // indirect
+	github.com/qri-io/jsonschema v0.2.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
@@ -86,8 +86,8 @@ require (
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/term v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
