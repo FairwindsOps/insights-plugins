@@ -106,6 +106,7 @@ func main() {
 	}
 
 	logrus.Infof("Starting image scans")
+	fmt.Println("registryOAuth2AccessTokenMap", registryOAuth2AccessTokenMap)
 	allReports := image.ScanImages(image.ScanImage, imagesToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, cfg.TrivyServerURL, registryOAuth2AccessTokenMap)
 
 	if noRecommendations == "" {
