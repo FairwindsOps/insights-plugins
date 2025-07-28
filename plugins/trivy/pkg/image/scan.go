@@ -157,7 +157,7 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
 	args := []string{}
 	if trivyServerURL == "" {
-		args = append(args, "-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile)
+		args = append(args, "-d", "image", "--skip-db-update", "--skip-java-db-update", "--scanners", "vuln", "-f", "json", "-o", reportFile)
 		if extraFlags != "" {
 			args = append(args, extraFlags)
 		}
@@ -166,10 +166,10 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 		}
 
 	} else {
-		args = append(args, "image", "--server", trivyServerURL, "--scanners", "vuln", "-f", "json", "-o", reportFile)
+		args = append(args, "image", "--server", trivyServerURL, "--scanners", "vuln", pullRef, "-f", "json", "-o", reportFile)
 	}
 
-	if os.Getenv("TRIVY_SERVER_URL") == "" {
+	if trivyServerURL == "" {
 		if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
 			replacements := strings.Split(refReplacements, ";")
 			for _, replacement := range replacements {
