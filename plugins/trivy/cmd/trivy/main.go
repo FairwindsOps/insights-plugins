@@ -106,7 +106,6 @@ func main() {
 	}
 
 	logrus.Infof("Starting image scans")
-	fmt.Println("registryOAuth2AccessTokenMap", registryOAuth2AccessTokenMap)
 	allReports := image.ScanImages(image.ScanImage, imagesToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, cfg.TrivyServerURL, registryOAuth2AccessTokenMap)
 
 	if noRecommendations == "" {
@@ -160,9 +159,9 @@ func updateTrivyDatabases() error {
 		"image", "--download-java-db-only",
 		"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
 	}
-	_, err = util.RunCommand(exec.Command("trivy", args...), "downloading trivy java database")
-	if err != nil {
-		return fmt.Errorf("downloading trivy java database: %w", err)
-	}
+	//_, err = util.RunCommand(exec.Command("trivy", args...), "downloading trivy java database")
+	//if err != nil {
+	//	return fmt.Errorf("downloading trivy java database: %w", err)
+	//}
 	return nil
 }
