@@ -1,10 +1,8 @@
 # Changelog
 
 ## 6.1.1
-* Bumping helm
-
-## 6.1.1
 * Bumped polaris version to 10.0.0
+* Bumping helm
 
 ## 6.0.0
 * Remove support to OPA V1
