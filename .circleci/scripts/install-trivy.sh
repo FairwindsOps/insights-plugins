@@ -1,7 +1,7 @@
 #! /bin/bash
 set -eo pipefail
 
-trivyVersion="v0.64.1"
+trivyVersion="0.64.1"
 
 curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_Linux-64bit.tar.gz > trivy.tar.gz
 tar -xvf trivy.tar.gz
