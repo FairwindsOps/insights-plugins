@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image, trivyServerURL string) (report *models.ReportInfo, errs error) {
+func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifestImages []trivymodels.Image) (report *models.ReportInfo, errs error) {
 	allErrs := new(multierror.Error)
 	dockerImages, manifestImages, err := updatePullRef(ci.config.Images.FolderName, dockerImages, manifestImages)
 	if err != nil {
@@ -41,7 +41,7 @@ func (ci *CIScan) GetTrivyReport(dockerImages []trivymodels.DockerImage, manifes
 		multierror.Append(allErrs, err)
 	}
 
-	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, trivyServerURL, *ci.config)
+	trivyResults, trivyVersion, err := scanImagesWithTrivy(allImages, *ci.config)
 	if err != nil {
 		return nil, multierror.Append(allErrs, err, models.ScanErrorsReportResult{
 			ErrorMessage: err.Error(),
@@ -291,7 +291,7 @@ func determineOwnerName(n string, dockerImages []trivymodels.DockerImage) string
 
 // scanImagesWithTrivy scans the images and returns a Trivy report ready to send to Insights.
 // Multiple errors may be returned.
-func scanImagesWithTrivy(images []trivymodels.Image, trivyServerURL string, configurationObject models.Configuration) (report []byte, reportVersion string, errs error) {
+func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.Configuration) (report []byte, reportVersion string, errs error) {
 	allErrs := new(multierror.Error)
 	trivyVersion, err := commands.Exec("trivy", "--version")
 	if err != nil {
@@ -300,25 +300,20 @@ func scanImagesWithTrivy(images []trivymodels.Image, trivyServerURL string, conf
 	trivyVersion = strings.Split(strings.Split(trivyVersion, "\n")[0], " ")[1]
 
 	args := []string{}
-	if trivyServerURL != "" {
-		logrus.Infof("Using trivy server URL: %s", trivyServerURL)
-		args = append(args, "--server", trivyServerURL)
-	} else {
-		logrus.Infof("Downloading trivy database")
-		args = []string{
-			"image", "--download-db-only",
-			"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
-		}
-		output, err := commands.ExecWithMessage(exec.Command("trivy", args...), "downloading trivy database")
-		if err != nil {
-			return nil, "", fmt.Errorf("unable to download trivy database, %v: %s", err, output)
-		}
-		args = []string{
-			"image", "--download-java-db-only",
-			"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
-		}
+	logrus.Infof("Downloading trivy database")
+	args = []string{
+		"image", "--download-db-only",
+		"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
 	}
-	output, err := commands.ExecWithMessage(exec.Command("trivy", args...), "downloading trivy java database")
+	output, err := commands.ExecWithMessage(exec.Command("trivy", args...), "downloading trivy database")
+	if err != nil {
+		return nil, "", fmt.Errorf("unable to download trivy database, %v: %s", err, output)
+	}
+	args = []string{
+		"image", "--download-java-db-only",
+		"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
+	}
+	output, err = commands.ExecWithMessage(exec.Command("trivy", args...), "downloading trivy java database")
 	if err != nil {
 		return nil, "", fmt.Errorf("unable to download trivy java database, %v: %s", err, output)
 	}
@@ -331,7 +326,7 @@ func scanImagesWithTrivy(images []trivymodels.Image, trivyServerURL string, conf
 			continue
 		}
 		logrus.Infof("Scanning %s from file %s", currentImage.Name, currentImage.PullRef)
-		results, err := ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder, "", trivyServerURL)
+		results, err := ScanImageFile(configurationObject.Images.FolderName+currentImage.PullRef, currentImage.PullRef, configurationObject.Options.TempFolder, "")
 		if err != nil {
 			logrus.Errorf("error scanning %s from file %s: %v", currentImage.Name, currentImage.PullRef, err)
 			scanError := models.ScanErrorsReportResult{
@@ -467,7 +462,7 @@ func (ci *CIScan) SkipTrivyManifests() bool {
 }
 
 // ScanImageFile will scan a single file with Trivy and return the results.
-func ScanImageFile(imagePath, imageID, tempDir, extraFlags, trivyServerURL string) (*trivymodels.TrivyResults, error) {
+func ScanImageFile(imagePath, imageID, tempDir, extraFlags string) (*trivymodels.TrivyResults, error) {
 	reportFile := tempDir + "/trivy-report-" + imageID + ".json"
 	cmd := exec.Command("trivy", "-d", "image", "--skip-db-update", "--skip-java-db-update", "-f", "json", "-o", reportFile, "--input", imagePath)
 	if extraFlags != "" {
