@@ -299,9 +299,7 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 	}
 	trivyVersion = strings.Split(strings.Split(trivyVersion, "\n")[0], " ")[1]
 
-	args := []string{}
-	logrus.Infof("Downloading trivy database")
-	args = []string{
+	args := []string{
 		"image", "--download-db-only",
 		"--db-repository", "ghcr.io/aquasecurity/trivy-db:2,public.ecr.aws/aquasecurity/trivy-db:2,docker.io/aquasec/trivy-db:2",
 	}
@@ -309,6 +307,7 @@ func scanImagesWithTrivy(images []trivymodels.Image, configurationObject models.
 	if err != nil {
 		return nil, "", fmt.Errorf("unable to download trivy database, %v: %s", err, output)
 	}
+
 	args = []string{
 		"image", "--download-java-db-only",
 		"--java-db-repository", "ghcr.io/aquasecurity/trivy-java-db:1,public.ecr.aws/aquasecurity/trivy-java-db:1,docker.io/aquasec/trivy-java-db:1",
