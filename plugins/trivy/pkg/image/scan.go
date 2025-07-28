@@ -166,7 +166,7 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 		}
 
 	} else {
-		args = append(args, "image", "--server", trivyServerURL, "--scanners", "vuln", pullRef, "-f", "json", "-o", reportFile)
+		args = append(args, "-d", "image", "--server", trivyServerURL, "--scanners", "vuln", pullRef, "-f", "json", "-o", reportFile)
 	}
 
 	if trivyServerURL == "" {
