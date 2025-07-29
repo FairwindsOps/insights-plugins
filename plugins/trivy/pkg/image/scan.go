@@ -155,9 +155,9 @@ func getOsArch(imageCfg models.TrivyImageConfig) string {
 func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2AccessTokenMap map[string]string) (*models.TrivyResults, error) {
 	imageID := nonWordRegexp.ReplaceAllString(pullRef, "_")
 	reportFile := TempDir + "/trivy-report-" + imageID + ".json"
-	args := []string{}
+	var args []string
 	if trivyServerURL == "" {
-		args = append(args, "-d", "image", "--skip-db-update", "--skip-java-db-update", "--scanners", "vuln", "-f", "json", "-o", reportFile)
+		args = []string{"-d", "image", "--skip-db-update", "--skip-java-db-update", "--security-checks", "vuln", "-f", "json", "-o", reportFile}
 		if extraFlags != "" {
 			args = append(args, extraFlags)
 		}
@@ -166,7 +166,7 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 		}
 
 	} else {
-		args = append(args, "-d", "image", "--server", trivyServerURL, "--scanners", "vuln", pullRef, "-f", "json", "-o", reportFile)
+		args = []string{"-d", "image", "--server", trivyServerURL, "--scanners", "vuln", pullRef, "-f", "json", "-o", reportFile}
 	}
 
 	if trivyServerURL == "" {
@@ -193,13 +193,15 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 		}()
 		args = append(args, "--input", imageFile)
 	}
-	envVars := []string{}
-	if registryUser != "" && registryPassword != "" {
-		envVars = append(envVars, fmt.Sprintf("TRIVY_USERNAME=%s", registryUser))
-		envVars = append(envVars, fmt.Sprintf("TRIVY_PASSWORD=%s", registryPassword))
-	}
 	cmd := exec.Command("trivy", args...)
-	cmd.Env = envVars
+	if trivyServerURL != "" {
+		envVars := []string{}
+		if registryUser != "" && registryPassword != "" {
+			envVars = append(envVars, fmt.Sprintf("TRIVY_USERNAME=%s", registryUser))
+			envVars = append(envVars, fmt.Sprintf("TRIVY_PASSWORD=%s", registryPassword))
+		}
+		cmd.Env = envVars
+	}
 	logrus.Infof("Running command: %s", strings.Join(cmd.Env, " "))
 	_, err := util.RunCommand(cmd, "scanning "+pullRef)
 	if err != nil {
