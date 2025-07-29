@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -21,6 +23,7 @@ type config struct {
 	NamespaceAllowlist []string
 	HasGKESAAnnotation bool
 	ImagesToScan       []string
+	TrivyServerURL     string
 }
 
 func LoadFromEnvironment() (*config, error) {
@@ -85,6 +88,12 @@ func LoadFromEnvironment() (*config, error) {
 		imagesToScan = strings.Split(os.Getenv("IMAGES_TO_SCAN"), ",")
 	}
 
+	var trivyServerURL string
+	if os.Getenv("TRIVY_SERVER_URL") != "" {
+		logrus.Infof("TRIVY_SERVER_URL is SET to %s", os.Getenv("TRIVY_SERVER_URL"))
+		trivyServerURL = os.Getenv("TRIVY_SERVER_URL")
+	}
+
 	hasGKESAAnnotation := false
 	if _, ok := serviceAccountAnnotations["iam.gke.io/gcp-service-account"]; ok {
 		hasGKESAAnnotation = true
@@ -99,5 +108,6 @@ func LoadFromEnvironment() (*config, error) {
 		NamespaceAllowlist: namespaceAllowlist,
 		HasGKESAAnnotation: hasGKESAAnnotation,
 		ImagesToScan:       imagesToScan,
+		TrivyServerURL:     trivyServerURL,
 	}, nil
 }

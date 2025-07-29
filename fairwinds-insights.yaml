@@ -8,8 +8,8 @@ images:
     - quay.io/fairwinds/nova:v3.11
     - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.22
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.14
-    - quay.io/fairwinds/insights-admission-controller:1.18.7
-    - quay.io/fairwinds/insights-ci:5.9.8
+    - quay.io/fairwinds/insights-admission-controller:2.1
+    - quay.io/fairwinds/insights-ci:6.0
     - quay.io/fairwinds/cloud-costs:0.3.16
     - quay.io/fairwinds/falco-agent:0.3.16
     - quay.io/fairwinds/fw-kube-bench-aggregator:0.3.28

@@ -36,7 +36,7 @@ func main() {
 		logrus.Fatal("error checking environment variables: ", err)
 	}
 
-	if !cfg.Offline {
+	if !cfg.Offline && cfg.TrivyServerURL == "" {
 		err := updateTrivyDatabases()
 		if err != nil {
 			logrus.Fatalf("could not update trivy database: %v", err)
@@ -106,7 +106,7 @@ func main() {
 	}
 
 	logrus.Infof("Starting image scans")
-	allReports := image.ScanImages(image.ScanImage, imagesToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, registryOAuth2AccessTokenMap)
+	allReports := image.ScanImages(image.ScanImage, imagesToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, cfg.TrivyServerURL, registryOAuth2AccessTokenMap)
 
 	if noRecommendations == "" {
 		logrus.Infof("Scanning recommendations")
@@ -115,7 +115,7 @@ func main() {
 		lastReport.Images = image.GetUnmatchingImages(lastReport.Images, recommendationsToScan, true)
 		logrus.Infof("%d images after removing recommendations that will be scanned", len(lastReport.Images))
 		logrus.Infof("Scanning %d recommended images", len(recommendationsToScan))
-		recommendationReport := image.ScanImages(image.ScanImage, recommendationsToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, registryOAuth2AccessTokenMap)
+		recommendationReport := image.ScanImages(image.ScanImage, recommendationsToScan, cfg.MaxConcurrentScans, cfg.ExtraFlags, cfg.TrivyServerURL, registryOAuth2AccessTokenMap)
 		logrus.Infof("Done scanning recommendations")
 		allReports = append(allReports, recommendationReport...)
 	}
