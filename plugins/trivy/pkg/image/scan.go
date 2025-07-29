@@ -194,15 +194,6 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 		args = append(args, "--input", imageFile)
 	}
 	cmd := exec.Command("trivy", args...)
-	if trivyServerURL != "" {
-		envVars := []string{}
-		if registryUser != "" && registryPassword != "" {
-			envVars = append(envVars, fmt.Sprintf("TRIVY_USERNAME=%s", registryUser))
-			envVars = append(envVars, fmt.Sprintf("TRIVY_PASSWORD=%s", registryPassword))
-		}
-		cmd.Env = envVars
-	}
-	logrus.Infof("Running command: %s", strings.Join(cmd.Env, " "))
 	_, err := util.RunCommand(cmd, "scanning "+pullRef)
 	if err != nil {
 		return nil, fmt.Errorf("error scanning %s: %w", pullRef, err)
