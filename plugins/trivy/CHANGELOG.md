@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.33.1
+* Bump trivy to 0.65.0
+
 ## 0.33.0
 * Added support to trivy server
 
