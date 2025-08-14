@@ -1,5 +1,8 @@
 # Changelog
 
+## 17.0.0
+* BREAKING CHANGE: changes base image to cloudnative pg
+
 ## 16.0.1
 * upgraded goreleaser to v2
 
