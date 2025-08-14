@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.2
+* Bump trivy to 0.65.0
+
 ## 6.1.1
 * Bumping helm
 
