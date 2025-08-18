@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.20
+* Bumped go to 1.24.6 for fixing vulnerability
+
 ## 2.6.19
 * Fixing vulnerabilities
 

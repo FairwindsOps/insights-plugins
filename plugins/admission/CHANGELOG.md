@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.1
+* Bumped go to 1.24.6 for fixing vulnerability
+
 ## 2.1.0
 * Bumped polaris version to 10.0.0
 

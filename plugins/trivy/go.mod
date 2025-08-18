@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/trivy
 
-go 1.24.4
+go 1.24.6
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
