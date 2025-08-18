@@ -6,7 +6,7 @@ require (
 	github.com/aereal/go-httpretryafter v0.0.0-20201002052800-c08be88dd146
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20250814134503-7da997a31dcb
-	github.com/fairwindsops/polaris v0.0.0-20250801192425-4de082b443c4
+	github.com/fairwindsops/polaris v0.0.0-20250818160119-ec1ba2f2db4d
 	github.com/samber/lo v1.51.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1

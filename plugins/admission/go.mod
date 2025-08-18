@@ -23,7 +23,7 @@ require (
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20250814134503-7da997a31dcb
-	github.com/fairwindsops/polaris v0.0.0-20250801192425-4de082b443c4
+	github.com/fairwindsops/polaris v0.0.0-20250818160119-ec1ba2f2db4d
 	golang.org/x/mod v0.27.0
 )
 
