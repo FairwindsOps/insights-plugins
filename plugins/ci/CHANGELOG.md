@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.3
+* Bumped go to 1.24.6 for fixing vulnerability
+
 ## 6.1.2
 * Bump trivy to 0.65.0
 
