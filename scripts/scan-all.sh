@@ -60,6 +60,7 @@ plugin_map["quay.io/fairwinds/fw-trivy"]="trivy"
 plugin_map["quay.io/fairwinds/insights-uploader"]="uploader"
 plugin_map["quay.io/fairwinds/insights-utils"]="utils"
 plugin_map["quay.io/fairwinds/workloads"]="workloads"
+plugin_map["quay.io/fairwinds/on-demand-job-runner"]="on-demand-job-runner"
 
 echo "scanning all images"
 for name in "${images[@]}"; do
