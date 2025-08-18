@@ -3,7 +3,7 @@ module github.com/fairwindsops/insights-plugins/plugins/kube-bench
 go 1.24.6
 
 require (
-	github.com/aquasecurity/kube-bench v0.11.2
+	github.com/aquasecurity/kube-bench v0.11.1
 	github.com/sirupsen/logrus v1.9.3
 )
 
@@ -31,5 +31,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/client-go v0.33.4 // indirect
+	k8s.io/client-go v0.33.2 // indirect
 )

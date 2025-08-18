@@ -1,5 +1,5 @@
-github.com/aquasecurity/kube-bench v0.11.2 h1:s39LZGw9dq4L7v8EraMp3WpL/yJgm+rIGgxshB3qDUk=
-github.com/aquasecurity/kube-bench v0.11.2/go.mod h1:mP2sc1VuVI3YyJ572BssXASxt86UxyUHUxAQWM9zT5k=
+github.com/aquasecurity/kube-bench v0.11.1 h1:5quO0sa7WT95DAPtUeYo3Ngtbr7U0FG/zNOvJeV9hFw=
+github.com/aquasecurity/kube-bench v0.11.1/go.mod h1:Rlk9z8Q6V3MnJmJjum6DSU74BLRMC/AFJ+EsDWtB8Fc=
 github.com/aws/aws-sdk-go-v2 v1.38.0 h1:UCRQ5mlqcFk9HJDIqENSLR3wiG1VTWlyUfLDEvY7RxU=
 github.com/aws/aws-sdk-go-v2 v1.38.0/go.mod h1:9Q0OoGQoboYIAJyslFyF1f5K1Ryddop8gqMhWx/n4Wg=
 github.com/aws/aws-sdk-go-v2/service/securityhub v1.62.0 h1:sKzvE3fkQNa4iXbS2zhPsWhoYZUuPGeyCx29zWaUAyg=
@@ -140,5 +140,5 @@ gopkg.in/yaml.v2 v2.4.0/go.mod h1:RDklbk79AGWmwhnvt/jBztapEOGDOx6ZbXqjP6csGnQ=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-k8s.io/client-go v0.33.4 h1:TNH+CSu8EmXfitntjUPwaKVPN0AYMbc9F1bBS8/ABpw=
-k8s.io/client-go v0.33.4/go.mod h1:LsA0+hBG2DPwovjd931L/AoaezMPX9CmBgyVyBZmbCY=
+k8s.io/client-go v0.33.2 h1:z8CIcc0P581x/J1ZYf4CNzRKxRvQAwoAolYPbtQes+E=
+k8s.io/client-go v0.33.2/go.mod h1:9mCgT4wROvL948w6f6ArJNb7yQd7QsvqavDeZHvNmHo=
