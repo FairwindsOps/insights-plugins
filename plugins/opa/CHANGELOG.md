@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0.1
+* Bumped go to 1.24.6 for fixing vulnerability
+
 ## 3.0.0
 * Remove support to OPA V1
 

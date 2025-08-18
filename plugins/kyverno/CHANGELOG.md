@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+* Bumped go to 1.24.6 for fixing vulnerability
+
 ## 0.4.1
 * fixing vulnerabilities
 
