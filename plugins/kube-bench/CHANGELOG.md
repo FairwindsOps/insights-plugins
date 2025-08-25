@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.15
+* Bumped kube-bench
+
 ## 0.5.14
 * Bumped go to 1.24.6 for fixing vulnerability
 
