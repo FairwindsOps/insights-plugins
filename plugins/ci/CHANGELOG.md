@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.4
+* Bumped helm version
+
 ## 6.1.3
 * Bumped go to 1.24.6 for fixing vulnerability
 
