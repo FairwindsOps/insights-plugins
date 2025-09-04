@@ -1,7 +1,7 @@
 # Changelog
 
 ## 6.1.5
-* Bump trivy to 0.65.0
+* Bump trivy to 0.66.0
 
 ## 6.1.4
 * Bumped helm version
