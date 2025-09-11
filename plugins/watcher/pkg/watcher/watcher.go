@@ -228,7 +228,6 @@ func (w *Watcher) processEvents() {
 
 			watchedEvent.LogEvent()
 
-			// Process event through factory (no more if statements!)
 			if err := w.handlerFactory.ProcessEvent(watchedEvent); err != nil {
 				logrus.WithError(err).Error("failed to process event through handlers")
 			}
