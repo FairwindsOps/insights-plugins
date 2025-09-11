@@ -9,4 +9,4 @@ COPY watcher .
 
 WORKDIR /opt/app
 
-CMD ["/usr/local/bin/watcher"]
+CMD ["watcher"]
