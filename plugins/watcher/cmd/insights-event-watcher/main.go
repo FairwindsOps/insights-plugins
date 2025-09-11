@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-	// Parse command line flags
 	var (
 		logLevel      = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
 		insightsHost  = flag.String("insights-host", "", "Fairwinds Insights hostname")
@@ -25,7 +24,6 @@ func main() {
 	)
 	flag.Parse()
 
-	// Set log level
 	level, err := logrus.ParseLevel(*logLevel)
 	if err != nil {
 		logrus.WithError(err).Fatal("Invalid log level")
