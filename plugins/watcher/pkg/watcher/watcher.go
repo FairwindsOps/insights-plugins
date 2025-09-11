@@ -24,13 +24,12 @@ type Watcher struct {
 	eventChannel   chan *event.WatchedEvent
 	stopCh         chan struct{}
 	mu             sync.RWMutex
-	kyvernoOnly    bool
 	handlerFactory *handlers.EventHandlerFactory
 	insightsConfig models.InsightsConfig
 }
 
 // NewWatcher creates a new Kubernetes watcher
-func NewWatcher(kyvernoOnly bool, insightsConfig models.InsightsConfig) (*Watcher, error) {
+func NewWatcher(insightsConfig models.InsightsConfig) (*Watcher, error) {
 	kubeClient, err := client.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
@@ -45,7 +44,6 @@ func NewWatcher(kyvernoOnly bool, insightsConfig models.InsightsConfig) (*Watche
 		informers:      make(map[string]cache.SharedInformer),
 		eventChannel:   make(chan *event.WatchedEvent, 1000),
 		stopCh:         make(chan struct{}),
-		kyvernoOnly:    kyvernoOnly,
 		handlerFactory: handlerFactory,
 		insightsConfig: insightsConfig,
 	}
@@ -101,18 +99,6 @@ func (w *Watcher) Stop() {
 
 // getResourcesToWatch returns the list of resources to watch
 func (w *Watcher) getResourcesToWatch() []string {
-	if w.kyvernoOnly {
-		return []string{
-			"PolicyReport",
-			"ClusterPolicyReport",
-			"Policy",
-			"ClusterPolicy",
-			"ValidatingAdmissionPolicy",
-			"ValidatingAdmissionPolicyBinding",
-			"MutatingAdmissionPolicy",
-			"MutatingAdmissionPolicyBinding",
-		}
-	}
 
 	// Watch all common Kubernetes resources
 	return []string{

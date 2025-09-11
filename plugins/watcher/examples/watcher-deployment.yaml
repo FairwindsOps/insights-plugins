@@ -20,8 +20,6 @@ spec:
       - name: watcher
         image: watcher:latest
         args:
-        - --output-dir=/output
-        - --kyverno-only=false
         - --log-level=info
         volumeMounts:
         - name: output-volume

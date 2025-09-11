@@ -18,9 +18,6 @@ A Kubernetes plugin that watches and processes all Kubernetes events, with speci
 # Watch all Kubernetes resources
 ./watcher
 
-# Watch only Kyverno resources
-./watcher --kyverno-only=true
-
 # Specify custom output directory
 ./watcher --output-dir=/tmp/events
 
@@ -126,10 +123,6 @@ The factory automatically selects the most appropriate handler based on:
 3. **Fallback to generic handler** for unmatched resources
 
 **No `CanHandle` method needed** - the factory uses a simple naming convention!
-
-### Watched Resources
-
-When `--kyverno-only=false` (default), the watcher monitors:
 
 #### Core Resources
 - pods, services, deployments, replicasets

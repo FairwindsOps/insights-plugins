@@ -17,7 +17,6 @@ import (
 func main() {
 	// Parse command line flags
 	var (
-		kyvernoOnly   = flag.Bool("kyverno-only", false, "Only watch Kyverno resources")
 		logLevel      = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
 		insightsHost  = flag.String("insights-host", "", "Fairwinds Insights hostname")
 		organization  = flag.String("organization", "", "Fairwinds organization name")
@@ -35,8 +34,7 @@ func main() {
 
 	logrus.Info("Starting Kubernetes Event Watcher")
 	logrus.WithFields(logrus.Fields{
-		"kyverno_only": *kyvernoOnly,
-		"log_level":    *logLevel,
+		"log_level": *logLevel,
 	}).Info("Configuration")
 
 	// Create Insights configuration
@@ -66,7 +64,7 @@ func main() {
 	defer cancel()
 
 	// Create watcher
-	kubeWatcher, err := watcher.NewWatcher(*kyvernoOnly, insightsConfig)
+	kubeWatcher, err := watcher.NewWatcher(insightsConfig)
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to create watcher")
 	}
