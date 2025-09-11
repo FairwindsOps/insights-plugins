@@ -29,7 +29,6 @@ A Kubernetes plugin that watches and processes all Kubernetes events, with speci
 
 ### Command Line Options
 
-- `--kyverno-only`: Only watch Kyverno resources (default: `false`)
 - `--log-level`: Log level - debug, info, warn, error (default: `info`)
 - `--insights-host`: Fairwinds Insights hostname (optional)
 - `--organization`: Fairwinds organization name (required if insights-host provided)
