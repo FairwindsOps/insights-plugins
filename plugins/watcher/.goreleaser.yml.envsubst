@@ -1,6 +1,6 @@
 # The .goreleaser.yml.envsubst file is processed by ../../scripts/goreleaser.sh
 version: 2
-project_name: watcher
+project_name: insights-event-watcher
 release:
   disable: true
 # This avoids creating .tar.gz archives.
@@ -21,12 +21,12 @@ dockers:
   # There are multiple images to match the `--platform` docker build flag with
   # combinations of `GOOS`, `GOARCH`, and `GOARM`
 - image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-amd64"
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
 - image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-arm64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
@@ -35,37 +35,37 @@ dockers:
 docker_manifests:
 # Create DOcker manifests that make multiple architectures available within a tag,
 # and provide partial-version tags like 2, and 2.2.
-- name_template: quay.io/fairwinds/watcher:{{ .FullCommit }}
+- name_template: quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}
   image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/watcher:{{ .Env.feature_docker_tag }}
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-event-watcher:{{ .Env.feature_docker_tag }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_feature_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/watcher:latest
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-event-watcher:latest
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/watcher:{{ .Tag }}
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-event-watcher:{{ .Tag }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/watcher:{{ .Major }}
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-event-watcher:{{ .Major }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/watcher:{{ .Major }}.{{ .Minor }}
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/insights-event-watcher:{{ .Major }}.{{ .Minor }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/watcher:{{ .FullCommit }}-arm64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/insights-event-watcher:{{ .FullCommit }}-arm64"
