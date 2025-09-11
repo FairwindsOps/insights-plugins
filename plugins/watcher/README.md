@@ -1,11 +1,13 @@
 # Kubernetes Event Watcher
 
-A Kubernetes plugin that watches and processes all Kubernetes events, with special focus on Kyverno policy events.
+A Kubernetes plugin that watches and processes all Kubernetes events, with special focus on policy violations that block resource installation.
 
 ## Features
 
 - **Comprehensive Event Watching**: Watches all Kubernetes resources including pods, services, deployments, and more
-- **Kyverno Integration**: Special handling for Kyverno resources (PolicyReport, ClusterPolicyReport, Policy, ClusterPolicy, etc.)
+- **Policy Violation Detection**: Automatically detects and processes policy violations that block resource installation
+- **Multi-format Support**: Handles both ValidatingAdmissionPolicy and regular Kyverno policy events
+- **Insights Integration**: Sends blocked policy violations directly to Fairwinds Insights API
 - **Real-time Processing**: Processes events as they occur in the cluster
 - **Flexible Output**: Writes events to individual JSON files for easy processing
 - **Configurable**: Can watch all resources or focus only on Kyverno resources
@@ -77,16 +79,74 @@ Each event is written to a separate JSON file with the following structure:
 The watcher provides special processing for PolicyViolation events:
 
 - **Real-time Detection**: Captures `PolicyViolation` events as they occur
-- **Blocked Policy Analysis**: Specifically identifies blocked policy violations
-- **Insights API Integration**: Automatically sends blocked violations to Fairwinds Insights
+- **Blocked Policy Analysis**: Specifically identifies blocked policy violations that prevent resource installation
+- **Insights API Integration**: Automatically sends any blocked policy violation to Fairwinds Insights
+- **Multi-format Support**: Handles both ValidatingAdmissionPolicy and regular Kyverno policy events
 - **Extensible Architecture**: Easy to add new event handlers for future requirements
 
-#### Example PolicyViolation Event
+#### Supported PolicyViolation Event Types
+
+The watcher sends **any** PolicyViolation event that blocks resource installation:
+
+- ✅ **ValidatingAdmissionPolicy events**: `validatingadmissionpolicy/policy-name` with `(blocked)`
+- ✅ **Regular Kyverno policy events**: `deployment/nginx` with `policy namespace/policy-name fail (blocked): ...`
+- ❌ **Non-blocked events**: Any violation without `(blocked)` in the message (warnings, audit violations)
+
+#### Example PolicyViolation Events
 
 ```bash
-# This event will be captured and sent to Insights API:
+# These events will be captured and sent to Insights API:
 kubectl get events | grep PolicyViolation | grep "(blocked)"
-Warning   PolicyViolation   clusterpolicy/require-team-label   Pod default/nginx: [require-team-label] fail (blocked)
+
+# ValidatingAdmissionPolicy format:
+Warning   PolicyViolation     validatingadmissionpolicy/disallow-host-path   Deployment default/nginx: [disallow-host-path] fail (blocked); HostPath volumes are forbidden...
+
+# Regular Kyverno policy format:
+Warning   PolicyViolation     deployment/nginx                               policy disallow-host-path/disallow-host-path fail (blocked): HostPath volumes are forbidden...
+```
+
+#### Creating Policies That Generate Blocked Events
+
+To generate events that will be sent to Insights, create policies with blocking behavior:
+
+**Kyverno Policy Example:**
+```yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-path
+spec:
+  validationFailureAction: Enforce  # This generates "(blocked)" events
+  rules:
+  - name: disallow-host-path
+    match:
+      resources:
+        kinds: [Pod]
+    validate:
+      message: "HostPath volumes are forbidden"
+      pattern:
+        spec:
+          =(volumes):
+            - X(hostPath): "null"
+```
+
+**ValidatingAdmissionPolicy Example:**
+```yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: disallow-host-path
+spec:
+  failurePolicy: Fail  # This generates "(blocked)" events
+  validations:
+  - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
+    message: "HostPath volumes are forbidden"
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["CREATE", "UPDATE"]
+      resources: ["pods"]
 ```
 
 #### Usage with Insights API
@@ -104,7 +164,7 @@ Warning   PolicyViolation   clusterpolicy/require-team-label   Pod default/nginx
 
 The watcher uses a factory pattern for event handling, making it easy to add new event types:
 
-- **PolicyViolation Events**: Captures blocked policy violations and sends to Insights API
+- **PolicyViolation Events**: Captures any blocked policy violation (ValidatingAdmissionPolicy or Kyverno) and sends to Insights API
 - **Kyverno Resources**: Handles PolicyReport, ClusterPolicyReport, Policy, and ClusterPolicy events
 - **Generic Resources**: Fallback handler for any other Kubernetes resources
 - **Easy Extension**: Add new handlers by implementing the `EventHandler` interface
