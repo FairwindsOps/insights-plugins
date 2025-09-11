@@ -17,7 +17,6 @@ import (
 func main() {
 	// Parse command line flags
 	var (
-		outputDir     = flag.String("output-dir", "/output", "Directory to write event files")
 		kyvernoOnly   = flag.Bool("kyverno-only", false, "Only watch Kyverno resources")
 		logLevel      = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
 		insightsHost  = flag.String("insights-host", "", "Fairwinds Insights hostname")
@@ -36,7 +35,6 @@ func main() {
 
 	logrus.Info("Starting Kubernetes Event Watcher")
 	logrus.WithFields(logrus.Fields{
-		"output_dir":   *outputDir,
 		"kyverno_only": *kyvernoOnly,
 		"log_level":    *logLevel,
 	}).Info("Configuration")
@@ -68,7 +66,7 @@ func main() {
 	defer cancel()
 
 	// Create watcher
-	kubeWatcher, err := watcher.NewWatcher(*outputDir, *kyvernoOnly, insightsConfig)
+	kubeWatcher, err := watcher.NewWatcher(*kyvernoOnly, insightsConfig)
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to create watcher")
 	}

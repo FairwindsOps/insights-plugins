@@ -3,7 +3,6 @@ package watcher
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -25,22 +24,16 @@ type Watcher struct {
 	eventChannel   chan *event.WatchedEvent
 	stopCh         chan struct{}
 	mu             sync.RWMutex
-	outputDir      string
 	kyvernoOnly    bool
 	handlerFactory *handlers.EventHandlerFactory
 	insightsConfig models.InsightsConfig
 }
 
 // NewWatcher creates a new Kubernetes watcher
-func NewWatcher(outputDir string, kyvernoOnly bool, insightsConfig models.InsightsConfig) (*Watcher, error) {
+func NewWatcher(kyvernoOnly bool, insightsConfig models.InsightsConfig) (*Watcher, error) {
 	kubeClient, err := client.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-	}
-
-	// Ensure output directory exists
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	// Create handler factory
@@ -52,7 +45,6 @@ func NewWatcher(outputDir string, kyvernoOnly bool, insightsConfig models.Insigh
 		informers:      make(map[string]cache.SharedInformer),
 		eventChannel:   make(chan *event.WatchedEvent, 1000),
 		stopCh:         make(chan struct{}),
-		outputDir:      outputDir,
 		kyvernoOnly:    kyvernoOnly,
 		handlerFactory: handlerFactory,
 		insightsConfig: insightsConfig,

@@ -35,7 +35,6 @@ type EventHandlerConfig struct {
 type WatcherConfig struct {
 	Insights      InsightsConfig                `json:"insights"`
 	EventHandlers map[string]EventHandlerConfig `json:"event_handlers"`
-	OutputDir     string                        `json:"output_dir"`
 	KyvernoOnly   bool                          `json:"kyverno_only"`
 	LogLevel      string                        `json:"log_level"`
 }
