@@ -35,44 +35,6 @@ A Kubernetes plugin that watches and processes all Kubernetes events, with speci
 - `--cluster`: Cluster name (required if insights-host provided)
 - `--insights-token`: Fairwinds Insights API token (required if insights-host provided)
 
-### Event Output
-
-Each event is written to a separate JSON file with the following structure:
-
-```json
-{
-  "event_version": 1,
-  "timestamp": 1640995200,
-  "event_type": "ADDED",
-  "resource_type": "PolicyReport",
-  "namespace": "default",
-  "name": "policy-report-example",
-  "uid": "12345678-1234-1234-1234-123456789abc",
-  "data": {
-    "apiVersion": "wgpolicyk8s.io/v1alpha2",
-    "kind": "PolicyReport",
-    "metadata": {
-      "name": "policy-report-example",
-      "namespace": "default"
-    },
-    "results": [
-      {
-        "policy": "require-labels",
-        "result": "fail",
-        "message": "Missing required labels"
-      }
-    ]
-  },
-  "metadata": {
-    "name": "policy-report-example",
-    "namespace": "default",
-    "uid": "12345678-1234-1234-1234-123456789abc",
-    "resourceVersion": "12345",
-    "creationTimestamp": "2022-01-01T00:00:00Z"
-  }
-}
-```
-
 ### PolicyViolation Event Processing
 
 The watcher provides special processing for PolicyViolation events:
