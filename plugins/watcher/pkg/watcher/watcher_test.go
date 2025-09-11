@@ -39,16 +39,16 @@ func TestWatcherHandlerFactory(t *testing.T) {
 	handlerFactory := handlers.NewEventHandlerFactory(config)
 	assert.NotNil(t, handlerFactory)
 
-	// Test PolicyViolation event processing
-	t.Run("PolicyViolation event should trigger API call", func(t *testing.T) {
-		// Create a PolicyViolation event
+	// Test ValidatingAdmissionPolicy event processing
+	t.Run("ValidatingAdmissionPolicy event should trigger API call", func(t *testing.T) {
+		// Create a ValidatingAdmissionPolicy event
 		policyViolationEvent := &event.WatchedEvent{
 			EventVersion: 1,
 			Timestamp:    time.Now().Unix(),
 			EventType:    event.EventTypeAdded,
 			ResourceType: "events",
 			Namespace:    "default",
-			Name:         "policy-violation-test",
+			Name:         "validatingadmissionpolicy-violation-test",
 			UID:          "test-uid-123",
 			Data: map[string]interface{}{
 				"apiVersion": "v1",
@@ -56,13 +56,13 @@ func TestWatcherHandlerFactory(t *testing.T) {
 				"reason":     "PolicyViolation",
 				"message":    "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods.",
 				"involvedObject": map[string]interface{}{
-					"kind":      "Pod",
-					"name":      "nginx",
-					"namespace": "default",
+					"kind":      "ValidatingAdmissionPolicy", // This makes it a ValidatingAdmissionPolicy event
+					"name":      "require-team-label",
+					"namespace": "",
 				},
 			},
 			Metadata: map[string]interface{}{
-				"name":      "policy-violation-test",
+				"name":      "validatingadmissionpolicy-violation-test",
 				"namespace": "default",
 				"uid":       "test-uid-123",
 			},
@@ -78,7 +78,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 	})
 
 	// Test non-blocked PolicyViolation event
-	t.Run("Non-blocked PolicyViolation should not trigger API call", func(t *testing.T) {
+	t.Run("Non-blocked PolicyViolation event should not trigger API call", func(t *testing.T) {
 		// Reset API calls
 		apiCalls = []string{}
 
@@ -113,7 +113,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 		err := handlerFactory.ProcessEvent(nonBlockedEvent)
 		assert.NoError(t, err)
 
-		// Verify API was NOT called
+		// Verify API was not called (only blocked violations are sent)
 		assert.Len(t, apiCalls, 0)
 	})
 

@@ -1,0 +1,52 @@
+# Example Kyverno Policy that generates BLOCKED violations (will be sent to Insights)
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-host-path-blocked
+  annotations:
+    policies.kyverno.io/title: Disallow HostPath Volumes (Blocked)
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Disallows the use of hostPath volumes in Pods for security reasons.
+      This policy BLOCKS resource creation when violated.
+spec:
+  validationFailureAction: Enforce  # This BLOCKS resource creation and generates "(blocked)" events
+  background: true
+  rules:
+  - name: disallow-host-path
+    match:
+      resources:
+        kinds:
+        - Pod
+    validate:
+      message: "HostPath volumes are forbidden. The field spec.template.spec.volumes[*].hostPath must be unset."
+      pattern:
+        spec:
+          =(volumes):
+            - X(hostPath): "null"
+---
+# Example Pod that will be BLOCKED and generate events sent to Insights
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-with-hostpath-blocked
+  namespace: default
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: host-volume
+      mountPath: /host-data
+  volumes:
+  - name: host-volume
+    hostPath:
+      path: /data  # This will trigger a BLOCKED policy violation
+---
+# Example of the event that will be generated and SENT to Insights:
+# Warning   PolicyViolation     deployment/nginx                               policy disallow-host-path-blocked/disallow-host-path-blocked fail (blocked): HostPath volumes are forbidden...

@@ -51,9 +51,9 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 			"reason":     "PolicyViolation",
 			"message":    "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods.",
 			"involvedObject": map[string]interface{}{
-				"kind":      "Pod",
-				"name":      "nginx",
-				"namespace": "default",
+				"kind":      "ValidatingAdmissionPolicy", // This makes it a ValidatingAdmissionPolicy event
+				"name":      "require-team-label",
+				"namespace": "",
 			},
 		},
 		Metadata: map[string]interface{}{
@@ -125,9 +125,127 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 	// Execute the handler
 	err := handler.Handle(event)
 
-	// Verify results - should not call API for non-blocked violations
+	// Verify results - should not call API for non-blocked violations (only blocked policy violations are sent)
 	assert.NoError(t, err)
 	assert.Len(t, apiCalls, 0)
+}
+
+func TestPolicyViolationHandlerHandleValidatingAdmissionPolicyEvent(t *testing.T) {
+	// Set up test logger
+	logrus.SetLevel(logrus.DebugLevel)
+
+	// Create test server to capture API calls
+	var apiCalls []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		apiCalls = append(apiCalls, r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true}`))
+	}))
+	defer server.Close()
+
+	// Create handler with test configuration
+	config := models.InsightsConfig{
+		Hostname:     server.URL,
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	handler := NewPolicyViolationHandler(config)
+
+	// Create a ValidatingAdmissionPolicy event (blocked)
+	event := &event.WatchedEvent{
+		EventVersion: 1,
+		Timestamp:    time.Now().Unix(),
+		EventType:    event.EventTypeAdded,
+		ResourceType: "events",
+		Namespace:    "default",
+		Name:         "validatingadmissionpolicy-violation-test",
+		UID:          "test-uid-789",
+		Data: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Event",
+			"reason":     "PolicyViolation",
+			"message":    "Deployment default/nginx: [disallow-host-path] fail (blocked); HostPath volumes are forbidden.",
+			"involvedObject": map[string]interface{}{
+				"kind":      "ValidatingAdmissionPolicy", // This makes it a ValidatingAdmissionPolicy event
+				"name":      "disallow-host-path",
+				"namespace": "",
+			},
+		},
+		Metadata: map[string]interface{}{
+			"name":      "validatingadmissionpolicy-violation-test",
+			"namespace": "default",
+			"uid":       "test-uid-789",
+		},
+	}
+
+	// Execute the handler
+	err := handler.Handle(event)
+
+	// Verify results - should call API for blocked ValidatingAdmissionPolicy events
+	assert.NoError(t, err)
+	assert.Len(t, apiCalls, 1)
+	assert.Equal(t, "/v0/organizations/test-org/clusters/test-cluster/data/watcher/policy-violations", apiCalls[0])
+}
+
+func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
+	// Set up test logger
+	logrus.SetLevel(logrus.DebugLevel)
+
+	// Create test server to capture API calls
+	var apiCalls []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		apiCalls = append(apiCalls, r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true}`))
+	}))
+	defer server.Close()
+
+	// Create handler with test configuration
+	config := models.InsightsConfig{
+		Hostname:     server.URL,
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	handler := NewPolicyViolationHandler(config)
+
+	// Create a blocked regular Kyverno policy event
+	event := &event.WatchedEvent{
+		EventVersion: 1,
+		Timestamp:    time.Now().Unix(),
+		EventType:    event.EventTypeAdded,
+		ResourceType: "events",
+		Namespace:    "default",
+		Name:         "kyverno-policy-violation-test",
+		UID:          "test-uid-999",
+		Data: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Event",
+			"reason":     "PolicyViolation",
+			"message":    "policy disallow-host-path/disallow-host-path fail (blocked): HostPath volumes are forbidden.",
+			"involvedObject": map[string]interface{}{
+				"kind":      "Deployment", // This makes it a regular Kyverno policy event
+				"name":      "nginx",
+				"namespace": "default",
+			},
+		},
+		Metadata: map[string]interface{}{
+			"name":      "kyverno-policy-violation-test",
+			"namespace": "default",
+			"uid":       "test-uid-999",
+		},
+	}
+
+	// Execute the handler
+	err := handler.Handle(event)
+
+	// Verify results - should call API for blocked policy violations (any type)
+	assert.NoError(t, err)
+	assert.Len(t, apiCalls, 1)
+	assert.Equal(t, "/v0/organizations/test-org/clusters/test-cluster/data/watcher/policy-violations", apiCalls[0])
 }
 
 func TestPolicyViolationHandlerParsePolicyMessage(t *testing.T) {
@@ -166,8 +284,56 @@ func TestPolicyViolationHandlerParsePolicyMessage(t *testing.T) {
 			expectedError:   false,
 		},
 		{
+			name:            "new Kyverno format with policy prefix",
+			message:         "policy disallow-host-path/disallow-host-path fail: HostPath volumes are forbidden. The field spec.template.spec.volumes[*].hostPath must be unset.",
+			expectedPolicy:  "disallow-host-path/disallow-host-path",
+			expectedResult:  "fail",
+			expectedBlocked: false,
+			expectedError:   false,
+		},
+		{
+			name:            "new Kyverno format with blocked violation",
+			message:         "policy require-labels/require-labels fail (blocked): Required labels are missing.",
+			expectedPolicy:  "require-labels/require-labels",
+			expectedResult:  "fail",
+			expectedBlocked: true,
+			expectedError:   false,
+		},
+		{
+			name:            "new Kyverno format with warning",
+			message:         "policy security-context/security-context warn: Security context could be improved.",
+			expectedPolicy:  "security-context/security-context",
+			expectedResult:  "warn",
+			expectedBlocked: false,
+			expectedError:   false,
+		},
+		{
+			name:            "ValidatingAdmissionPolicy format with semicolon",
+			message:         "Deployment default/nginx: [disallow-host-path] fail; HostPath volumes are forbidden. The field spec.template.spec.volumes[*].hostPath must be unset.",
+			expectedPolicy:  "disallow-host-path",
+			expectedResult:  "fail",
+			expectedBlocked: false,
+			expectedError:   false,
+		},
+		{
+			name:            "ValidatingAdmissionPolicy format with warning",
+			message:         "Pod default/test: [require-labels] warn; Missing recommended labels.",
+			expectedPolicy:  "require-labels",
+			expectedResult:  "warn",
+			expectedBlocked: false,
+			expectedError:   false,
+		},
+		{
+			name:            "ValidatingAdmissionPolicy format with blocked violation",
+			message:         "Deployment default/nginx: [disallow-host-path] fail (blocked); HostPath volumes are forbidden.",
+			expectedPolicy:  "disallow-host-path",
+			expectedResult:  "fail",
+			expectedBlocked: true,
+			expectedError:   false,
+		},
+		{
 			name:            "invalid message format",
-			message:         "Invalid message without brackets",
+			message:         "Invalid message without brackets or policy prefix",
 			expectedPolicy:  "",
 			expectedResult:  "",
 			expectedBlocked: false,

@@ -41,10 +41,24 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error 
 		return fmt.Errorf("failed to extract policy violation: %w", err)
 	}
 
+	// Only send blocked policy violations to Insights (any type that blocks resource installation)
 	if !violationEvent.Blocked {
-		logrus.Debug("Policy violation is not blocked, skipping")
+		logrus.WithFields(logrus.Fields{
+			"policy_name": violationEvent.PolicyName,
+			"result":      violationEvent.PolicyResult,
+			"namespace":   violationEvent.Namespace,
+			"resource":    violationEvent.Name,
+		}).Debug("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)")
 		return nil
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"policy_name": violationEvent.PolicyName,
+		"result":      violationEvent.PolicyResult,
+		"namespace":   violationEvent.Namespace,
+		"resource":    violationEvent.Name,
+		"blocked":     violationEvent.Blocked,
+	}).Info("Sending blocked policy violation to Insights")
 
 	return h.sendToInsights(violationEvent)
 }
@@ -100,30 +114,51 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName, policyResult string, blocked bool, err error) {
 	blocked = strings.Contains(message, "(blocked)")
 
+	// Try to parse the new Kyverno format first: "policy namespace/policy-name result: description"
+	if strings.HasPrefix(message, "policy ") {
+		parts := strings.Fields(message)
+		if len(parts) >= 3 {
+			// Format: "policy disallow-host-path/disallow-host-path fail: description"
+			policyName = parts[1]   // "disallow-host-path/disallow-host-path"
+			policyResult = parts[2] // "fail"
+			// Remove trailing colon if present
+			policyResult = strings.TrimSuffix(policyResult, ":")
+			return policyName, policyResult, blocked, nil
+		}
+	}
+
+	// Try to parse ValidatingAdmissionPolicy format: "Deployment default/nginx: [policy-name] result; description"
+	// This format is used by ValidatingAdmissionPolicy resources
 	start := strings.Index(message, "[")
 	end := strings.Index(message, "]")
-	if start == -1 || end == -1 || start >= end {
-		return "", "", false, fmt.Errorf("could not find policy name in brackets")
-	}
-	policyName = message[start+1 : end]
+	if start != -1 && end != -1 && start < end {
+		policyName = message[start+1 : end]
 
-	parts := strings.Fields(message)
-	for i, part := range parts {
-		if part == "fail" || part == "warn" || part == "pass" {
-			policyResult = part
-			break
+		// Look for result after the closing bracket
+		afterBracket := message[end+1:]
+		parts := strings.Fields(afterBracket)
+		for i, part := range parts {
+			// Remove semicolon if present
+			cleanPart := strings.TrimSuffix(part, ";")
+			if cleanPart == "fail" || cleanPart == "warn" || cleanPart == "pass" {
+				policyResult = cleanPart
+				break
+			}
+			// Handle "validation error" format: "validation error" means "fail"
+			if cleanPart == "error" && i > 0 && parts[i-1] == "validation" {
+				policyResult = "fail"
+				break
+			}
 		}
-		if part == "error" && i > 0 && parts[i-1] == "validation" {
-			policyResult = "fail"
-			break
+
+		if policyResult == "" {
+			policyResult = "unknown"
 		}
+
+		return policyName, policyResult, blocked, nil
 	}
 
-	if policyResult == "" {
-		policyResult = "unknown"
-	}
-
-	return policyName, policyResult, blocked, nil
+	return "", "", false, fmt.Errorf("could not parse policy message format: %s", message)
 }
 
 // sendToInsights sends the policy violation to Insights API
@@ -166,7 +201,7 @@ func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyVio
 		"blocked":       violationEvent.Blocked,
 		"namespace":     violationEvent.Namespace,
 		"resource":      violationEvent.Name,
-	}).Info("Successfully sent policy violation to Insights API")
+	}).Info("Successfully sent blocked policy violation to Insights API")
 
 	return nil
 }
