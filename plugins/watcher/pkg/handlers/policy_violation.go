@@ -69,8 +69,6 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 		return nil, fmt.Errorf("no message field in event")
 	}
 
-	// Parse the message to extract policy details
-	// Example: "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods. rule require-team-label failed at path /metadata/labels/team/"
 	policyName, policyResult, blocked, err := h.parsePolicyMessage(message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse policy message: %w", err)
