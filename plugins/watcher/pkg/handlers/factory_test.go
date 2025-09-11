@@ -117,7 +117,7 @@ func TestEventHandlerFactoryRegister(t *testing.T) {
 	factory := NewEventHandlerFactory(config)
 
 	// Create a custom handler
-	customHandler := &GenericResourceHandler{insightsConfig: config}
+	customHandler := &PolicyViolationHandler{insightsConfig: config}
 
 	// Register the custom handler
 	factory.Register("custom-test-handler", customHandler)

@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"strings"
-
 	"github.com/sirupsen/logrus"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
@@ -37,15 +35,6 @@ func NewEventHandlerFactory(insightsConfig models.InsightsConfig) *EventHandlerF
 func (f *EventHandlerFactory) registerDefaultHandlers() {
 	// PolicyViolation handler for Kubernetes events
 	f.Register("policy-violation", NewPolicyViolationHandler(f.insightsConfig))
-
-	// Resource-specific handlers using naming convention
-	f.Register("policyreport-handler", NewKyvernoPolicyReportHandler(f.insightsConfig))
-	f.Register("clusterpolicyreport-handler", NewKyvernoClusterPolicyReportHandler(f.insightsConfig))
-	f.Register("policy-handler", NewKyvernoPolicyHandler(f.insightsConfig))
-	f.Register("clusterpolicy-handler", NewKyvernoClusterPolicyHandler(f.insightsConfig))
-
-	// Generic resource handler
-	f.Register("generic-resource", NewGenericResourceHandler(f.insightsConfig))
 }
 
 // Register adds a new handler to the factory
@@ -76,19 +65,7 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 			}
 		}
 	}
-
-	// For resource-specific handlers, use a simple naming convention:
-	// ResourceType "PolicyReport" → handler name "policyreport-handler"
-	resourceType := strings.ToLower(watchedEvent.ResourceType)
-	handlerName := resourceType + "-handler"
-
-	// Check if we have a specific handler for this resource type
-	if _, exists := f.handlers[handlerName]; exists {
-		return handlerName
-	}
-
-	// Default to generic handler
-	return "generic-resource"
+	return ""
 }
 
 // ProcessEvent processes an event using the appropriate handler
