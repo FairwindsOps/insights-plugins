@@ -30,7 +30,6 @@ A Kubernetes plugin that watches and processes all Kubernetes events, with speci
 
 ### Command Line Options
 
-- `--output-dir`: Directory to write event files (default: `/output`)
 - `--kyverno-only`: Only watch Kyverno resources (default: `false`)
 - `--log-level`: Log level - debug, info, warn, error (default: `info`)
 - `--insights-host`: Fairwinds Insights hostname (optional)
