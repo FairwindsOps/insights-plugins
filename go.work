@@ -12,6 +12,7 @@ use (
 	./plugins/rbac-reporter
 	./plugins/right-sizer
 	./plugins/trivy
+	./plugins/watcher
 	./plugins/workloads
 	./realtime-reporter
 )
