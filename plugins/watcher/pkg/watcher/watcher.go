@@ -113,13 +113,14 @@ func (w *Watcher) Stop() {
 func (w *Watcher) getResourcesToWatch() []string {
 	// Watch resources needed for policy violation detection
 	return []string{
-		// Kubernetes events - CRITICAL for policy violations
+		// Kubernetes events - CRITICAL for policy violations (contains PolicyViolation events)
 		"events",
-		// Kyverno resources
+		// Kyverno policy resources
 		"PolicyReport",
-		"ClusterPolicyReport",
+		"ClusterPolicyReport", 
 		"Policy",
 		"ClusterPolicy",
+		// ValidatingAdmissionPolicy resources
 		"ValidatingAdmissionPolicy",
 		"ValidatingAdmissionPolicyBinding",
 		"MutatingAdmissionPolicy",
