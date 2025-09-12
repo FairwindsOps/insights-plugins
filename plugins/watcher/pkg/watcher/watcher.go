@@ -117,7 +117,7 @@ func (w *Watcher) getResourcesToWatch() []string {
 		"events",
 		// Kyverno policy resources
 		"PolicyReport",
-		"ClusterPolicyReport", 
+		"ClusterPolicyReport",
 		"Policy",
 		"ClusterPolicy",
 		// ValidatingAdmissionPolicy resources
