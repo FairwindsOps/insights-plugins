@@ -1,27 +1,24 @@
 # Kubernetes Event Watcher
 
-A Kubernetes plugin that watches and processes all Kubernetes events, with special focus on policy violations that block resource installation.
+A Kubernetes plugin that watches policy-related resources and events, with special focus on policy violations that block resource installation.
 
 ## Features
 
-- **Comprehensive Event Watching**: Watches all Kubernetes resources including pods, services, deployments, and more
+- **Policy Event Watching**: Watches Kubernetes events and policy resources for policy violations
 - **Policy Violation Detection**: Automatically detects and processes policy violations that block resource installation
 - **Multi-format Support**: Handles both ValidatingAdmissionPolicy and regular Kyverno policy events
 - **Insights Integration**: Sends blocked policy violations directly to Fairwinds Insights API
 - **Real-time Processing**: Processes events as they occur in the cluster
-- **Flexible Output**: Writes events to individual JSON files for easy processing
-- **Configurable**: Can watch all resources or focus only on Kyverno resources
+- **Kyverno Integration**: Monitors Kyverno policy reports and cluster policy reports
+- **Admission Control**: Tracks ValidatingAdmissionPolicy and MutatingAdmissionPolicy resources
 
 ## Usage
 
 ### Basic Usage
 
 ```bash
-# Watch all Kubernetes resources
+# Watch policy-related resources and events
 ./watcher
-
-# Specify custom output directory
-./watcher --output-dir=/tmp/events
 
 # Set log level
 ./watcher --log-level=debug
@@ -145,27 +142,12 @@ The factory automatically selects the most appropriate handler based on:
 
 **No `CanHandle` method needed** - the factory uses a simple naming convention!
 
-#### Core Resources
-- pods, services, deployments, replicasets
-- statefulsets, daemonsets, jobs, cronjobs
-- configmaps, secrets, persistentvolumes, persistentvolumeclaims
-- nodes, namespaces, events
-
-#### RBAC Resources
-- roles, clusterroles, rolebindings, clusterrolebindings
-- serviceaccounts
-
-#### Network Resources
-- ingresses, networkpolicies
-
-#### Storage Resources
-- storageclasses
-
-#### Kyverno Resources
-- PolicyReport, ClusterPolicyReport
-- Policy, ClusterPolicy
-- ValidatingAdmissionPolicy, ValidatingAdmissionPolicyBinding
-- MutatingAdmissionPolicy, MutatingAdmissionPolicyBinding
+#### Watched Resources
+- **events** - Kubernetes events (CRITICAL for policy violations)
+- **PolicyReport, ClusterPolicyReport** - Kyverno policy reports
+- **Policy, ClusterPolicy** - Kyverno policies
+- **ValidatingAdmissionPolicy, ValidatingAdmissionPolicyBinding** - Admission control policies
+- **MutatingAdmissionPolicy, MutatingAdmissionPolicyBinding** - Admission control policies
 
 ## Building
 
@@ -191,17 +173,17 @@ kind: ClusterRole
 metadata:
   name: watcher
 rules:
+# Kubernetes events - CRITICAL for policy violation detection
 - apiGroups: [""]
-  resources: ["*"]
+  resources: ["events"]
   verbs: ["get", "list", "watch"]
-- apiGroups: ["apps"]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
+# Kyverno policy resources
 - apiGroups: ["wgpolicyk8s.io"]
-  resources: ["*"]
+  resources: ["policyreports", "clusterpolicyreports", "policies", "clusterpolicies"]
   verbs: ["get", "list", "watch"]
+# ValidatingAdmissionPolicy resources
 - apiGroups: ["admissionregistration.k8s.io"]
-  resources: ["*"]
+  resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings", "mutatingadmissionpolicies", "mutatingadmissionpolicybindings"]
   verbs: ["get", "list", "watch"]
 ```
 

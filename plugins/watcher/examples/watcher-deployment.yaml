@@ -46,33 +46,17 @@ kind: ClusterRole
 metadata:
   name: kubernetes-watcher
 rules:
-# Core resources
+# Kubernetes events - CRITICAL for policy violation detection
 - apiGroups: [""]
-  resources: ["*"]
+  resources: ["events"]
   verbs: ["get", "list", "watch"]
-# Apps resources
-- apiGroups: ["apps"]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
-# RBAC resources
-- apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
-# Network resources
-- apiGroups: ["networking.k8s.io"]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
-# Storage resources
-- apiGroups: ["storage.k8s.io"]
-  resources: ["*"]
-  verbs: ["get", "list", "watch"]
-# Kyverno resources
+# Kyverno policy resources
 - apiGroups: ["wgpolicyk8s.io"]
-  resources: ["*"]
+  resources: ["policyreports", "clusterpolicyreports", "policies", "clusterpolicies"]
   verbs: ["get", "list", "watch"]
-# Admission control resources
+# ValidatingAdmissionPolicy resources
 - apiGroups: ["admissionregistration.k8s.io"]
-  resources: ["*"]
+  resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings", "mutatingadmissionpolicies", "mutatingadmissionpolicybindings"]
   verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

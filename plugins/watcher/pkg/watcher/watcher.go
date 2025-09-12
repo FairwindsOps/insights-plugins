@@ -111,9 +111,10 @@ func (w *Watcher) Stop() {
 
 // getResourcesToWatch returns the list of resources to watch
 func (w *Watcher) getResourcesToWatch() []string {
-
-	// Watch all common Kubernetes resources
+	// Watch resources needed for policy violation detection
 	return []string{
+		// Kubernetes events - CRITICAL for policy violations
+		"events",
 		// Kyverno resources
 		"PolicyReport",
 		"ClusterPolicyReport",
