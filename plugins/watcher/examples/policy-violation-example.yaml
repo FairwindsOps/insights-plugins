@@ -1,0 +1,26 @@
+# Example PolicyViolation event that the watcher will capture and send to Insights API
+apiVersion: v1
+kind: Event
+metadata:
+  name: policy-violation-example.1234567890
+  namespace: default
+  creationTimestamp: "2024-01-01T12:00:00Z"
+involvedObject:
+  kind: Pod
+  namespace: default
+  name: nginx
+  uid: 12345678-1234-1234-1234-123456789abc
+  apiVersion: v1
+  resourceVersion: "12345"
+reason: PolicyViolation
+message: "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods. rule require-team-label failed at path /metadata/labels/team/"
+source:
+  component: kyverno
+  host: kyverno-7c4b8b8b8b-abc123
+type: Warning
+firstTimestamp: "2024-01-01T12:00:00Z"
+lastTimestamp: "2024-01-01T12:00:00Z"
+count: 1
+eventTime: "2024-01-01T12:00:00Z"
+reportingController: kyverno
+reportingInstance: kyverno-7c4b8b8b8b-abc123
