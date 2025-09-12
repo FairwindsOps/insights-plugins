@@ -52,7 +52,14 @@ func NewWatchedEvent(eventType EventType, obj interface{}, resourceType string) 
 		}
 	}
 
-	metadata := unstructuredObj.Object["metadata"].(map[string]interface{})
+	metadataRaw, exists := unstructuredObj.Object["metadata"]
+	if !exists {
+		return nil, fmt.Errorf("object missing metadata field")
+	}
+	metadata, ok := metadataRaw.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("metadata is not a map")
+	}
 
 	name := ""
 	namespace := ""

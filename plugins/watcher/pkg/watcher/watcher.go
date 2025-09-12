@@ -24,6 +24,7 @@ type Watcher struct {
 	eventChannel   chan *event.WatchedEvent
 	stopCh         chan struct{}
 	mu             sync.RWMutex
+	wg             sync.WaitGroup
 	handlerFactory *handlers.EventHandlerFactory
 	insightsConfig models.InsightsConfig
 }
@@ -68,11 +69,19 @@ func (w *Watcher) Start(ctx context.Context) error {
 	}
 
 	// Start event processor
-	go w.processEvents()
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.processEvents()
+	}()
 
 	// Start informers
 	for _, informer := range w.informers {
-		go informer.Run(w.stopCh)
+		w.wg.Add(1)
+		go func(informer cache.SharedInformer) {
+			defer w.wg.Done()
+			informer.Run(w.stopCh)
+		}(informer)
 	}
 
 	logrus.Info("Kubernetes watcher started successfully")
@@ -83,6 +92,9 @@ func (w *Watcher) Start(ctx context.Context) error {
 func (w *Watcher) Stop() {
 	logrus.Info("Stopping Kubernetes watcher")
 	close(w.stopCh)
+
+	// Wait for all goroutines to finish
+	w.wg.Wait()
 
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -161,7 +173,11 @@ func (w *Watcher) watchResource(ctx context.Context, resourceType string) error 
 	w.mu.Unlock()
 
 	// Start watching for events
-	go w.watchEvents(resourceType, watcher)
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.watchEvents(resourceType, watcher)
+	}()
 
 	return nil
 }
@@ -209,8 +225,14 @@ func (w *Watcher) handleEvent(resourceType string, kubeEvent watch.Event) error 
 
 	select {
 	case w.eventChannel <- watchedEvent:
+		// Event successfully queued
 	default:
-		logrus.Warn("Event channel full, dropping event")
+		logrus.WithFields(logrus.Fields{
+			"resource_type": resourceType,
+			"event_type":    eventType,
+			"namespace":     watchedEvent.Namespace,
+			"name":          watchedEvent.Name,
+		}).Warn("Event channel full, dropping event - consider increasing buffer size")
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -64,9 +65,16 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error 
 }
 
 func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
+	if watchedEvent == nil {
+		return nil, fmt.Errorf("watchedEvent is nil")
+	}
+	if watchedEvent.Data == nil {
+		return nil, fmt.Errorf("event data is nil")
+	}
+
 	message, ok := watchedEvent.Data["message"].(string)
-	if !ok {
-		return nil, fmt.Errorf("no message field in event")
+	if !ok || message == "" {
+		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
 	policyName, policyResult, blocked, err := h.parsePolicyMessage(message)
@@ -76,7 +84,7 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 
 	involvedObject, ok := watchedEvent.Data["involvedObject"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("no involvedObject field in event")
+		return nil, fmt.Errorf("no involvedObject field in event or invalid format")
 	}
 
 	violationEvent := &models.PolicyViolationEvent{
@@ -110,7 +118,11 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 }
 
 func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName, policyResult string, blocked bool, err error) {
-	blocked = strings.Contains(message, "(blocked)")
+	if message == "" {
+		return "", "", false, fmt.Errorf("empty message")
+	}
+
+	blocked = strings.Contains(message, " (blocked)") || strings.HasSuffix(message, "(blocked)") || strings.Contains(message, " fail:")
 
 	// Try to parse the new Kyverno format first: "policy namespace/policy-name result: description"
 	if strings.HasPrefix(message, "policy ") {
@@ -121,6 +133,12 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 			policyResult = parts[2] // "fail"
 			// Remove trailing colon if present
 			policyResult = strings.TrimSuffix(policyResult, ":")
+
+			// Validate policy result
+			if policyResult != "fail" && policyResult != "warn" && policyResult != "pass" && policyResult != "error" {
+				policyResult = "unknown"
+			}
+
 			return policyName, policyResult, blocked, nil
 		}
 	}
@@ -129,8 +147,13 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 	// This format is used by ValidatingAdmissionPolicy resources
 	start := strings.Index(message, "[")
 	end := strings.Index(message, "]")
-	if start != -1 && end != -1 && start < end {
+	if start != -1 && end != -1 && start < end && end > start {
 		policyName = message[start+1 : end]
+
+		// Validate policy name is not empty
+		if policyName == "" {
+			return "", "", false, fmt.Errorf("empty policy name in brackets")
+		}
 
 		// Look for result after the closing bracket
 		afterBracket := message[end+1:]
@@ -171,7 +194,7 @@ func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyVio
 		h.insightsConfig.Organization,
 		h.insightsConfig.Cluster)
 
-	req, err := http.NewRequest("POST", url, strings.NewReader(string(jsonData)))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
