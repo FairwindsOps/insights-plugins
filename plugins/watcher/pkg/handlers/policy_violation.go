@@ -30,12 +30,19 @@ func NewPolicyViolationHandler(config models.InsightsConfig) *PolicyViolationHan
 }
 
 func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error {
-	logrus.WithFields(logrus.Fields{
+	logFields := logrus.Fields{
 		"event_type":    watchedEvent.EventType,
 		"resource_type": watchedEvent.ResourceType,
 		"namespace":     watchedEvent.Namespace,
 		"name":          watchedEvent.Name,
-	}).Info("Processing PolicyViolation event")
+	}
+
+	// Add Kubernetes eventTime to log if available
+	if watchedEvent.EventTime != "" {
+		logFields["event_time"] = watchedEvent.EventTime
+	}
+
+	logrus.WithFields(logFields).Info("Processing PolicyViolation event")
 
 	violationEvent, err := h.extractPolicyViolation(watchedEvent)
 	if err != nil {
@@ -103,6 +110,9 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 		Message:      message,
 		Blocked:      blocked,
 	}
+
+	// Use extracted Kubernetes eventTime
+	violationEvent.EventTime = watchedEvent.EventTime
 
 	if kind, ok := involvedObject["kind"].(string); ok {
 		violationEvent.ResourceType = kind

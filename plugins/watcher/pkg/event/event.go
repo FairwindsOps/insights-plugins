@@ -27,7 +27,8 @@ const (
 // WatchedEvent represents a Kubernetes event that we're watching
 type WatchedEvent struct {
 	EventVersion int                    `json:"event_version"`
-	Timestamp    int64                  `json:"timestamp"`
+	Timestamp    int64                  `json:"timestamp"`            // Processing timestamp
+	EventTime    string                 `json:"event_time,omitempty"` // Kubernetes eventTime
 	EventType    EventType              `json:"event_type"`
 	ResourceType string                 `json:"resource_type"`
 	Namespace    string                 `json:"namespace"`
@@ -78,9 +79,16 @@ func NewWatchedEvent(eventType EventType, obj interface{}, resourceType string) 
 	// Remove managedFields from metadata for cleaner output
 	delete(metadata, "managedFields")
 
+	// Extract Kubernetes eventTime if available
+	var eventTime string
+	if eventTimeVal, ok := unstructuredObj.Object["eventTime"].(string); ok {
+		eventTime = eventTimeVal
+	}
+
 	event := &WatchedEvent{
 		EventVersion: EventVersion,
-		Timestamp:    time.Now().Unix(),
+		Timestamp:    time.Now().Unix(), // Processing timestamp
+		EventTime:    eventTime,         // Kubernetes eventTime
 		EventType:    eventType,
 		ResourceType: resourceType,
 		Namespace:    namespace,

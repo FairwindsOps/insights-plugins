@@ -23,6 +23,7 @@ type PolicyViolationEvent struct {
 	PolicyResult string `json:"policy_result"`
 	Message      string `json:"message"`
 	Blocked      bool   `json:"blocked"`
+	EventTime    string `json:"event_time,omitempty"` // Kubernetes eventTime
 }
 
 type EventHandlerConfig struct {

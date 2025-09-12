@@ -114,37 +114,6 @@ func (w *Watcher) getResourcesToWatch() []string {
 
 	// Watch all common Kubernetes resources
 	return []string{
-		// Core resources
-		"pods",
-		"services",
-		"deployments",
-		"replicasets",
-		"statefulsets",
-		"daemonsets",
-		"jobs",
-		"cronjobs",
-		"configmaps",
-		"secrets",
-		"persistentvolumes",
-		"persistentvolumeclaims",
-		"nodes",
-		"namespaces",
-		"events", // This is crucial for PolicyViolation events
-
-		// RBAC
-		"roles",
-		"clusterroles",
-		"rolebindings",
-		"clusterrolebindings",
-		"serviceaccounts",
-
-		// Network
-		"ingresses",
-		"networkpolicies",
-
-		// Storage
-		"storageclasses",
-
 		// Kyverno resources
 		"PolicyReport",
 		"ClusterPolicyReport",

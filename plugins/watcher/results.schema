@@ -8,7 +8,11 @@
     },
     "timestamp": {
       "type": "integer",
-      "description": "Unix timestamp when the event occurred"
+      "description": "Unix timestamp when the event was processed by watcher"
+    },
+    "event_time": {
+      "type": "string",
+      "description": "Kubernetes eventTime - exact time the event was generated"
     },
     "event_type": {
       "type": "string",
