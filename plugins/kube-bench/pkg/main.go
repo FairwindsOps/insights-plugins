@@ -47,8 +47,10 @@ func updateModel() {
 	// Capture both stdout and stderr
 	var err error
 
+	logrus.Error("Command:", cmd.String())
 	// Use CombinedOutput to capture both stdout and stderr
 	combinedOutput, err := cmd.CombinedOutput()
+	logrus.Error("Combined output (stdout + stderr):", string(combinedOutput))
 	if err != nil {
 		logrus.Error("Error running kube-bench:", err)
 
