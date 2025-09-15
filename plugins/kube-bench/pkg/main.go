@@ -52,8 +52,9 @@ func updateModel() {
 	combinedOutput, err := cmd.CombinedOutput()
 
 	logrus.Info("kube-bench execution completed")
-	logrus.Info("Combined output length:", len(combinedOutput))
+	logrus.Info("Combined output length===:", len(combinedOutput))
 	logrus.Info("Combined output:", string(combinedOutput))
+	logrus.Info("Combined after output")
 
 	if err != nil {
 		logrus.Error("Error running kube-bench:", err)
