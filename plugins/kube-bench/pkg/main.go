@@ -51,6 +51,7 @@ func updateModel() {
 			logrus.Error("Exit code:", exitError.ExitCode())
 			logrus.Error("Stdout:", string(response))
 			logrus.Error("Stderr:", string(exitError.Stderr))
+			logrus.Error("os.Stderr:", os.Stderr)
 			logrus.Fatal("kube-bench failed with detailed error above")
 		} else {
 			logrus.Error("Error running kube-bench:", err)
