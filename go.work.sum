@@ -660,8 +660,6 @@ github.com/apache/arrow/go/v15 v15.0.2/go.mod h1:DGXsR3ajT524njufqf95822i+KTh+ye
 github.com/apache/thrift v0.21.0/go.mod h1:W1H8aR/QRtYNvrPeFXBtobyRkd0/YVhTc6i07XIAgDw=
 github.com/aquasecurity/kube-bench v0.10.0 h1:n73bFWxLnEe0uwVj3vTWFiQgNjktC/RcZOVWIrUD+10=
 github.com/aquasecurity/kube-bench v0.10.0/go.mod h1:PWWG09U9N70QG/BsUqltrB8gj1fhkWu8mCKjz77p79g=
-github.com/aquasecurity/kube-bench v0.12.0 h1:mKCGJhS3tA7jd7Q079zNaO2hY2s4ibIkEk4JBfC91GI=
-github.com/aquasecurity/kube-bench v0.12.0/go.mod h1:ZeWlVesKV9VDQ+IzrTrngMezcDgLxc5vgP8vhzZMlZU=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-metrics v0.4.1/go.mod h1:E6amYzXo6aW1tqzoZGT755KkbgrJsSdpwZ+3JqfkOG4=
@@ -1955,6 +1953,8 @@ golang.org/x/tools v0.28.0/go.mod h1:dcIOrVd3mfQKTgrDVQHqCPMWy6lnhfhtX3hLXYVLfRw
 golang.org/x/tools v0.29.0/go.mod h1:KMQVMRsVxU6nHCFXrBPhDB8XncLNLM0lIy/F14RP588=
 golang.org/x/tools v0.30.0/go.mod h1:c347cR/OJfw5TI+GfX7RUPNMdDRRbjvYTS0jPyvsVtY=
 golang.org/x/tools v0.31.0/go.mod h1:naFTU+Cev749tSJRXJlna0T3WxKvb1kWEx15xA4SdmQ=
+golang.org/x/tools/go/expect v0.1.0-deprecated/go.mod h1:eihoPOH+FgIqa3FpoTwguz/bVUSGBlGQU67vpBeOrBY=
+golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated/go.mod h1:RVAQXBGNv1ib0J382/DPCRS/BPnsGebyM1Gj5VSDpG8=
 golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2/go.mod h1:K8+ghG5WaK9qNqU5K3HdILfMLy1f3aNYFI/wnl100a8=
 golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028/go.mod h1:NDW/Ps6MPRej6fsCIbMTohpP40sJ/P/vI1MoTEGwX90=
 golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da/go.mod h1:NDW/Ps6MPRej6fsCIbMTohpP40sJ/P/vI1MoTEGwX90=
@@ -2230,8 +2230,6 @@ k8s.io/client-go v0.32.2/go.mod h1:fpZ4oJXclZ3r2nDOv+Ux3XcJutfrwjKTCHz2H3sww94=
 k8s.io/client-go v0.33.0/go.mod h1:kGkd+l/gNGg8GYWAPr0xF1rRKvVWvzh9vmZAMXtaKOg=
 k8s.io/client-go v0.33.1/go.mod h1:JAsUrl1ArO7uRVFWfcj6kOomSlCv+JpvIsp6usAGefA=
 k8s.io/client-go v0.33.3/go.mod h1:luqKBQggEf3shbxHY4uVENAxrDISLOarxpTKMiUuujg=
-k8s.io/client-go v0.33.4 h1:TNH+CSu8EmXfitntjUPwaKVPN0AYMbc9F1bBS8/ABpw=
-k8s.io/client-go v0.33.4/go.mod h1:LsA0+hBG2DPwovjd931L/AoaezMPX9CmBgyVyBZmbCY=
 k8s.io/code-generator v0.31.0/go.mod h1:84y4w3es8rOJOUUP1rLsIiGlO1JuEaPFXQPA9e/K6U0=
 k8s.io/code-generator v0.32.0/go.mod h1:b7Q7KMZkvsYFy72A79QYjiv4aTz3GvW0f1T3UfhFq4s=
 k8s.io/code-generator v0.32.1/go.mod h1:zaILfm00CVyP/6/pJMJ3zxRepXkxyDfUV5SNG4CjZI4=

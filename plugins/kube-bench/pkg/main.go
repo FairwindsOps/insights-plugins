@@ -42,21 +42,25 @@ func getReportsHandler(w http.ResponseWriter, r *http.Request) {
 
 func updateModel() {
 	logrus.Info("Updating data.")
-	cmd := exec.Command("kube-bench", "--json")
+	cmd := exec.Command("kube-bench", "-v 3 --json")
 	response, err := cmd.Output()
 	if err != nil {
+		logrus.Error("Error running kube-bench:", err)
 		logrus.Fatal(err, string(response))
 	}
+	logrus.Info("kube-bench output:", string(response))
 	decoder := json.NewDecoder(strings.NewReader(string(response)))
 	allControls := make([]check.Controls, 0)
 	for {
 		var controls kubeBenchResponse
 		err = decoder.Decode(&controls)
 		if err == io.EOF {
+			logrus.Info("EOF")
 			break
 		}
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Error("Error decoding kube-bench output:", err)
+			logrus.Fatal(err, string(response))
 		}
 		allControls = append(allControls, controls.Controls...)
 	}
