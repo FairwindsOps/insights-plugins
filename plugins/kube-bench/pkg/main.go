@@ -45,8 +45,17 @@ func updateModel() {
 	cmd := exec.Command("kube-bench", "--json", "--v", "3")
 	response, err := cmd.Output()
 	if err != nil {
-		logrus.Error("Error running kube-bench:", err)
-		logrus.Fatal(err, string(response))
+		// If the command failed, try to get stderr for more details
+		if exitError, ok := err.(*exec.ExitError); ok {
+			logrus.Error("Error running kube-bench:", err)
+			logrus.Error("Exit code:", exitError.ExitCode())
+			logrus.Error("Stdout:", string(response))
+			logrus.Error("Stderr:", string(exitError.Stderr))
+			logrus.Fatal("kube-bench failed with detailed error above")
+		} else {
+			logrus.Error("Error running kube-bench:", err)
+			logrus.Fatal(err, string(response))
+		}
 	}
 	logrus.Info("kube-bench output:", string(response))
 	decoder := json.NewDecoder(strings.NewReader(string(response)))
