@@ -42,7 +42,7 @@ func getReportsHandler(w http.ResponseWriter, r *http.Request) {
 
 func updateModel() {
 	logrus.Info("Updating data.")
-	cmd := exec.Command("kube-bench", "--json", "--v 3")
+	cmd := exec.Command("kube-bench", "--json")
 	response, err := cmd.Output()
 	if err != nil {
 		logrus.Error("Error running kube-bench:", err)
