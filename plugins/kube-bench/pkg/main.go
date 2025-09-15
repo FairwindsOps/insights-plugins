@@ -53,6 +53,7 @@ func updateModel() {
 
 	logrus.Info("kube-bench execution completed")
 	logrus.Info("Combined output length:", len(combinedOutput))
+	logrus.Info("Combined output:", string(combinedOutput))
 
 	if err != nil {
 		logrus.Error("Error running kube-bench:", err)
@@ -61,7 +62,7 @@ func updateModel() {
 		// Try to get more details from the error
 		if exitError, ok := err.(*exec.ExitError); ok {
 			logrus.Error("Exit code:", exitError.ExitCode())
-			logrus.Error("Stderr from exit error:", string(exitError.Stderr))
+			//logrus.Error("Stderr from exit error:", string(exitError.Stderr))
 		}
 
 		// Log the combined output which includes both stdout and stderr
