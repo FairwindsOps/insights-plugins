@@ -85,7 +85,6 @@ executors:
   ci-images:
     docker:
       - image: quay.io/reactiveops/ci-images:v14.1-bullseye
-    resource_class: xlarge
   goreleaser:
     resource_class: large
     docker:
@@ -110,7 +109,6 @@ jobs:
   test:
     docker:
       - image: cimg/go:1.24.6
-    resource_class: xlarge
     steps:
       - checkout
       - set_vault
@@ -285,7 +283,6 @@ jobs:
 
   ci_plugin_e2e:
     executor: ci-images
-    resource_class: xlarge
     steps:
       - checkout
       - setup_remote_docker
