@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -44,15 +45,18 @@ func updateModel() {
 	logrus.Info("Updating data.")
 	cmd := exec.Command("kube-bench", "--json", "--v", "3")
 
-	// Capture both stdout and stderr
-	var err error
+	logrus.Info("Command:", cmd.String())
+	logrus.Info("Starting kube-bench execution...")
 
-	logrus.Error("Command:", cmd.String())
 	// Use CombinedOutput to capture both stdout and stderr
 	combinedOutput, err := cmd.CombinedOutput()
-	logrus.Error("Combined output (stdout + stderr):", string(combinedOutput))
+
+	logrus.Info("kube-bench execution completed")
+	logrus.Info("Combined output length:", len(combinedOutput))
+
 	if err != nil {
 		logrus.Error("Error running kube-bench:", err)
+		logrus.Error("Error type:", fmt.Sprintf("%T", err))
 
 		// Try to get more details from the error
 		if exitError, ok := err.(*exec.ExitError); ok {
