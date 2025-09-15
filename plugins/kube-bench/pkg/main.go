@@ -43,24 +43,27 @@ func getReportsHandler(w http.ResponseWriter, r *http.Request) {
 func updateModel() {
 	logrus.Info("Updating data.")
 	cmd := exec.Command("kube-bench", "--json", "--v", "3")
-	response, err := cmd.Output()
+
+	// Capture both stdout and stderr
+	var err error
+
+	// Use CombinedOutput to capture both stdout and stderr
+	combinedOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		// If the command failed, try to get stderr for more details
+		logrus.Error("Error running kube-bench:", err)
+
+		// Try to get more details from the error
 		if exitError, ok := err.(*exec.ExitError); ok {
-			logrus.Error("Error running kube-bench=:", err)
-			logrus.Error("Stderr:", string(exitError.Stderr))
-			logrus.Error("Exit code=====:", exitError.ExitCode())
-			logrus.Error("os.Stderr:", os.Stderr)
-			logrus.Error("======")
-			logrus.Error("Stderr:", string(exitError.Stderr))
-			logrus.Error("os.Stderr:", os.Stderr)
-			logrus.Error("Stdout:", string(response))
-			logrus.Fatal("kube-bench failed with detailed error above")
-		} else {
-			logrus.Error("Error running kube-bench:", err)
-			logrus.Fatal(err, string(response))
+			logrus.Error("Exit code:", exitError.ExitCode())
+			logrus.Error("Stderr from exit error:", string(exitError.Stderr))
 		}
+
+		// Log the combined output which includes both stdout and stderr
+		logrus.Error("Combined output (stdout + stderr):", string(combinedOutput))
+		logrus.Fatal("kube-bench failed with detailed error above")
 	}
+
+	response := combinedOutput
 	logrus.Info("kube-bench output:", string(response))
 	decoder := json.NewDecoder(strings.NewReader(string(response)))
 	allControls := make([]check.Controls, 0)
