@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.17
+* Bumped kube-bench to 0.12.0
+
 ## 0.5.16
 * Reverted kube-bench to 0.11.1
 
