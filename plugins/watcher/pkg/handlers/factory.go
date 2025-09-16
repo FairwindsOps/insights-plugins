@@ -72,12 +72,12 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 func (f *EventHandlerFactory) ProcessEvent(watchedEvent *event.WatchedEvent) error {
 	handler := f.GetHandler(watchedEvent)
 	if handler == nil {
-		//logrus.WithFields(logrus.Fields{
-		//	"event_type":    watchedEvent.EventType,
-		//	"resource_type": watchedEvent.ResourceType,
-		//	"namespace":     watchedEvent.Namespace,
-		//	"name":          watchedEvent.Name,
-		//}).Debug("No handler found for event")
+		logrus.WithFields(logrus.Fields{
+			"event_type":    watchedEvent.EventType,
+			"resource_type": watchedEvent.ResourceType,
+			"namespace":     watchedEvent.Namespace,
+			"name":          watchedEvent.Name,
+		}).Debug("No handler found for event")
 		return nil
 	}
 
