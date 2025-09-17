@@ -173,6 +173,25 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 		}
 	}
 
+	// Try to parse ValidatingAdmissionPolicy warning format: "Warning: Validation failed for ValidatingAdmissionPolicy 'policy-name' with binding 'binding-name': description"
+	if strings.HasPrefix(message, "Warning: Validation failed for ValidatingAdmissionPolicy ") {
+		// Extract policy name from the message
+		// Format: "Warning: Validation failed for ValidatingAdmissionPolicy 'policy-name' with binding 'binding-name': description"
+		start := strings.Index(message, "'")
+		if start != -1 {
+			end := strings.Index(message[start+1:], "'")
+			if end != -1 {
+				policyName = message[start+1 : start+1+end]
+				policyResult = "fail" // ValidatingAdmissionPolicy warnings are always failures
+				// For audit policies, it's not blocked (just logged)
+				// For enforce policies, it would be blocked, but we can't determine this from the message alone
+				// We'll assume it's blocked if it's not an audit policy
+				blocked = !strings.Contains(policyName, "-insights-audit")
+				return policyName, policyResult, blocked, nil
+			}
+		}
+	}
+
 	// Try to parse ValidatingAdmissionPolicy format: "Deployment default/nginx: [policy-name] result; description"
 	// This format is used by ValidatingAdmissionPolicy resources
 	start := strings.Index(message, "[")
