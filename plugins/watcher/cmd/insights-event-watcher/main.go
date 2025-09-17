@@ -537,6 +537,7 @@ func (webhook *VAPInterceptorWebhook) isVAPViolationEvent(event *corev1.Event) b
 		"forbidden",
 		"validation failed",
 		"policy violation",
+		"VAP Policy Violation",
 	}
 
 	message := strings.ToLower(event.Message)
@@ -551,6 +552,7 @@ func (webhook *VAPInterceptorWebhook) isVAPViolationEvent(event *corev1.Event) b
 		"FailedValidation",
 		"PolicyViolation",
 		"AdmissionError",
+		"VAPViolation",
 	}
 
 	reason := strings.ToLower(event.Reason)

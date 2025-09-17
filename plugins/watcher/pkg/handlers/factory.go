@@ -57,10 +57,10 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) Event
 }
 
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) string {
-	// Check for PolicyViolation events first (most specific)
+	// Check for PolicyViolation and VAPViolation events first (most specific)
 	if watchedEvent.ResourceType == "events" {
 		if reason, ok := watchedEvent.Data["reason"].(string); ok {
-			if reason == "PolicyViolation" {
+			if reason == "PolicyViolation" || reason == "VAPViolation" {
 				return "policy-violation"
 			}
 		}
