@@ -1,0 +1,81 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: test-vap-policy-fixed
+  annotations:
+    policies.kyverno.io/title: Test VAP Policy (Fixed)
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      This policy creates a ValidatingAdmissionPolicy that blocks deployments
+      with hostPath volumes and generates audit events for monitoring.
+spec:
+  # Enable admission control to generate VAPs
+  admission: true
+  # Run in background to generate events
+  background: true
+  # Use Enforce mode to block resources and generate events
+  validationFailureAction: Enforce
+  rules:
+  - name: block-hostpath-volumes-deployment
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      cel:
+        expressions:
+        - expression: '!has(object.spec.template.spec.volumes) || object.spec.template.spec.volumes.all(volume, !has(volume.hostPath))'
+          message: 'HostPath volumes are forbidden in Deployments. The field spec.template.spec.volumes[*].hostPath must be unset.'
+  - name: block-hostpath-volumes-pod
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      cel:
+        expressions:
+        - expression: '!has(object.spec.volumes) || object.spec.volumes.all(volume, !has(volume.hostPath))'
+          message: 'HostPath volumes are forbidden in Pods. The field spec.volumes[*].hostPath must be unset.'
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: test-privileged-containers-fixed
+  annotations:
+    policies.kyverno.io/title: Block Privileged Containers (Fixed)
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      This policy creates a ValidatingAdmissionPolicy that blocks containers
+      with privileged security context and generates audit events.
+spec:
+  admission: true
+  background: true
+  validationFailureAction: Enforce
+  rules:
+  - name: block-privileged-containers-deployment
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      cel:
+        expressions:
+        - expression: '!has(object.spec.template.spec.containers) || object.spec.template.spec.containers.all(container, !has(container.securityContext) || !has(container.securityContext.privileged) || !container.securityContext.privileged)'
+          message: 'Privileged containers are forbidden in Deployments. The field spec.template.spec.containers[*].securityContext.privileged must be unset or false.'
+  - name: block-privileged-containers-pod
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      cel:
+        expressions:
+        - expression: '!has(object.spec.containers) || object.spec.containers.all(container, !has(container.securityContext) || !has(container.securityContext.privileged) || !container.securityContext.privileged)'
+          message: 'Privileged containers are forbidden in Pods. The field spec.containers[*].securityContext.privileged must be unset or false.'
+

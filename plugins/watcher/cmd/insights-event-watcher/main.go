@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -121,6 +123,7 @@ func main() {
 		// Set up HTTP server for VAP interceptor
 		mux := http.NewServeMux()
 		mux.HandleFunc("/validate", webhook.handleValidate)
+		mux.HandleFunc("/mutate", webhook.handleMutate)
 		mux.HandleFunc("/health", webhook.handleHealth)
 
 		server := &http.Server{
@@ -131,9 +134,16 @@ func main() {
 		// Start VAP interceptor server in goroutine
 		go func() {
 			logrus.WithField("port", *vapInterceptorPort).Info("Starting VAP interceptor webhook server")
-			if err := server.ListenAndServeTLS("/certs/tls.crt", "/certs/tls.key"); err != nil && err != http.ErrServerClosed {
+			// For testing, use HTTP instead of HTTPS
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				logrus.WithError(err).Fatal("Failed to start VAP interceptor webhook server")
 			}
+		}()
+
+		// Start VAP event monitor
+		go func() {
+			logrus.Info("Starting VAP event monitor")
+			webhook.startVAPEventMonitor(ctx)
 		}()
 
 		// Graceful shutdown for VAP interceptor
@@ -435,6 +445,156 @@ func (webhook *VAPInterceptorWebhook) generateVAPViolationEvent(request *admissi
 		"policy_name":   violationDetails.PolicyName,
 		"violation":     violationDetails.Violation,
 	}).Info("Generated VAP violation event")
+
+	return nil
+}
+
+// handleMutate handles mutating admission requests
+func (webhook *VAPInterceptorWebhook) handleMutate(w http.ResponseWriter, r *http.Request) {
+	// Read the admission review
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to read request body")
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the admission review
+	var review admissionv1.AdmissionReview
+	if err := json.Unmarshal(body, &review); err != nil {
+		logrus.WithError(err).Error("Failed to parse admission review")
+		http.Error(w, "Failed to parse admission review", http.StatusBadRequest)
+		return
+	}
+
+	// Process the admission request and generate events if needed
+	response := webhook.processAdmissionRequest(&review)
+
+	// Send response
+	review.Response = response
+	review.Request = nil // Clear request to reduce response size
+
+	if err := json.NewEncoder(w).Encode(review); err != nil {
+		logrus.WithError(err).Error("Failed to encode admission review response")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// startVAPEventMonitor monitors for VAP-related events and generates synthetic events
+func (webhook *VAPInterceptorWebhook) startVAPEventMonitor(ctx context.Context) {
+	// Watch for events that contain VAP violation information
+	eventWatcher, err := webhook.client.CoreV1().Events("").Watch(ctx, metav1.ListOptions{
+		Watch: true,
+	})
+	if err != nil {
+		logrus.WithError(err).Error("Failed to start event watcher for VAP monitoring")
+		return
+	}
+	defer eventWatcher.Stop()
+
+	logrus.Info("VAP event monitor started, watching for VAP violations")
+
+	for {
+		select {
+		case <-ctx.Done():
+			logrus.Info("VAP event monitor stopping")
+			return
+		case event := <-eventWatcher.ResultChan():
+			if event.Type == "ADDED" || event.Type == "MODIFIED" {
+				if kubeEvent, ok := event.Object.(*corev1.Event); ok {
+					webhook.processVAPEvent(kubeEvent)
+				}
+			}
+		}
+	}
+}
+
+// processVAPEvent processes events to detect VAP violations
+func (webhook *VAPInterceptorWebhook) processVAPEvent(event *corev1.Event) {
+	// Check if this event is related to VAP violations
+	if webhook.isVAPViolationEvent(event) {
+		logrus.WithFields(logrus.Fields{
+			"event_name":      event.Name,
+			"event_namespace": event.Namespace,
+			"reason":          event.Reason,
+			"message":         event.Message,
+		}).Info("Detected VAP violation event")
+
+		// Generate synthetic event for Insights
+		if err := webhook.generateSyntheticVAPEvent(event); err != nil {
+			logrus.WithError(err).Error("Failed to generate synthetic VAP event")
+		}
+	}
+}
+
+// isVAPViolationEvent checks if an event represents a VAP violation
+func (webhook *VAPInterceptorWebhook) isVAPViolationEvent(event *corev1.Event) bool {
+	// Check for VAP-related keywords in the event message
+	vapKeywords := []string{
+		"ValidatingAdmissionPolicy",
+		"denied request",
+		"forbidden",
+		"validation failed",
+		"policy violation",
+	}
+
+	message := strings.ToLower(event.Message)
+	for _, keyword := range vapKeywords {
+		if strings.Contains(message, strings.ToLower(keyword)) {
+			return true
+		}
+	}
+
+	// Check for VAP-related reasons
+	vapReasons := []string{
+		"FailedValidation",
+		"PolicyViolation",
+		"AdmissionError",
+	}
+
+	reason := strings.ToLower(event.Reason)
+	for _, vapReason := range vapReasons {
+		if strings.Contains(reason, strings.ToLower(vapReason)) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// generateSyntheticVAPEvent generates a synthetic event for VAP violations
+func (webhook *VAPInterceptorWebhook) generateSyntheticVAPEvent(event *corev1.Event) error {
+	// Create a synthetic event that mimics a PolicyViolation event
+	syntheticEvent := &corev1.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("vap-violation-%s", event.Name),
+			Namespace: event.Namespace,
+		},
+		InvolvedObject: event.InvolvedObject,
+		Reason:         "VAPViolation",
+		Message:        fmt.Sprintf("VAP Policy Violation: %s", event.Message),
+		Source: corev1.EventSource{
+			Component: "vap-interceptor",
+			Host:      "vap-interceptor",
+		},
+		FirstTimestamp: event.FirstTimestamp,
+		LastTimestamp:  event.LastTimestamp,
+		Count:          event.Count,
+		Type:           "Warning",
+	}
+
+	// Create the synthetic event in the cluster
+	_, err := webhook.client.CoreV1().Events(event.Namespace).Create(context.Background(), syntheticEvent, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create synthetic VAP event: %w", err)
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"original_event":  event.Name,
+		"synthetic_event": syntheticEvent.Name,
+		"namespace":       event.Namespace,
+	}).Info("Generated synthetic VAP violation event")
 
 	return nil
 }

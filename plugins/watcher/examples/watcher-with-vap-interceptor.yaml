@@ -19,7 +19,8 @@ spec:
       containers:
       - name: insights-event-watcher
         image: insights-event-watcher:latest
-        command: ["./insights-event-watcher"]
+        imagePullPolicy: Never
+        command: ["/usr/local/bin/insights-event-watcher"]
         args:
         - "--log-level=info"
         - "--enable-vap-interceptor=true"
@@ -43,14 +44,6 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "100m"
-        volumeMounts:
-        - name: certs
-          mountPath: /certs
-          readOnly: true
-      volumes:
-      - name: certs
-        secret:
-          secretName: vap-interceptor-certs
       restartPolicy: Always
 
 ---
@@ -119,7 +112,7 @@ spec:
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingAdmissionWebhook
+kind: ValidatingWebhookConfiguration
 metadata:
   name: vap-interceptor-webhook
 webhooks:
@@ -129,9 +122,11 @@ webhooks:
       name: insights-event-watcher
       namespace: insights-agent
       path: "/validate"
+      port: 8080
   rules:
   - operations: ["CREATE", "UPDATE"]
     apiGroups: ["*"]
+    apiVersions: ["*"]
     resources: ["*"]
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None

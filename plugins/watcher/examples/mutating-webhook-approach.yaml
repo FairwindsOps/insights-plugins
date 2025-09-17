@@ -1,0 +1,21 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: vap-interceptor-mutating-webhook
+webhooks:
+- name: vap-interceptor-mutating.fairwinds.com
+  clientConfig:
+    service:
+      name: insights-event-watcher
+      namespace: insights-agent
+      path: "/mutate"
+      port: 8080
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Ignore  # Don't block, just generate events
+
