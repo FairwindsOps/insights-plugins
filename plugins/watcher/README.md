@@ -1,20 +1,18 @@
 # Kubernetes Event Watcher
 
-A Kubernetes plugin that watches policy-related resources and events, with special focus on policy violations that block resource installation. Now includes **VAP Interceptor** functionality to capture and audit ValidatingAdmissionPolicy violations that would otherwise be blocked without generating events.
+A Kubernetes plugin that watches policy-related resources and events, with special focus on policy violations that block resource installation. Features **Automatic Policy Duplication** to create audit-only ValidatingAdmissionPolicies for capturing policy violations without blocking resources.
 
 ## Features
 
 - **Policy Event Watching**: Watches Kubernetes events and policy resources for policy violations
 - **Policy Violation Detection**: Automatically detects and processes policy violations that block resource installation
-- **VAP Interceptor**: Captures ValidatingAdmissionPolicy violations and generates synthetic events for audit
 - **Multi-format Support**: Handles both ValidatingAdmissionPolicy and regular Kyverno policy events
 - **Insights Integration**: Sends blocked policy violations directly to Fairwinds Insights API
 - **Real-time Processing**: Processes events as they occur in the cluster
 - **Kyverno Integration**: Monitors Kyverno policy reports and cluster policy reports
-- **Admission Control**: Tracks ValidatingAdmissionPolicy and MutatingAdmissionPolicy resources
-- **Event-driven VAP Monitoring**: Monitors existing Kubernetes events for VAP violations and generates synthetic events
-- **Audit Policy Support**: Supports dedicated audit policies for capturing policy violations without webhook dependencies
+- **Admission Control**: Tracks ValidatingAdmissionPolicy and ValidatingAdmissionPolicyBinding resources
 - **Automatic Policy Duplication**: Automatically creates, updates, and deletes audit duplicates of ValidatingAdmissionPolicies with Deny-only actions
+- **Audit Policy Support**: Supports dedicated audit policies for capturing policy violations without webhook dependencies
 
 ## Usage
 
@@ -27,8 +25,12 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 # Set log level
 ./insights-event-watcher --log-level=debug
 
-# Enable VAP interceptor functionality
-./insights-event-watcher --enable-vap-interceptor=true --vap-interceptor-port=8080
+# Run with Insights API integration
+./insights-event-watcher \
+  --insights-host=https://insights.fairwinds.com \
+  --organization=my-org \
+  --cluster=production \
+  --insights-token=your-api-token
 ```
 
 ### Command Line Options
@@ -63,7 +65,7 @@ The watcher plugin now automatically creates audit duplicates of ValidatingAdmis
 
 When you create a policy like this:
 ```yaml
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
   name: disallow-host-path
@@ -72,7 +74,7 @@ spec:
   - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
     message: "HostPath volumes are forbidden"
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
 metadata:
   name: disallow-host-path-binding
@@ -84,7 +86,7 @@ spec:
 
 The watcher automatically creates:
 ```yaml
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
   name: disallow-host-path-insights-audit
@@ -96,7 +98,7 @@ spec:
   - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
     message: "HostPath volumes are forbidden"
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
 metadata:
   name: disallow-host-path-binding-insights-audit
@@ -114,9 +116,8 @@ spec:
 You can also manually create audit policies instead of relying on automatic duplication. This approach provides:
 
 - **Clean Separation**: Dedicated audit policies separate from enforcement policies
-- **No Webhook Dependency**: Doesn't require mutating webhook functionality
 - **Explicit Configuration**: Clear intent with Audit-only validation actions
-- **Better Performance**: No webhook overhead for policy creation
+- **Better Performance**: No automatic duplication overhead
 
 See [AUDIT_POLICY_SETUP.md](examples/AUDIT_POLICY_SETUP.md) for detailed manual setup instructions.
 
@@ -129,7 +130,6 @@ The watcher provides special processing for PolicyViolation events:
 - **Blocked Policy Analysis**: Specifically identifies blocked policy violations that prevent resource installation
 - **Insights API Integration**: Automatically sends any blocked policy violation to Fairwinds Insights
 - **Multi-format Support**: Handles both ValidatingAdmissionPolicy and regular Kyverno policy events
-- **Synthetic Event Support**: Processes synthetic `VAPViolation` events generated by the VAP interceptor
 - **Extensible Architecture**: Easy to add new event handlers for future requirements
 
 #### Supported PolicyViolation Event Types
@@ -138,7 +138,7 @@ The watcher sends **any** PolicyViolation event that blocks resource installatio
 
 - ✅ **ValidatingAdmissionPolicy events**: `validatingadmissionpolicy/policy-name` with `(blocked)`
 - ✅ **Regular Kyverno policy events**: `deployment/nginx` with `policy namespace/policy-name fail (blocked): ...`
-- ✅ **Synthetic VAPViolation events**: `VAPViolation` events generated by the VAP interceptor
+- ✅ **VAPViolation events**: `VAPViolation` events from audit policies
 - ❌ **Non-blocked events**: Any violation without `(blocked)` in the message (warnings, audit violations)
 
 #### Example PolicyViolation Events
@@ -153,7 +153,7 @@ Warning   PolicyViolation     validatingadmissionpolicy/disallow-host-path   Dep
 # Regular Kyverno policy format:
 Warning   PolicyViolation     deployment/nginx                               policy disallow-host-path/disallow-host-path fail (blocked): HostPath volumes are forbidden...
 
-# Synthetic VAPViolation format (generated by VAP interceptor):
+# VAPViolation format (from audit policies):
 Warning   VAPViolation        replicaset/nginx-578557b98b                   VAP Policy Violation: ReplicaSet default/nginx-578557b98b: [disallow-host-path] fail; HostPath volumes are forbidden...
 ```
 
@@ -201,26 +201,14 @@ spec:
       resources: ["pods"]
 ```
 
-#### Usage with Insights API
-
-```bash
-# Run with Insights API integration
-./insights-event-watcher \
-  --insights-host=https://insights.fairwinds.com \
-  --organization=my-org \
-  --cluster=production \
-  --insights-token=your-api-token
-
-```
 
 ### Extensible Event Handler System
 
 The watcher uses a factory pattern for event handling, making it easy to add new event types:
 
 - **PolicyViolation Events**: Captures any blocked policy violation (ValidatingAdmissionPolicy or Kyverno) and sends to Insights API
-- **VAPViolation Events**: Processes synthetic VAPViolation events generated by the VAP interceptor
-- **Kyverno Resources**: Handles PolicyReport, ClusterPolicyReport, Policy, and ClusterPolicy events
-- **Generic Resources**: Fallback handler for any other Kubernetes resources
+- **VAPViolation Events**: Processes VAPViolation events from audit policies
+- **ValidatingAdmissionPolicy Events**: Handles ValidatingAdmissionPolicy resources for automatic audit policy duplication
 - **Easy Extension**: Add new handlers by implementing the `EventHandler` interface
 
 #### Handler Architecture
@@ -233,17 +221,14 @@ type EventHandler interface {
 
 The factory automatically selects the most appropriate handler based on:
 1. **Event characteristics** (e.g., `reason: PolicyViolation` or `reason: VAPViolation` → `policy-violation` handler)
-2. **Resource type naming convention** (e.g., `PolicyReport` → `policyreport-handler`)
-3. **Fallback to generic handler** for unmatched resources
+2. **Resource type** (e.g., `ValidatingAdmissionPolicy` → `vap-duplicator` handler)
+3. **Fallback to no handler** for unmatched resources
 
 **No `CanHandle` method needed** - the factory uses a simple naming convention!
 
 #### Watched Resources
 - **events** - Kubernetes events (CRITICAL for policy violations)
-- **PolicyReport, ClusterPolicyReport** - Kyverno policy reports
-- **Policy, ClusterPolicy** - Kyverno policies
-- **ValidatingAdmissionPolicy, ValidatingAdmissionPolicyBinding** - Admission control policies
-- **MutatingAdmissionPolicy, MutatingAdmissionPolicyBinding** - Admission control policies
+- **ValidatingAdmissionPolicy, ValidatingAdmissionPolicyBinding** - Admission control policies for automatic audit policy duplication
 
 ## Building
 
@@ -261,15 +246,15 @@ GOOS=linux GOARCH=amd64 go build -o insights-event-watcher ./cmd/insights-event-
 # Build Docker image
 docker build -t insights-event-watcher .
 
-# Run with VAP interceptor enabled
-docker run -p 8080:8080 insights-event-watcher --enable-vap-interceptor=true --vap-interceptor-port=8080
+# Run the watcher
+docker run insights-event-watcher
 ```
 
 ## Deployment
 
 ### Kubernetes Deployment
 
-The watcher can be deployed as a Kubernetes deployment with VAP interceptor functionality:
+The watcher can be deployed as a Kubernetes deployment:
 
 ```yaml
 apiVersion: apps/v1
@@ -292,32 +277,26 @@ spec:
         image: insights-event-watcher:latest
         command: ["/usr/local/bin/insights-event-watcher"]
         args:
-        - "--enable-vap-interceptor=true"
-        - "--vap-interceptor-port=8080"
         - "--insights-host=https://insights.fairwinds.com"
         - "--organization=my-org"
         - "--cluster=production"
         - "--insights-token=your-api-token"
-        ports:
-        - containerPort: 8080
-          name: webhook
 ```
 
-### Testing VAP Interceptor
+### Testing Automatic Policy Duplication
 
-To test the VAP interceptor functionality:
+To test the automatic policy duplication functionality:
 
-1. **Deploy the watcher** with VAP interceptor enabled
-2. **Create a VAP policy** that blocks resource creation
-3. **Attempt to create a violating resource**
-4. **Check for synthetic VAPViolation events**:
+1. **Deploy the watcher** with proper RBAC permissions
+2. **Create a ValidatingAdmissionPolicy** with Deny-only bindings
+3. **Check for automatically created audit policies**:
 
 ```bash
-# Check for VAPViolation events
-kubectl get events -A | grep VAPViolation
+# Check for audit policies
+kubectl get validatingadmissionpolicies | grep insights-audit
 
-# Check watcher logs for VAP interceptor activity
-kubectl logs -n insights-agent deployment/insights-event-watcher | grep -i "vap"
+# Check watcher logs for VAP duplicator activity
+kubectl logs -n insights-agent deployment/insights-event-watcher | grep -i "VAPDuplicator"
 ```
 
 ## Configuration
@@ -336,13 +315,9 @@ rules:
 - apiGroups: [""]
   resources: ["events"]
   verbs: ["get", "list", "watch"]
-# Kyverno policy resources
-- apiGroups: ["wgpolicyk8s.io"]
-  resources: ["policyreports", "clusterpolicyreports", "policies", "clusterpolicies"]
-  verbs: ["get", "list", "watch"]
 # ValidatingAdmissionPolicy resources
 - apiGroups: ["admissionregistration.k8s.io"]
-  resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings", "mutatingadmissionpolicies", "mutatingadmissionpolicybindings"]
+  resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings"]
   verbs: ["get", "list", "watch", "create"]  # Added "create" for automatic audit policy duplication
 ```
 
