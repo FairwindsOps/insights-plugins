@@ -132,7 +132,7 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 		return "", "", false, fmt.Errorf("empty message")
 	}
 
-	blocked = strings.Contains(message, " (blocked)") || strings.HasSuffix(message, "(blocked)") || strings.Contains(message, " fail:")
+	blocked = strings.Contains(message, " (blocked)") || strings.HasSuffix(message, "(blocked)")
 
 	// Try to parse synthetic VAP violation format: "VAP Policy Violation: [original message]"
 	if strings.HasPrefix(message, "VAP Policy Violation: ") {
@@ -165,6 +165,9 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 			if policyResult != "fail" && policyResult != "warn" && policyResult != "pass" && policyResult != "error" {
 				policyResult = "unknown"
 			}
+
+			// For Kyverno format, check if the message contains "(blocked)" to determine if it's blocked
+			blocked = strings.Contains(message, "(blocked)")
 
 			return policyName, policyResult, blocked, nil
 		}

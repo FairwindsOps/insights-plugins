@@ -37,7 +37,7 @@ func NewWatcher(insightsConfig models.InsightsConfig) (*Watcher, error) {
 	}
 
 	// Create handler factory
-	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig)
+	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface)
 
 	w := &Watcher{
 		client:         kubeClient,
@@ -67,6 +67,15 @@ func (w *Watcher) Start(ctx context.Context) error {
 		}
 		logrus.WithField("resource", resourceType).Info("Started watching resource")
 	}
+
+	// Check existing ValidatingAdmissionPolicies for audit duplicates
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		if err := w.checkExistingPolicies(); err != nil {
+			logrus.WithError(err).Error("Failed to check existing policies for audit duplicates")
+		}
+	}()
 
 	// Start event processor
 	w.wg.Add(1)
@@ -226,4 +235,27 @@ func (w *Watcher) processEvents() {
 			}
 		}
 	}
+}
+
+// checkExistingPolicies checks existing ValidatingAdmissionPolicies for audit duplicates
+func (w *Watcher) checkExistingPolicies() error {
+	// Get the VAP duplicator handler from the factory
+	handler := w.handlerFactory.GetHandler(&event.WatchedEvent{
+		ResourceType: "ValidatingAdmissionPolicy",
+	})
+	
+	if handler == nil {
+		logrus.Debug("No VAP duplicator handler found, skipping existing policy check")
+		return nil
+	}
+
+	// Type assert to VAPDuplicatorHandler
+	vapDuplicator, ok := handler.(*handlers.VAPDuplicatorHandler)
+	if !ok {
+		logrus.Debug("Handler is not VAPDuplicatorHandler, skipping existing policy check")
+		return nil
+	}
+
+	// Call the CheckExistingPolicies method
+	return vapDuplicator.CheckExistingPolicies()
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/models"
@@ -15,13 +16,15 @@ type EventHandler interface {
 // EventHandlerFactory creates event handlers based on event characteristics
 type EventHandlerFactory struct {
 	insightsConfig models.InsightsConfig
+	kubeClient     kubernetes.Interface
 	handlers       map[string]EventHandler
 }
 
 // NewEventHandlerFactory creates a new factory with registered handlers
-func NewEventHandlerFactory(insightsConfig models.InsightsConfig) *EventHandlerFactory {
+func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kubernetes.Interface) *EventHandlerFactory {
 	factory := &EventHandlerFactory{
 		insightsConfig: insightsConfig,
+		kubeClient:     kubeClient,
 		handlers:       make(map[string]EventHandler),
 	}
 
@@ -35,6 +38,9 @@ func NewEventHandlerFactory(insightsConfig models.InsightsConfig) *EventHandlerF
 func (f *EventHandlerFactory) registerDefaultHandlers() {
 	// PolicyViolation handler for Kubernetes events
 	f.Register("policy-violation", NewPolicyViolationHandler(f.insightsConfig))
+
+	// VAP Duplicator handler for ValidatingAdmissionPolicy resources
+	f.Register("vap-duplicator", NewVAPDuplicatorHandler(f.insightsConfig, f.kubeClient))
 }
 
 // Register adds a new handler to the factory
@@ -65,6 +71,12 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 			}
 		}
 	}
+
+	// Check for ValidatingAdmissionPolicy resources
+	if watchedEvent.ResourceType == "ValidatingAdmissionPolicy" {
+		return "vap-duplicator"
+	}
+
 	return ""
 }
 

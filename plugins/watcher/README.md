@@ -13,6 +13,8 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 - **Kyverno Integration**: Monitors Kyverno policy reports and cluster policy reports
 - **Admission Control**: Tracks ValidatingAdmissionPolicy and MutatingAdmissionPolicy resources
 - **Event-driven VAP Monitoring**: Monitors existing Kubernetes events for VAP violations and generates synthetic events
+- **Audit Policy Support**: Supports dedicated audit policies for capturing policy violations without webhook dependencies
+- **Automatic Policy Duplication**: Automatically creates, updates, and deletes audit duplicates of ValidatingAdmissionPolicies with Deny-only actions
 
 ## Usage
 
@@ -36,27 +38,88 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 - `--organization`: Fairwinds organization name (required if insights-host provided)
 - `--cluster`: Cluster name (required if insights-host provided)
 - `--insights-token`: Fairwinds Insights API token (required if insights-host provided)
-- `--enable-vap-interceptor`: Enable VAP interceptor functionality (default: `false`)
-- `--vap-interceptor-port`: Port for VAP interceptor webhook server (default: `8080`)
 
-### VAP Interceptor
+### Automatic Policy Duplication
 
-The VAP Interceptor solves the challenge of auditing ValidatingAdmissionPolicy violations that block resource creation. Since VAPs run before admission webhooks in the Kubernetes admission chain, blocked requests never reach webhook endpoints, making it impossible to generate events for audit purposes.
+The watcher plugin now automatically creates audit duplicates of ValidatingAdmissionPolicies that have only "Deny" actions. This feature:
 
-#### How VAP Interceptor Works
+- **Automatic Detection**: Monitors for new ValidatingAdmissionPolicy resources
+- **Smart Duplication**: Only creates audit duplicates for policies with Deny-only bindings
+- **Audit Policy Creation**: Creates `{policy-name}-insights-audit` policies with Audit-only actions
+- **Audit Binding Creation**: Creates `{binding-name}-insights-audit` bindings pointing to audit policies
+- **Duplicate Prevention**: Skips policies that already have audit duplicates
 
-1. **Event-driven Monitoring**: Monitors existing Kubernetes events for VAP violation indicators
-2. **Synthetic Event Generation**: Creates `VAPViolation` events for detected VAP violations
-3. **Policy Details Extraction**: Extracts policy names and violation details from original events
-4. **Insights Integration**: Sends synthetic events to Fairwinds Insights for audit
+#### How It Works
 
-#### VAP Interceptor Features
+1. **Startup Check**: On startup, checks all existing ValidatingAdmissionPolicy resources
+2. **Policy Detection**: Watches for new, modified, and deleted ValidatingAdmissionPolicy resources
+3. **Binding Analysis**: Checks if any bindings have only "Deny" actions
+4. **Audit Creation**: Creates audit policy and bindings if needed
+5. **Audit Updates**: Updates audit policies when original policies are modified
+6. **Audit Cleanup**: Deletes audit policies when original policies are deleted
+7. **Event Generation**: Audit policies generate events for the watcher to capture
 
-- **Non-intrusive**: Does not interfere with normal admission requests
-- **Generic Detection**: Works with any VAP policy without hardcoded checks
-- **Event-driven**: Monitors existing Kubernetes events rather than intercepting requests
-- **Synthetic Events**: Generates `VAPViolation` events that are processed by the standard PolicyViolationHandler
-- **Duplicate Prevention**: Prevents creation of duplicate synthetic events
+#### Example
+
+When you create a policy like this:
+```yaml
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: disallow-host-path
+spec:
+  validations:
+  - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
+    message: "HostPath volumes are forbidden"
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: disallow-host-path-binding
+spec:
+  policyName: disallow-host-path
+  validationActions:
+  - Deny  # Only Deny action
+```
+
+The watcher automatically creates:
+```yaml
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: disallow-host-path-insights-audit
+  labels:
+    insights.fairwinds.com/audit-policy: "true"
+    insights.fairwinds.com/original-policy: "disallow-host-path"
+spec:
+  validations:
+  - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
+    message: "HostPath volumes are forbidden"
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: disallow-host-path-binding-insights-audit
+  labels:
+    insights.fairwinds.com/audit-binding: "true"
+    insights.fairwinds.com/original-binding: "disallow-host-path-binding"
+spec:
+  policyName: disallow-host-path-insights-audit
+  validationActions:
+  - Audit  # Only Audit action
+```
+
+### Manual Audit Policy Approach
+
+You can also manually create audit policies instead of relying on automatic duplication. This approach provides:
+
+- **Clean Separation**: Dedicated audit policies separate from enforcement policies
+- **No Webhook Dependency**: Doesn't require mutating webhook functionality
+- **Explicit Configuration**: Clear intent with Audit-only validation actions
+- **Better Performance**: No webhook overhead for policy creation
+
+See [AUDIT_POLICY_SETUP.md](examples/AUDIT_POLICY_SETUP.md) for detailed manual setup instructions.
+
 
 ### PolicyViolation Event Processing
 
@@ -148,14 +211,6 @@ spec:
   --cluster=production \
   --insights-token=your-api-token
 
-# Run with VAP interceptor enabled
-./insights-event-watcher \
-  --enable-vap-interceptor=true \
-  --vap-interceptor-port=8080 \
-  --insights-host=https://insights.fairwinds.com \
-  --organization=my-org \
-  --cluster=production \
-  --insights-token=your-api-token
 ```
 
 ### Extensible Event Handler System
@@ -288,7 +343,7 @@ rules:
 # ValidatingAdmissionPolicy resources
 - apiGroups: ["admissionregistration.k8s.io"]
   resources: ["validatingadmissionpolicies", "validatingadmissionpolicybindings", "mutatingadmissionpolicies", "mutatingadmissionpolicybindings"]
-  verbs: ["get", "list", "watch"]
+  verbs: ["get", "list", "watch", "create"]  # Added "create" for automatic audit policy duplication
 ```
 
 ## Event Types
@@ -310,21 +365,25 @@ The watcher provides structured logging with the following fields:
 
 ## Troubleshooting
 
-### VAP Interceptor Issues
 
-**Problem**: VAP violations are not generating synthetic events
-- **Check**: Ensure VAP interceptor is enabled with `--enable-vap-interceptor=true`
-- **Check**: Verify VAP policies are actually blocking resources (not in audit mode)
-- **Check**: Look for VAP event monitor logs: `kubectl logs deployment/insights-event-watcher | grep "VAP event monitor"`
+### Automatic Policy Duplication Issues
 
-**Problem**: Synthetic VAPViolation events are not being processed
-- **Check**: Verify handler selection logic includes VAPViolation events
-- **Check**: Look for PolicyViolationHandler logs: `kubectl logs deployment/insights-event-watcher | grep "VAPViolation"`
-- **Check**: Ensure synthetic events have correct format: `"VAP Policy Violation: [original message]"`
+**Problem**: Audit policies are not being created automatically
+- **Check**: Verify RBAC permissions include `create` on `validatingadmissionpolicies` and `validatingadmissionpolicybindings`
+- **Check**: Look for VAP duplicator handler logs: `kubectl logs deployment/insights-event-watcher | grep "VAPDuplicator"`
+- **Check**: Look for startup check logs: `kubectl logs deployment/insights-event-watcher | grep "Checking existing ValidatingAdmissionPolicies"`
+- **Check**: Ensure the policy has bindings with only "Deny" actions
+- **Check**: Verify the policy name doesn't already end with "-insights-audit"
 
-**Problem**: Duplicate synthetic events being created
-- **Check**: The VAP interceptor includes duplicate prevention logic
-- **Check**: Look for "already exists" messages in logs
+**Problem**: Duplicate audit policies being created
+- **Check**: The duplicator includes duplicate prevention logic
+- **Check**: Look for "Audit policy already exists" messages in logs
+- **Check**: Verify existing audit policies have proper labels
+
+**Problem**: Audit policies created but no events generated
+- **Check**: Verify audit bindings have "Audit" validation actions
+- **Check**: Ensure audit policies have the same validation rules as original policies
+- **Check**: Test with a violating resource to trigger policy evaluation
 
 ### General Issues
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/models"
@@ -26,12 +27,13 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
 
 	tests := []struct {
 		name            string
 		event           *event.WatchedEvent
 		expectedHandler string
+		expectNil       bool
 	}{
 		{
 			name: "PolicyViolation event should return policy-violation handler",
@@ -48,60 +50,66 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 				},
 			},
 			expectedHandler: "policy-violation",
+			expectNil:       false,
 		},
 		{
-			name: "PolicyReport event should return policyreport-handler",
+			name: "VAPViolation event should return policy-violation handler",
+			event: &event.WatchedEvent{
+				ResourceType: "events",
+				Data: map[string]interface{}{
+					"reason":  "VAPViolation",
+					"message": "Pod default/nginx: [disallow-host-path] fail (blocked); validation error: HostPath volumes are forbidden.",
+					"involvedObject": map[string]interface{}{
+						"kind":      "Pod",
+						"name":      "nginx",
+						"namespace": "default",
+					},
+				},
+			},
+			expectedHandler: "policy-violation",
+			expectNil:       false,
+		},
+		{
+			name: "ValidatingAdmissionPolicy event should return vap-duplicator handler",
+			event: &event.WatchedEvent{
+				ResourceType: "ValidatingAdmissionPolicy",
+				Name:         "test-policy",
+			},
+			expectedHandler: "vap-duplicator",
+			expectNil:       false,
+		},
+		{
+			name: "PolicyReport event should return no handler",
 			event: &event.WatchedEvent{
 				ResourceType: "PolicyReport",
 			},
-			expectedHandler: "policyreport-handler",
+			expectedHandler: "",
+			expectNil:       true,
 		},
 		{
-			name: "ClusterPolicyReport event should return clusterpolicyreport-handler",
-			event: &event.WatchedEvent{
-				ResourceType: "ClusterPolicyReport",
-			},
-			expectedHandler: "clusterpolicyreport-handler",
-		},
-		{
-			name: "Policy event should return policy-handler",
-			event: &event.WatchedEvent{
-				ResourceType: "Policy",
-			},
-			expectedHandler: "policy-handler",
-		},
-		{
-			name: "ClusterPolicy event should return clusterpolicy-handler",
-			event: &event.WatchedEvent{
-				ResourceType: "ClusterPolicy",
-			},
-			expectedHandler: "clusterpolicy-handler",
-		},
-		{
-			name: "Unknown resource should return generic-resource handler",
+			name: "Unknown resource should return no handler",
 			event: &event.WatchedEvent{
 				ResourceType: "UnknownResource",
 			},
-			expectedHandler: "generic-resource",
-		},
-		{
-			name: "Pod event should return generic-resource handler",
-			event: &event.WatchedEvent{
-				ResourceType: "Pod",
-			},
-			expectedHandler: "generic-resource",
+			expectedHandler: "",
+			expectNil:       true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := factory.GetHandler(tt.event)
-			assert.NotNil(t, handler, "Handler should not be nil")
 
-			// Verify the handler type by checking if it can handle the event
-			// (This is a simple way to verify we got the right handler)
-			err := handler.Handle(tt.event)
-			assert.NoError(t, err, "Handler should be able to handle the event")
+			if tt.expectNil {
+				assert.Nil(t, handler, "Handler should be nil for unsupported resource types")
+			} else {
+				assert.NotNil(t, handler, "Handler should not be nil")
+
+				// Verify the handler type by checking if it can handle the event
+				// (This is a simple way to verify we got the right handler)
+				err := handler.Handle(tt.event)
+				assert.NoError(t, err, "Handler should be able to handle the event")
+			}
 		})
 	}
 }
@@ -114,7 +122,7 @@ func TestEventHandlerFactoryRegister(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
 
 	// Create a custom handler
 	customHandler := &PolicyViolationHandler{insightsConfig: config}
@@ -146,7 +154,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
 
 	tests := []struct {
 		name        string
@@ -218,17 +226,14 @@ func TestEventHandlerFactoryGetHandlerNames(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
 
 	handlerNames := factory.GetHandlerNames()
 
 	// Verify we have the expected default handlers
 	expectedHandlers := []string{
-		"policyreport-handler",
-		"clusterpolicyreport-handler",
-		"policy-handler",
-		"clusterpolicy-handler",
-		"generic-resource",
+		"policy-violation",
+		"vap-duplicator",
 	}
 
 	for _, expected := range expectedHandlers {
@@ -244,12 +249,12 @@ func TestEventHandlerFactoryGetHandlerCount(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
 
 	count := factory.GetHandlerCount()
 
 	// Should have at least the default handlers
-	assert.GreaterOrEqual(t, count, 5, "Should have at least 5 default handlers")
+	assert.GreaterOrEqual(t, count, 2, "Should have at least 2 default handlers")
 }
 
 // Test the naming convention logic
@@ -261,7 +266,7 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
 
 	tests := []struct {
 		name         string
@@ -279,18 +284,35 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 			expectedName: "policy-violation",
 		},
 		{
+			name: "VAPViolation event",
+			event: &event.WatchedEvent{
+				ResourceType: "events",
+				Data: map[string]interface{}{
+					"reason": "VAPViolation",
+				},
+			},
+			expectedName: "policy-violation",
+		},
+		{
+			name: "ValidatingAdmissionPolicy resource",
+			event: &event.WatchedEvent{
+				ResourceType: "ValidatingAdmissionPolicy",
+			},
+			expectedName: "vap-duplicator",
+		},
+		{
 			name: "PolicyReport resource",
 			event: &event.WatchedEvent{
 				ResourceType: "PolicyReport",
 			},
-			expectedName: "policyreport-handler",
+			expectedName: "",
 		},
 		{
 			name: "Unknown resource",
 			event: &event.WatchedEvent{
 				ResourceType: "UnknownResource",
 			},
-			expectedName: "generic-resource",
+			expectedName: "",
 		},
 	}
 
