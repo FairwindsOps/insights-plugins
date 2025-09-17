@@ -379,17 +379,20 @@ func (h *VAPDuplicatorHandler) createAuditBinding(binding *admissionregistration
 func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1beta1.ValidatingAdmissionPolicy) error {
 	auditPolicyName := vap.Name + "-insights-audit"
 
-	// Check if the audit policy exists
-	_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Get(context.TODO(), auditPolicyName, metav1.GetOptions{})
+	// Get the existing audit policy to preserve metadata and resourceVersion
+	existingAuditPolicy, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Get(context.TODO(), auditPolicyName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get existing audit policy: %w", err)
 	}
 
-	// Create updated audit policy
-	updatedAuditPolicy := h.createAuditPolicy(vap)
+	// Create updated audit policy spec
+	newAuditPolicy := h.createAuditPolicy(vap)
+
+	// Update the existing policy with new spec while preserving metadata
+	existingAuditPolicy.Spec = newAuditPolicy.Spec
 
 	// Update the audit policy
-	_, err = h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Update(context.TODO(), updatedAuditPolicy, metav1.UpdateOptions{})
+	_, err = h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Update(context.TODO(), existingAuditPolicy, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update audit policy: %w", err)
 	}
@@ -428,8 +431,23 @@ func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1bet
 				}).Info("Created audit binding during update")
 			} else {
 				// Update existing audit binding
-				auditBinding := h.createAuditBinding(&binding, auditPolicyName)
-				_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Update(context.TODO(), auditBinding, metav1.UpdateOptions{})
+				// Get the existing audit binding to preserve metadata and resourceVersion
+				existingAuditBinding, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Get(context.TODO(), auditBindingName, metav1.GetOptions{})
+				if err != nil {
+					logrus.WithError(err).WithFields(logrus.Fields{
+						"original_binding": binding.Name,
+						"audit_binding":    auditBindingName,
+					}).Warn("Failed to get existing audit binding for update")
+					continue
+				}
+
+				// Create new audit binding spec
+				newAuditBinding := h.createAuditBinding(&binding, auditPolicyName)
+
+				// Update the existing binding with new spec while preserving metadata
+				existingAuditBinding.Spec = newAuditBinding.Spec
+
+				_, err = h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Update(context.TODO(), existingAuditBinding, metav1.UpdateOptions{})
 				if err != nil {
 					logrus.WithError(err).WithFields(logrus.Fields{
 						"original_binding": binding.Name,
