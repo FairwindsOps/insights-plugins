@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/runtime"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
@@ -27,7 +29,8 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
+	scheme := runtime.NewScheme()
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme))
 
 	tests := []struct {
 		name            string
@@ -122,7 +125,8 @@ func TestEventHandlerFactoryRegister(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
+	scheme := runtime.NewScheme()
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme))
 
 	// Create a custom handler
 	customHandler := &PolicyViolationHandler{insightsConfig: config}
@@ -154,7 +158,8 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
+	scheme := runtime.NewScheme()
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme))
 
 	tests := []struct {
 		name        string
@@ -226,7 +231,8 @@ func TestEventHandlerFactoryGetHandlerNames(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
+	scheme := runtime.NewScheme()
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme))
 
 	handlerNames := factory.GetHandlerNames()
 
@@ -249,7 +255,8 @@ func TestEventHandlerFactoryGetHandlerCount(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
+	scheme := runtime.NewScheme()
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme))
 
 	count := factory.GetHandlerCount()
 
@@ -266,7 +273,8 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset())
+	scheme := runtime.NewScheme()
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme))
 
 	tests := []struct {
 		name         string
