@@ -44,8 +44,30 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error 
 
 	logrus.WithFields(logFields).Info("Processing PolicyViolation event")
 
+	// Add detailed logging to see what data we're processing
+	if watchedEvent.Data != nil {
+		logrus.WithFields(logFields).WithFields(logrus.Fields{
+			"event_data": watchedEvent.Data,
+		}).Debug("Event data received")
+
+		// Log the message if it exists
+		if message, ok := watchedEvent.Data["message"].(string); ok {
+			logrus.WithFields(logFields).WithFields(logrus.Fields{
+				"message": message,
+			}).Debug("Event message")
+		}
+
+		// Log the reason if it exists
+		if reason, ok := watchedEvent.Data["reason"].(string); ok {
+			logrus.WithFields(logFields).WithFields(logrus.Fields{
+				"reason": reason,
+			}).Debug("Event reason")
+		}
+	}
+
 	violationEvent, err := h.extractPolicyViolation(watchedEvent)
 	if err != nil {
+		logrus.WithError(err).WithFields(logFields).Warn("Failed to extract policy violation")
 		return fmt.Errorf("failed to extract policy violation: %w", err)
 	}
 
@@ -132,24 +154,11 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 		return "", "", false, fmt.Errorf("empty message")
 	}
 
+	logrus.WithFields(logrus.Fields{
+		"message": message,
+	}).Debug("Parsing policy message")
+
 	blocked = strings.Contains(message, " (blocked)") || strings.HasSuffix(message, "(blocked)")
-
-	// Try to parse synthetic VAP violation format: "VAP Policy Violation: [original message]"
-	if strings.HasPrefix(message, "VAP Policy Violation: ") {
-		// Extract the original message after "VAP Policy Violation: "
-		originalMessage := strings.TrimPrefix(message, "VAP Policy Violation: ")
-
-		// Recursively parse the original message to extract policy details
-		policyName, policyResult, blocked, err = h.parsePolicyMessage(originalMessage)
-		if err != nil {
-			// If we can't parse the original message, treat it as a generic VAP violation
-			return "VAP-Violation", "fail", true, nil
-		}
-
-		// VAP violations are always considered blocked
-		blocked = true
-		return policyName, policyResult, blocked, nil
-	}
 
 	// Try to parse the new Kyverno format first: "policy namespace/policy-name result: description"
 	if strings.HasPrefix(message, "policy ") {

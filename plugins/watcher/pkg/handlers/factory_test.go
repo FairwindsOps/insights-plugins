@@ -56,23 +56,6 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 			expectNil:       false,
 		},
 		{
-			name: "VAPViolation event should return policy-violation handler",
-			event: &event.WatchedEvent{
-				ResourceType: "events",
-				Data: map[string]interface{}{
-					"reason":  "VAPViolation",
-					"message": "Pod default/nginx: [disallow-host-path] fail (blocked); validation error: HostPath volumes are forbidden.",
-					"involvedObject": map[string]interface{}{
-						"kind":      "Pod",
-						"name":      "nginx",
-						"namespace": "default",
-					},
-				},
-			},
-			expectedHandler: "policy-violation",
-			expectNil:       false,
-		},
-		{
 			name: "ClusterPolicy event should return clusterpolicy-duplicator handler",
 			event: &event.WatchedEvent{
 				ResourceType: "ClusterPolicy",
