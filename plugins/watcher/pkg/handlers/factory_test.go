@@ -239,7 +239,7 @@ func TestEventHandlerFactoryGetHandlerNames(t *testing.T) {
 	// Verify we have the expected default handlers
 	expectedHandlers := []string{
 		"policy-violation",
-		"vap-duplicator",
+		"clusterpolicy-duplicator",
 	}
 
 	for _, expected := range expectedHandlers {
@@ -302,11 +302,11 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 			expectedName: "policy-violation",
 		},
 		{
-			name: "ValidatingAdmissionPolicy resource",
+			name: "ClusterPolicy resource",
 			event: &event.WatchedEvent{
-				ResourceType: "ValidatingAdmissionPolicy",
+				ResourceType: "ClusterPolicy",
 			},
-			expectedName: "vap-duplicator",
+			expectedName: "clusterpolicy-duplicator",
 		},
 		{
 			name: "PolicyReport resource",
