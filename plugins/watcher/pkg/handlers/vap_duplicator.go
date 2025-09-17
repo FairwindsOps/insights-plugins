@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -171,7 +171,7 @@ func (h *VAPDuplicatorHandler) handlePolicyDeleted(watchedEvent *event.WatchedEv
 }
 
 // extractValidatingAdmissionPolicy extracts a ValidatingAdmissionPolicy from the watched event
-func (h *VAPDuplicatorHandler) extractValidatingAdmissionPolicy(watchedEvent *event.WatchedEvent) (*admissionregistrationv1.ValidatingAdmissionPolicy, error) {
+func (h *VAPDuplicatorHandler) extractValidatingAdmissionPolicy(watchedEvent *event.WatchedEvent) (*admissionregistrationv1beta1.ValidatingAdmissionPolicy, error) {
 	if watchedEvent.Data == nil {
 		return nil, fmt.Errorf("event data is nil")
 	}
@@ -183,7 +183,7 @@ func (h *VAPDuplicatorHandler) extractValidatingAdmissionPolicy(watchedEvent *ev
 	}
 
 	// Fetch the policy from the cluster
-	vap, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicies().Get(context.TODO(), policyName, metav1.GetOptions{})
+	vap, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Get(context.TODO(), policyName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get ValidatingAdmissionPolicy %s: %w", policyName, err)
 	}
@@ -192,7 +192,7 @@ func (h *VAPDuplicatorHandler) extractValidatingAdmissionPolicy(watchedEvent *ev
 }
 
 // needsAuditDuplicate checks if a ValidatingAdmissionPolicy needs an audit duplicate
-func (h *VAPDuplicatorHandler) needsAuditDuplicate(vap *admissionregistrationv1.ValidatingAdmissionPolicy) bool {
+func (h *VAPDuplicatorHandler) needsAuditDuplicate(vap *admissionregistrationv1beta1.ValidatingAdmissionPolicy) bool {
 	// Skip if this is already an audit policy (name ends with "-insights-audit")
 	if strings.HasSuffix(vap.Name, "-insights-audit") {
 		return false
@@ -225,13 +225,13 @@ func (h *VAPDuplicatorHandler) needsAuditDuplicate(vap *admissionregistrationv1.
 }
 
 // getPolicyBindings retrieves all ValidatingAdmissionPolicyBindings for a given policy
-func (h *VAPDuplicatorHandler) getPolicyBindings(policyName string) ([]admissionregistrationv1.ValidatingAdmissionPolicyBinding, error) {
-	bindings, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().List(context.TODO(), metav1.ListOptions{})
+func (h *VAPDuplicatorHandler) getPolicyBindings(policyName string) ([]admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding, error) {
+	bindings, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var matchingBindings []admissionregistrationv1.ValidatingAdmissionPolicyBinding
+	var matchingBindings []admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding
 	for _, binding := range bindings.Items {
 		if binding.Spec.PolicyName == policyName {
 			matchingBindings = append(matchingBindings, binding)
@@ -242,14 +242,14 @@ func (h *VAPDuplicatorHandler) getPolicyBindings(policyName string) ([]admission
 }
 
 // hasOnlyDenyActions checks if a binding has only Deny actions
-func (h *VAPDuplicatorHandler) hasOnlyDenyActions(binding admissionregistrationv1.ValidatingAdmissionPolicyBinding) bool {
+func (h *VAPDuplicatorHandler) hasOnlyDenyActions(binding admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding) bool {
 	if len(binding.Spec.ValidationActions) == 0 {
 		return false
 	}
 
 	// Check if all actions are Deny
 	for _, action := range binding.Spec.ValidationActions {
-		if action != admissionregistrationv1.Deny {
+		if action != admissionregistrationv1beta1.Deny {
 			return false
 		}
 	}
@@ -259,17 +259,17 @@ func (h *VAPDuplicatorHandler) hasOnlyDenyActions(binding admissionregistrationv
 
 // auditPolicyExists checks if an audit policy already exists
 func (h *VAPDuplicatorHandler) auditPolicyExists(auditPolicyName string) bool {
-	_, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicies().Get(context.TODO(), auditPolicyName, metav1.GetOptions{})
+	_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Get(context.TODO(), auditPolicyName, metav1.GetOptions{})
 	return err == nil
 }
 
 // createAuditDuplicate creates an audit duplicate of the ValidatingAdmissionPolicy
-func (h *VAPDuplicatorHandler) createAuditDuplicate(vap *admissionregistrationv1.ValidatingAdmissionPolicy) error {
+func (h *VAPDuplicatorHandler) createAuditDuplicate(vap *admissionregistrationv1beta1.ValidatingAdmissionPolicy) error {
 	// Create audit policy
 	auditPolicy := h.createAuditPolicy(vap)
 
 	// Create the audit policy
-	createdPolicy, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicies().Create(context.TODO(), auditPolicy, metav1.CreateOptions{})
+	createdPolicy, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Create(context.TODO(), auditPolicy, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create audit policy: %w", err)
 	}
@@ -289,7 +289,7 @@ func (h *VAPDuplicatorHandler) createAuditDuplicate(vap *admissionregistrationv1
 		if h.hasOnlyDenyActions(binding) {
 			auditBinding := h.createAuditBinding(&binding, createdPolicy.Name)
 
-			_, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Create(context.TODO(), auditBinding, metav1.CreateOptions{})
+			_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Create(context.TODO(), auditBinding, metav1.CreateOptions{})
 			if err != nil {
 				logrus.WithError(err).WithFields(logrus.Fields{
 					"original_binding": binding.Name,
@@ -310,7 +310,7 @@ func (h *VAPDuplicatorHandler) createAuditDuplicate(vap *admissionregistrationv1
 }
 
 // createAuditPolicy creates an audit version of the ValidatingAdmissionPolicy
-func (h *VAPDuplicatorHandler) createAuditPolicy(vap *admissionregistrationv1.ValidatingAdmissionPolicy) *admissionregistrationv1.ValidatingAdmissionPolicy {
+func (h *VAPDuplicatorHandler) createAuditPolicy(vap *admissionregistrationv1beta1.ValidatingAdmissionPolicy) *admissionregistrationv1beta1.ValidatingAdmissionPolicy {
 	// Deep copy the original policy
 	auditPolicy := vap.DeepCopy()
 
@@ -339,7 +339,7 @@ func (h *VAPDuplicatorHandler) createAuditPolicy(vap *admissionregistrationv1.Va
 }
 
 // createAuditBinding creates an audit version of the ValidatingAdmissionPolicyBinding
-func (h *VAPDuplicatorHandler) createAuditBinding(binding *admissionregistrationv1.ValidatingAdmissionPolicyBinding, auditPolicyName string) *admissionregistrationv1.ValidatingAdmissionPolicyBinding {
+func (h *VAPDuplicatorHandler) createAuditBinding(binding *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding, auditPolicyName string) *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding {
 	// Deep copy the original binding
 	auditBinding := binding.DeepCopy()
 
@@ -354,8 +354,8 @@ func (h *VAPDuplicatorHandler) createAuditBinding(binding *admissionregistration
 	auditBinding.Spec.PolicyName = auditPolicyName
 
 	// Set validation actions to Audit only
-	auditBinding.Spec.ValidationActions = []admissionregistrationv1.ValidationAction{
-		admissionregistrationv1.Audit,
+	auditBinding.Spec.ValidationActions = []admissionregistrationv1beta1.ValidationAction{
+		admissionregistrationv1beta1.Audit,
 	}
 
 	// Add labels to identify this as an audit binding
@@ -376,11 +376,11 @@ func (h *VAPDuplicatorHandler) createAuditBinding(binding *admissionregistration
 }
 
 // updateAuditPolicy updates an existing audit policy to match the original policy
-func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1.ValidatingAdmissionPolicy) error {
+func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1beta1.ValidatingAdmissionPolicy) error {
 	auditPolicyName := vap.Name + "-insights-audit"
 
 	// Check if the audit policy exists
-	_, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicies().Get(context.TODO(), auditPolicyName, metav1.GetOptions{})
+	_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Get(context.TODO(), auditPolicyName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get existing audit policy: %w", err)
 	}
@@ -389,7 +389,7 @@ func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1.Va
 	updatedAuditPolicy := h.createAuditPolicy(vap)
 
 	// Update the audit policy
-	_, err = h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicies().Update(context.TODO(), updatedAuditPolicy, metav1.UpdateOptions{})
+	_, err = h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Update(context.TODO(), updatedAuditPolicy, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update audit policy: %w", err)
 	}
@@ -410,11 +410,11 @@ func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1.Va
 			auditBindingName := binding.Name + "-insights-audit"
 
 			// Check if audit binding exists
-			_, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Get(context.TODO(), auditBindingName, metav1.GetOptions{})
+			_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Get(context.TODO(), auditBindingName, metav1.GetOptions{})
 			if err != nil {
 				// Create audit binding if it doesn't exist
 				auditBinding := h.createAuditBinding(&binding, auditPolicyName)
-				_, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Create(context.TODO(), auditBinding, metav1.CreateOptions{})
+				_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Create(context.TODO(), auditBinding, metav1.CreateOptions{})
 				if err != nil {
 					logrus.WithError(err).WithFields(logrus.Fields{
 						"original_binding": binding.Name,
@@ -429,7 +429,7 @@ func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1.Va
 			} else {
 				// Update existing audit binding
 				auditBinding := h.createAuditBinding(&binding, auditPolicyName)
-				_, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Update(context.TODO(), auditBinding, metav1.UpdateOptions{})
+				_, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Update(context.TODO(), auditBinding, metav1.UpdateOptions{})
 				if err != nil {
 					logrus.WithError(err).WithFields(logrus.Fields{
 						"original_binding": binding.Name,
@@ -451,14 +451,14 @@ func (h *VAPDuplicatorHandler) updateAuditPolicy(vap *admissionregistrationv1.Va
 // deleteAuditPolicy deletes an audit policy and its bindings
 func (h *VAPDuplicatorHandler) deleteAuditPolicy(auditPolicyName string) error {
 	// Delete audit bindings first
-	bindings, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().List(context.TODO(), metav1.ListOptions{})
+	bindings, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list bindings: %w", err)
 	}
 
 	for _, binding := range bindings.Items {
 		if binding.Spec.PolicyName == auditPolicyName {
-			err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Delete(context.TODO(), binding.Name, metav1.DeleteOptions{})
+			err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicyBindings().Delete(context.TODO(), binding.Name, metav1.DeleteOptions{})
 			if err != nil {
 				logrus.WithError(err).WithFields(logrus.Fields{
 					"audit_binding": binding.Name,
@@ -474,7 +474,7 @@ func (h *VAPDuplicatorHandler) deleteAuditPolicy(auditPolicyName string) error {
 	}
 
 	// Delete audit policy
-	err = h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicies().Delete(context.TODO(), auditPolicyName, metav1.DeleteOptions{})
+	err = h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().Delete(context.TODO(), auditPolicyName, metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to delete audit policy: %w", err)
 	}
@@ -491,7 +491,7 @@ func (h *VAPDuplicatorHandler) CheckExistingPolicies() error {
 	logrus.Info("Checking existing ValidatingAdmissionPolicies for audit duplicates")
 
 	// Get all ValidatingAdmissionPolicies
-	policies, err := h.kubeClient.AdmissionregistrationV1().ValidatingAdmissionPolicies().List(context.TODO(), metav1.ListOptions{})
+	policies, err := h.kubeClient.AdmissionregistrationV1beta1().ValidatingAdmissionPolicies().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list ValidatingAdmissionPolicies: %w", err)
 	}

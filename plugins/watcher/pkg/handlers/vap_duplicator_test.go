@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -72,12 +72,12 @@ func TestVAPDuplicatorHandler_Handle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fake Kubernetes client with test policies
-			testPolicy := &admissionregistrationv1.ValidatingAdmissionPolicy{
+			testPolicy := &admissionregistrationv1beta1.ValidatingAdmissionPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-policy",
 				},
-				Spec: admissionregistrationv1.ValidatingAdmissionPolicySpec{
-					Validations: []admissionregistrationv1.Validation{
+				Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicySpec{
+					Validations: []admissionregistrationv1beta1.Validation{
 						{
 							Expression: "object.spec.replicas <= 10",
 							Message:    "Replicas must not exceed 10",
@@ -86,25 +86,25 @@ func TestVAPDuplicatorHandler_Handle(t *testing.T) {
 				},
 			}
 
-			testBinding := &admissionregistrationv1.ValidatingAdmissionPolicyBinding{
+			testBinding := &admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-binding",
 				},
-				Spec: admissionregistrationv1.ValidatingAdmissionPolicyBindingSpec{
+				Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicyBindingSpec{
 					PolicyName: "test-policy",
-					ValidationActions: []admissionregistrationv1.ValidationAction{
-						admissionregistrationv1.Deny,
+					ValidationActions: []admissionregistrationv1beta1.ValidationAction{
+						admissionregistrationv1beta1.Deny,
 					},
 				},
 			}
 
 			// Add audit policy for the audit suffix test
-			auditPolicy := &admissionregistrationv1.ValidatingAdmissionPolicy{
+			auditPolicy := &admissionregistrationv1beta1.ValidatingAdmissionPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-policy-insights-audit",
 				},
-				Spec: admissionregistrationv1.ValidatingAdmissionPolicySpec{
-					Validations: []admissionregistrationv1.Validation{
+				Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicySpec{
+					Validations: []admissionregistrationv1beta1.Validation{
 						{
 							Expression: "object.spec.replicas <= 10",
 							Message:    "Replicas must not exceed 10",
@@ -142,12 +142,12 @@ func TestVAPDuplicatorHandler_Handle(t *testing.T) {
 func TestVAPDuplicatorHandler_needsAuditDuplicate(t *testing.T) {
 	tests := []struct {
 		name     string
-		policy   *admissionregistrationv1.ValidatingAdmissionPolicy
+		policy   *admissionregistrationv1beta1.ValidatingAdmissionPolicy
 		expected bool
 	}{
 		{
 			name: "Policy without audit suffix should need duplicate",
-			policy: &admissionregistrationv1.ValidatingAdmissionPolicy{
+			policy: &admissionregistrationv1beta1.ValidatingAdmissionPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-policy",
 				},
@@ -156,7 +156,7 @@ func TestVAPDuplicatorHandler_needsAuditDuplicate(t *testing.T) {
 		},
 		{
 			name: "Policy with audit suffix should not need duplicate",
-			policy: &admissionregistrationv1.ValidatingAdmissionPolicy{
+			policy: &admissionregistrationv1beta1.ValidatingAdmissionPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-policy-insights-audit",
 				},
@@ -168,14 +168,14 @@ func TestVAPDuplicatorHandler_needsAuditDuplicate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fake Kubernetes client with test binding
-			testBinding := &admissionregistrationv1.ValidatingAdmissionPolicyBinding{
+			testBinding := &admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-binding",
 				},
-				Spec: admissionregistrationv1.ValidatingAdmissionPolicyBindingSpec{
+				Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicyBindingSpec{
 					PolicyName: "test-policy",
-					ValidationActions: []admissionregistrationv1.ValidationAction{
-						admissionregistrationv1.Deny,
+					ValidationActions: []admissionregistrationv1beta1.ValidationAction{
+						admissionregistrationv1beta1.Deny,
 					},
 				},
 			}
@@ -204,15 +204,15 @@ func TestVAPDuplicatorHandler_createAuditPolicy(t *testing.T) {
 	handler := NewVAPDuplicatorHandler(config, fakeClient)
 
 	// Create test policy
-	originalPolicy := &admissionregistrationv1.ValidatingAdmissionPolicy{
+	originalPolicy := &admissionregistrationv1beta1.ValidatingAdmissionPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-policy",
 			Labels: map[string]string{
 				"app": "test",
 			},
 		},
-		Spec: admissionregistrationv1.ValidatingAdmissionPolicySpec{
-			Validations: []admissionregistrationv1.Validation{
+		Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicySpec{
+			Validations: []admissionregistrationv1beta1.Validation{
 				{
 					Expression: "true",
 					Message:    "Test validation",
@@ -244,17 +244,17 @@ func TestVAPDuplicatorHandler_createAuditBinding(t *testing.T) {
 	handler := NewVAPDuplicatorHandler(config, fakeClient)
 
 	// Create test binding
-	originalBinding := &admissionregistrationv1.ValidatingAdmissionPolicyBinding{
+	originalBinding := &admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-binding",
 			Labels: map[string]string{
 				"app": "test",
 			},
 		},
-		Spec: admissionregistrationv1.ValidatingAdmissionPolicyBindingSpec{
+		Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicyBindingSpec{
 			PolicyName: "test-policy",
-			ValidationActions: []admissionregistrationv1.ValidationAction{
-				admissionregistrationv1.Deny,
+			ValidationActions: []admissionregistrationv1beta1.ValidationAction{
+				admissionregistrationv1beta1.Deny,
 			},
 		},
 	}
@@ -265,7 +265,7 @@ func TestVAPDuplicatorHandler_createAuditBinding(t *testing.T) {
 	// Assert
 	assert.Equal(t, "test-binding-insights-audit", auditBinding.Name)
 	assert.Equal(t, "test-policy-insights-audit", auditBinding.Spec.PolicyName)
-	assert.Equal(t, []admissionregistrationv1.ValidationAction{admissionregistrationv1.Audit}, auditBinding.Spec.ValidationActions)
+	assert.Equal(t, []admissionregistrationv1beta1.ValidationAction{admissionregistrationv1beta1.Audit}, auditBinding.Spec.ValidationActions)
 	assert.Equal(t, "true", auditBinding.Labels["insights.fairwinds.com/audit-binding"])
 	assert.Equal(t, "test-binding", auditBinding.Labels["insights.fairwinds.com/original-binding"])
 	assert.Equal(t, "insights-event-watcher", auditBinding.Annotations["insights.fairwinds.com/created-by"])
@@ -275,27 +275,27 @@ func TestVAPDuplicatorHandler_createAuditBinding(t *testing.T) {
 func TestVAPDuplicatorHandler_CheckExistingPolicies(t *testing.T) {
 	tests := []struct {
 		name             string
-		existingPolicies []admissionregistrationv1.ValidatingAdmissionPolicy
-		existingBindings []admissionregistrationv1.ValidatingAdmissionPolicyBinding
+		existingPolicies []admissionregistrationv1beta1.ValidatingAdmissionPolicy
+		existingBindings []admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding
 		expectError      bool
 		expectedCreated  int
 	}{
 		{
 			name:             "No existing policies should not create any audit policies",
-			existingPolicies: []admissionregistrationv1.ValidatingAdmissionPolicy{},
-			existingBindings: []admissionregistrationv1.ValidatingAdmissionPolicyBinding{},
+			existingPolicies: []admissionregistrationv1beta1.ValidatingAdmissionPolicy{},
+			existingBindings: []admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding{},
 			expectError:      false,
 			expectedCreated:  0,
 		},
 		{
 			name: "Policy with Deny-only binding should create audit duplicate",
-			existingPolicies: []admissionregistrationv1.ValidatingAdmissionPolicy{
+			existingPolicies: []admissionregistrationv1beta1.ValidatingAdmissionPolicy{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-policy",
 					},
-					Spec: admissionregistrationv1.ValidatingAdmissionPolicySpec{
-						Validations: []admissionregistrationv1.Validation{
+					Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicySpec{
+						Validations: []admissionregistrationv1beta1.Validation{
 							{
 								Expression: "true",
 								Message:    "Test validation",
@@ -304,15 +304,15 @@ func TestVAPDuplicatorHandler_CheckExistingPolicies(t *testing.T) {
 					},
 				},
 			},
-			existingBindings: []admissionregistrationv1.ValidatingAdmissionPolicyBinding{
+			existingBindings: []admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-binding",
 					},
-					Spec: admissionregistrationv1.ValidatingAdmissionPolicyBindingSpec{
+					Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicyBindingSpec{
 						PolicyName: "test-policy",
-						ValidationActions: []admissionregistrationv1.ValidationAction{
-							admissionregistrationv1.Deny,
+						ValidationActions: []admissionregistrationv1beta1.ValidationAction{
+							admissionregistrationv1beta1.Deny,
 						},
 					},
 				},
@@ -322,13 +322,13 @@ func TestVAPDuplicatorHandler_CheckExistingPolicies(t *testing.T) {
 		},
 		{
 			name: "Policy with audit suffix should be skipped",
-			existingPolicies: []admissionregistrationv1.ValidatingAdmissionPolicy{
+			existingPolicies: []admissionregistrationv1beta1.ValidatingAdmissionPolicy{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-policy-insights-audit",
 					},
-					Spec: admissionregistrationv1.ValidatingAdmissionPolicySpec{
-						Validations: []admissionregistrationv1.Validation{
+					Spec: admissionregistrationv1beta1.ValidatingAdmissionPolicySpec{
+						Validations: []admissionregistrationv1beta1.Validation{
 							{
 								Expression: "true",
 								Message:    "Test validation",
@@ -337,7 +337,7 @@ func TestVAPDuplicatorHandler_CheckExistingPolicies(t *testing.T) {
 					},
 				},
 			},
-			existingBindings: []admissionregistrationv1.ValidatingAdmissionPolicyBinding{},
+			existingBindings: []admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding{},
 			expectError:      false,
 			expectedCreated:  0,
 		},
