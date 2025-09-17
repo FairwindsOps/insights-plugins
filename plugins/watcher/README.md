@@ -1,16 +1,18 @@
 # Kubernetes Event Watcher
 
-A Kubernetes plugin that watches policy-related resources and events, with special focus on policy violations that block resource installation.
+A Kubernetes plugin that watches policy-related resources and events, with special focus on policy violations that block resource installation. Now includes **VAP Interceptor** functionality to capture and audit ValidatingAdmissionPolicy violations that would otherwise be blocked without generating events.
 
 ## Features
 
 - **Policy Event Watching**: Watches Kubernetes events and policy resources for policy violations
 - **Policy Violation Detection**: Automatically detects and processes policy violations that block resource installation
+- **VAP Interceptor**: Captures ValidatingAdmissionPolicy violations and generates synthetic events for audit
 - **Multi-format Support**: Handles both ValidatingAdmissionPolicy and regular Kyverno policy events
 - **Insights Integration**: Sends blocked policy violations directly to Fairwinds Insights API
 - **Real-time Processing**: Processes events as they occur in the cluster
 - **Kyverno Integration**: Monitors Kyverno policy reports and cluster policy reports
 - **Admission Control**: Tracks ValidatingAdmissionPolicy and MutatingAdmissionPolicy resources
+- **Event-driven VAP Monitoring**: Monitors existing Kubernetes events for VAP violations and generates synthetic events
 
 ## Usage
 
@@ -18,10 +20,13 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 
 ```bash
 # Watch policy-related resources and events
-./watcher
+./insights-event-watcher
 
 # Set log level
-./watcher --log-level=debug
+./insights-event-watcher --log-level=debug
+
+# Enable VAP interceptor functionality
+./insights-event-watcher --enable-vap-interceptor=true --vap-interceptor-port=8080
 ```
 
 ### Command Line Options
@@ -31,6 +36,8 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 - `--organization`: Fairwinds organization name (required if insights-host provided)
 - `--cluster`: Cluster name (required if insights-host provided)
 - `--insights-token`: Fairwinds Insights API token (required if insights-host provided)
+- `--enable-vap-interceptor`: Enable VAP interceptor functionality (default: `false`)
+- `--vap-interceptor-port`: Port for VAP interceptor webhook server (default: `8080`)
 
 ### PolicyViolation Event Processing
 
