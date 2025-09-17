@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +23,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	k8sConfig "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/watcher"
@@ -50,6 +57,126 @@ type ViolationDetails struct {
 	Message    string
 }
 
+// VAPMutator handles mutating admission requests for ValidatingAdmissionPolicyBinding resources
+type VAPMutator struct {
+	client  kubernetes.Interface
+	decoder *admission.Decoder
+}
+
+// VAPValidator handles validating admission requests
+type VAPValidator struct {
+	client  kubernetes.Interface
+	decoder *admission.Decoder
+}
+
+// InjectDecoder injects the decoder
+func (m *VAPMutator) InjectDecoder(d *admission.Decoder) error {
+	m.decoder = d
+	return nil
+}
+
+// InjectDecoder injects the decoder
+func (v *VAPValidator) InjectDecoder(d *admission.Decoder) error {
+	v.decoder = d
+	return nil
+}
+
+// Handle processes validating admission requests
+func (v *VAPValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	// Log the request
+	logrus.WithFields(logrus.Fields{
+		"uid":       req.UID,
+		"kind":      req.Kind.Kind,
+		"name":      req.Name,
+		"namespace": req.Namespace,
+		"operation": req.Operation,
+	}).Debug("Processing validating admission request")
+
+	// For now, always allow requests (we're just intercepting, not blocking)
+	return admission.Allowed("")
+}
+
+// Handle processes mutating admission requests for ValidatingAdmissionPolicyBinding resources
+func (m *VAPMutator) Handle(ctx context.Context, req admission.Request) admission.Response {
+	// Only process ValidatingAdmissionPolicyBinding resources
+	if req.Kind.Kind != "ValidatingAdmissionPolicyBinding" {
+		return admission.Allowed("")
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"resource":  req.Kind.Kind,
+		"name":      req.Name,
+		"namespace": req.Namespace,
+		"operation": req.Operation,
+	}).Info("Processing ValidatingAdmissionPolicyBinding for mutation")
+
+	// Parse the ValidatingAdmissionPolicyBinding
+	var binding admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding
+	decoder := *m.decoder
+	if err := decoder.Decode(req, &binding); err != nil {
+		logrus.WithError(err).Error("Failed to decode ValidatingAdmissionPolicyBinding")
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	// Check if we need to add Audit action
+	modified := m.addAuditToBinding(&binding)
+	if !modified {
+		// No changes needed, allow the request
+		return admission.Allowed("")
+	}
+
+	// Create the patch to add Audit action
+	patch, err := m.createAuditPatch(&binding)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to create audit patch")
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"binding_name": binding.Name,
+		"policy_name":  binding.Spec.PolicyName,
+		"patch_count":  len(patch),
+	}).Info("Adding Audit action to ValidatingAdmissionPolicyBinding")
+
+	return admission.Patched("", patch...)
+}
+
+// addAuditToBinding checks if Audit action should be added to the binding
+func (m *VAPMutator) addAuditToBinding(binding *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding) bool {
+	// Check if validationActions contains only Deny
+	actions := binding.Spec.ValidationActions
+	if len(actions) != 1 || actions[0] != admissionregistrationv1beta1.Deny {
+		// Not a Deny-only binding, no changes needed
+		return false
+	}
+
+	// Check if Audit is already present
+	for _, action := range actions {
+		if action == admissionregistrationv1beta1.Audit {
+			// Audit already present, no changes needed
+			return false
+		}
+	}
+
+	// Add Audit to the validationActions
+	binding.Spec.ValidationActions = append(binding.Spec.ValidationActions, admissionregistrationv1beta1.Audit)
+	return true
+}
+
+// createAuditPatch creates a JSON patch to add Audit action to the binding
+func (m *VAPMutator) createAuditPatch(binding *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding) ([]jsonpatch.Operation, error) {
+	// Create a JSON patch to add Audit to validationActions
+	patch := []jsonpatch.Operation{
+		{
+			Operation: "add",
+			Path:      "/spec/validationActions/-",
+			Value:     "Audit",
+		},
+	}
+
+	return patch, nil
+}
+
 func main() {
 	var (
 		logLevel             = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
@@ -58,7 +185,7 @@ func main() {
 		cluster              = flag.String("cluster", "", "Cluster name")
 		insightsToken        = flag.String("insights-token", "", "Fairwinds Insights API token")
 		enableVAPInterceptor = flag.Bool("enable-vap-interceptor", false, "Enable VAP interceptor webhook alongside the watcher")
-		vapInterceptorPort   = flag.String("vap-interceptor-port", "8080", "Port for VAP interceptor webhook")
+		vapInterceptorPort   = flag.String("vap-interceptor-port", "8443", "Port for VAP interceptor webhook")
 	)
 	flag.Parse()
 
@@ -100,62 +227,75 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Create Kubernetes client (needed for VAP interceptor)
-	var kubeClient kubernetes.Interface
+	// Start VAP interceptor webhook if enabled
 	if *enableVAPInterceptor {
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			logrus.WithError(err).Fatal("Failed to get in-cluster config")
-		}
-
-		kubeClient, err = kubernetes.NewForConfig(config)
+		// Get Kubernetes config
+		k8sCfg := k8sConfig.GetConfigOrDie()
+		clientset, err := kubernetes.NewForConfig(k8sCfg)
 		if err != nil {
 			logrus.WithError(err).Fatal("Failed to create Kubernetes client")
 		}
-	}
 
-	// Start VAP interceptor webhook if enabled
-	if *enableVAPInterceptor {
-		webhook := &VAPInterceptorWebhook{
-			client: kubeClient,
+		// Parse webhook port
+		webhookPort := int64(8443)
+		if *vapInterceptorPort != "" {
+			webhookPort, err = strconv.ParseInt(*vapInterceptorPort, 10, 0)
+			if err != nil {
+				logrus.WithError(err).Fatal("Failed to parse webhook port")
+			}
 		}
 
-		// Set up HTTP server for VAP interceptor
-		mux := http.NewServeMux()
-		mux.HandleFunc("/validate", webhook.handleValidate)
-		mux.HandleFunc("/mutate", webhook.handleMutate)
-		mux.HandleFunc("/health", webhook.handleHealth)
-
-		server := &http.Server{
-			Addr:    ":" + *vapInterceptorPort,
-			Handler: mux,
+		// Create controller-runtime manager with webhook server
+		mgr, err := manager.New(k8sCfg, manager.Options{
+			HealthProbeBindAddress: ":8081",
+			WebhookServer: webhook.NewServer(webhook.Options{
+				Port:     int(webhookPort),
+				CertDir:  "/opt/cert",
+				CertName: "tls.crt",
+				KeyName:  "tls.key",
+			}),
+		})
+		if err != nil {
+			logrus.WithError(err).Fatal("Unable to set up overall controller manager")
 		}
 
-		// Start VAP interceptor server in goroutine
+		// Add health checks
+		err = mgr.AddReadyzCheck("readyz", healthz.Ping)
+		if err != nil {
+			logrus.WithError(err).Fatal("Unable to add readyz check")
+		}
+		err = mgr.AddHealthzCheck("healthz", healthz.Ping)
+		if err != nil {
+			logrus.WithError(err).Fatal("Unable to add healthz check")
+		}
+
+		// Check for certificate existence
+		_, err = os.Stat("/opt/cert/tls.crt")
+		if os.IsNotExist(err) {
+			logrus.Warn("Certificate does not exist at /opt/cert/tls.crt - webhook will not start until certificate is available")
+		}
+
+		// Create webhook handlers
+		mutator := &VAPMutator{client: clientset}
+		validator := &VAPValidator{client: clientset}
+
+		// Register webhook handlers
+		mgr.GetWebhookServer().Register("/mutate", &webhook.Admission{Handler: mutator})
+		mgr.GetWebhookServer().Register("/validate", &webhook.Admission{Handler: validator})
+
+		// Start webhook server in goroutine
 		go func() {
-			logrus.WithField("port", *vapInterceptorPort).Info("Starting VAP interceptor webhook server")
-			// For testing, use HTTP instead of HTTPS
-			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				logrus.WithError(err).Fatal("Failed to start VAP interceptor webhook server")
+			logrus.WithField("port", webhookPort).Info("Starting VAP interceptor webhook server with TLS")
+			if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
+				logrus.WithError(err).Error("Error starting webhook manager")
 			}
 		}()
 
 		// Start VAP event monitor
 		go func() {
 			logrus.Info("Starting VAP event monitor")
+			webhook := &VAPInterceptorWebhook{client: clientset}
 			webhook.startVAPEventMonitor(ctx)
-		}()
-
-		// Graceful shutdown for VAP interceptor
-		go func() {
-			<-ctx.Done()
-			logrus.Info("Shutting down VAP interceptor webhook server...")
-			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer shutdownCancel()
-
-			if err := server.Shutdown(shutdownCtx); err != nil {
-				logrus.WithError(err).Error("Failed to shutdown VAP interceptor server gracefully")
-			}
 		}()
 	}
 

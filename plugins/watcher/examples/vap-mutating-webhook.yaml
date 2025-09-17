@@ -9,10 +9,11 @@ webhooks:
 - name: vap-audit-mutator.fairwinds.com
   clientConfig:
     service:
-      name: insights-event-watcher
+      name: insights-agent-insights-event-watcher
       namespace: insights-agent
       path: "/mutate"
-      port: 8080
+      port: 8443
+    caBundle: ""  # This will be populated by cert-manager or manually
   rules:
   - operations: ["CREATE", "UPDATE"]
     apiGroups: ["admissionregistration.k8s.io"]
