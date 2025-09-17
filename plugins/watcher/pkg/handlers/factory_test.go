@@ -73,12 +73,12 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 			expectNil:       false,
 		},
 		{
-			name: "ValidatingAdmissionPolicy event should return vap-duplicator handler",
+			name: "ClusterPolicy event should return clusterpolicy-duplicator handler",
 			event: &event.WatchedEvent{
-				ResourceType: "ValidatingAdmissionPolicy",
+				ResourceType: "ClusterPolicy",
 				Name:         "test-policy",
 			},
-			expectedHandler: "vap-duplicator",
+			expectedHandler: "clusterpolicy-duplicator",
 			expectNil:       false,
 		},
 		{
