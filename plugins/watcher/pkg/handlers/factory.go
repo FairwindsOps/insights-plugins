@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
@@ -17,14 +18,16 @@ type EventHandler interface {
 type EventHandlerFactory struct {
 	insightsConfig models.InsightsConfig
 	kubeClient     kubernetes.Interface
+	dynamicClient  dynamic.Interface
 	handlers       map[string]EventHandler
 }
 
 // NewEventHandlerFactory creates a new factory with registered handlers
-func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kubernetes.Interface) *EventHandlerFactory {
+func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) *EventHandlerFactory {
 	factory := &EventHandlerFactory{
 		insightsConfig: insightsConfig,
 		kubeClient:     kubeClient,
+		dynamicClient:  dynamicClient,
 		handlers:       make(map[string]EventHandler),
 	}
 
@@ -39,8 +42,8 @@ func (f *EventHandlerFactory) registerDefaultHandlers() {
 	// PolicyViolation handler for Kubernetes events
 	f.Register("policy-violation", NewPolicyViolationHandler(f.insightsConfig))
 
-	// VAP Duplicator handler for ValidatingAdmissionPolicy resources
-	f.Register("vap-duplicator", NewVAPDuplicatorHandler(f.insightsConfig, f.kubeClient))
+	// ClusterPolicy Duplicator handler for ClusterPolicy resources
+	f.Register("clusterpolicy-duplicator", NewClusterPolicyDuplicatorHandler(f.insightsConfig, f.dynamicClient))
 }
 
 // Register adds a new handler to the factory
@@ -72,9 +75,9 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 		}
 	}
 
-	// Check for ValidatingAdmissionPolicy resources
-	if watchedEvent.ResourceType == "ValidatingAdmissionPolicy" {
-		return "vap-duplicator"
+	// Check for ClusterPolicy resources
+	if watchedEvent.ResourceType == "ClusterPolicy" {
+		return "clusterpolicy-duplicator"
 	}
 
 	return ""

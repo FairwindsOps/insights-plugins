@@ -37,7 +37,7 @@ func NewWatcher(insightsConfig models.InsightsConfig) (*Watcher, error) {
 	}
 
 	// Create handler factory
-	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface)
+	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface)
 
 	w := &Watcher{
 		client:         kubeClient,
@@ -129,11 +129,8 @@ func (w *Watcher) getResourcesToWatch() []string {
 		"ClusterPolicyReport",
 		"Policy",
 		"ClusterPolicy",
-		// ValidatingAdmissionPolicy resources
-		"ValidatingAdmissionPolicy",
-		"ValidatingAdmissionPolicyBinding",
-		"MutatingAdmissionPolicy",
-		"MutatingAdmissionPolicyBinding",
+		// Note: ValidatingAdmissionPolicy resources are now managed by Kyverno
+		// when we create ClusterPolicies with validationFailureAction: Audit
 	}
 }
 
@@ -237,25 +234,25 @@ func (w *Watcher) processEvents() {
 	}
 }
 
-// checkExistingPolicies checks existing ValidatingAdmissionPolicies for audit duplicates
+// checkExistingPolicies checks existing ClusterPolicies for audit duplicates
 func (w *Watcher) checkExistingPolicies() error {
-	// Get the VAP duplicator handler from the factory
+	// Get the ClusterPolicy duplicator handler from the factory
 	handler := w.handlerFactory.GetHandler(&event.WatchedEvent{
-		ResourceType: "ValidatingAdmissionPolicy",
+		ResourceType: "ClusterPolicy",
 	})
-	
+
 	if handler == nil {
-		logrus.Debug("No VAP duplicator handler found, skipping existing policy check")
+		logrus.Debug("No ClusterPolicy duplicator handler found, skipping existing policy check")
 		return nil
 	}
 
-	// Type assert to VAPDuplicatorHandler
-	vapDuplicator, ok := handler.(*handlers.VAPDuplicatorHandler)
+	// Type assert to ClusterPolicyDuplicatorHandler
+	clusterPolicyDuplicator, ok := handler.(*handlers.ClusterPolicyDuplicatorHandler)
 	if !ok {
-		logrus.Debug("Handler is not VAPDuplicatorHandler, skipping existing policy check")
+		logrus.Debug("Handler is not ClusterPolicyDuplicatorHandler, skipping existing policy check")
 		return nil
 	}
 
 	// Call the CheckExistingPolicies method
-	return vapDuplicator.CheckExistingPolicies()
+	return clusterPolicyDuplicator.CheckExistingPolicies()
 }
