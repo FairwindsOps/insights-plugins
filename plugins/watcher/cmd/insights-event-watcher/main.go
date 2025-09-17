@@ -449,7 +449,7 @@ func (webhook *VAPInterceptorWebhook) generateVAPViolationEvent(request *admissi
 	return nil
 }
 
-// handleMutate handles mutating admission requests
+// handleMutate handles mutating admission requests for ValidatingAdmissionPolicyBinding resources
 func (webhook *VAPInterceptorWebhook) handleMutate(w http.ResponseWriter, r *http.Request) {
 	// Read the admission review
 	body, err := io.ReadAll(r.Body)
@@ -467,8 +467,8 @@ func (webhook *VAPInterceptorWebhook) handleMutate(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Process the admission request and generate events if needed
-	response := webhook.processAdmissionRequest(&review)
+	// Process the mutating admission request
+	response := webhook.processMutatingAdmissionRequest(&review)
 
 	// Send response
 	review.Response = response
@@ -479,6 +479,123 @@ func (webhook *VAPInterceptorWebhook) handleMutate(w http.ResponseWriter, r *htt
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+}
+
+// processMutatingAdmissionRequest processes mutating admission requests for ValidatingAdmissionPolicyBinding resources
+func (webhook *VAPInterceptorWebhook) processMutatingAdmissionRequest(review *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+	request := review.Request
+	if request == nil {
+		return &admissionv1.AdmissionResponse{
+			UID:     review.Request.UID,
+			Allowed: false,
+			Result: &metav1.Status{
+				Message: "No admission request found",
+			},
+		}
+	}
+
+	// Only process ValidatingAdmissionPolicyBinding resources
+	if request.Kind.Kind != "ValidatingAdmissionPolicyBinding" {
+		return &admissionv1.AdmissionResponse{
+			UID:     request.UID,
+			Allowed: true,
+		}
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"resource":  request.Kind.Kind,
+		"name":      request.Name,
+		"namespace": request.Namespace,
+		"operation": request.Operation,
+	}).Info("Processing ValidatingAdmissionPolicyBinding for mutation")
+
+	// Parse the ValidatingAdmissionPolicyBinding
+	var binding admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding
+	if err := json.Unmarshal(request.Object.Raw, &binding); err != nil {
+		logrus.WithError(err).Error("Failed to unmarshal ValidatingAdmissionPolicyBinding")
+		return &admissionv1.AdmissionResponse{
+			UID:     request.UID,
+			Allowed: false,
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("Failed to unmarshal ValidatingAdmissionPolicyBinding: %v", err),
+			},
+		}
+	}
+
+	// Check if we need to add Audit action
+	modified := webhook.addAuditToBinding(&binding)
+	if !modified {
+		// No changes needed, allow the request
+		return &admissionv1.AdmissionResponse{
+			UID:     request.UID,
+			Allowed: true,
+		}
+	}
+
+	// Create the patch to add Audit action
+	patch, err := webhook.createAuditPatch(&binding)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to create audit patch")
+		return &admissionv1.AdmissionResponse{
+			UID:     request.UID,
+			Allowed: false,
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("Failed to create audit patch: %v", err),
+			},
+		}
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"binding_name": binding.Name,
+		"policy_name":  binding.Spec.PolicyName,
+		"patch":        string(patch),
+	}).Info("Adding Audit action to ValidatingAdmissionPolicyBinding")
+
+	return &admissionv1.AdmissionResponse{
+		UID:     request.UID,
+		Allowed: true,
+		Patch:   patch,
+		PatchType: func() *admissionv1.PatchType {
+			pt := admissionv1.PatchTypeJSONPatch
+			return &pt
+		}(),
+	}
+}
+
+// addAuditToBinding checks if Audit action should be added to the binding
+func (webhook *VAPInterceptorWebhook) addAuditToBinding(binding *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding) bool {
+	// Check if validationActions contains only Deny
+	actions := binding.Spec.ValidationActions
+	if len(actions) != 1 || actions[0] != admissionregistrationv1beta1.Deny {
+		// Not a Deny-only binding, no changes needed
+		return false
+	}
+
+	// Check if Audit is already present
+	for _, action := range actions {
+		if action == admissionregistrationv1beta1.Audit {
+			// Audit already present, no changes needed
+			return false
+		}
+	}
+
+	// Add Audit to the validationActions
+	binding.Spec.ValidationActions = append(binding.Spec.ValidationActions, admissionregistrationv1beta1.Audit)
+	return true
+}
+
+// createAuditPatch creates a JSON patch to add Audit action to the binding
+func (webhook *VAPInterceptorWebhook) createAuditPatch(binding *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding) ([]byte, error) {
+	// Create a JSON patch to add Audit to validationActions
+	patch := []map[string]interface{}{
+		{
+			"op":    "add",
+			"path":  "/spec/validationActions/-",
+			"value": "Audit",
+		},
+	}
+
+	return json.Marshal(patch)
 }
 
 // startVAPEventMonitor monitors for VAP-related events and generates synthetic events
