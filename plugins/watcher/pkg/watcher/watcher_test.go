@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/handlers"
@@ -36,7 +37,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 	}
 
 	// Create handler factory directly (following project pattern)
-	handlerFactory := handlers.NewEventHandlerFactory(config)
+	handlerFactory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset())
 	assert.NotNil(t, handlerFactory)
 
 	// Test ValidatingAdmissionPolicy event processing
@@ -172,7 +173,7 @@ func TestEventHandlerFactory_Creation(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	factory := handlers.NewEventHandlerFactory(config)
+	factory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset())
 	assert.NotNil(t, factory)
 	assert.Greater(t, factory.GetHandlerCount(), 0)
 }
