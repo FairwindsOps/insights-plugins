@@ -185,6 +185,17 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 		// This is a blocked request - extract policy violation information
 		policyName := h.extractPolicyName(auditEvent.ResponseStatus.Message)
 
+		logrus.WithFields(logrus.Fields{
+			"audit_id":      auditEvent.AuditID,
+			"policy_name":   policyName,
+			"resource_name": auditEvent.ObjectRef.Name,
+			"namespace":     auditEvent.ObjectRef.Namespace,
+			"response_code": auditEvent.ResponseStatus.Code,
+			"message":       auditEvent.ResponseStatus.Message,
+			"level":         auditEvent.Level,
+			"stage":         auditEvent.Stage,
+		}).Info("Detected policy violation from audit logs")
+
 		return &PolicyViolationEvent{
 			Timestamp:    auditEvent.RequestReceivedTimestamp,
 			PolicyName:   policyName,
