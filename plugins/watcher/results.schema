@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "event_version": {
+      "type": "integer",
+      "description": "Version of the event schema"
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp when the event was processed by watcher"
+    },
+    "event_time": {
+      "type": "string",
+      "description": "Kubernetes eventTime - exact time the event was generated"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["ADDED", "MODIFIED", "DELETED", "ERROR"],
+      "description": "Type of Kubernetes event"
+    },
+    "resource_type": {
+      "type": "string",
+      "description": "Type of Kubernetes resource (e.g., pods, PolicyReport, ClusterPolicy)"
+    },
+    "namespace": {
+      "type": "string",
+      "description": "Namespace of the resource (empty for cluster-scoped resources)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the resource"
+    },
+    "uid": {
+      "type": "string",
+      "description": "Unique identifier of the resource"
+    },
+    "data": {
+      "type": "object",
+      "description": "Complete resource data as unstructured object",
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Resource metadata (without managedFields)",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "uid": {
+          "type": "string"
+        },
+        "resourceVersion": {
+          "type": "string"
+        },
+        "creationTimestamp": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "event_version",
+    "timestamp",
+    "event_type",
+    "resource_type",
+    "name",
+    "uid",
+    "data",
+    "metadata"
+  ]
+}
