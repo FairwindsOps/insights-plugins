@@ -56,13 +56,13 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 			expectNil:       false,
 		},
 		{
-			name: "ClusterPolicy event should return clusterpolicy-duplicator handler",
+			name: "ClusterPolicy event should return no handler",
 			event: &event.WatchedEvent{
 				ResourceType: "ClusterPolicy",
 				Name:         "test-policy",
 			},
-			expectedHandler: "clusterpolicy-duplicator",
-			expectNil:       false,
+			expectedHandler: "",
+			expectNil:       true,
 		},
 		{
 			name: "PolicyReport event should return no handler",
@@ -222,7 +222,6 @@ func TestEventHandlerFactoryGetHandlerNames(t *testing.T) {
 	// Verify we have the expected default handlers
 	expectedHandlers := []string{
 		"policy-violation",
-		"clusterpolicy-duplicator",
 	}
 
 	for _, expected := range expectedHandlers {
@@ -244,7 +243,7 @@ func TestEventHandlerFactoryGetHandlerCount(t *testing.T) {
 	count := factory.GetHandlerCount()
 
 	// Should have at least the default handlers
-	assert.GreaterOrEqual(t, count, 2, "Should have at least 2 default handlers")
+	assert.GreaterOrEqual(t, count, 1, "Should have at least 1 default handler")
 }
 
 // Test the naming convention logic
@@ -279,7 +278,7 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 			event: &event.WatchedEvent{
 				ResourceType: "ClusterPolicy",
 			},
-			expectedName: "clusterpolicy-duplicator",
+			expectedName: "",
 		},
 		{
 			name: "PolicyReport resource",

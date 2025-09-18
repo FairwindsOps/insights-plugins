@@ -42,8 +42,6 @@ func (f *EventHandlerFactory) registerDefaultHandlers() {
 	// PolicyViolation handler for Kubernetes events
 	f.Register("policy-violation", NewPolicyViolationHandler(f.insightsConfig))
 
-	// ClusterPolicy Duplicator handler for ClusterPolicy resources
-	f.Register("clusterpolicy-duplicator", NewClusterPolicyDuplicatorHandler(f.insightsConfig, f.dynamicClient))
 }
 
 // Register adds a new handler to the factory
@@ -73,11 +71,6 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 				return "policy-violation"
 			}
 		}
-	}
-
-	// Check for ClusterPolicy resources
-	if watchedEvent.ResourceType == "ClusterPolicy" {
-		return "clusterpolicy-duplicator"
 	}
 
 	return ""

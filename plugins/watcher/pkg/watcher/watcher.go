@@ -156,7 +156,6 @@ func (w *Watcher) getResourcesToWatch() []string {
 		"PolicyReport",
 		"ClusterPolicyReport",
 		"Policy",
-		"ClusterPolicy",
 		// Note: ValidatingAdmissionPolicy resources are now managed by Kyverno
 		// when we create ClusterPolicies with validationFailureAction: Audit
 	}
@@ -262,25 +261,9 @@ func (w *Watcher) processEvents() {
 	}
 }
 
-// checkExistingPolicies checks existing ClusterPolicies for audit duplicates
+// checkExistingPolicies checks existing policies for audit duplicates
 func (w *Watcher) checkExistingPolicies() error {
-	// Get the ClusterPolicy duplicator handler from the factory
-	handler := w.handlerFactory.GetHandler(&event.WatchedEvent{
-		ResourceType: "ClusterPolicy",
-	})
-
-	if handler == nil {
-		logrus.Debug("No ClusterPolicy duplicator handler found, skipping existing policy check")
-		return nil
-	}
-
-	// Type assert to ClusterPolicyDuplicatorHandler
-	clusterPolicyDuplicator, ok := handler.(*handlers.ClusterPolicyDuplicatorHandler)
-	if !ok {
-		logrus.Debug("Handler is not ClusterPolicyDuplicatorHandler, skipping existing policy check")
-		return nil
-	}
-
-	// Call the CheckExistingPolicies method
-	return clusterPolicyDuplicator.CheckExistingPolicies()
+	// No longer checking ClusterPolicies for audit duplicates
+	logrus.Debug("ClusterPolicy duplicator logic removed, skipping existing policy check")
+	return nil
 }
