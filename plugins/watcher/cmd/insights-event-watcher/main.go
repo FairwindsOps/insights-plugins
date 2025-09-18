@@ -20,6 +20,7 @@ func main() {
 		organization  = flag.String("organization", "", "Fairwinds organization name")
 		cluster       = flag.String("cluster", "", "Cluster name")
 		insightsToken = flag.String("insights-token", "", "Fairwinds Insights API token")
+		auditLogPath  = flag.String("audit-log-path", "", "Path to Kubernetes audit log file (optional)")
 	)
 	flag.Parse()
 
@@ -61,9 +62,16 @@ func main() {
 	defer cancel()
 
 	// Create watcher
-	kubeWatcher, err := watcher.NewWatcher(insightsConfig)
+	kubeWatcher, err := watcher.NewWatcher(insightsConfig, *auditLogPath)
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to create watcher")
+	}
+
+	// Log audit log configuration
+	if *auditLogPath != "" {
+		logrus.WithField("audit_log_path", *auditLogPath).Info("Audit log monitoring enabled")
+	} else {
+		logrus.Info("Audit log monitoring disabled")
 	}
 
 	// Start watcher

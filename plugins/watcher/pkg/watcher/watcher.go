@@ -18,19 +18,21 @@ import (
 
 // Watcher manages watching Kubernetes resources
 type Watcher struct {
-	client         *client.Client
-	watchers       map[string]watch.Interface
-	informers      map[string]cache.SharedInformer
-	eventChannel   chan *event.WatchedEvent
-	stopCh         chan struct{}
-	mu             sync.RWMutex
-	wg             sync.WaitGroup
-	handlerFactory *handlers.EventHandlerFactory
-	insightsConfig models.InsightsConfig
+	client          *client.Client
+	watchers        map[string]watch.Interface
+	informers       map[string]cache.SharedInformer
+	eventChannel    chan *event.WatchedEvent
+	stopCh          chan struct{}
+	mu              sync.RWMutex
+	wg              sync.WaitGroup
+	handlerFactory  *handlers.EventHandlerFactory
+	insightsConfig  models.InsightsConfig
+	auditLogHandler *handlers.AuditLogHandler
+	auditLogPath    string
 }
 
 // NewWatcher creates a new Kubernetes watcher
-func NewWatcher(insightsConfig models.InsightsConfig) (*Watcher, error) {
+func NewWatcher(insightsConfig models.InsightsConfig, auditLogPath string) (*Watcher, error) {
 	kubeClient, err := client.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
@@ -39,14 +41,24 @@ func NewWatcher(insightsConfig models.InsightsConfig) (*Watcher, error) {
 	// Create handler factory
 	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface)
 
+	eventChannel := make(chan *event.WatchedEvent, 1000)
+
+	// Create audit log handler if audit log path is provided
+	var auditLogHandler *handlers.AuditLogHandler
+	if auditLogPath != "" {
+		auditLogHandler = handlers.NewAuditLogHandler(insightsConfig, kubeClient.KubeInterface, auditLogPath, eventChannel)
+	}
+
 	w := &Watcher{
-		client:         kubeClient,
-		watchers:       make(map[string]watch.Interface),
-		informers:      make(map[string]cache.SharedInformer),
-		eventChannel:   make(chan *event.WatchedEvent, 1000),
-		stopCh:         make(chan struct{}),
-		handlerFactory: handlerFactory,
-		insightsConfig: insightsConfig,
+		client:          kubeClient,
+		watchers:        make(map[string]watch.Interface),
+		informers:       make(map[string]cache.SharedInformer),
+		eventChannel:    eventChannel,
+		stopCh:          make(chan struct{}),
+		handlerFactory:  handlerFactory,
+		insightsConfig:  insightsConfig,
+		auditLogHandler: auditLogHandler,
+		auditLogPath:    auditLogPath,
 	}
 
 	return w, nil
@@ -77,6 +89,17 @@ func (w *Watcher) Start(ctx context.Context) error {
 		}
 	}()
 
+	// Start audit log monitoring if enabled
+	if w.auditLogHandler != nil {
+		w.wg.Add(1)
+		go func() {
+			defer w.wg.Done()
+			if err := w.auditLogHandler.Start(ctx); err != nil {
+				logrus.WithError(err).Error("Failed to start audit log monitoring")
+			}
+		}()
+	}
+
 	// Start event processor
 	w.wg.Add(1)
 	go func() {
@@ -101,6 +124,11 @@ func (w *Watcher) Start(ctx context.Context) error {
 func (w *Watcher) Stop() {
 	logrus.Info("Stopping Kubernetes watcher")
 	close(w.stopCh)
+
+	// Stop audit log handler if enabled
+	if w.auditLogHandler != nil {
+		w.auditLogHandler.Stop()
+	}
 
 	// Wait for all goroutines to finish
 	w.wg.Wait()

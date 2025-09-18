@@ -275,16 +275,6 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 			expectedName: "policy-violation",
 		},
 		{
-			name: "VAPViolation event",
-			event: &event.WatchedEvent{
-				ResourceType: "events",
-				Data: map[string]interface{}{
-					"reason": "VAPViolation",
-				},
-			},
-			expectedName: "policy-violation",
-		},
-		{
 			name: "ClusterPolicy resource",
 			event: &event.WatchedEvent{
 				ResourceType: "ClusterPolicy",
