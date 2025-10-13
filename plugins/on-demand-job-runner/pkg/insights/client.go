@@ -12,6 +12,7 @@ import (
 type Client interface {
 	ClaimOnDemandJobs(limit int) ([]OnDemandJob, error)
 	UpdateOnDemandJobStatus(jobID int64, status OnDemandJobStatus) error
+	GetClusterKyvernoPoliciesYAML() (string, error)
 }
 
 func NewClient(host, token, organization, cluster string, devMode bool) Client {
@@ -77,6 +78,21 @@ func (c HTTPClient) UpdateOnDemandJobStatus(jobID int64, status OnDemandJobStatu
 	return nil
 }
 
+func (c HTTPClient) GetClusterKyvernoPoliciesYAML() (string, error) {
+	slog.Debug("Getting cluster Kyverno policies YAML", "organization", c.organization, "cluster", c.cluster)
+	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/kyverno-policies/with-app-groups-applied/yaml", c.organization, c.cluster)
+	resp, err := c.client.R().Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to get cluster Kyverno policies: %w", err)
+	}
+
+	if resp.IsErrorState() {
+		return "", fmt.Errorf("error getting cluster Kyverno policies: status %d, body %s", resp.StatusCode, resp.String())
+	}
+
+	return resp.String(), nil
+}
+
 type MockClient struct{}
 
 func (m MockClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
@@ -96,4 +112,30 @@ func (m MockClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
 func (m MockClient) UpdateOnDemandJobStatus(jobID int64, status OnDemandJobStatus) error {
 	slog.Info("Mock: Updating on-demand job status", "jobID", jobID, "status", status)
 	return nil
+}
+
+func (m MockClient) GetClusterKyvernoPoliciesYAML() (string, error) {
+	slog.Info("Mock: Getting cluster Kyverno policies YAML")
+	return `apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: mock-policy
+  annotations:
+    insights.fairwinds.com/owned-by: "Fairwinds Insights"
+spec:
+  validationFailureAction: enforce
+  rules:
+  - name: mock-rule
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "This is a mock policy"
+      pattern:
+        spec:
+          containers:
+          - name: "*"
+            image: "!*:latest"`, nil
 }
