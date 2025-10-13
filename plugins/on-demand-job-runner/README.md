@@ -49,6 +49,7 @@ The Kyverno Policy Sync functionality allows automatic synchronization of Kyvern
 - **Atomic Operations**: Fails fast if any operation fails
 - **Dry-Run Support**: Preview changes before applying them
 - **Concurrency Control**: File-based locking prevents simultaneous sync operations
+- **Kyverno CLI Integration**: Uses `kyverno apply` and `kyverno delete` for all policy operations
 - **Policy Validation**: Uses Kyverno CLI to validate policies before applying
 - **Comprehensive Logging**: Detailed audit trail of all operations
 
@@ -126,11 +127,22 @@ metadata:
 
 #### Policy Operations
 
-The sync performs the following operations:
+The sync performs the following operations using Kyverno CLI:
 
 1. **Apply**: New policies from Insights that don't exist in the cluster
+   ```bash
+   kyverno apply policy.yaml
+   ```
+
 2. **Update**: Existing policies that have changed in Insights
+   ```bash
+   kyverno apply policy.yaml  # kyverno apply handles both create and update
+   ```
+
 3. **Remove**: Policies that exist in the cluster but are no longer in Insights
+   ```bash
+   kyverno delete clusterpolicy policy-name
+   ```
 
 #### Policy Validation
 
@@ -220,3 +232,5 @@ go build -o on-demand-job-runner ./cmd/main.go
 cd plugins/on-demand-job-runner
 docker build -t on-demand-job-runner .
 ```
+
+**Note**: The Kyverno Policy Sync functionality requires the Kyverno CLI to be available in the container. Ensure your Docker image includes the Kyverno CLI binary.

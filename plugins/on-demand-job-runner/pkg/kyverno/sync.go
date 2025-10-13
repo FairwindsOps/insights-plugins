@@ -91,7 +91,8 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 
 	// 5. Validate policies if enabled
 	if p.config.ValidatePolicies && !p.config.DryRun {
-		if err := p.validatePolicies(ctx, expectedPolicies); err != nil {
+		policyManager := NewPolicyManager(p.k8sClient, p.dynamicClient)
+		if err := policyManager.validatePolicies(ctx, expectedPolicies); err != nil {
 			return result, fmt.Errorf("policy validation failed: %w", err)
 		}
 	}

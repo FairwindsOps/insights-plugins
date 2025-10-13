@@ -31,7 +31,7 @@ func NewPolicyManager(client kubernetes.Interface, dynamicClient dynamic.Interfa
 }
 
 // validatePolicies validates policies using Kyverno CLI
-func (p *PolicySyncProcessor) validatePolicies(ctx context.Context, policies []ClusterPolicy) error {
+func (pm *PolicyManager) validatePolicies(ctx context.Context, policies []ClusterPolicy) error {
 	if len(policies) == 0 {
 		return nil
 	}
@@ -48,7 +48,7 @@ func (p *PolicySyncProcessor) validatePolicies(ctx context.Context, policies []C
 	// Write policies to temporary file
 	var yamlDocs []string
 	for _, policy := range policies {
-		policyYAML, err := p.policyToYAML(policy)
+		policyYAML, err := pm.policyToYAML(policy)
 		if err != nil {
 			return fmt.Errorf("failed to convert policy %s to YAML: %w", policy.Name, err)
 		}
@@ -156,61 +156,81 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 	return nil
 }
 
-// applyPolicy applies a new policy to the cluster
+// applyPolicy applies a new policy to the cluster using Kyverno CLI
 func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, dryRun bool) error {
 	if dryRun {
 		slog.Info("[DRY-RUN] Would apply policy", "policy", policy.Name)
 		return nil
 	}
 
-	// Convert policy to unstructured object
-	policyObj, err := pm.policyToUnstructured(policy)
+	// Convert policy to YAML
+	policyYAML, err := pm.policyToYAML(policy)
 	if err != nil {
-		return fmt.Errorf("failed to convert policy to unstructured: %w", err)
+		return fmt.Errorf("failed to convert policy to YAML: %w", err)
 	}
 
-	// Apply policy to cluster
-	_, err = pm.dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    "kyverno.io",
-		Version:  "v1",
-		Resource: "clusterpolicies",
-	}).Create(ctx, policyObj, metav1.CreateOptions{})
-
+	// Create temporary file for policy
+	tempFile, err := os.CreateTemp("", "kyverno-policy-*.yaml")
 	if err != nil {
-		return fmt.Errorf("failed to create policy: %w", err)
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	// Write policy to temporary file
+	if _, err := tempFile.WriteString(policyYAML); err != nil {
+		return fmt.Errorf("failed to write policy to temporary file: %w", err)
+	}
+	tempFile.Close()
+
+	// Apply policy using Kyverno CLI
+	cmd := exec.CommandContext(ctx, "kyverno", "apply", tempFile.Name())
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to apply policy %s with kyverno CLI: %s", policy.Name, string(output))
 	}
 
+	slog.Info("Successfully applied policy", "policy", policy.Name, "output", string(output))
 	return nil
 }
 
-// updatePolicy updates an existing policy in the cluster
+// updatePolicy updates an existing policy in the cluster using Kyverno CLI
 func (pm *PolicyManager) updatePolicy(ctx context.Context, policy ClusterPolicy, dryRun bool) error {
 	if dryRun {
 		slog.Info("[DRY-RUN] Would update policy", "policy", policy.Name)
 		return nil
 	}
 
-	// Convert policy to unstructured object
-	policyObj, err := pm.policyToUnstructured(policy)
+	// Convert policy to YAML
+	policyYAML, err := pm.policyToYAML(policy)
 	if err != nil {
-		return fmt.Errorf("failed to convert policy to unstructured: %w", err)
+		return fmt.Errorf("failed to convert policy to YAML: %w", err)
 	}
 
-	// Update policy in cluster
-	_, err = pm.dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    "kyverno.io",
-		Version:  "v1",
-		Resource: "clusterpolicies",
-	}).Update(ctx, policyObj, metav1.UpdateOptions{})
-
+	// Create temporary file for policy
+	tempFile, err := os.CreateTemp("", "kyverno-policy-*.yaml")
 	if err != nil {
-		return fmt.Errorf("failed to update policy: %w", err)
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	// Write policy to temporary file
+	if _, err := tempFile.WriteString(policyYAML); err != nil {
+		return fmt.Errorf("failed to write policy to temporary file: %w", err)
+	}
+	tempFile.Close()
+
+	// Update policy using Kyverno CLI (kyverno apply handles both create and update)
+	cmd := exec.CommandContext(ctx, "kyverno", "apply", tempFile.Name())
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to update policy %s with kyverno CLI: %s", policy.Name, string(output))
 	}
 
+	slog.Info("Successfully updated policy", "policy", policy.Name, "output", string(output))
 	return nil
 }
 
-// removePolicy removes a policy from the cluster
+// removePolicy removes a policy from the cluster using Kyverno CLI
 func (pm *PolicyManager) removePolicy(ctx context.Context, policyName string, dryRun bool) error {
 	if dryRun {
 		slog.Info("[DRY-RUN] Would remove policy", "policy", policyName)
@@ -230,17 +250,14 @@ func (pm *PolicyManager) removePolicy(ctx context.Context, policyName string, dr
 		return nil
 	}
 
-	// Delete the policy
-	err = pm.dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    "kyverno.io",
-		Version:  "v1",
-		Resource: "clusterpolicies",
-	}).Delete(ctx, policyName, metav1.DeleteOptions{})
-
+	// Delete the policy using Kyverno CLI
+	cmd := exec.CommandContext(ctx, "kyverno", "delete", "clusterpolicy", policyName)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to delete policy: %w", err)
+		return fmt.Errorf("failed to delete policy %s with kyverno CLI: %s", policyName, string(output))
 	}
 
+	slog.Info("Successfully removed policy", "policy", policyName, "output", string(output))
 	return nil
 }
 
@@ -277,7 +294,7 @@ func (pm *PolicyManager) policyToUnstructured(policy ClusterPolicy) (*unstructur
 }
 
 // policyToYAML converts a ClusterPolicy to YAML string
-func (p *PolicySyncProcessor) policyToYAML(policy ClusterPolicy) (string, error) {
+func (pm *PolicyManager) policyToYAML(policy ClusterPolicy) (string, error) {
 	policyMap := map[string]interface{}{
 		"apiVersion": "kyverno.io/v1",
 		"kind":       "ClusterPolicy",
