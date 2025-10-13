@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -26,14 +27,23 @@ type PolicySyncProcessor struct {
 
 // NewPolicySyncProcessor creates a new policy sync processor
 func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes.Interface, dynamicClient dynamic.Interface, config PolicySyncConfig) *PolicySyncProcessor {
+	// Get current namespace
+	namespace := getCurrentNamespace()
+
+	// Generate unique lock identifier (pod name or job name)
+	lockedBy := getLockIdentifier()
+
 	return &PolicySyncProcessor{
 		insightsClient: insightsClient,
 		k8sClient:      k8sClient,
 		dynamicClient:  dynamicClient,
 		config:         config,
 		lock: &PolicySyncLock{
-			FilePath:    "/tmp/kyverno-policy-sync.lock",
-			LockTimeout: config.LockTimeout,
+			ConfigMapName: "kyverno-policy-sync-lock",
+			Namespace:     namespace,
+			LockedBy:      lockedBy,
+			LockTimeout:   config.LockTimeout,
+			K8sClient:     k8sClient,
 		},
 	}
 }
@@ -284,4 +294,41 @@ func (p *PolicySyncProcessor) generateSummary(result *PolicySyncResult) string {
 	summary += fmt.Sprintf("Duration: %v", result.Duration)
 
 	return strings.TrimSuffix(summary, ", ")
+}
+
+// getCurrentNamespace gets the current namespace from environment or service account
+func getCurrentNamespace() string {
+	// Try to get namespace from environment variable first
+	if ns := os.Getenv("NAMESPACE"); ns != "" {
+		return ns
+	}
+
+	// Try to read from service account token file
+	if data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		return strings.TrimSpace(string(data))
+	}
+
+	// Default to default namespace
+	return "default"
+}
+
+// getLockIdentifier generates a unique identifier for the lock
+func getLockIdentifier() string {
+	// Try to get pod name from environment
+	if podName := os.Getenv("POD_NAME"); podName != "" {
+		return fmt.Sprintf("pod-%s", podName)
+	}
+
+	// Try to get job name from environment
+	if jobName := os.Getenv("JOB_NAME"); jobName != "" {
+		return fmt.Sprintf("job-%s", jobName)
+	}
+
+	// Try to get hostname
+	if hostname, err := os.Hostname(); err == nil {
+		return fmt.Sprintf("host-%s", hostname)
+	}
+
+	// Fallback to timestamp
+	return fmt.Sprintf("unknown-%d", time.Now().Unix())
 }

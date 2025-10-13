@@ -107,11 +107,16 @@ func TestClusterPolicy(t *testing.T) {
 
 func TestPolicySyncLock(t *testing.T) {
 	lock := PolicySyncLock{
-		FilePath:    "/tmp/test.lock",
-		LockTimeout: 30 * time.Minute,
+		ConfigMapName: "kyverno-policy-sync-lock",
+		Namespace:     "default",
+		LockedBy:      "test-pod",
+		LockTimeout:   30 * time.Minute,
+		K8sClient:     nil, // Mock client would be used in real tests
 	}
 
-	assert.Equal(t, "/tmp/test.lock", lock.FilePath)
+	assert.Equal(t, "kyverno-policy-sync-lock", lock.ConfigMapName)
+	assert.Equal(t, "default", lock.Namespace)
+	assert.Equal(t, "test-pod", lock.LockedBy)
 	assert.Equal(t, 30*time.Minute, lock.LockTimeout)
 }
 

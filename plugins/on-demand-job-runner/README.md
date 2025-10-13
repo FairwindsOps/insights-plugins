@@ -48,7 +48,7 @@ The Kyverno Policy Sync functionality allows automatic synchronization of Kyvern
 - **Insights-Managed Only**: Only affects policies with `insights.fairwinds.com/owned-by: "Fairwinds Insights"` annotation
 - **Atomic Operations**: Fails fast if any operation fails
 - **Dry-Run Support**: Preview changes before applying them
-- **Concurrency Control**: File-based locking prevents simultaneous sync operations
+- **Distributed Concurrency Control**: Kubernetes ConfigMap-based locking prevents simultaneous sync operations across pods
 - **Kyverno CLI Integration**: Uses `kyverno apply` and `kyverno delete` for all policy operations
 - **Policy Validation**: Uses Kyverno CLI to validate policies before applying
 - **Comprehensive Logging**: Detailed audit trail of all operations
@@ -159,7 +159,36 @@ The sync implements comprehensive error handling:
 - **Atomic Operations**: If any operation fails, the entire sync fails
 - **Detailed Logging**: All operations are logged with context
 - **Graceful Degradation**: Continues with other policies if one fails
-- **Lock Management**: Automatic cleanup of stale locks
+- **Distributed Lock Management**: Automatic cleanup of stale locks using ConfigMap timestamps
+
+### Distributed Locking
+
+The sync uses Kubernetes ConfigMap for distributed locking to prevent concurrent operations:
+
+#### **Lock Mechanism**
+- **ConfigMap Name**: `kyverno-policy-sync-lock`
+- **Namespace**: Current pod namespace (or `default`)
+- **Lock Data**: Contains `locked-by`, `locked-at`, and `lock-timeout` information
+- **Stale Lock Detection**: Automatically removes locks older than the timeout period
+
+#### **Lock Identifier**
+The lock identifier is generated using the following priority:
+1. `POD_NAME` environment variable → `pod-{pod-name}`
+2. `JOB_NAME` environment variable → `job-{job-name}`
+3. Hostname → `host-{hostname}`
+4. Timestamp → `unknown-{timestamp}`
+
+#### **Lock Operations**
+```bash
+# Lock acquisition creates a ConfigMap
+kubectl create configmap kyverno-policy-sync-lock \
+  --from-literal=locked-by="pod-kyverno-sync-123" \
+  --from-literal=locked-at="2024-01-15T10:30:00Z" \
+  --from-literal=lock-timeout="30m"
+
+# Lock release deletes the ConfigMap
+kubectl delete configmap kyverno-policy-sync-lock
+```
 
 ### Monitoring
 
@@ -183,8 +212,11 @@ The sync provides detailed logging for monitoring:
 
 #### Common Issues
 
-1. **Lock File Exists**: Another sync operation is running
-   - Solution: Wait for completion or remove stale lock file
+1. **Lock ConfigMap Exists**: Another sync operation is running
+   - Solution: Wait for completion or remove stale lock ConfigMap
+   ```bash
+   kubectl delete configmap kyverno-policy-sync-lock -n <namespace>
+   ```
 
 2. **Policy Validation Failed**: Policy has syntax errors
    - Solution: Check policy syntax and fix errors

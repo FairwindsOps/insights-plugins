@@ -2,6 +2,8 @@ package kyverno
 
 import (
 	"time"
+
+	"k8s.io/client-go/kubernetes"
 )
 
 // PolicySyncConfig represents the configuration for Kyverno policy sync
@@ -40,10 +42,13 @@ type ClusterPolicy struct {
 	Spec        map[string]interface{} `json:"spec,omitempty"`
 }
 
-// PolicySyncLock represents a file-based lock for preventing concurrent sync operations
+// PolicySyncLock represents a distributed lock using Kubernetes ConfigMap for preventing concurrent sync operations
 type PolicySyncLock struct {
-	FilePath    string
-	LockTimeout time.Duration
+	ConfigMapName string
+	Namespace     string
+	LockedBy      string
+	LockTimeout   time.Duration
+	K8sClient     kubernetes.Interface
 }
 
 // ValidationResult represents the result of policy validation
