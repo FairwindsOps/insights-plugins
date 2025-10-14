@@ -68,7 +68,6 @@ The service can also be triggered on-demand by the on-demand job runner when pol
 | `LOCK_TIMEOUT` | Lock timeout duration | `10m` | No |
 | `VALIDATE_POLICIES` | Validate policies before applying | `true` | No |
 | `LOG_LEVEL` | Log level (debug, info, warn, error) | `info` | No |
-| `ONE_SHOT` | Run once and exit | `false` | No |
 
 ### Configuration File
 
@@ -331,5 +330,3 @@ The standalone plugin can also be integrated with the on-demand job runner for i
 
 - **Scheduled Sync**: Regular synchronization via CronJob
 - **Immediate Sync**: On-demand synchronization when policies change
-
-The on-demand job runner can trigger the standalone plugin by setting `ONE_SHOT=true` and running it as a Kubernetes Job.
