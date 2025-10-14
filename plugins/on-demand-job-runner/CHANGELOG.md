@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4
+* Added kyverno policies
+
 ## 0.1.3
 * Fixing vulnerability
 
