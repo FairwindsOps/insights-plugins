@@ -94,7 +94,6 @@ func processOnDemandJob(clientset *kubernetes.Clientset, onDemandJob insights.On
 		return fmt.Errorf("unknown report type %s for on-demand job %d", onDemandJob.ReportType, onDemandJob.ID)
 	}
 
-
 	jobName := k8s.GenerateJobName(jobConfig.cronJobName, onDemandJob.ID)
 	job, err := k8s.CreateJobFromCronJob(context.TODO(), clientset, namespace, jobConfig.cronJobName, jobName, onDemandJob.OptionsToEnvVars())
 	if err != nil {
@@ -110,4 +109,3 @@ func processOnDemandJob(clientset *kubernetes.Clientset, onDemandJob insights.On
 
 	return nil
 }
-
