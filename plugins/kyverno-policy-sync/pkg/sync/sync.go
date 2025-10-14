@@ -28,7 +28,10 @@ type PolicySyncProcessor struct {
 // NewPolicySyncProcessor creates a new policy sync processor
 func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes.Interface, dynamicClient dynamic.Interface, config PolicySyncConfig) *PolicySyncProcessor {
 	// Get current namespace
-	namespace := getCurrentNamespace()
+	namespace, err := GetCurrentNamespace()
+	if err != nil {
+		slog.Error("Failed to get current namespace", "error", err)
+	}
 
 	// Generate unique lock identifier (pod name or job name)
 	lockedBy := getLockIdentifier()
@@ -247,12 +250,10 @@ func (p *PolicySyncProcessor) comparePolicies(expected, current []ClusterPolicy)
 	}
 
 	// Find policies to update (existing deployed policies with changes)
-	for name, expectedPolicy := range expectedMap {
-		if currentPolicy, exists := currentMap[name]; exists {
-			if !p.policiesEqual(expectedPolicy, currentPolicy) {
-				actions.ToUpdate = append(actions.ToUpdate, name)
-				slog.Debug("Policy will be updated", "policy", name, "reason", "changes detected")
-			}
+	for name := range expectedMap {
+		if _, exists := currentMap[name]; exists {
+			actions.ToUpdate = append(actions.ToUpdate, name)
+			slog.Debug("Policy will be updated", "policy", name, "reason", "if any changes detected")
 		}
 	}
 
@@ -265,13 +266,6 @@ func (p *PolicySyncProcessor) comparePolicies(expected, current []ClusterPolicy)
 	}
 
 	return actions
-}
-
-// policiesEqual compares two policies for equality
-func (p *PolicySyncProcessor) policiesEqual(expected, current ClusterPolicy) bool {
-	// Simple comparison - in production, you might want more sophisticated comparison
-	// For now, we'll do a basic spec comparison
-	return fmt.Sprintf("%v", expected.Spec) == fmt.Sprintf("%v", current.Spec)
 }
 
 // generateSummary generates a human-readable summary of the sync operation
@@ -297,19 +291,20 @@ func (p *PolicySyncProcessor) generateSummary(result *PolicySyncResult) string {
 }
 
 // getCurrentNamespace gets the current namespace from environment or service account
-func getCurrentNamespace() string {
-	// Try to get namespace from environment variable first
-	if ns := os.Getenv("NAMESPACE"); ns != "" {
-		return ns
+func GetCurrentNamespace() (string, error) {
+	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		if os.IsNotExist(err) {
+			// fallback to env variable
+			namespace := os.Getenv("NAMESPACE")
+			if namespace != "" {
+				return namespace, nil
+			}
+			return "", fmt.Errorf("namespace file not found and NAMESPACE env variable is not set")
+		}
+		return "", fmt.Errorf("failed to read namespace file: %w", err)
 	}
-
-	// Try to read from service account token file
-	if data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
-		return strings.TrimSpace(string(data))
-	}
-
-	// Default to default namespace
-	return "default"
+	return strings.TrimSpace(string(data)), nil
 }
 
 // getLockIdentifier generates a unique identifier for the lock
