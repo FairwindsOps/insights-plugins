@@ -30,6 +30,15 @@ func NewPolicyManager(client kubernetes.Interface, dynamicClient dynamic.Interfa
 	}
 }
 
+// ensureTempDir ensures the temporary directory exists
+func ensureTempDir() error {
+	tempDir := "/output/tmp"
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		return fmt.Errorf("failed to create temp directory %s: %w", tempDir, err)
+	}
+	return nil
+}
+
 // validatePolicies validates policies using Kyverno CLI
 func (pm *PolicyManager) validatePolicies(ctx context.Context, policies []ClusterPolicy) error {
 	if len(policies) == 0 {
@@ -37,6 +46,11 @@ func (pm *PolicyManager) validatePolicies(ctx context.Context, policies []Cluste
 	}
 
 	slog.Info("Validating policies with Kyverno CLI", "count", len(policies))
+
+	// Ensure temp directory exists
+	if err := ensureTempDir(); err != nil {
+		return err
+	}
 
 	// Create temporary YAML file with all policies
 	tempFile, err := os.CreateTemp("/output/tmp", "kyverno-policies-*.yaml")
@@ -169,6 +183,11 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 		return fmt.Errorf("failed to convert policy to YAML: %w", err)
 	}
 
+	// Ensure temp directory exists
+	if err := ensureTempDir(); err != nil {
+		return err
+	}
+
 	// Create temporary file for policy
 	tempFile, err := os.CreateTemp("/output/tmp", "kyverno-policy-*.yaml")
 	if err != nil {
@@ -204,6 +223,11 @@ func (pm *PolicyManager) updatePolicy(ctx context.Context, policy ClusterPolicy,
 	policyYAML, err := pm.policyToYAML(policy)
 	if err != nil {
 		return fmt.Errorf("failed to convert policy to YAML: %w", err)
+	}
+
+	// Ensure temp directory exists
+	if err := ensureTempDir(); err != nil {
+		return err
 	}
 
 	// Create temporary file for policy
