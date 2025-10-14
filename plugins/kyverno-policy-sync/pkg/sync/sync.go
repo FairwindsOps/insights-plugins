@@ -31,6 +31,7 @@ func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes
 	namespace, err := GetCurrentNamespace()
 	if err != nil {
 		slog.Error("Failed to get current namespace", "error", err)
+		namespace = "default"
 	}
 
 	// Generate unique lock identifier (pod name or job name)
