@@ -9,7 +9,6 @@ import (
 // PolicySyncConfig represents the configuration for Kyverno policy sync
 type PolicySyncConfig struct {
 	DryRun           bool          `mapstructure:"dryRun"`
-	SyncInterval     time.Duration `mapstructure:"syncInterval"`
 	LockTimeout      time.Duration `mapstructure:"lockTimeout"`
 	ValidatePolicies bool          `mapstructure:"validatePolicies"`
 }

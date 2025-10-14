@@ -65,8 +65,7 @@ The service can also be triggered on-demand by the on-demand job runner when pol
 | `FAIRWINDS_CLUSTER` | Cluster name | - | Yes |
 | `FAIRWINDS_DEV_MODE` | Enable dev mode | `false` | No |
 | `DRY_RUN` | Enable dry-run mode | `false` | No |
-| `SYNC_INTERVAL` | Sync interval for continuous mode | `15m` | No |
-| `LOCK_TIMEOUT` | Lock timeout duration | `30m` | No |
+| `LOCK_TIMEOUT` | Lock timeout duration | `10m` | No |
 | `VALIDATE_POLICIES` | Validate policies before applying | `true` | No |
 | `LOG_LEVEL` | Log level (debug, info, warn, error) | `info` | No |
 | `ONE_SHOT` | Run once and exit | `false` | No |
@@ -82,7 +81,6 @@ organization: "your-org"
 cluster: "your-cluster"
 devMode: false
 dryRun: false
-syncInterval: "15m"
 lockTimeout: "30m"
 validatePolicies: true
 logLevel: "info"
@@ -161,8 +159,6 @@ spec:
           value: "your-org"
         - name: FAIRWINDS_CLUSTER
           value: "your-cluster"
-        - name: SYNC_INTERVAL
-          value: "15m"
 ```
 
 ### RBAC Configuration

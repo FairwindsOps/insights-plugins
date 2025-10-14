@@ -20,7 +20,6 @@ type Config struct {
 
 	// Sync configuration
 	DryRun           bool          `mapstructure:"dryRun"`
-	SyncInterval     time.Duration `mapstructure:"syncInterval"`
 	LockTimeout      time.Duration `mapstructure:"lockTimeout"`
 	ValidatePolicies bool          `mapstructure:"validatePolicies"`
 
@@ -38,7 +37,6 @@ func LoadConfig() (*Config, error) {
 	// Set default values
 	viper.SetDefault("devMode", false)
 	viper.SetDefault("dryRun", false)
-	viper.SetDefault("syncInterval", "15m")
 	viper.SetDefault("lockTimeout", "30m")
 	viper.SetDefault("validatePolicies", true)
 	viper.SetDefault("logLevel", "info")
@@ -62,7 +60,6 @@ func LoadConfig() (*Config, error) {
 	viper.BindEnv("cluster", "FAIRWINDS_CLUSTER")
 	viper.BindEnv("devMode", "FAIRWINDS_DEV_MODE")
 	viper.BindEnv("dryRun", "DRY_RUN")
-	viper.BindEnv("syncInterval", "SYNC_INTERVAL")
 	viper.BindEnv("lockTimeout", "LOCK_TIMEOUT")
 	viper.BindEnv("validatePolicies", "VALIDATE_POLICIES")
 	viper.BindEnv("logLevel", "LOG_LEVEL")

@@ -31,13 +31,11 @@ func (m *MockK8sClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 func TestPolicySyncConfig(t *testing.T) {
 	config := PolicySyncConfig{
 		DryRun:           true,
-		SyncInterval:     15 * time.Minute,
 		LockTimeout:      30 * time.Minute,
 		ValidatePolicies: true,
 	}
 
 	assert.True(t, config.DryRun)
-	assert.Equal(t, 15*time.Minute, config.SyncInterval)
 	assert.Equal(t, 30*time.Minute, config.LockTimeout)
 	assert.True(t, config.ValidatePolicies)
 }

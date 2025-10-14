@@ -28,7 +28,6 @@ func main() {
 		"host", cfg.Host,
 		"token", maskToken(cfg.Token),
 		"dryRun", cfg.DryRun,
-		"syncInterval", cfg.SyncInterval,
 		"lockTimeout", cfg.LockTimeout,
 		"validatePolicies", cfg.ValidatePolicies)
 
@@ -50,7 +49,6 @@ func main() {
 	// Create sync configuration
 	syncConfig := sync.PolicySyncConfig{
 		DryRun:           cfg.DryRun,
-		SyncInterval:     cfg.SyncInterval,
 		LockTimeout:      cfg.LockTimeout,
 		ValidatePolicies: cfg.ValidatePolicies,
 	}
