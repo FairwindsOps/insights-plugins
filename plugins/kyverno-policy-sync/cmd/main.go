@@ -58,15 +58,15 @@ func main() {
 	// Create policy sync processor
 	processor := sync.NewPolicySyncProcessor(insightsClient, k8sClient, dynamicClient, syncConfig)
 
-	if err := runSync(processor); err != nil {
+	err = syncKyvernoPolicies(processor)
+	if err != nil {
 		slog.Error("Sync failed", "error", err)
 		os.Exit(1)
 	}
 	slog.Info("Sync completed successfully")
 }
 
-// runSync runs a single sync operation
-func runSync(processor *sync.PolicySyncProcessor) error {
+func syncKyvernoPolicies(processor *sync.PolicySyncProcessor) error {
 	ctx := context.Background()
 	result, err := processor.SyncPolicies(ctx)
 	if err != nil {
