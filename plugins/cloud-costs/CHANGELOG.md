@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.18
+* Build issue
+
 ## 0.3.17
 * Fixing vulnerabilities
 
