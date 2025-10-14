@@ -39,7 +39,7 @@ func (pm *PolicyManager) validatePolicies(ctx context.Context, policies []Cluste
 	slog.Info("Validating policies with Kyverno CLI", "count", len(policies))
 
 	// Create temporary YAML file with all policies
-	tempFile, err := os.CreateTemp("", "kyverno-policies-*.yaml")
+	tempFile, err := os.CreateTemp("/output/tmp", "kyverno-policies-*.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}
@@ -170,7 +170,7 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 	}
 
 	// Create temporary file for policy
-	tempFile, err := os.CreateTemp("", "kyverno-policy-*.yaml")
+	tempFile, err := os.CreateTemp("/output/tmp", "kyverno-policy-*.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}
@@ -207,7 +207,7 @@ func (pm *PolicyManager) updatePolicy(ctx context.Context, policy ClusterPolicy,
 	}
 
 	// Create temporary file for policy
-	tempFile, err := os.CreateTemp("", "kyverno-policy-*.yaml")
+	tempFile, err := os.CreateTemp("/output/tmp", "kyverno-policy-*.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}

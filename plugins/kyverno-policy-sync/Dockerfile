@@ -10,6 +10,9 @@ RUN wget -O /usr/local/bin/kyverno.tar.gz https://github.com/kyverno/kyverno/rel
     chmod +x /usr/local/bin/kyverno && \
     rm /usr/local/bin/kyverno.tar.gz
 
+# Create output directory for temporary files
+RUN mkdir -p /output/tmp
+
 # Switch to non-root user
 USER 1200
 COPY kyverno-policy-sync .
