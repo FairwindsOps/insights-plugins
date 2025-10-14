@@ -74,8 +74,26 @@ func (pm *PolicyManager) validatePolicies(ctx context.Context, policies []Cluste
 	}
 	tempFile.Close()
 
-	// Run Kyverno CLI validation
-	cmd := exec.CommandContext(ctx, "kyverno", "apply", tempFile.Name(), "--dry-run")
+	// Create a minimal dummy resource for validation
+	dummyResource := `
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kyverno-validation-dummy
+`
+	dummyFile, err := os.CreateTemp("/output/tmp", "dummy-resource-*.yaml")
+	if err != nil {
+		return fmt.Errorf("failed to create dummy resource file: %w", err)
+	}
+	defer os.Remove(dummyFile.Name())
+
+	if _, err := dummyFile.WriteString(dummyResource); err != nil {
+		return fmt.Errorf("failed to write dummy resource: %w", err)
+	}
+	dummyFile.Close()
+
+	// Run Kyverno CLI validation with dummy resource
+	cmd := exec.CommandContext(ctx, "kyverno", "apply", tempFile.Name(), "--resource", dummyFile.Name())
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("policy validation failed: %s", string(output))
