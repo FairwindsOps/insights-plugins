@@ -11,7 +11,7 @@ RUN wget -O /usr/local/bin/kyverno.tar.gz https://github.com/kyverno/kyverno/rel
     rm /usr/local/bin/kyverno.tar.gz
 
 # Create output directory for temporary files
-RUN mkdir -p /output/tmp
+RUN mkdir -p /output/tmp && chown -R 1200:1200 /output
 
 # Switch to non-root user
 USER 1200
