@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/insights"
 	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/k8s"
-	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/kyverno"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -86,11 +84,6 @@ func FetchAndProcessOnDemandJobs(insightsClient insights.Client, clientset *kube
 }
 
 func processOnDemandJob(clientset *kubernetes.Clientset, onDemandJob insights.OnDemandJob) error {
-	// Special handling for kyverno-policy-sync job type
-	if onDemandJob.ReportType == "kyverno-policy-sync" {
-		return processKyvernoPolicySyncJob(clientset, onDemandJob)
-	}
-
 	namespace, err := k8s.GetCurrentNamespace()
 	if err != nil {
 		return fmt.Errorf("failed to get current namespace: %w", err)
@@ -100,6 +93,7 @@ func processOnDemandJob(clientset *kubernetes.Clientset, onDemandJob insights.On
 	if !ok {
 		return fmt.Errorf("unknown report type %s for on-demand job %d", onDemandJob.ReportType, onDemandJob.ID)
 	}
+
 
 	jobName := k8s.GenerateJobName(jobConfig.cronJobName, onDemandJob.ID)
 	job, err := k8s.CreateJobFromCronJob(context.TODO(), clientset, namespace, jobConfig.cronJobName, jobName, onDemandJob.OptionsToEnvVars())
@@ -117,55 +111,3 @@ func processOnDemandJob(clientset *kubernetes.Clientset, onDemandJob insights.On
 	return nil
 }
 
-// processKyvernoPolicySyncJob handles the special case of kyverno-policy-sync jobs
-func processKyvernoPolicySyncJob(clientset *kubernetes.Clientset, onDemandJob insights.OnDemandJob) error {
-	slog.Info("Processing Kyverno policy sync job", "jobID", onDemandJob.ID)
-
-	// Create insights client
-	insightsClient := insights.NewClient(
-		os.Getenv("FAIRWINDS_INSIGHTS_HOST"),
-		os.Getenv("FAIRWINDS_TOKEN"),
-		os.Getenv("FAIRWINDS_ORG"),
-		os.Getenv("FAIRWINDS_CLUSTER"),
-		os.Getenv("FAIRWINDS_DEV_MODE") == "true",
-	)
-
-	// Parse configuration from job options
-	config := kyverno.PolicySyncConfig{
-		DryRun:           onDemandJob.Options["dryRun"] == "true",
-		SyncInterval:     15 * time.Minute,
-		LockTimeout:      30 * time.Minute,
-		ValidatePolicies: onDemandJob.Options["validatePolicies"] != "false",
-	}
-
-	// Create dynamic client
-	dynamicClient, err := k8s.GetDynamicClient()
-	if err != nil {
-		return fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
-	// Create policy sync processor
-	processor := kyverno.NewPolicySyncProcessor(insightsClient, clientset, dynamicClient, config)
-
-	// Execute policy sync
-	result, err := processor.SyncPolicies(context.TODO())
-	if err != nil {
-		return fmt.Errorf("policy sync failed: %w", err)
-	}
-
-	// Log results
-	slog.Info("Policy sync completed",
-		"success", result.Success,
-		"duration", result.Duration,
-		"summary", result.Summary,
-		"applied", len(result.Applied),
-		"updated", len(result.Updated),
-		"removed", len(result.Removed),
-		"failed", len(result.Failed))
-
-	if !result.Success {
-		return fmt.Errorf("policy sync failed: %v", result.Errors)
-	}
-
-	return nil
-}

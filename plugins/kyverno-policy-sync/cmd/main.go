@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/config"
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
@@ -61,20 +58,11 @@ func main() {
 	// Create policy sync processor
 	processor := sync.NewPolicySyncProcessor(insightsClient, k8sClient, dynamicClient, syncConfig)
 
-	// Check if running in one-shot mode
-	if os.Getenv("ONE_SHOT") == "true" {
-		slog.Info("Running in one-shot mode")
-		if err := runSync(processor); err != nil {
-			slog.Error("Sync failed", "error", err)
-			os.Exit(1)
-		}
-		slog.Info("Sync completed successfully")
-		return
+	if err := runSync(processor); err != nil {
+		slog.Error("Sync failed", "error", err)
+		os.Exit(1)
 	}
-
-	// Run in continuous mode
-	slog.Info("Running in continuous mode", "interval", cfg.SyncInterval)
-	runContinuous(processor, cfg.SyncInterval)
+	slog.Info("Sync completed successfully")
 }
 
 // runSync runs a single sync operation
@@ -97,35 +85,7 @@ func runSync(processor *sync.PolicySyncProcessor) error {
 	if !result.Success {
 		return fmt.Errorf("sync failed: %v", result.Errors)
 	}
-
 	return nil
-}
-
-// runContinuous runs sync operations continuously
-func runContinuous(processor *sync.PolicySyncProcessor, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	// Run initial sync
-	if err := runSync(processor); err != nil {
-		slog.Error("Initial sync failed", "error", err)
-	}
-
-	// Set up signal handling
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := runSync(processor); err != nil {
-				slog.Error("Sync failed", "error", err)
-			}
-		case sig := <-sigChan:
-			slog.Info("Received signal, shutting down", "signal", sig)
-			return
-		}
-	}
 }
 
 // maskToken masks the token for logging
