@@ -21,13 +21,16 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kyverno-policy-sy
 FROM alpine:3.22
 
 # Install runtime dependencies
+ARG KYVERNO_VERSION=v1.15.2
+
 RUN apk -U upgrade && \
     apk --no-cache add ca-certificates tzdata
 
 # Install Kyverno CLI
-RUN wget -O kyverno https://github.com/kyverno/kyverno/releases/latest/download/kyverno-cli_linux_amd64 && \
-    chmod +x kyverno && \
-    mv kyverno /usr/local/bin/
+RUN wget -O /usr/local/bin/kyverno.tar.gz https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}/kyverno-cli_${KYVERNO_VERSION}_linux_x86_64.tar.gz && \
+    tar -xf /usr/local/bin/kyverno.tar.gz -C /usr/local/bin && \
+    chmod +x /usr/local/bin/kyverno && \
+    rm /usr/local/bin/kyverno.tar.gz
 
 # Create non-root user
 RUN adduser -D -s /bin/sh -u 1200 kyverno
