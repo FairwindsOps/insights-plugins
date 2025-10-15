@@ -103,15 +103,7 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 		"toUpdate", len(actions.ToUpdate),
 		"toRemove", len(actions.ToRemove))
 
-	// 5. Validate policies if enabled
-	if p.config.ValidatePolicies && !p.config.DryRun {
-		policyManager := NewPolicyManager(p.k8sClient, p.dynamicClient)
-		if err := policyManager.validatePolicies(ctx, expectedPolicies); err != nil {
-			return result, fmt.Errorf("policy validation failed: %w", err)
-		}
-	}
-
-	// 6. Execute dry-run first to check everything is right
+	// 5. Execute dry-run first to check everything is right
 	if !p.config.DryRun {
 		dryRunResult, err := p.executeDryRun(ctx, actions, expectedPolicies)
 		if err != nil {
