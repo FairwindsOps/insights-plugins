@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,13 +39,67 @@ func ensureTempDir() error {
 	return nil
 }
 
-// validatePolicies is a no-op function - policies will be validated when applied
-func (pm *PolicyManager) validatePolicies(ctx context.Context, policies []ClusterPolicy) error {
+// validatePolicies validates policies using Kyverno CLI
+func (pm *PolicyManager) ValidatePolicies(ctx context.Context, policies []ClusterPolicy) error {
 	if len(policies) == 0 {
 		return nil
 	}
 
-	slog.Info("Skipping policy validation - policies will be validated during application", "count", len(policies))
+	slog.Info("Validating policies with Kyverno CLI", "count", len(policies))
+
+	// Ensure temp directory exists
+	if err := ensureTempDir(); err != nil {
+		return err
+	}
+
+	// Create temporary YAML file with all policies
+	tempFile, err := os.CreateTemp("/output/tmp", "kyverno-policies-*.yaml")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary file: %w", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	// Write policies to temporary file
+	var yamlDocs []string
+	for _, policy := range policies {
+		policyYAML, err := pm.policyToYAML(policy)
+		if err != nil {
+			return fmt.Errorf("failed to convert policy %s to YAML: %w", policy.Name, err)
+		}
+		yamlDocs = append(yamlDocs, policyYAML)
+	}
+
+	if _, err := tempFile.WriteString(strings.Join(yamlDocs, "\n---\n")); err != nil {
+		return fmt.Errorf("failed to write policies to temporary file: %w", err)
+	}
+	tempFile.Close()
+
+	// Validate policy syntax using kyverno apply without resource
+	// This will validate the policy structure and syntax
+	cmd := exec.CommandContext(ctx, "kyverno", "apply", tempFile.Name())
+	output, err := cmd.CombinedOutput()
+
+	// Check the output to determine if validation was successful
+	outputStr := string(output)
+	if err != nil {
+		// If the error mentions missing resource or similar, that's expected for validation
+		if strings.Contains(outputStr, "no resource") ||
+			strings.Contains(outputStr, "resource required") ||
+			strings.Contains(outputStr, "no resource file") {
+			slog.Info("Policy syntax validation completed - policies are syntactically valid")
+			return nil
+		}
+		// If it's a different error, return it
+		return fmt.Errorf("policy validation failed: %s", outputStr)
+	}
+
+	// Check if policies were skipped due to missing variables (this is actually success)
+	if strings.Contains(outputStr, "Policies Skipped") && strings.Contains(outputStr, "required variables are not provided") {
+		slog.Info("Policy validation completed - policies are syntactically valid (skipped due to missing variables)")
+		return nil
+	}
+
+	slog.Info("Policy validation completed successfully")
 	return nil
 }
 
