@@ -112,12 +112,12 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 		slog.Info("Dry-run completed successfully", "summary", dryRunResult.Summary)
 	}
 
-	// 7. Execute sync actions
+	// 6. Execute sync actions
 	if err := p.executeSyncActions(ctx, actions, expectedPolicies, result); err != nil {
 		return result, fmt.Errorf("failed to execute sync actions: %w", err)
 	}
 
-	// 8. Generate summary
+	// 7. Generate summary
 	result.Duration = time.Since(startTime)
 	result.Summary = p.generateSummary(result)
 	result.Success = len(result.Errors) == 0
