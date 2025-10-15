@@ -5,9 +5,8 @@ RUN apk -U upgrade
 RUN apk --no-cache add ca-certificates
 
 # Install kubectl
-ARG KUBECTL_VERSION=v1.31.1
-RUN wget -O /usr/local/bin/kubectl https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
-    chmod +x /usr/local/bin/kubectl
+ENV kubectlVersion=1.33.4
+RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl
 
 # Switch to non-root user
 USER 1200
