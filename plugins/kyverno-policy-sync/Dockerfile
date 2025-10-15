@@ -1,6 +1,9 @@
 FROM alpine:3.22
 WORKDIR /usr/local/bin
 
+ARG TARGETARCH
+ARG TARGETOS
+
 RUN apk -U upgrade
 RUN apk --no-cache add ca-certificates
 
