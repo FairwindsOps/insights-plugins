@@ -15,7 +15,7 @@ images:
     - quay.io/fairwinds/fw-kube-bench-aggregator:0.3.31
     - quay.io/fairwinds/fw-kube-bench:0.5.16
     - quay.io/fairwinds/kubectl:0.20.11
-    - quay.io/fairwinds/kyverno-policy-sync:0.1.1
+    - quay.io/fairwinds/kyverno-policy-sync:0.1.2
     - quay.io/fairwinds/kyverno:0.4.2
     - quay.io/fairwinds/on-demand-job-runner:0.1.4
     - quay.io/fairwinds/fw-opa:3.0.1
