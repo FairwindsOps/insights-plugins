@@ -61,6 +61,7 @@ plugin_map["quay.io/fairwinds/insights-uploader"]="uploader"
 plugin_map["quay.io/fairwinds/insights-utils"]="utils"
 plugin_map["quay.io/fairwinds/workloads"]="workloads"
 plugin_map["quay.io/fairwinds/on-demand-job-runner"]="on-demand-job-runner"
+plugin_map["quay.io/fairwinds/kyverno-policy-sync"]="kyverno-policy-sync"
 
 echo "scanning all images"
 for name in "${images[@]}"; do
