@@ -18,21 +18,22 @@ type JobConfig struct {
 }
 
 var reportTypeJobConfigMap = map[string]JobConfig{
-	"trivy":              {cronJobName: "trivy", timeout: 20 * time.Minute},
-	"cloudcosts":         {cronJobName: "cloudcosts", timeout: 5 * time.Minute},
-	"falco":              {cronJobName: "falco", timeout: 5 * time.Minute},
-	"nova":               {cronJobName: "nova", timeout: 5 * time.Minute},
-	"pluto":              {cronJobName: "pluto", timeout: 5 * time.Minute},
-	"polaris":            {cronJobName: "polaris", timeout: 5 * time.Minute},
-	"prometheus-metrics": {cronJobName: "prometheus-metrics", timeout: 5 * time.Minute},
-	"goldilocks":         {cronJobName: "goldilocks", timeout: 5 * time.Minute},
-	"rbac-reporter":      {cronJobName: "rbac-reporter", timeout: 5 * time.Minute},
-	"right-sizer":        {cronJobName: "right-sizer", timeout: 5 * time.Minute},
-	"workloads":          {cronJobName: "workloads", timeout: 5 * time.Minute},
-	"kube-hunter":        {cronJobName: "kube-hunter", timeout: 5 * time.Minute},
-	"kube-bench":         {cronJobName: "kube-bench", timeout: 5 * time.Minute},
-	"kyverno":            {cronJobName: "kyverno", timeout: 5 * time.Minute},
-	"gonogo":             {cronJobName: "gonogo", timeout: 5 * time.Minute},
+	"trivy":               {cronJobName: "trivy", timeout: 20 * time.Minute},
+	"cloudcosts":          {cronJobName: "cloudcosts", timeout: 5 * time.Minute},
+	"falco":               {cronJobName: "falco", timeout: 5 * time.Minute},
+	"nova":                {cronJobName: "nova", timeout: 5 * time.Minute},
+	"pluto":               {cronJobName: "pluto", timeout: 5 * time.Minute},
+	"polaris":             {cronJobName: "polaris", timeout: 5 * time.Minute},
+	"prometheus-metrics":  {cronJobName: "prometheus-metrics", timeout: 5 * time.Minute},
+	"goldilocks":          {cronJobName: "goldilocks", timeout: 5 * time.Minute},
+	"rbac-reporter":       {cronJobName: "rbac-reporter", timeout: 5 * time.Minute},
+	"right-sizer":         {cronJobName: "right-sizer", timeout: 5 * time.Minute},
+	"workloads":           {cronJobName: "workloads", timeout: 5 * time.Minute},
+	"kube-hunter":         {cronJobName: "kube-hunter", timeout: 5 * time.Minute},
+	"kube-bench":          {cronJobName: "kube-bench", timeout: 5 * time.Minute},
+	"kyverno":             {cronJobName: "kyverno", timeout: 5 * time.Minute},
+	"kyverno-policy-sync": {cronJobName: "kyverno-policy-sync", timeout: 10 * time.Minute},
+	"gonogo":              {cronJobName: "gonogo", timeout: 5 * time.Minute},
 }
 
 // FetchAndProcessOnDemandJobs fetches on-demand jobs from the insights client and processes them concurrently.

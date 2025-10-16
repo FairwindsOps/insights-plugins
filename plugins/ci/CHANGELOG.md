@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.6
+* Bump trivy to 0.67.0
+
 ## 6.1.5
 * Bump trivy to 0.66.0
 
