@@ -16,19 +16,23 @@ type EventHandler interface {
 
 // EventHandlerFactory creates event handlers based on event characteristics
 type EventHandlerFactory struct {
-	insightsConfig models.InsightsConfig
-	kubeClient     kubernetes.Interface
-	dynamicClient  dynamic.Interface
-	handlers       map[string]EventHandler
+	insightsConfig     models.InsightsConfig
+	kubeClient         kubernetes.Interface
+	dynamicClient      dynamic.Interface
+	handlers           map[string]EventHandler
+	httpTimeoutSeconds int
+	rateLimitPerMinute int
 }
 
 // NewEventHandlerFactory creates a new factory with registered handlers
-func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface) *EventHandlerFactory {
+func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, httpTimeoutSeconds, rateLimitPerMinute int) *EventHandlerFactory {
 	factory := &EventHandlerFactory{
-		insightsConfig: insightsConfig,
-		kubeClient:     kubeClient,
-		dynamicClient:  dynamicClient,
-		handlers:       make(map[string]EventHandler),
+		insightsConfig:     insightsConfig,
+		kubeClient:         kubeClient,
+		dynamicClient:      dynamicClient,
+		handlers:           make(map[string]EventHandler),
+		httpTimeoutSeconds: httpTimeoutSeconds,
+		rateLimitPerMinute: rateLimitPerMinute,
 	}
 
 	// Register default handlers
@@ -40,7 +44,7 @@ func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kub
 // registerDefaultHandlers registers all default event handlers
 func (f *EventHandlerFactory) registerDefaultHandlers() {
 	// PolicyViolation handler for Kubernetes events
-	f.Register("policy-violation", NewPolicyViolationHandler(f.insightsConfig))
+	f.Register("policy-violation", NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 
 }
 

@@ -261,7 +261,7 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		Data: map[string]interface{}{
 			"reason":  "PolicyViolation",
 			"type":    "Warning",
-			"message": fmt.Sprintf("policy %s/%s fail: %s", violation.PolicyName, violation.PolicyName, violation.Message),
+			"message": fmt.Sprintf("policy %s fail: %s", violation.PolicyName, violation.Message),
 			"source": map[string]interface{}{
 				"component": "audit-log-handler",
 			},

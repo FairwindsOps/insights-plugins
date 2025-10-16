@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 
 	version "github.com/fairwindsops/insights-plugins/plugins/watcher"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
@@ -18,14 +21,20 @@ import (
 type PolicyViolationHandler struct {
 	insightsConfig models.InsightsConfig
 	client         *http.Client
+	rateLimiter    *rate.Limiter
+	mu             sync.Mutex
 }
 
-func NewPolicyViolationHandler(config models.InsightsConfig) *PolicyViolationHandler {
+func NewPolicyViolationHandler(config models.InsightsConfig, httpTimeoutSeconds, rateLimitPerMinute int) *PolicyViolationHandler {
+	// Create rate limiter: rateLimitPerMinute calls per minute
+	limiter := rate.NewLimiter(rate.Limit(rateLimitPerMinute)/60.0, 1)
+
 	return &PolicyViolationHandler{
 		insightsConfig: config,
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: time.Duration(httpTimeoutSeconds) * time.Second,
 		},
+		rateLimiter: limiter,
 	}
 }
 
@@ -241,7 +250,16 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 }
 
 // sendToInsights sends the policy violation to Insights API
-func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyViolationEvent) error { // Convert to JSON
+func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyViolationEvent) error {
+	// Apply rate limiting
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := h.rateLimiter.Wait(ctx); err != nil {
+		return fmt.Errorf("rate limit exceeded: %w", err)
+	}
+
+	// Convert to JSON
 	jsonData, err := json.Marshal(violationEvent)
 	if err != nil {
 		return fmt.Errorf("failed to marshal violation event: %w", err)

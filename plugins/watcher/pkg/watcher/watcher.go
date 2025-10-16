@@ -32,16 +32,16 @@ type Watcher struct {
 }
 
 // NewWatcher creates a new Kubernetes watcher
-func NewWatcher(insightsConfig models.InsightsConfig, auditLogPath string) (*Watcher, error) {
+func NewWatcher(insightsConfig models.InsightsConfig, auditLogPath string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int) (*Watcher, error) {
 	kubeClient, err := client.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
-	// Create handler factory
-	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface)
+	// Create handler factory with HTTP timeout and rate limiting
+	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute)
 
-	eventChannel := make(chan *event.WatchedEvent, 1000)
+	eventChannel := make(chan *event.WatchedEvent, eventBufferSize)
 
 	// Create audit log handler if audit log path is provided
 	var auditLogHandler *handlers.AuditLogHandler
@@ -74,7 +74,10 @@ func (w *Watcher) Start(ctx context.Context) error {
 	// Start watching each resource type
 	for _, resourceType := range resources {
 		if err := w.watchResource(ctx, resourceType); err != nil {
-			logrus.WithError(err).WithField("resource", resourceType).Warn("Failed to start watching resource")
+			logrus.WithError(err).WithFields(logrus.Fields{
+				"resource":   resourceType,
+				"error_type": fmt.Sprintf("%T", err),
+			}).Warn("Failed to start watching resource - this may be due to missing RBAC permissions, resource not available, or API server issues")
 			continue
 		}
 		logrus.WithField("resource", resourceType).Info("Started watching resource")
@@ -200,7 +203,11 @@ func (w *Watcher) watchEvents(resourceType string, watcher watch.Interface) {
 			}
 
 			if err := w.handleEvent(resourceType, event); err != nil {
-				logrus.WithError(err).WithField("resource", resourceType).Error("Failed to handle event")
+				logrus.WithError(err).WithFields(logrus.Fields{
+					"resource":   resourceType,
+					"event_type": event.Type,
+					"error_type": fmt.Sprintf("%T", err),
+				}).Error("Failed to handle event - this may indicate issues with event processing or resource parsing")
 			}
 		}
 	}
@@ -255,7 +262,13 @@ func (w *Watcher) processEvents() {
 			watchedEvent.LogEvent()
 
 			if err := w.handlerFactory.ProcessEvent(watchedEvent); err != nil {
-				logrus.WithError(err).Error("failed to process event through handlers")
+				logrus.WithError(err).WithFields(logrus.Fields{
+					"event_type":    watchedEvent.EventType,
+					"resource_type": watchedEvent.ResourceType,
+					"namespace":     watchedEvent.Namespace,
+					"name":          watchedEvent.Name,
+					"error_type":    fmt.Sprintf("%T", err),
+				}).Error("Failed to process event through handlers - this may indicate issues with event handler logic or API communication")
 			}
 		}
 	}

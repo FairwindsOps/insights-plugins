@@ -34,7 +34,7 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	handler := NewPolicyViolationHandler(config)
+	handler := NewPolicyViolationHandler(config, 30, 60)
 
 	// Create a blocked PolicyViolation event
 	event := &event.WatchedEvent{
@@ -93,7 +93,7 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	handler := NewPolicyViolationHandler(config)
+	handler := NewPolicyViolationHandler(config, 30, 60)
 
 	// Create a non-blocked PolicyViolation event
 	event := &event.WatchedEvent{
@@ -151,7 +151,7 @@ func TestPolicyViolationHandlerHandleValidatingAdmissionPolicyEvent(t *testing.T
 		Token:        "test-token",
 	}
 
-	handler := NewPolicyViolationHandler(config)
+	handler := NewPolicyViolationHandler(config, 30, 60)
 
 	// Create a ValidatingAdmissionPolicy event (blocked)
 	event := &event.WatchedEvent{
@@ -210,7 +210,7 @@ func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
 		Token:        "test-token",
 	}
 
-	handler := NewPolicyViolationHandler(config)
+	handler := NewPolicyViolationHandler(config, 30, 60)
 
 	// Create a blocked regular Kyverno policy event
 	event := &event.WatchedEvent{
