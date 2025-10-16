@@ -45,7 +45,7 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/kyverno-policy-sync:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/kyverno-policy-sync:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/kyverno:{{ .Env.feature_docker_tag }}
+- name_template: quay.io/fairwinds/kyverno-policy-sync:{{ .Env.feature_docker_tag }}
   # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_feature_docker_tags}
   image_templates:
