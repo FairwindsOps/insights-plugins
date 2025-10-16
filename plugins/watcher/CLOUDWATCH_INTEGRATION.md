@@ -11,11 +11,13 @@ This PR adds comprehensive CloudWatch integration to the Kubernetes Event Watche
 - **No Historical Data**: Only processes recent events (last 5 minutes) for performance
 - **CloudWatch Filtering**: Uses filter patterns to reduce data transfer and processing overhead
 - **Performance Optimized**: Configurable batch sizes, memory limits, and polling intervals
+- **Multi-Environment Support**: Production, Staging, and Disaster-Recovery environments
 
 ### 🔐 **Security & Authentication**
 - **IRSA Support**: Uses IAM Roles for Service Accounts for secure AWS access
 - **Minimal Permissions**: CloudWatch Logs read-only permissions
 - **No Hardcoded Credentials**: Leverages EKS native authentication
+- **Environment Isolation**: Separate IAM roles for each environment
 
 ### 🎯 **ValidatingAdmissionPolicy Focus**
 - **Primary Target**: Specifically designed to detect VAP violations from EKS audit logs
@@ -157,30 +159,75 @@ insights-event-watcher:
 3. Attempt to create a violating resource
 4. Verify policy violation is detected and sent to Insights
 
+## Deployment
+
+### **Terraform Infrastructure Setup**
+
+#### **1. Apply Terraform Changes**
+```bash
+# For production
+cd /Users/james/git/insights-terraform/production
+terraform plan
+terraform apply
+
+# For staging
+cd /Users/james/git/insights-terraform/staging
+terraform plan
+terraform apply
+
+# For disaster-recovery
+cd /Users/james/git/insights-terraform/disaster-recovery
+terraform plan
+terraform apply
+```
+
+#### **2. Environment-Specific IAM Roles**
+
+| Environment | IAM Role Name | Log Group |
+|-------------|---------------|-----------|
+| **Production** | `production-eks_cloudwatch_watcher` | `/aws/eks/production-eks/cluster` |
+| **Staging** | `staging-eks_cloudwatch_watcher` | `/aws/eks/staging-eks/cluster` |
+| **Disaster-Recovery** | `production-dr-eks_cloudwatch_watcher` | `/aws/eks/production-dr-eks/cluster` |
+
+#### **3. Service Account Annotations**
+
+```yaml
+# Production
+eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/production-eks_cloudwatch_watcher"
+
+# Staging
+eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/staging-eks_cloudwatch_watcher"
+
+# Disaster-Recovery
+eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/production-dr-eks_cloudwatch_watcher"
+```
+
+### **Helm Chart Deployment**
+
+#### **1. Update values.yaml**
+```yaml
+insights-event-watcher:
+  cloudwatch:
+    enabled: true
+    logGroupName: "/aws/eks/your-cluster/cluster"  # Environment-specific
+    region: "your-region"
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/your-environment-eks_cloudwatch_watcher"
+```
+
+#### **2. Deploy Updated Chart**
+```bash
+helm upgrade insights-agent ./charts/stable/insights-agent
+```
+
 ## Migration Guide
 
 ### **From Local Mode to CloudWatch Mode**
 
-1. **Update values.yaml**:
-   ```yaml
-   insights-event-watcher:
-     cloudwatch:
-       enabled: true
-       logGroupName: "/aws/eks/your-cluster/cluster"
-       region: "your-region"
-   ```
-
-2. **Add IAM role annotation**:
-   ```yaml
-   serviceAccount:
-     annotations:
-       eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/your-role"
-   ```
-
-3. **Deploy updated chart**:
-   ```bash
-   helm upgrade insights-agent ./charts/stable/insights-agent
-   ```
+1. **Deploy Terraform Infrastructure** (see above)
+2. **Update values.yaml** with environment-specific configuration
+3. **Deploy updated chart** with CloudWatch enabled
 
 ## Benefits
 
