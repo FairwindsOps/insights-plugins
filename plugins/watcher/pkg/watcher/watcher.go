@@ -18,21 +18,24 @@ import (
 
 // Watcher manages watching Kubernetes resources
 type Watcher struct {
-	client          *client.Client
-	watchers        map[string]watch.Interface
-	informers       map[string]cache.SharedInformer
-	eventChannel    chan *event.WatchedEvent
-	stopCh          chan struct{}
-	mu              sync.RWMutex
-	wg              sync.WaitGroup
-	handlerFactory  *handlers.EventHandlerFactory
-	insightsConfig  models.InsightsConfig
-	auditLogHandler *handlers.AuditLogHandler
-	auditLogPath    string
+	client            *client.Client
+	watchers          map[string]watch.Interface
+	informers         map[string]cache.SharedInformer
+	eventChannel      chan *event.WatchedEvent
+	stopCh            chan struct{}
+	mu                sync.RWMutex
+	wg                sync.WaitGroup
+	handlerFactory    *handlers.EventHandlerFactory
+	insightsConfig    models.InsightsConfig
+	auditLogHandler   *handlers.AuditLogHandler
+	auditLogPath      string
+	logSource         string
+	cloudwatchConfig  *models.CloudWatchConfig
+	cloudwatchHandler *handlers.CloudWatchHandler
 }
 
 // NewWatcher creates a new Kubernetes watcher
-func NewWatcher(insightsConfig models.InsightsConfig, auditLogPath string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int) (*Watcher, error) {
+func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int) (*Watcher, error) {
 	kubeClient, err := client.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
@@ -49,16 +52,29 @@ func NewWatcher(insightsConfig models.InsightsConfig, auditLogPath string, event
 		auditLogHandler = handlers.NewAuditLogHandler(insightsConfig, kubeClient.KubeInterface, auditLogPath, eventChannel)
 	}
 
+	// Create CloudWatch handler if CloudWatch is enabled
+	var cloudwatchHandler *handlers.CloudWatchHandler
+	if logSource == "cloudwatch" && cloudwatchConfig != nil {
+		var err error
+		cloudwatchHandler, err = handlers.NewCloudWatchHandler(insightsConfig, *cloudwatchConfig, eventChannel)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create CloudWatch handler: %w", err)
+		}
+	}
+
 	w := &Watcher{
-		client:          kubeClient,
-		watchers:        make(map[string]watch.Interface),
-		informers:       make(map[string]cache.SharedInformer),
-		eventChannel:    eventChannel,
-		stopCh:          make(chan struct{}),
-		handlerFactory:  handlerFactory,
-		insightsConfig:  insightsConfig,
-		auditLogHandler: auditLogHandler,
-		auditLogPath:    auditLogPath,
+		client:            kubeClient,
+		watchers:          make(map[string]watch.Interface),
+		informers:         make(map[string]cache.SharedInformer),
+		eventChannel:      eventChannel,
+		stopCh:            make(chan struct{}),
+		handlerFactory:    handlerFactory,
+		insightsConfig:    insightsConfig,
+		auditLogHandler:   auditLogHandler,
+		auditLogPath:      auditLogPath,
+		logSource:         logSource,
+		cloudwatchConfig:  cloudwatchConfig,
+		cloudwatchHandler: cloudwatchHandler,
 	}
 
 	return w, nil
@@ -103,6 +119,17 @@ func (w *Watcher) Start(ctx context.Context) error {
 		}()
 	}
 
+	// Start CloudWatch log monitoring if enabled
+	if w.cloudwatchHandler != nil {
+		w.wg.Add(1)
+		go func() {
+			defer w.wg.Done()
+			if err := w.cloudwatchHandler.Start(ctx); err != nil {
+				logrus.WithError(err).Error("Failed to start CloudWatch log monitoring")
+			}
+		}()
+	}
+
 	// Start event processor
 	w.wg.Add(1)
 	go func() {
@@ -131,6 +158,11 @@ func (w *Watcher) Stop() {
 	// Stop audit log handler if enabled
 	if w.auditLogHandler != nil {
 		w.auditLogHandler.Stop()
+	}
+
+	// Stop CloudWatch handler if enabled
+	if w.cloudwatchHandler != nil {
+		w.cloudwatchHandler.Stop()
 	}
 
 	// Wait for all goroutines to finish

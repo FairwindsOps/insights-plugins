@@ -6,6 +6,15 @@ type InsightsConfig struct {
 	Cluster      string
 	Token        string
 }
+
+type CloudWatchConfig struct {
+	LogGroupName  string
+	Region        string
+	FilterPattern string
+	BatchSize     int
+	PollInterval  string
+	MaxMemoryMB   int
+}
 type EventReport struct {
 	EventType    string                 `json:"event_type"`
 	ResourceType string                 `json:"resource_type"`

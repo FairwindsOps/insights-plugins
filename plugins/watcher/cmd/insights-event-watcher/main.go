@@ -17,7 +17,7 @@ import (
 )
 
 // validateConfiguration validates all command-line parameters
-func validateConfiguration(logLevel, insightsHost, organization, cluster, insightsToken, auditLogPath string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int) error {
+func validateConfiguration(logLevel, insightsHost, organization, cluster, insightsToken, auditLogPath, logSource, cloudwatchLogGroup, cloudwatchRegion, cloudwatchFilter string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, cloudwatchBatchSize, cloudwatchMaxMemory int) error {
 	// Validate log level
 	validLogLevels := []string{"debug", "info", "warn", "error"}
 	logLevelValid := false
@@ -106,25 +106,74 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, insigh
 		return fmt.Errorf("rate limit too high (max 1000 calls per minute), got %d", rateLimitPerMinute)
 	}
 
+	// Validate log source
+	validLogSources := []string{"local", "cloudwatch"}
+	logSourceValid := false
+	for _, valid := range validLogSources {
+		if logSource == valid {
+			logSourceValid = true
+			break
+		}
+	}
+	if !logSourceValid {
+		return fmt.Errorf("invalid log source '%s', must be one of: %s", logSource, strings.Join(validLogSources, ", "))
+	}
+
+	// Validate CloudWatch configuration if log source is cloudwatch
+	if logSource == "cloudwatch" {
+		if cloudwatchLogGroup == "" {
+			return fmt.Errorf("cloudwatch-log-group is required when log-source is cloudwatch")
+		}
+		if cloudwatchRegion == "" {
+			return fmt.Errorf("cloudwatch-region is required when log-source is cloudwatch")
+		}
+		if !strings.HasPrefix(cloudwatchLogGroup, "/aws/eks/") {
+			return fmt.Errorf("cloudwatch-log-group should start with '/aws/eks/', got '%s'", cloudwatchLogGroup)
+		}
+	}
+
+	// Validate CloudWatch batch size
+	if cloudwatchBatchSize < 1 {
+		return fmt.Errorf("cloudwatch batch size must be at least 1, got %d", cloudwatchBatchSize)
+	}
+	if cloudwatchBatchSize > 10000 {
+		return fmt.Errorf("cloudwatch batch size too large (max 10000), got %d", cloudwatchBatchSize)
+	}
+
+	// Validate CloudWatch max memory
+	if cloudwatchMaxMemory < 64 {
+		return fmt.Errorf("cloudwatch max memory must be at least 64 MB, got %d", cloudwatchMaxMemory)
+	}
+	if cloudwatchMaxMemory > 4096 {
+		return fmt.Errorf("cloudwatch max memory too large (max 4096 MB), got %d", cloudwatchMaxMemory)
+	}
+
 	return nil
 }
 
 func main() {
 	var (
-		logLevel           = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
-		insightsHost       = flag.String("insights-host", "", "Fairwinds Insights hostname")
-		organization       = flag.String("organization", "", "Fairwinds organization name")
-		cluster            = flag.String("cluster", "", "Cluster name")
-		insightsToken      = flag.String("insights-token", "", "Fairwinds Insights API token")
-		auditLogPath       = flag.String("audit-log-path", "", "Path to Kubernetes audit log file (optional)")
-		eventBufferSize    = flag.Int("event-buffer-size", 1000, "Size of the event processing buffer")
-		httpTimeoutSeconds = flag.Int("http-timeout-seconds", 30, "HTTP client timeout in seconds")
-		rateLimitPerMinute = flag.Int("rate-limit-per-minute", 60, "Maximum API calls per minute")
+		logLevel               = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
+		insightsHost           = flag.String("insights-host", "", "Fairwinds Insights hostname")
+		organization           = flag.String("organization", "", "Fairwinds organization name")
+		cluster                = flag.String("cluster", "", "Cluster name")
+		insightsToken          = flag.String("insights-token", "", "Fairwinds Insights API token")
+		logSource              = flag.String("log-source", "local", "Log source type (local, cloudwatch)")
+		auditLogPath           = flag.String("audit-log-path", "", "Path to Kubernetes audit log file (optional)")
+		cloudwatchLogGroup     = flag.String("cloudwatch-log-group", "", "CloudWatch log group name (e.g., /aws/eks/production-eks/cluster)")
+		cloudwatchRegion       = flag.String("cloudwatch-region", "", "AWS region for CloudWatch logs")
+		cloudwatchFilter       = flag.String("cloudwatch-filter-pattern", "", "CloudWatch filter pattern for log events")
+		cloudwatchBatchSize    = flag.Int("cloudwatch-batch-size", 100, "Number of log events to process in each batch")
+		cloudwatchPollInterval = flag.String("cloudwatch-poll-interval", "30s", "Interval between CloudWatch log polls")
+		cloudwatchMaxMemory    = flag.Int("cloudwatch-max-memory", 512, "Maximum memory usage in MB for CloudWatch processing")
+		eventBufferSize        = flag.Int("event-buffer-size", 1000, "Size of the event processing buffer")
+		httpTimeoutSeconds     = flag.Int("http-timeout-seconds", 30, "HTTP client timeout in seconds")
+		rateLimitPerMinute     = flag.Int("rate-limit-per-minute", 60, "Maximum API calls per minute")
 	)
 	flag.Parse()
 
 	// Validate all configuration parameters
-	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *insightsToken, *auditLogPath, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute); err != nil {
+	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *insightsToken, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory); err != nil {
 		logrus.WithError(err).Fatal("Configuration validation failed")
 	}
 
@@ -136,8 +185,20 @@ func main() {
 
 	logrus.Info("Starting Kubernetes Event Watcher")
 	logrus.WithFields(logrus.Fields{
-		"log_level": *logLevel,
+		"log_level":  *logLevel,
+		"log_source": *logSource,
 	}).Info("Configuration")
+
+	// Log CloudWatch configuration if enabled
+	if *logSource == "cloudwatch" {
+		logrus.WithFields(logrus.Fields{
+			"log_group":      *cloudwatchLogGroup,
+			"region":         *cloudwatchRegion,
+			"filter_pattern": *cloudwatchFilter,
+			"batch_size":     *cloudwatchBatchSize,
+			"max_memory_mb":  *cloudwatchMaxMemory,
+		}).Info("CloudWatch configuration")
+	}
 
 	// Create Insights configuration
 	insightsConfig := models.InsightsConfig{
@@ -165,8 +226,21 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Create CloudWatch configuration if needed
+	var cloudwatchConfig *models.CloudWatchConfig
+	if *logSource == "cloudwatch" {
+		cloudwatchConfig = &models.CloudWatchConfig{
+			LogGroupName:  *cloudwatchLogGroup,
+			Region:        *cloudwatchRegion,
+			FilterPattern: *cloudwatchFilter,
+			BatchSize:     *cloudwatchBatchSize,
+			PollInterval:  *cloudwatchPollInterval,
+			MaxMemoryMB:   *cloudwatchMaxMemory,
+		}
+	}
+
 	// Create watcher with configuration
-	kubeWatcher, err := watcher.NewWatcher(insightsConfig, *auditLogPath, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute)
+	kubeWatcher, err := watcher.NewWatcher(insightsConfig, *logSource, *auditLogPath, cloudwatchConfig, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute)
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to create watcher")
 	}
