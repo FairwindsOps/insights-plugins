@@ -17,7 +17,7 @@ import (
 )
 
 // validateConfiguration validates all command-line parameters
-func validateConfiguration(logLevel, insightsHost, organization, cluster, insightsToken, auditLogPath, logSource, cloudwatchLogGroup, cloudwatchRegion, cloudwatchFilter string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, cloudwatchBatchSize, cloudwatchMaxMemory int) error {
+func validateConfiguration(logLevel, insightsHost, organization, cluster, insightsToken, auditLogPath, logSource, cloudwatchLogGroup, cloudwatchRegion, cloudwatchFilter string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, cloudwatchBatchSize, cloudwatchMaxMemory int, consoleMode bool) error {
 	// Validate log level
 	validLogLevels := []string{"debug", "info", "warn", "error"}
 	logLevelValid := false
@@ -148,6 +148,11 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, insigh
 		return fmt.Errorf("cloudwatch max memory too large (max 4096 MB), got %d", cloudwatchMaxMemory)
 	}
 
+	// Console mode validation - if console mode is enabled, Insights config is optional
+	if consoleMode {
+		logrus.Info("Console mode enabled - events will be printed to console instead of sent to Insights")
+	}
+
 	return nil
 }
 
@@ -169,11 +174,12 @@ func main() {
 		eventBufferSize        = flag.Int("event-buffer-size", 1000, "Size of the event processing buffer")
 		httpTimeoutSeconds     = flag.Int("http-timeout-seconds", 30, "HTTP client timeout in seconds")
 		rateLimitPerMinute     = flag.Int("rate-limit-per-minute", 60, "Maximum API calls per minute")
+		consoleMode            = flag.Bool("console-mode", false, "Print events to console instead of sending to Insights")
 	)
 	flag.Parse()
 
 	// Validate all configuration parameters
-	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *insightsToken, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory); err != nil {
+	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *insightsToken, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory, *consoleMode); err != nil {
 		logrus.WithError(err).Fatal("Configuration validation failed")
 	}
 
@@ -185,8 +191,9 @@ func main() {
 
 	logrus.Info("Starting Kubernetes Event Watcher")
 	logrus.WithFields(logrus.Fields{
-		"log_level":  *logLevel,
-		"log_source": *logSource,
+		"log_level":    *logLevel,
+		"log_source":   *logSource,
+		"console_mode": *consoleMode,
 	}).Info("Configuration")
 
 	// Log CloudWatch configuration if enabled
@@ -218,7 +225,7 @@ func main() {
 			"organization": insightsConfig.Organization,
 			"cluster":      insightsConfig.Cluster,
 		}).Info("Insights API configuration enabled")
-	} else {
+	} else if !*consoleMode {
 		logrus.Info("Insights API configuration not provided - running in local mode only")
 	}
 
@@ -240,7 +247,7 @@ func main() {
 	}
 
 	// Create watcher with configuration
-	kubeWatcher, err := watcher.NewWatcher(insightsConfig, *logSource, *auditLogPath, cloudwatchConfig, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute)
+	kubeWatcher, err := watcher.NewWatcher(insightsConfig, *logSource, *auditLogPath, cloudwatchConfig, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *consoleMode)
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to create watcher")
 	}
