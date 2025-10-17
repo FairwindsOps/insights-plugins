@@ -81,13 +81,13 @@ func (h *CloudWatchHandler) Start(ctx context.Context) error {
 			if err := h.processLogEvents(ctx); err != nil {
 				consecutiveErrors++
 				logrus.WithError(err).WithField("consecutive_errors", consecutiveErrors).Error("Failed to process CloudWatch log events")
-				
+
 				// If we have too many consecutive errors, increase the poll interval temporarily
 				if consecutiveErrors >= maxConsecutiveErrors {
 					logrus.Warn("Too many consecutive errors, temporarily increasing poll interval")
 					ticker.Stop()
 					ticker = time.NewTicker(pollInterval * 2) // Double the interval
-					consecutiveErrors = 0 // Reset counter
+					consecutiveErrors = 0                     // Reset counter
 				}
 			} else {
 				// Reset consecutive error counter on success
@@ -160,7 +160,7 @@ func (h *CloudWatchHandler) getLogStreamsWithRetry(ctx context.Context) ([]types
 		}
 
 		logrus.WithError(err).WithFields(logrus.Fields{
-			"attempt":    attempt,
+			"attempt":     attempt,
 			"max_retries": maxRetries,
 		}).Warn("Failed to get log streams, retrying...")
 
@@ -211,8 +211,8 @@ func (h *CloudWatchHandler) processLogStreamWithRetry(ctx context.Context, strea
 		}
 
 		logrus.WithError(err).WithFields(logrus.Fields{
-			"stream":     *stream.LogStreamName,
-			"attempt":    attempt,
+			"stream":      *stream.LogStreamName,
+			"attempt":     attempt,
 			"max_retries": maxRetries,
 		}).Warn("Failed to process log stream, retrying...")
 
@@ -236,7 +236,7 @@ func (h *CloudWatchHandler) isRetryableError(err error) bool {
 	}
 
 	errStr := err.Error()
-	
+
 	// Network/connection errors
 	if strings.Contains(errStr, "timeout") ||
 		strings.Contains(errStr, "connection") ||

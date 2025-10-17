@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
@@ -278,4 +280,183 @@ func TestBackpressureConfig(t *testing.T) {
 	assert.Equal(t, 50*time.Millisecond, config.RetryDelay)
 	assert.Equal(t, 10*time.Second, config.MetricsLogInterval)
 	assert.True(t, config.EnableMetricsLogging)
+}
+
+func TestNewWatcher(t *testing.T) {
+	tests := []struct {
+		name               string
+		insightsConfig     models.InsightsConfig
+		logSource          string
+		auditLogPath       string
+		cloudwatchConfig   *models.CloudWatchConfig
+		eventBufferSize    int
+		httpTimeoutSeconds int
+		rateLimitPerMinute int
+		consoleMode        bool
+		expectError        bool
+	}{
+		{
+			name: "valid local mode configuration",
+			insightsConfig: models.InsightsConfig{
+				Hostname:     "https://test.com",
+				Organization: "test-org",
+				Cluster:      "test-cluster",
+				Token:        "test-token",
+			},
+			logSource:          "local",
+			auditLogPath:       "/var/log/audit.log",
+			eventBufferSize:    100,
+			httpTimeoutSeconds: 30,
+			rateLimitPerMinute: 60,
+			consoleMode:        false,
+			expectError:        false,
+		},
+		{
+			name: "valid cloudwatch mode configuration",
+			insightsConfig: models.InsightsConfig{
+				Hostname:     "https://test.com",
+				Organization: "test-org",
+				Cluster:      "test-cluster",
+				Token:        "test-token",
+			},
+			logSource: "cloudwatch",
+			cloudwatchConfig: &models.CloudWatchConfig{
+				LogGroupName:  "/aws/eks/test/cluster",
+				Region:        "us-east-1",
+				FilterPattern: "{ $.stage = \"ResponseComplete\" }",
+				BatchSize:     100,
+				PollInterval:  "30s",
+				MaxMemoryMB:   512,
+			},
+			eventBufferSize:    100,
+			httpTimeoutSeconds: 30,
+			rateLimitPerMinute: 60,
+			consoleMode:        false,
+			expectError:        false,
+		},
+		{
+			name: "console mode configuration",
+			insightsConfig: models.InsightsConfig{
+				Hostname:     "",
+				Organization: "",
+				Cluster:      "",
+				Token:        "",
+			},
+			logSource:          "local",
+			eventBufferSize:    100,
+			httpTimeoutSeconds: 30,
+			rateLimitPerMinute: 60,
+			consoleMode:        true,
+			expectError:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			watcher, err := NewWatcher(tt.insightsConfig, tt.logSource, tt.auditLogPath, tt.cloudwatchConfig, tt.eventBufferSize, tt.httpTimeoutSeconds, tt.rateLimitPerMinute, tt.consoleMode)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, watcher)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, watcher)
+				assert.NotNil(t, watcher.GetMetrics())
+			}
+		})
+	}
+}
+
+func TestNewWatcherWithBackpressure(t *testing.T) {
+	config := models.InsightsConfig{
+		Hostname:     "https://test.com",
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	backpressureConfig := BackpressureConfig{
+		MaxRetries:           3,
+		RetryDelay:           100 * time.Millisecond,
+		MetricsLogInterval:   30 * time.Second,
+		EnableMetricsLogging: true,
+	}
+
+	watcher, err := NewWatcherWithBackpressure(config, "local", "", nil, 100, 30, 60, false, backpressureConfig)
+	assert.NoError(t, err)
+	assert.NotNil(t, watcher)
+	assert.NotNil(t, watcher.GetMetrics())
+}
+
+func TestWatcherGetResourcesToWatch(t *testing.T) {
+	config := models.InsightsConfig{
+		Hostname:     "https://test.com",
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	watcher, err := NewWatcher(config, "local", "", nil, 100, 30, 60, false)
+	require.NoError(t, err)
+
+	assert.NotNil(t, watcher)
+}
+
+func TestWatcherStop(t *testing.T) {
+	config := models.InsightsConfig{
+		Hostname:     "https://test.com",
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	watcher, err := NewWatcher(config, "local", "", nil, 100, 30, 60, false)
+	require.NoError(t, err)
+
+	// Stop should not panic
+	assert.NotPanics(t, func() {
+		watcher.Stop()
+	})
+}
+
+func TestWatcherMetricsIntegration(t *testing.T) {
+	config := models.InsightsConfig{
+		Hostname:     "https://test.com",
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	watcher, err := NewWatcher(config, "local", "", nil, 100, 30, 60, false)
+	require.NoError(t, err)
+
+	metrics := watcher.GetMetrics()
+	require.NotNil(t, metrics)
+
+	// Test that metrics are properly initialized
+	assert.Equal(t, 100, metrics.ChannelCapacity)
+	assert.Equal(t, int64(0), metrics.EventsProcessed)
+	assert.Equal(t, int64(0), metrics.EventsDropped)
+}
+
+func TestWatcherDifferentBufferSizes(t *testing.T) {
+	config := models.InsightsConfig{
+		Hostname:     "https://test.com",
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	bufferSizes := []int{1, 10, 100, 1000}
+
+	for _, bufferSize := range bufferSizes {
+		t.Run(fmt.Sprintf("buffer_size_%d", bufferSize), func(t *testing.T) {
+			watcher, err := NewWatcher(config, "local", "", nil, bufferSize, 30, 60, false)
+			assert.NoError(t, err)
+			assert.NotNil(t, watcher)
+
+			metrics := watcher.GetMetrics()
+			assert.Equal(t, bufferSize, metrics.ChannelCapacity)
+		})
+	}
 }

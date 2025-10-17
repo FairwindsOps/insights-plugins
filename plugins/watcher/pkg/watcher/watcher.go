@@ -428,14 +428,14 @@ func (w *Watcher) reconnectWatcher(resourceType string) error {
 		}
 
 		logrus.WithFields(logrus.Fields{
-			"resource": resourceType,
-			"attempt":  attempt,
+			"resource":    resourceType,
+			"attempt":     attempt,
 			"max_retries": maxRetries,
 		}).Info("Attempting to reconnect watcher")
 
 		// Create new context for the reconnection attempt
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		
+
 		// Try to reconnect
 		if err := w.watchResource(ctx, resourceType); err != nil {
 			cancel()
@@ -443,7 +443,7 @@ func (w *Watcher) reconnectWatcher(resourceType string) error {
 				"resource": resourceType,
 				"attempt":  attempt,
 			}).Warn("Failed to reconnect watcher, retrying...")
-			
+
 			if attempt < maxRetries {
 				// Wait before retrying
 				select {
@@ -455,7 +455,7 @@ func (w *Watcher) reconnectWatcher(resourceType string) error {
 			}
 			return fmt.Errorf("failed to reconnect watcher after %d attempts: %w", maxRetries, err)
 		}
-		
+
 		cancel()
 		logrus.WithField("resource", resourceType).Info("Successfully reconnected watcher")
 		return nil
