@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,29 +14,54 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/client"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/handlers"
+	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/metrics"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/models"
 )
 
 // Watcher manages watching Kubernetes resources
 type Watcher struct {
-	client            *client.Client
-	watchers          map[string]watch.Interface
-	informers         map[string]cache.SharedInformer
-	eventChannel      chan *event.WatchedEvent
-	stopCh            chan struct{}
-	mu                sync.RWMutex
-	wg                sync.WaitGroup
-	handlerFactory    *handlers.EventHandlerFactory
-	insightsConfig    models.InsightsConfig
-	auditLogHandler   *handlers.AuditLogHandler
-	auditLogPath      string
-	logSource         string
-	cloudwatchConfig  *models.CloudWatchConfig
-	cloudwatchHandler *handlers.CloudWatchHandler
+	client             *client.Client
+	watchers           map[string]watch.Interface
+	informers          map[string]cache.SharedInformer
+	eventChannel       chan *event.WatchedEvent
+	stopCh             chan struct{}
+	mu                 sync.RWMutex
+	wg                 sync.WaitGroup
+	handlerFactory     *handlers.EventHandlerFactory
+	insightsConfig     models.InsightsConfig
+	auditLogHandler    *handlers.AuditLogHandler
+	auditLogPath       string
+	logSource          string
+	cloudwatchConfig   *models.CloudWatchConfig
+	cloudwatchHandler  *handlers.CloudWatchHandler
+	metrics            *metrics.Metrics
+	backpressureConfig BackpressureConfig
+}
+
+// BackpressureConfig defines backpressure handling configuration
+type BackpressureConfig struct {
+	// MaxRetries is the maximum number of retries when channel is full
+	MaxRetries int
+	// RetryDelay is the delay between retries
+	RetryDelay time.Duration
+	// MetricsLogInterval is the interval for logging metrics
+	MetricsLogInterval time.Duration
+	// EnableMetricsLogging enables periodic metrics logging
+	EnableMetricsLogging bool
 }
 
 // NewWatcher creates a new Kubernetes watcher
 func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool) (*Watcher, error) {
+	return NewWatcherWithBackpressure(insightsConfig, logSource, auditLogPath, cloudwatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, consoleMode, BackpressureConfig{
+		MaxRetries:           3,
+		RetryDelay:           100 * time.Millisecond,
+		MetricsLogInterval:   30 * time.Second,
+		EnableMetricsLogging: true,
+	})
+}
+
+// NewWatcherWithBackpressure creates a new Kubernetes watcher with custom backpressure configuration
+func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool, backpressureConfig BackpressureConfig) (*Watcher, error) {
 	kubeClient, err := client.NewClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
@@ -45,6 +71,9 @@ func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath st
 	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute, consoleMode)
 
 	eventChannel := make(chan *event.WatchedEvent, eventBufferSize)
+
+	// Create metrics instance
+	metricsInstance := metrics.NewMetrics(eventBufferSize)
 
 	// Create audit log handler if audit log path is provided
 	var auditLogHandler *handlers.AuditLogHandler
@@ -63,18 +92,20 @@ func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath st
 	}
 
 	w := &Watcher{
-		client:            kubeClient,
-		watchers:          make(map[string]watch.Interface),
-		informers:         make(map[string]cache.SharedInformer),
-		eventChannel:      eventChannel,
-		stopCh:            make(chan struct{}),
-		handlerFactory:    handlerFactory,
-		insightsConfig:    insightsConfig,
-		auditLogHandler:   auditLogHandler,
-		auditLogPath:      auditLogPath,
-		logSource:         logSource,
-		cloudwatchConfig:  cloudwatchConfig,
-		cloudwatchHandler: cloudwatchHandler,
+		client:             kubeClient,
+		watchers:           make(map[string]watch.Interface),
+		informers:          make(map[string]cache.SharedInformer),
+		eventChannel:       eventChannel,
+		stopCh:             make(chan struct{}),
+		handlerFactory:     handlerFactory,
+		insightsConfig:     insightsConfig,
+		auditLogHandler:    auditLogHandler,
+		auditLogPath:       auditLogPath,
+		logSource:          logSource,
+		cloudwatchConfig:   cloudwatchConfig,
+		cloudwatchHandler:  cloudwatchHandler,
+		metrics:            metricsInstance,
+		backpressureConfig: backpressureConfig,
 	}
 
 	return w, nil
@@ -136,6 +167,15 @@ func (w *Watcher) Start(ctx context.Context) error {
 		defer w.wg.Done()
 		w.processEvents()
 	}()
+
+	// Start metrics logging if enabled
+	if w.backpressureConfig.EnableMetricsLogging {
+		w.wg.Add(1)
+		go func() {
+			defer w.wg.Done()
+			w.logMetricsPeriodically()
+		}()
+	}
 
 	// Start informers
 	for _, informer := range w.informers {
@@ -262,16 +302,19 @@ func (w *Watcher) handleEvent(resourceType string, kubeEvent watch.Event) error 
 		return fmt.Errorf("failed to create watched event: %w", err)
 	}
 
-	select {
-	case w.eventChannel <- watchedEvent:
-		// Event successfully queued
-	default:
-		logrus.WithFields(logrus.Fields{
+	// Record event being added to channel
+	w.metrics.RecordEventInChannel()
+
+	// Try to send event with backpressure handling
+	if err := w.sendEventWithBackpressure(watchedEvent, resourceType, eventType); err != nil {
+		// If all retries failed, record as dropped
+		w.metrics.RecordEventDropped()
+		logrus.WithError(err).WithFields(logrus.Fields{
 			"resource_type": resourceType,
 			"event_type":    eventType,
 			"namespace":     watchedEvent.Namespace,
 			"name":          watchedEvent.Name,
-		}).Warn("Event channel full, dropping event - consider increasing buffer size")
+		}).Warn("Failed to queue event after retries - event dropped")
 	}
 
 	return nil
@@ -287,6 +330,12 @@ func (w *Watcher) processEvents() {
 				return
 			}
 
+			// Record event being removed from channel
+			w.metrics.RecordEventOutChannel()
+
+			// Record processing start time
+			startTime := time.Now()
+
 			watchedEvent.LogEvent()
 
 			if err := w.handlerFactory.ProcessEvent(watchedEvent); err != nil {
@@ -298,8 +347,65 @@ func (w *Watcher) processEvents() {
 					"error_type":    fmt.Sprintf("%T", err),
 				}).Error("Failed to process event through handlers - this may indicate issues with event handler logic or API communication")
 			}
+
+			// Record processing completion and duration
+			processingDuration := time.Since(startTime)
+			w.metrics.RecordProcessingDuration(processingDuration)
+			w.metrics.RecordEventProcessed()
 		}
 	}
+}
+
+// sendEventWithBackpressure attempts to send an event to the channel with retry logic
+func (w *Watcher) sendEventWithBackpressure(watchedEvent *event.WatchedEvent, resourceType string, eventType event.EventType) error {
+	for attempt := 0; attempt <= w.backpressureConfig.MaxRetries; attempt++ {
+		select {
+		case w.eventChannel <- watchedEvent:
+			// Event successfully queued
+			return nil
+		case <-w.stopCh:
+			// Watcher is stopping, don't retry
+			return fmt.Errorf("watcher is stopping")
+		default:
+			// Channel is full, retry if we haven't exceeded max retries
+			if attempt < w.backpressureConfig.MaxRetries {
+				logrus.WithFields(logrus.Fields{
+					"resource_type": resourceType,
+					"event_type":    eventType,
+					"namespace":     watchedEvent.Namespace,
+					"name":          watchedEvent.Name,
+					"attempt":       attempt + 1,
+					"max_retries":   w.backpressureConfig.MaxRetries,
+					"retry_delay":   w.backpressureConfig.RetryDelay,
+				}).Debug("Event channel full, retrying...")
+
+				// Wait before retrying
+				time.Sleep(w.backpressureConfig.RetryDelay)
+			}
+		}
+	}
+
+	return fmt.Errorf("failed to queue event after %d retries", w.backpressureConfig.MaxRetries)
+}
+
+// logMetricsPeriodically logs metrics at regular intervals
+func (w *Watcher) logMetricsPeriodically() {
+	ticker := time.NewTicker(w.backpressureConfig.MetricsLogInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-w.stopCh:
+			return
+		case <-ticker.C:
+			w.metrics.LogMetrics()
+		}
+	}
+}
+
+// GetMetrics returns the current metrics for external monitoring
+func (w *Watcher) GetMetrics() *metrics.Metrics {
+	return w.metrics
 }
 
 // checkExistingPolicies checks existing policies for audit duplicates
