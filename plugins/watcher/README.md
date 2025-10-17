@@ -14,6 +14,8 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 - **Performance Optimized**: Configurable batch sizes, memory limits, and CloudWatch filtering
 - **Backpressure Handling**: Intelligent retry logic when event channel is full, preventing event loss
 - **Metrics & Monitoring**: Built-in metrics for dropped events, processing rates, and channel utilization
+- **Health Check Endpoints**: HTTP endpoints for Kubernetes liveness and readiness probes
+- **Graceful Shutdown**: Proper shutdown handling with configurable timeout
 - **IRSA Support**: Uses IAM Roles for Service Accounts for secure AWS access
 - **Automatic Policy Duplication**: Automatically creates, updates, and deletes audit duplicates of ValidatingAdmissionPolicies with Deny-only actions
 - **Audit Policy Support**: Supports dedicated audit policies for capturing policy violations without webhook dependencies
@@ -80,6 +82,10 @@ The watcher uses environment variables for sensitive configuration, following Fa
 - **Backpressure Handling**: Automatically retries when event channel is full (3 retries, 100ms delay)
 - **Metrics Logging**: Periodic logging of processing rates and dropped events (every 30 seconds)
 - **Channel Utilization**: Monitors event channel capacity and utilization
+
+#### Health Check Options
+- **`--health-port`**: Port for health check endpoints (default: 8080)
+- **`--shutdown-timeout`**: Graceful shutdown timeout (default: 30s)
 
 #### Log Source Options
 - `--log-source`: Log source type - local, cloudwatch (default: `local`)
@@ -234,6 +240,70 @@ INFO[2024-01-15T10:30:00Z] Watcher metrics events_processed=1250 events_dropped=
 --cloudwatch-batch-size=50
 --cloudwatch-poll-interval=60s
 --cloudwatch-max-memory=256
+```
+
+## Health Checks & Operations
+
+### Health Check Endpoints
+
+The watcher provides HTTP endpoints for Kubernetes health checks:
+
+- **`/healthz`** - Liveness probe endpoint
+  - Returns HTTP 200 when the process is running
+  - Returns HTTP 503 when the process is stopping
+  - Used by Kubernetes to determine if the pod should be restarted
+
+- **`/readyz`** - Readiness probe endpoint
+  - Returns HTTP 200 when the watcher is ready to process events
+  - Returns HTTP 503 when the watcher is not ready (e.g., still starting up)
+  - Used by Kubernetes to determine if the pod should receive traffic
+
+- **`/health`** - General health endpoint
+  - Returns comprehensive health information including watcher status
+  - Includes details about registered health checkers
+  - Useful for monitoring and debugging
+
+### Health Check Configuration
+
+```bash
+# Configure health check port (default: 8080)
+--health-port=8080
+
+# Configure graceful shutdown timeout (default: 30s)
+--shutdown-timeout=30s
+```
+
+### Graceful Shutdown
+
+The watcher implements proper graceful shutdown:
+
+1. **Signal Handling**: Responds to SIGTERM and SIGINT signals
+2. **Timeout Protection**: Configurable shutdown timeout prevents hanging
+3. **Resource Cleanup**: Stops all watchers and closes connections properly
+4. **Health Check Shutdown**: Stops health check server gracefully
+
+### Kubernetes Integration
+
+The Helm chart includes proper health check configuration:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
 ```
 
 #### Example
