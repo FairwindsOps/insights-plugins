@@ -9,15 +9,17 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/health"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/watcher"
 )
 
 // validateConfiguration validates all command-line parameters
-func validateConfiguration(logLevel, insightsHost, organization, cluster, auditLogPath, logSource, cloudwatchLogGroup, cloudwatchRegion, cloudwatchFilter string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, cloudwatchBatchSize, cloudwatchMaxMemory int, consoleMode bool) error {
+func validateConfiguration(logLevel, insightsHost, organization, cluster, auditLogPath, logSource, cloudwatchLogGroup, cloudwatchRegion, cloudwatchFilter string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, cloudwatchBatchSize, cloudwatchMaxMemory, healthPort int, consoleMode bool) error {
 	// Validate log level
 	validLogLevels := []string{"debug", "info", "warn", "error"}
 	logLevelValid := false
@@ -140,6 +142,11 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, auditL
 		return fmt.Errorf("cloudwatch max memory too large (max 4096 MB), got %d", cloudwatchMaxMemory)
 	}
 
+	// Validate health port
+	if healthPort < 1 || healthPort > 65535 {
+		return fmt.Errorf("health port must be between 1 and 65535, got %d", healthPort)
+	}
+
 	// Console mode validation - if console mode is enabled, Insights config is optional
 	if consoleMode {
 		logrus.Info("Console mode enabled - events will be printed to console instead of sent to Insights")
@@ -186,11 +193,13 @@ func main() {
 		httpTimeoutSeconds     = flag.Int("http-timeout-seconds", 30, "HTTP client timeout in seconds")
 		rateLimitPerMinute     = flag.Int("rate-limit-per-minute", 60, "Maximum API calls per minute")
 		consoleMode            = flag.Bool("console-mode", false, "Print events to console instead of sending to Insights")
+		healthPort             = flag.Int("health-port", 8080, "Port for health check endpoints")
+		shutdownTimeout        = flag.Duration("shutdown-timeout", 30*time.Second, "Graceful shutdown timeout")
 	)
 	flag.Parse()
 
 	// Validate all configuration parameters
-	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory, *consoleMode); err != nil {
+	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory, *healthPort, *consoleMode); err != nil {
 		logrus.WithError(err).Fatal("Configuration validation failed")
 	}
 
@@ -270,6 +279,18 @@ func main() {
 		logrus.Info("Audit log monitoring disabled")
 	}
 
+	// Create health check server
+	healthServer := health.NewServer(*healthPort, "1.0.0")
+	
+	// Register watcher health checker
+	watcherChecker := health.NewWatcherChecker(kubeWatcher)
+	healthServer.RegisterChecker(watcherChecker)
+
+	// Start health check server
+	if err := healthServer.Start(); err != nil {
+		logrus.WithError(err).Fatal("Failed to start health check server")
+	}
+
 	// Start watcher
 	if err := kubeWatcher.Start(ctx); err != nil {
 		logrus.WithError(err).Fatal("Failed to start watcher")
@@ -283,8 +304,19 @@ func main() {
 	sig := <-sigChan
 	logrus.WithField("signal", sig).Info("Received signal, shutting down gracefully")
 
+	// Create shutdown context with timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), *shutdownTimeout)
+	defer shutdownCancel()
+
 	// Stop watcher
+	logrus.Info("Stopping Kubernetes watcher")
 	kubeWatcher.Stop()
+
+	// Stop health check server
+	logrus.Info("Stopping health check server")
+	if err := healthServer.Stop(shutdownCtx); err != nil {
+		logrus.WithError(err).Error("Failed to stop health check server gracefully")
+	}
 
 	logrus.Info("Kubernetes Event Watcher stopped")
 }
