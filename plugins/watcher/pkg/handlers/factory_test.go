@@ -30,7 +30,7 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 
 	tests := []struct {
 		name            string
@@ -109,7 +109,7 @@ func TestEventHandlerFactoryRegister(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 
 	// Create a custom handler
 	customHandler := &PolicyViolationHandler{insightsConfig: config}
@@ -142,7 +142,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 
 	tests := []struct {
 		name        string
@@ -215,7 +215,7 @@ func TestEventHandlerFactoryGetHandlerNames(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 
 	handlerNames := factory.GetHandlerNames()
 
@@ -238,7 +238,7 @@ func TestEventHandlerFactoryGetHandlerCount(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 
 	count := factory.GetHandlerCount()
 
@@ -256,7 +256,7 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 
 	tests := []struct {
 		name         string

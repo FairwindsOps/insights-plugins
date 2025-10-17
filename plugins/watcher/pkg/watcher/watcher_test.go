@@ -40,7 +40,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 
 	// Create handler factory directly (following project pattern)
 	scheme := runtime.NewScheme()
-	handlerFactory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	handlerFactory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 	assert.NotNil(t, handlerFactory)
 
 	// Test ValidatingAdmissionPolicy event processing
@@ -177,7 +177,7 @@ func TestEventHandlerFactory_Creation(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60)
+	factory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
 	assert.NotNil(t, factory)
 	assert.Greater(t, factory.GetHandlerCount(), 0)
 }
