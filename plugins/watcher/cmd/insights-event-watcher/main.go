@@ -17,7 +17,7 @@ import (
 )
 
 // validateConfiguration validates all command-line parameters
-func validateConfiguration(logLevel, insightsHost, organization, cluster, insightsToken, auditLogPath, logSource, cloudwatchLogGroup, cloudwatchRegion, cloudwatchFilter string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, cloudwatchBatchSize, cloudwatchMaxMemory int, consoleMode bool) error {
+func validateConfiguration(logLevel, insightsHost, organization, cluster, auditLogPath, logSource, cloudwatchLogGroup, cloudwatchRegion, cloudwatchFilter string, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, cloudwatchBatchSize, cloudwatchMaxMemory int, consoleMode bool) error {
 	// Validate log level
 	validLogLevels := []string{"debug", "info", "warn", "error"}
 	logLevelValid := false
@@ -61,15 +61,7 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, insigh
 		}
 	}
 
-	// Validate insights token if provided
-	if insightsToken != "" {
-		if strings.TrimSpace(insightsToken) == "" {
-			return fmt.Errorf("insights token cannot be empty or whitespace only")
-		}
-		if len(insightsToken) < 10 {
-			return fmt.Errorf("insights token too short (minimum 10 characters)")
-		}
-	}
+	// Note: Token validation is now handled via environment variables
 
 	// Validate audit log path if provided
 	if auditLogPath != "" {
@@ -156,13 +148,32 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, insigh
 	return nil
 }
 
+// getInsightsToken retrieves the Insights token from environment variables
+func getInsightsToken(consoleMode bool) string {
+	if consoleMode {
+		// In console mode, token is not required
+		return ""
+	}
+
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		logrus.Fatal("FAIRWINDS_TOKEN environment variable not set")
+	}
+
+	// Basic token validation
+	if len(token) < 10 {
+		logrus.Fatal("FAIRWINDS_TOKEN is too short (minimum 10 characters)")
+	}
+
+	return token
+}
+
 func main() {
 	var (
 		logLevel               = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
 		insightsHost           = flag.String("insights-host", "", "Fairwinds Insights hostname")
 		organization           = flag.String("organization", "", "Fairwinds organization name")
 		cluster                = flag.String("cluster", "", "Cluster name")
-		insightsToken          = flag.String("insights-token", "", "Fairwinds Insights API token")
 		logSource              = flag.String("log-source", "local", "Log source type (local, cloudwatch)")
 		auditLogPath           = flag.String("audit-log-path", "", "Path to Kubernetes audit log file (optional)")
 		cloudwatchLogGroup     = flag.String("cloudwatch-log-group", "", "CloudWatch log group name (e.g., /aws/eks/production-eks/cluster)")
@@ -179,7 +190,7 @@ func main() {
 	flag.Parse()
 
 	// Validate all configuration parameters
-	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *insightsToken, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory, *consoleMode); err != nil {
+	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory, *consoleMode); err != nil {
 		logrus.WithError(err).Fatal("Configuration validation failed")
 	}
 
@@ -212,13 +223,13 @@ func main() {
 		Hostname:     *insightsHost,
 		Organization: *organization,
 		Cluster:      *cluster,
-		Token:        *insightsToken,
+		Token:        getInsightsToken(*consoleMode),
 	}
 
 	// Validate Insights configuration if provided
 	if insightsConfig.Hostname != "" {
-		if insightsConfig.Organization == "" || insightsConfig.Cluster == "" || insightsConfig.Token == "" {
-			logrus.Fatal("If insights-host is provided, organization, cluster, and insights-token must also be provided")
+		if insightsConfig.Organization == "" || insightsConfig.Cluster == "" {
+			logrus.Fatal("If insights-host is provided, organization and cluster must also be provided")
 		}
 		logrus.WithFields(logrus.Fields{
 			"hostname":     insightsConfig.Hostname,

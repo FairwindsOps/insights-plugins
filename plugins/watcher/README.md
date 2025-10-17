@@ -29,17 +29,18 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 ./insights-event-watcher --log-level=debug --log-source=local
 
 # Run with Insights API integration
+export FAIRWINDS_TOKEN=your-api-token
 ./insights-event-watcher \
   --log-source=local \
   --insights-host=https://insights.fairwinds.com \
   --organization=my-org \
-  --cluster=production \
-  --insights-token=your-api-token
+  --cluster=production
 ```
 
 #### CloudWatch Mode (EKS Clusters)
 ```bash
 # Watch policy violations from EKS CloudWatch logs
+export FAIRWINDS_TOKEN=your-api-token
 ./insights-event-watcher \
   --log-source=cloudwatch \
   --cloudwatch-log-group=/aws/eks/production-eks/cluster \
@@ -47,9 +48,19 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
   --cloudwatch-filter-pattern="{ $.stage = \"ResponseComplete\" && $.responseStatus.code >= 400 }" \
   --insights-host=https://insights.fairwinds.com \
   --organization=my-org \
-  --cluster=production \
-  --insights-token=your-api-token
+  --cluster=production
 ```
+
+### Environment Variables
+
+The watcher uses environment variables for sensitive configuration, following Fairwinds security best practices:
+
+- `FAIRWINDS_TOKEN`: Fairwinds Insights API token (required for Insights integration)
+- `FAIRWINDS_INSIGHTS_HOST`: Fairwinds Insights hostname (alternative to --insights-host)
+- `FAIRWINDS_ORG`: Fairwinds organization name (alternative to --organization)  
+- `FAIRWINDS_CLUSTER`: Cluster name (alternative to --cluster)
+
+**Security Note**: Never pass API tokens via command-line arguments as they may be visible in process lists. Always use environment variables or Kubernetes secrets.
 
 ### Command Line Options
 
@@ -58,7 +69,7 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 - `--insights-host`: Fairwinds Insights hostname (optional)
 - `--organization`: Fairwinds organization name (required if insights-host provided)
 - `--cluster`: Cluster name (required if insights-host provided)
-- `--insights-token`: Fairwinds Insights API token (required if insights-host provided)
+- `FAIRWINDS_TOKEN`: Fairwinds Insights API token environment variable (required if insights-host provided)
 - `--event-buffer-size`: Size of the event processing buffer (default: `1000`)
 - `--http-timeout-seconds`: HTTP client timeout in seconds (default: `30`)
 - `--rate-limit-per-minute`: Maximum API calls per minute (default: `60`)
@@ -377,8 +388,13 @@ spec:
         - "--insights-host=https://insights.fairwinds.com"
         - "--organization=my-org"
         - "--cluster=production"
-        - "--insights-token=your-api-token"
         - "--audit-log-path=/var/log/kubernetes/kube-apiserver-audit.log"
+        env:
+        - name: FAIRWINDS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: insights-token-secret
+              key: token
         volumeMounts:
         - name: audit-logs
           mountPath: /var/log/kubernetes
@@ -423,8 +439,12 @@ spec:
         - "--insights-host=https://insights.fairwinds.com"
         - "--organization=my-org"
         - "--cluster=production"
-        - "--insights-token=your-api-token"
         env:
+        - name: FAIRWINDS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: insights-token-secret
+              key: token
         - name: AWS_REGION
           value: "us-west-2"
         resources:
