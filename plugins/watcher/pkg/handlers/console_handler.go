@@ -28,7 +28,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Printf("🚨 POLICY VIOLATION EVENT DETECTED\n")
 	fmt.Println(strings.Repeat("=", 80))
-	
+
 	// Basic event information
 	fmt.Printf("📅 Timestamp: %s\n", time.Unix(watchedEvent.Timestamp, 0).Format(time.RFC3339))
 	fmt.Printf("🏷️  Event Type: %s\n", watchedEvent.EventType)
@@ -36,7 +36,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 	fmt.Printf("🏠 Namespace: %s\n", watchedEvent.Namespace)
 	fmt.Printf("📝 Name: %s\n", watchedEvent.Name)
 	fmt.Printf("🆔 UID: %s\n", watchedEvent.UID)
-	
+
 	// Add Kubernetes eventTime if available
 	if watchedEvent.EventTime != "" {
 		fmt.Printf("⏰ Event Time: %s\n", watchedEvent.EventTime)
@@ -45,17 +45,17 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 	// Extract and display policy violation details
 	if watchedEvent.Data != nil {
 		fmt.Println("\n📋 Event Data:")
-		
+
 		// Show message if available
 		if message, ok := watchedEvent.Data["message"].(string); ok {
 			fmt.Printf("💬 Message: %s\n", message)
 		}
-		
+
 		// Show reason if available
 		if reason, ok := watchedEvent.Data["reason"].(string); ok {
 			fmt.Printf("🔍 Reason: %s\n", reason)
 		}
-		
+
 		// Show involved object if available
 		if involvedObject, ok := watchedEvent.Data["involvedObject"].(map[string]interface{}); ok {
 			fmt.Println("\n🎯 Involved Object:")
@@ -69,7 +69,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 				fmt.Printf("   Namespace: %s\n", namespace)
 			}
 		}
-		
+
 		// Show source if available (CloudWatch vs local)
 		if source, ok := watchedEvent.Data["source"].(string); ok {
 			fmt.Printf("📍 Source: %s\n", source)
@@ -77,7 +77,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 	}
 
 	// Show metadata if available
-	if watchedEvent.Metadata != nil && len(watchedEvent.Metadata) > 0 {
+	if len(watchedEvent.Metadata) > 0 {
 		fmt.Println("\n🔧 Metadata:")
 		for key, value := range watchedEvent.Metadata {
 			fmt.Printf("   %s: %v\n", key, value)
@@ -94,7 +94,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 		fmt.Printf("📊 Policy Result: %s\n", violationEvent.PolicyResult)
 		fmt.Printf("🚫 Blocked: %t\n", violationEvent.Blocked)
 		fmt.Printf("💬 Message: %s\n", violationEvent.Message)
-		
+
 		if violationEvent.Blocked {
 			fmt.Println("\n🔴 This is a BLOCKED policy violation that would be sent to Insights!")
 		} else {
@@ -179,7 +179,7 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent
 func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyResult string, blocked bool, err error) {
 	// This is the same parsing logic as the PolicyViolationHandler
 	// Handle different message formats for policy violations
-	
+
 	// Format 1: "Pod default/nginx: [require-team-label] fail (blocked); validation error: ..."
 	if strings.Contains(message, "] fail (blocked)") {
 		parts := strings.Split(message, "] fail (blocked)")
@@ -191,7 +191,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			}
 		}
 	}
-	
+
 	// Format 2: "Pod default/nginx: [require-team-label] warn validation warning: ..."
 	if strings.Contains(message, "] warn") {
 		parts := strings.Split(message, "] warn")
@@ -203,7 +203,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			}
 		}
 	}
-	
+
 	// Format 3: "Pod default/nginx: [require-team-label] validation error ..."
 	if strings.Contains(message, "] validation error") {
 		parts := strings.Split(message, "] validation error")
@@ -215,7 +215,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			}
 		}
 	}
-	
+
 	// Format 4: "policy disallow-host-path/disallow-host-path fail: ..."
 	if strings.HasPrefix(message, "policy ") && strings.Contains(message, " fail:") {
 		parts := strings.Split(message, " fail:")
@@ -225,7 +225,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			return policyName, "fail", false, nil
 		}
 	}
-	
+
 	// Format 5: "policy require-labels/require-labels fail (blocked): ..."
 	if strings.HasPrefix(message, "policy ") && strings.Contains(message, " fail (blocked):") {
 		parts := strings.Split(message, " fail (blocked):")
@@ -235,7 +235,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			return policyName, "fail", true, nil
 		}
 	}
-	
+
 	// Format 6: "policy security-context/security-context warn: ..."
 	if strings.HasPrefix(message, "policy ") && strings.Contains(message, " warn:") {
 		parts := strings.Split(message, " warn:")
@@ -245,7 +245,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			return policyName, "warn", false, nil
 		}
 	}
-	
+
 	// Format 7: "Deployment default/nginx: [disallow-host-path] fail; ..."
 	if strings.Contains(message, "] fail;") {
 		parts := strings.Split(message, "] fail;")
@@ -257,7 +257,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			}
 		}
 	}
-	
+
 	// Format 8: "Pod default/test: [require-labels] warn; ..."
 	if strings.Contains(message, "] warn;") {
 		parts := strings.Split(message, "] warn;")
@@ -269,7 +269,7 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 			}
 		}
 	}
-	
+
 	// Format 9: "Deployment default/nginx: [disallow-host-path] fail (blocked); ..."
 	if strings.Contains(message, "] fail (blocked);") {
 		parts := strings.Split(message, "] fail (blocked);")

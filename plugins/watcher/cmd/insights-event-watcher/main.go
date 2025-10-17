@@ -281,7 +281,7 @@ func main() {
 
 	// Create health check server
 	healthServer := health.NewServer(*healthPort, "1.0.0")
-	
+
 	// Register watcher health checker
 	watcherChecker := health.NewWatcherChecker(kubeWatcher)
 	healthServer.RegisterChecker(watcherChecker)

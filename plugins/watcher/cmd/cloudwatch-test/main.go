@@ -119,7 +119,7 @@ func main() {
 		if len(eventsResult.Events) == 0 {
 			fmt.Printf("⚠️  No recent events found in stream: %s\n", *stream.LogStreamName)
 		} else {
-			fmt.Printf("✅ Found %d recent event(s) in stream %s:\n", 
+			fmt.Printf("✅ Found %d recent event(s) in stream %s:\n",
 				len(eventsResult.Events), *stream.LogStreamName)
 			for i, event := range eventsResult.Events {
 				if i >= 2 { // Show only first 2 events
@@ -178,6 +178,6 @@ func main() {
 	fmt.Println("   ✅ Log stream enumeration working")
 	fmt.Println("   ✅ Log event retrieval working")
 	fmt.Println("   ✅ Filter pattern matching working")
-	
+
 	fmt.Println("\n🚀 Ready to run the full watcher with CloudWatch integration!")
 }
