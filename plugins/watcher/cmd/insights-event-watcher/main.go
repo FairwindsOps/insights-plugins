@@ -48,7 +48,7 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, auditL
 		if strings.TrimSpace(organization) == "" {
 			return fmt.Errorf("organization name cannot be empty or whitespace only")
 		}
-		if len(organization) > 100 {
+		if len(organization) > 64 {
 			return fmt.Errorf("organization name too long (max 100 characters)")
 		}
 	}
@@ -58,7 +58,7 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, auditL
 		if strings.TrimSpace(cluster) == "" {
 			return fmt.Errorf("cluster name cannot be empty or whitespace only")
 		}
-		if len(cluster) > 100 {
+		if len(cluster) > 64 {
 			return fmt.Errorf("cluster name too long (max 100 characters)")
 		}
 	}
@@ -124,22 +124,22 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, auditL
 		if !strings.HasPrefix(cloudwatchLogGroup, "/aws/eks/") {
 			return fmt.Errorf("cloudwatch-log-group should start with '/aws/eks/', got '%s'", cloudwatchLogGroup)
 		}
-	}
 
-	// Validate CloudWatch batch size
-	if cloudwatchBatchSize < 1 {
-		return fmt.Errorf("cloudwatch batch size must be at least 1, got %d", cloudwatchBatchSize)
-	}
-	if cloudwatchBatchSize > 10000 {
-		return fmt.Errorf("cloudwatch batch size too large (max 10000), got %d", cloudwatchBatchSize)
-	}
+		// Validate CloudWatch batch size
+		if cloudwatchBatchSize < 1 {
+			return fmt.Errorf("cloudwatch batch size must be at least 1, got %d", cloudwatchBatchSize)
+		}
+		if cloudwatchBatchSize > 10000 {
+			return fmt.Errorf("cloudwatch batch size too large (max 10000), got %d", cloudwatchBatchSize)
+		}
 
-	// Validate CloudWatch max memory
-	if cloudwatchMaxMemory < 64 {
-		return fmt.Errorf("cloudwatch max memory must be at least 64 MB, got %d", cloudwatchMaxMemory)
-	}
-	if cloudwatchMaxMemory > 4096 {
-		return fmt.Errorf("cloudwatch max memory too large (max 4096 MB), got %d", cloudwatchMaxMemory)
+		// Validate CloudWatch max memory
+		if cloudwatchMaxMemory < 64 {
+			return fmt.Errorf("cloudwatch max memory must be at least 64 MB, got %d", cloudwatchMaxMemory)
+		}
+		if cloudwatchMaxMemory > 4096 {
+			return fmt.Errorf("cloudwatch max memory too large (max 4096 MB), got %d", cloudwatchMaxMemory)
+		}
 	}
 
 	// Validate health port
