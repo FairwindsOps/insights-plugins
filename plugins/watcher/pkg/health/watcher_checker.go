@@ -5,25 +5,48 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/watcher"
+	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/metrics"
 )
+
+// MetricsProvider defines the interface for getting metrics
+type MetricsProvider interface {
+	GetMetrics() *metrics.Metrics
+}
 
 // WatcherChecker implements HealthChecker for the Kubernetes watcher
 type WatcherChecker struct {
-	watcher *watcher.Watcher
-	name    string
+	watcher     MetricsProvider
+	name        string
+	minUptime   time.Duration
 }
 
 // NewWatcherChecker creates a new watcher health checker
-func NewWatcherChecker(w *watcher.Watcher) *WatcherChecker {
+func NewWatcherChecker(w MetricsProvider) *WatcherChecker {
 	return &WatcherChecker{
-		watcher: w,
-		name:    "kubernetes-watcher",
+		watcher:   w,
+		name:      "kubernetes-watcher",
+		minUptime: 5 * time.Second,
+	}
+}
+
+// NewWatcherCheckerWithMinUptime creates a new watcher health checker with custom minimum uptime
+func NewWatcherCheckerWithMinUptime(w MetricsProvider, minUptime time.Duration) *WatcherChecker {
+	return &WatcherChecker{
+		watcher:   w,
+		name:      "kubernetes-watcher",
+		minUptime: minUptime,
 	}
 }
 
 // CheckHealth checks the health of the Kubernetes watcher
 func (w *WatcherChecker) CheckHealth(ctx context.Context) error {
+	// Check if context is cancelled
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	
 	// Check if the watcher is running by checking its metrics
 	metrics := w.watcher.GetMetrics()
 	if metrics == nil {
@@ -32,7 +55,7 @@ func (w *WatcherChecker) CheckHealth(ctx context.Context) error {
 
 	// Check if the watcher has been running for a reasonable amount of time
 	uptime := metrics.GetUptime()
-	if uptime < 5*time.Second {
+	if uptime < w.minUptime {
 		// If the watcher just started, it might not be fully ready yet
 		return fmt.Errorf("watcher still starting up (uptime: %v)", uptime)
 	}

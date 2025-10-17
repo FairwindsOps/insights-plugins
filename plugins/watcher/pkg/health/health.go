@@ -132,11 +132,13 @@ func (s *Server) livenessHandler(w http.ResponseWriter, r *http.Request) {
 	// Liveness check - if the process is running, it's alive
 	// Only return unhealthy if we're in a stopping state
 	if status == StatusStopping {
-		s.writeHealthResponse(w, StatusUnhealthy, http.StatusServiceUnavailable)
+		s.writeHealthResponse(w, StatusStopping, http.StatusServiceUnavailable)
 		return
 	}
 	
-	s.writeHealthResponse(w, StatusHealthy, http.StatusOK)
+	// For liveness, we return the actual status but with OK HTTP status
+	// This allows monitoring systems to see the actual health status
+	s.writeHealthResponse(w, status, http.StatusOK)
 }
 
 // readinessHandler handles Kubernetes readiness probes
