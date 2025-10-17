@@ -11,12 +11,12 @@ import (
 
 var (
 	// Global flags
-	insightsHost      string
-	eventBufferSize   int
+	insightsHost       string
+	eventBufferSize    int
 	httpTimeoutSeconds int
 	rateLimitPerMinute int
-	consoleMode       bool
-	verbose           bool
+	consoleMode        bool
+	verbose            bool
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -63,12 +63,6 @@ func getInsightsToken(consoleMode bool) string {
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
 		slog.Error("FAIRWINDS_TOKEN environment variable not set")
-		os.Exit(1)
-	}
-
-	// Basic token validation
-	if len(token) < 10 {
-		slog.Error("FAIRWINDS_TOKEN is too short (minimum 10 characters)")
 		os.Exit(1)
 	}
 
