@@ -230,7 +230,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	slog.Info("Starting Kubernetes Event Watcher")
-	slog.Info("Configuration", 
+	slog.Info("Configuration",
 		"log_level", *logLevel,
 		"log_source", *logSource,
 		"console_mode", *consoleMode)

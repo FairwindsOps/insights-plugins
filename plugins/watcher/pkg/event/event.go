@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"log/slog"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -108,26 +109,26 @@ func (e *WatchedEvent) ToJSON() ([]byte, error) {
 
 // LogEvent logs the event with appropriate level
 func (e *WatchedEvent) LogEvent() {
-	fields := logrus.Fields{
-		"event_type":    e.EventType,
-		"resource_type": e.ResourceType,
-		"namespace":     e.Namespace,
-		"name":          e.Name,
-		"uid":           e.UID,
-		"timestamp":     e.Timestamp,
+	fields := []interface{}{
+		"event_type", e.EventType,
+		"resource_type", e.ResourceType,
+		"namespace", e.Namespace,
+		"name", e.Name,
+		"uid", e.UID,
+		"timestamp", e.Timestamp,
 	}
 
 	switch e.EventType {
 	case EventTypeAdded:
-		logrus.WithFields(fields).Info("Resource added")
+		slog.Info("Resource added", fields...)
 	case EventTypeModified:
-		logrus.WithFields(fields).Info("Resource modified")
+		slog.Info("Resource modified", fields...)
 	case EventTypeDeleted:
-		logrus.WithFields(fields).Info("Resource deleted")
+		slog.Info("Resource deleted", fields...)
 	case EventTypeError:
-		logrus.WithFields(fields).Error("Resource event error")
+		slog.Error("Resource event error", fields...)
 	default:
-		logrus.WithFields(fields).Info("Resource event")
+		slog.Info("Resource event", fields...)
 	}
 }
 

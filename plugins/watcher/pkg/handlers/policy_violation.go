@@ -10,7 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"log/slog"
+
 	"golang.org/x/time/rate"
 
 	version "github.com/fairwindsops/insights-plugins/plugins/watcher"
@@ -39,65 +40,61 @@ func NewPolicyViolationHandler(config models.InsightsConfig, httpTimeoutSeconds,
 }
 
 func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error {
-	logFields := logrus.Fields{
-		"event_type":    watchedEvent.EventType,
-		"resource_type": watchedEvent.ResourceType,
-		"namespace":     watchedEvent.Namespace,
-		"name":          watchedEvent.Name,
+	logFields := []interface{}{
+		"event_type", watchedEvent.EventType,
+		"resource_type", watchedEvent.ResourceType,
+		"namespace", watchedEvent.Namespace,
+		"name", watchedEvent.Name,
 	}
 
 	// Add Kubernetes eventTime to log if available
 	if watchedEvent.EventTime != "" {
-		logFields["event_time"] = watchedEvent.EventTime
+		logFields = append(logFields, "event_time", watchedEvent.EventTime)
 	}
 
-	logrus.WithFields(logFields).Info("Processing PolicyViolation event")
+	slog.Info("Processing PolicyViolation event", logFields...)
 
 	// Add detailed logging to see what data we're processing
 	if watchedEvent.Data != nil {
-		logrus.WithFields(logFields).WithFields(logrus.Fields{
-			"event_data": watchedEvent.Data,
-		}).Debug("Event data received")
+		debugFields := append(logFields, "event_data", watchedEvent.Data)
+		slog.Debug("Event data received", debugFields...)
 
 		// Log the message if it exists
 		if message, ok := watchedEvent.Data["message"].(string); ok {
-			logrus.WithFields(logFields).WithFields(logrus.Fields{
-				"message": message,
-			}).Debug("Event message")
+			messageFields := append(logFields, "message", message)
+			slog.Debug("Event message", messageFields...)
 		}
 
 		// Log the reason if it exists
 		if reason, ok := watchedEvent.Data["reason"].(string); ok {
-			logrus.WithFields(logFields).WithFields(logrus.Fields{
-				"reason": reason,
-			}).Debug("Event reason")
+			reasonFields := append(logFields, "reason", reason)
+			slog.Debug("Event reason", reasonFields...)
 		}
 	}
 
 	violationEvent, err := h.extractPolicyViolation(watchedEvent)
 	if err != nil {
-		logrus.WithError(err).WithFields(logFields).Warn("Failed to extract policy violation")
+		errorFields := append(logFields, "error", err)
+		slog.Warn("Failed to extract policy violation", errorFields...)
 		return fmt.Errorf("failed to extract policy violation: %w", err)
 	}
 
 	// Only send blocked policy violations to Insights (any type that blocks resource installation)
 	if !violationEvent.Blocked {
-		logrus.WithFields(logrus.Fields{
-			"policy_name": violationEvent.PolicyName,
-			"result":      violationEvent.PolicyResult,
-			"namespace":   violationEvent.Namespace,
-			"resource":    violationEvent.Name,
-		}).Debug("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)")
+		slog.Debug("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)",
+			"policy_name", violationEvent.PolicyName,
+			"result", violationEvent.PolicyResult,
+			"namespace", violationEvent.Namespace,
+			"resource", violationEvent.Name)
 		return nil
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"policy_name": violationEvent.PolicyName,
-		"result":      violationEvent.PolicyResult,
-		"namespace":   violationEvent.Namespace,
-		"resource":    violationEvent.Name,
-		"blocked":     violationEvent.Blocked,
-	}).Info("Sending blocked policy violation to Insights")
+	slog.Info("Sending blocked policy violation to Insights",
+		"policy_name", violationEvent.PolicyName,
+		"result", violationEvent.PolicyResult,
+		"namespace", violationEvent.Namespace,
+		"resource", violationEvent.Name,
+		"blocked", violationEvent.Blocked)
 
 	return h.sendToInsights(violationEvent)
 }
@@ -163,9 +160,7 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 		return "", "", false, fmt.Errorf("empty message")
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"message": message,
-	}).Debug("Parsing policy message")
+	slog.Debug("Parsing policy message", "message", message)
 
 	blocked = strings.Contains(message, " (blocked)") || strings.HasSuffix(message, "(blocked)")
 
@@ -292,13 +287,12 @@ func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyVio
 		return fmt.Errorf("insights API returned status %d", resp.StatusCode)
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"policy_name":   violationEvent.PolicyName,
-		"policy_result": violationEvent.PolicyResult,
-		"blocked":       violationEvent.Blocked,
-		"namespace":     violationEvent.Namespace,
-		"resource":      violationEvent.Name,
-	}).Info("Successfully sent blocked policy violation to Insights API")
+	slog.Info("Successfully sent blocked policy violation to Insights API",
+		"policy_name", violationEvent.PolicyName,
+		"policy_result", violationEvent.PolicyResult,
+		"blocked", violationEvent.Blocked,
+		"namespace", violationEvent.Namespace,
+		"resource", violationEvent.Name)
 
 	return nil
 }

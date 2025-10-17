@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
+	"log/slog"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -48,7 +49,7 @@ func NewClient() (*Client, error) {
 		KubeInterface:    kubeInterface,
 	}
 
-	logrus.Info("Successfully created Kubernetes client")
+	slog.Info("Successfully created Kubernetes client")
 	return client, nil
 }
 

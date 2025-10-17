@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,8 +19,7 @@ import (
 )
 
 func TestWatcherHandlerFactory(t *testing.T) {
-	// Set up test logger
-	logrus.SetLevel(logrus.DebugLevel)
+	// Set up test logger (slog is used by default)
 
 	// Create test server to capture API calls
 	var apiCalls []string
@@ -186,8 +184,7 @@ func TestEventHandlerFactory_Creation(t *testing.T) {
 
 // Test backpressure handling with small buffer
 func TestWatcherBackpressureHandling(t *testing.T) {
-	// Set up test logger
-	logrus.SetLevel(logrus.DebugLevel)
+	// Set up test logger (slog is used by default)
 
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

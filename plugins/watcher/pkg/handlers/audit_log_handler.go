@@ -9,7 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"log/slog"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
@@ -84,11 +85,11 @@ func NewAuditLogHandler(config models.InsightsConfig, kubeClient kubernetes.Inte
 
 // Start begins monitoring the audit log file
 func (h *AuditLogHandler) Start(ctx context.Context) error {
-	logrus.WithField("audit_log_path", h.auditLogPath).Info("Starting audit log monitoring")
+	slog.Info("Starting audit log monitoring", "audit_log_path", h.auditLogPath)
 
 	// Check if audit log file exists
 	if _, err := os.Stat(h.auditLogPath); os.IsNotExist(err) {
-		logrus.WithField("audit_log_path", h.auditLogPath).Warn("Audit log file does not exist, audit log monitoring disabled")
+		slog.Warn("Audit log file does not exist, audit log monitoring disabled", "audit_log_path", h.auditLogPath)
 		return nil
 	}
 
@@ -123,7 +124,7 @@ func (h *AuditLogHandler) monitorAuditLog(ctx context.Context) {
 func (h *AuditLogHandler) processNewAuditLogEntries() {
 	file, err := os.Open(h.auditLogPath)
 	if err != nil {
-		logrus.WithError(err).WithField("audit_log_path", h.auditLogPath).Error("Failed to open audit log file")
+		slog.Error("Failed to open audit log file", "error", err, "audit_log_path", h.auditLogPath)
 		return
 	}
 	defer file.Close()
@@ -131,7 +132,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 	// Get file info to track position
 	fileInfo, err := file.Stat()
 	if err != nil {
-		logrus.WithError(err).Error("Failed to get file info")
+		slog.Error("Failed to get file info", "error", err)
 		return
 	}
 
@@ -150,10 +151,10 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		// Parse the audit log entry
 		var auditEvent AuditEvent
 		if err := json.Unmarshal([]byte(line), &auditEvent); err != nil {
-			logrus.WithError(err).WithFields(logrus.Fields{
-				"line_number":    lineNumber,
-				"audit_log_path": h.auditLogPath,
-			}).Debug("Failed to parse audit log line")
+			slog.Debug("Failed to parse audit log line",
+				"error", err,
+				"line_number", lineNumber,
+				"audit_log_path", h.auditLogPath)
 			continue
 		}
 
@@ -164,13 +165,12 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 	}
 
 	if err := scanner.Err(); err != nil {
-		logrus.WithError(err).WithField("audit_log_path", h.auditLogPath).Error("Error reading audit log file")
+		slog.Error("Error reading audit log file", "error", err, "audit_log_path", h.auditLogPath)
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"file_size":       fileInfo.Size(),
-		"lines_processed": lineNumber,
-	}).Debug("Processed audit log entries")
+	slog.Debug("Processed audit log entries",
+		"file_size", fileInfo.Size(),
+		"lines_processed", lineNumber)
 }
 
 // analyzeAuditEvent analyzes an audit event to detect policy violations
@@ -185,16 +185,15 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 		// This is a blocked request - extract policy violation information
 		policyName := h.extractPolicyName(auditEvent.ResponseStatus.Message)
 
-		logrus.WithFields(logrus.Fields{
-			"audit_id":      auditEvent.AuditID,
-			"policy_name":   policyName,
-			"resource_name": auditEvent.ObjectRef.Name,
-			"namespace":     auditEvent.ObjectRef.Namespace,
-			"response_code": auditEvent.ResponseStatus.Code,
-			"message":       auditEvent.ResponseStatus.Message,
-			"level":         auditEvent.Level,
-			"stage":         auditEvent.Stage,
-		}).Info("Detected policy violation from audit logs")
+		slog.Info("Detected policy violation from audit logs",
+			"audit_id", auditEvent.AuditID,
+			"policy_name", policyName,
+			"resource_name", auditEvent.ObjectRef.Name,
+			"namespace", auditEvent.ObjectRef.Namespace,
+			"response_code", auditEvent.ResponseStatus.Code,
+			"message", auditEvent.ResponseStatus.Message,
+			"level", auditEvent.Level,
+			"stage", auditEvent.Stage)
 
 		return &PolicyViolationEvent{
 			Timestamp:    auditEvent.RequestReceivedTimestamp,
@@ -242,13 +241,12 @@ func (h *AuditLogHandler) extractPolicyName(message string) string {
 
 // generateSyntheticEvent creates a synthetic PolicyViolation event from audit log data
 func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent) {
-	logrus.WithFields(logrus.Fields{
-		"policy_name":   violation.PolicyName,
-		"resource_name": violation.ResourceName,
-		"namespace":     violation.Namespace,
-		"action":        violation.Action,
-		"audit_id":      violation.AuditID,
-	}).Info("Detected policy violation from audit logs")
+	slog.Info("Detected policy violation from audit logs",
+		"policy_name", violation.PolicyName,
+		"resource_name", violation.ResourceName,
+		"namespace", violation.Namespace,
+		"action", violation.Action,
+		"audit_id", violation.AuditID)
 
 	// Create a synthetic event that mimics a PolicyViolation event
 	syntheticEvent := &event.WatchedEvent{
@@ -281,14 +279,12 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 	// Send the synthetic event to the event channel
 	select {
 	case h.eventChannel <- syntheticEvent:
-		logrus.WithFields(logrus.Fields{
-			"policy_name":   violation.PolicyName,
-			"resource_name": violation.ResourceName,
-		}).Debug("Sent synthetic PolicyViolation event")
+		slog.Debug("Sent synthetic PolicyViolation event",
+			"policy_name", violation.PolicyName,
+			"resource_name", violation.ResourceName)
 	default:
-		logrus.WithFields(logrus.Fields{
-			"policy_name":   violation.PolicyName,
-			"resource_name": violation.ResourceName,
-		}).Warn("Event channel full, dropping synthetic PolicyViolation event")
+		slog.Warn("Event channel full, dropping synthetic PolicyViolation event",
+			"policy_name", violation.PolicyName,
+			"resource_name", violation.ResourceName)
 	}
 }

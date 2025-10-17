@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 // HealthStatus represents the health status of the application
@@ -99,9 +98,9 @@ func (s *Server) Start() error {
 	s.SetStatus(StatusHealthy)
 
 	go func() {
-		logrus.WithField("addr", s.server.Addr).Info("Starting health check server")
+		slog.Info("Starting health check server", "addr", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logrus.WithError(err).Error("Health check server error")
+			slog.Error("Health check server error", "error", err)
 		}
 	}()
 
@@ -112,16 +111,16 @@ func (s *Server) Start() error {
 func (s *Server) Stop(ctx context.Context) error {
 	s.SetStatus(StatusStopping)
 
-	logrus.Info("Stopping health check server")
+	slog.Info("Stopping health check server")
 
 	// Shutdown the HTTP server
 	if err := s.server.Shutdown(ctx); err != nil {
-		logrus.WithError(err).Error("Failed to shutdown health check server")
+		slog.Error("Failed to shutdown health check server", "error", err)
 		return err
 	}
 
 	close(s.shutdownDone)
-	logrus.Info("Health check server stopped")
+	slog.Info("Health check server stopped")
 	return nil
 }
 
@@ -221,7 +220,7 @@ func (s *Server) writeHealthResponse(w http.ResponseWriter, status HealthStatus,
 	w.WriteHeader(httpStatus)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logrus.WithError(err).Error("Failed to encode health response")
+		slog.Error("Failed to encode health response", "error", err)
 	}
 }
 

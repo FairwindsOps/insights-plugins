@@ -3,10 +3,10 @@ package watcher
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
@@ -113,7 +113,7 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 
 // Start begins watching Kubernetes resources
 func (w *Watcher) Start(ctx context.Context) error {
-	logrus.Info("Starting Kubernetes watcher")
+	slog.Info("Starting Kubernetes watcher")
 
 	// Define resources to watch
 	resources := w.getResourcesToWatch()
@@ -121,13 +121,13 @@ func (w *Watcher) Start(ctx context.Context) error {
 	// Start watching each resource type
 	for _, resourceType := range resources {
 		if err := w.watchResource(ctx, resourceType); err != nil {
-			logrus.WithError(err).WithFields(logrus.Fields{
-				"resource":   resourceType,
-				"error_type": fmt.Sprintf("%T", err),
-			}).Warn("Failed to start watching resource - this may be due to missing RBAC permissions, resource not available, or API server issues")
+			slog.Warn("Failed to start watching resource - this may be due to missing RBAC permissions, resource not available, or API server issues",
+				"error", err,
+				"resource", resourceType,
+				"error_type", fmt.Sprintf("%T", err))
 			continue
 		}
-		logrus.WithField("resource", resourceType).Info("Started watching resource")
+		slog.Info("Started watching resource", "resource", resourceType)
 	}
 
 	// Check existing ValidatingAdmissionPolicies for audit duplicates
@@ -135,7 +135,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 	go func() {
 		defer w.wg.Done()
 		if err := w.checkExistingPolicies(); err != nil {
-			logrus.WithError(err).Error("Failed to check existing policies for audit duplicates")
+			slog.Error("Failed to check existing policies for audit duplicates", "error", err)
 		}
 	}()
 
@@ -145,7 +145,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 		go func() {
 			defer w.wg.Done()
 			if err := w.auditLogHandler.Start(ctx); err != nil {
-				logrus.WithError(err).Error("Failed to start audit log monitoring")
+				slog.Error("Failed to start audit log monitoring", "error", err)
 			}
 		}()
 	}
@@ -156,7 +156,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 		go func() {
 			defer w.wg.Done()
 			if err := w.cloudwatchHandler.Start(ctx); err != nil {
-				logrus.WithError(err).Error("Failed to start CloudWatch log monitoring")
+				slog.Error("Failed to start CloudWatch log monitoring", "error", err)
 			}
 		}()
 	}
@@ -186,13 +186,13 @@ func (w *Watcher) Start(ctx context.Context) error {
 		}(informer)
 	}
 
-	logrus.Info("Kubernetes watcher started successfully")
+	slog.Info("Kubernetes watcher started successfully")
 	return nil
 }
 
 // Stop stops the watcher
 func (w *Watcher) Stop() {
-	logrus.Info("Stopping Kubernetes watcher")
+	slog.Info("Stopping Kubernetes watcher")
 	close(w.stopCh)
 
 	// Stop audit log handler if enabled
@@ -214,11 +214,11 @@ func (w *Watcher) Stop() {
 	// Stop all watchers
 	for resourceType, watcher := range w.watchers {
 		watcher.Stop()
-		logrus.WithField("resource", resourceType).Info("Stopped watching resource")
+		slog.Info("Stopped watching resource", "resource", resourceType)
 	}
 
 	close(w.eventChannel)
-	logrus.Info("Kubernetes watcher stopped")
+	slog.Info("Kubernetes watcher stopped")
 }
 
 // getResourcesToWatch returns the list of resources to watch
@@ -266,22 +266,22 @@ func (w *Watcher) watchEvents(resourceType string, watcher watch.Interface) {
 			return
 		case event, ok := <-watcher.ResultChan():
 			if !ok {
-				logrus.WithField("resource", resourceType).Warn("Watcher channel closed, attempting to reconnect")
+				slog.Warn("Watcher channel closed, attempting to reconnect", "resource", resourceType)
 				// Attempt to reconnect
 				if err := w.reconnectWatcher(resourceType); err != nil {
-					logrus.WithError(err).WithField("resource", resourceType).Error("Failed to reconnect watcher")
+					slog.Error("Failed to reconnect watcher", "error", err, "resource", resourceType)
 					return
 				}
-				logrus.WithField("resource", resourceType).Info("Successfully reconnected watcher")
+				slog.Info("Successfully reconnected watcher", "resource", resourceType)
 				return // Exit this goroutine, new one will be started by reconnectWatcher
 			}
 
 			if err := w.handleEvent(resourceType, event); err != nil {
-				logrus.WithError(err).WithFields(logrus.Fields{
-					"resource":   resourceType,
-					"event_type": event.Type,
-					"error_type": fmt.Sprintf("%T", err),
-				}).Error("Failed to handle event - this may indicate issues with event processing or resource parsing")
+				slog.Error("Failed to handle event - this may indicate issues with event processing or resource parsing",
+					"error", err,
+					"resource", resourceType,
+					"event_type", event.Type,
+					"error_type", fmt.Sprintf("%T", err))
 			}
 		}
 	}
@@ -315,12 +315,12 @@ func (w *Watcher) handleEvent(resourceType string, kubeEvent watch.Event) error 
 	if err := w.sendEventWithBackpressure(watchedEvent, resourceType, eventType); err != nil {
 		// If all retries failed, record as dropped
 		w.metrics.RecordEventDropped()
-		logrus.WithError(err).WithFields(logrus.Fields{
-			"resource_type": resourceType,
-			"event_type":    eventType,
-			"namespace":     watchedEvent.Namespace,
-			"name":          watchedEvent.Name,
-		}).Warn("Failed to queue event after retries - event dropped")
+		slog.Warn("Failed to queue event after retries - event dropped",
+			"error", err,
+			"resource_type", resourceType,
+			"event_type", eventType,
+			"namespace", watchedEvent.Namespace,
+			"name", watchedEvent.Name)
 	}
 
 	return nil
@@ -345,13 +345,13 @@ func (w *Watcher) processEvents() {
 			watchedEvent.LogEvent()
 
 			if err := w.handlerFactory.ProcessEvent(watchedEvent); err != nil {
-				logrus.WithError(err).WithFields(logrus.Fields{
-					"event_type":    watchedEvent.EventType,
-					"resource_type": watchedEvent.ResourceType,
-					"namespace":     watchedEvent.Namespace,
-					"name":          watchedEvent.Name,
-					"error_type":    fmt.Sprintf("%T", err),
-				}).Error("Failed to process event through handlers - this may indicate issues with event handler logic or API communication")
+				slog.Error("Failed to process event through handlers - this may indicate issues with event handler logic or API communication",
+					"error", err,
+					"event_type", watchedEvent.EventType,
+					"resource_type", watchedEvent.ResourceType,
+					"namespace", watchedEvent.Namespace,
+					"name", watchedEvent.Name,
+					"error_type", fmt.Sprintf("%T", err))
 			}
 
 			// Record processing completion and duration
@@ -375,15 +375,14 @@ func (w *Watcher) sendEventWithBackpressure(watchedEvent *event.WatchedEvent, re
 		default:
 			// Channel is full, retry if we haven't exceeded max retries
 			if attempt < w.backpressureConfig.MaxRetries {
-				logrus.WithFields(logrus.Fields{
-					"resource_type": resourceType,
-					"event_type":    eventType,
-					"namespace":     watchedEvent.Namespace,
-					"name":          watchedEvent.Name,
-					"attempt":       attempt + 1,
-					"max_retries":   w.backpressureConfig.MaxRetries,
-					"retry_delay":   w.backpressureConfig.RetryDelay,
-				}).Debug("Event channel full, retrying...")
+				slog.Debug("Event channel full, retrying...",
+					"resource_type", resourceType,
+					"event_type", eventType,
+					"namespace", watchedEvent.Namespace,
+					"name", watchedEvent.Name,
+					"attempt", attempt+1,
+					"max_retries", w.backpressureConfig.MaxRetries,
+					"retry_delay", w.backpressureConfig.RetryDelay)
 
 				// Wait before retrying
 				time.Sleep(w.backpressureConfig.RetryDelay)
@@ -427,11 +426,10 @@ func (w *Watcher) reconnectWatcher(resourceType string) error {
 		default:
 		}
 
-		logrus.WithFields(logrus.Fields{
-			"resource":    resourceType,
-			"attempt":     attempt,
-			"max_retries": maxRetries,
-		}).Info("Attempting to reconnect watcher")
+		slog.Info("Attempting to reconnect watcher",
+			"resource", resourceType,
+			"attempt", attempt,
+			"max_retries", maxRetries)
 
 		// Create new context for the reconnection attempt
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -439,10 +437,10 @@ func (w *Watcher) reconnectWatcher(resourceType string) error {
 		// Try to reconnect
 		if err := w.watchResource(ctx, resourceType); err != nil {
 			cancel()
-			logrus.WithError(err).WithFields(logrus.Fields{
-				"resource": resourceType,
-				"attempt":  attempt,
-			}).Warn("Failed to reconnect watcher, retrying...")
+			slog.Warn("Failed to reconnect watcher, retrying...",
+				"error", err,
+				"resource", resourceType,
+				"attempt", attempt)
 
 			if attempt < maxRetries {
 				// Wait before retrying
@@ -457,7 +455,7 @@ func (w *Watcher) reconnectWatcher(resourceType string) error {
 		}
 
 		cancel()
-		logrus.WithField("resource", resourceType).Info("Successfully reconnected watcher")
+		slog.Info("Successfully reconnected watcher", "resource", resourceType)
 		return nil
 	}
 
@@ -467,6 +465,6 @@ func (w *Watcher) reconnectWatcher(resourceType string) error {
 // checkExistingPolicies checks existing policies for audit duplicates
 func (w *Watcher) checkExistingPolicies() error {
 	// No longer checking ClusterPolicies for audit duplicates
-	logrus.Debug("ClusterPolicy duplicator logic removed, skipping existing policy check")
+	slog.Debug("ClusterPolicy duplicator logic removed, skipping existing policy check")
 	return nil
 }

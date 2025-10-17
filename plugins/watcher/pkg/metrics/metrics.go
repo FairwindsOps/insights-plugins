@@ -1,10 +1,9 @@
 package metrics
 
 import (
+	"log/slog"
 	"sync"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 // Metrics tracks various performance metrics for the watcher
@@ -149,17 +148,16 @@ func (m *Metrics) LogMetrics() {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	logrus.WithFields(logrus.Fields{
-		"events_processed":    m.EventsProcessed,
-		"events_dropped":      m.EventsDropped,
-		"events_in_channel":   m.EventsInChannel,
-		"channel_capacity":    m.ChannelCapacity,
-		"channel_utilization": m.GetChannelUtilization(),
-		"events_per_second":   m.EventsPerSecond,
-		"processing_rate":     m.ProcessingRate,
-		"dropped_events_rate": m.DroppedEventsRate,
-		"uptime":              m.GetUptime(),
-	}).Info("Watcher metrics")
+	slog.Info("Watcher metrics",
+		"events_processed", m.EventsProcessed,
+		"events_dropped", m.EventsDropped,
+		"events_in_channel", m.EventsInChannel,
+		"channel_capacity", m.ChannelCapacity,
+		"channel_utilization", m.GetChannelUtilization(),
+		"events_per_second", m.EventsPerSecond,
+		"processing_rate", m.ProcessingRate,
+		"dropped_events_rate", m.DroppedEventsRate,
+		"uptime", m.GetUptime())
 }
 
 // updateRates calculates current rates based on recent activity

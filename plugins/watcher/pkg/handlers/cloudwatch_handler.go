@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"log/slog"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
-	"github.com/sirupsen/logrus"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/models"
@@ -50,7 +51,7 @@ func NewCloudWatchHandler(insightsConfig models.InsightsConfig, cloudwatchConfig
 
 // Start begins processing CloudWatch logs
 func (h *CloudWatchHandler) Start(ctx context.Context) error {
-	logrus.Info("Starting CloudWatch log processing")
+	slog.Info("Starting CloudWatch log processing")
 
 	// Parse poll interval
 	pollInterval, err := time.ParseDuration(h.cloudwatchConfig.PollInterval)
@@ -60,7 +61,7 @@ func (h *CloudWatchHandler) Start(ctx context.Context) error {
 
 	// Test initial connection
 	if err := h.testConnection(ctx); err != nil {
-		logrus.WithError(err).Warn("Initial CloudWatch connection test failed, will retry during processing")
+		slog.Warn("Initial CloudWatch connection test failed, will retry during processing", "error", err)
 	}
 
 	ticker := time.NewTicker(pollInterval)
@@ -72,19 +73,19 @@ func (h *CloudWatchHandler) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Info("CloudWatch handler context cancelled")
+			slog.Info("CloudWatch handler context cancelled")
 			return ctx.Err()
 		case <-h.stopCh:
-			logrus.Info("CloudWatch handler stopped")
+			slog.Info("CloudWatch handler stopped")
 			return nil
 		case <-ticker.C:
 			if err := h.processLogEvents(ctx); err != nil {
 				consecutiveErrors++
-				logrus.WithError(err).WithField("consecutive_errors", consecutiveErrors).Error("Failed to process CloudWatch log events")
+				slog.Error("Failed to process CloudWatch log events", "error", err, "consecutive_errors", consecutiveErrors)
 
 				// If we have too many consecutive errors, increase the poll interval temporarily
 				if consecutiveErrors >= maxConsecutiveErrors {
-					logrus.Warn("Too many consecutive errors, temporarily increasing poll interval")
+					slog.Warn("Too many consecutive errors, temporarily increasing poll interval")
 					ticker.Stop()
 					ticker = time.NewTicker(pollInterval * 2) // Double the interval
 					consecutiveErrors = 0                     // Reset counter
@@ -92,7 +93,7 @@ func (h *CloudWatchHandler) Start(ctx context.Context) error {
 			} else {
 				// Reset consecutive error counter on success
 				if consecutiveErrors > 0 {
-					logrus.Info("CloudWatch processing recovered, resetting error counter")
+					slog.Info("CloudWatch processing recovered, resetting error counter")
 					consecutiveErrors = 0
 					// Reset to normal poll interval
 					ticker.Stop()
@@ -116,7 +117,7 @@ func (h *CloudWatchHandler) testConnection(ctx context.Context) error {
 		return fmt.Errorf("failed to connect to CloudWatch: %w", err)
 	}
 
-	logrus.Info("CloudWatch connection test successful")
+	slog.Info("CloudWatch connection test successful")
 	return nil
 }
 
@@ -136,7 +137,7 @@ func (h *CloudWatchHandler) processLogEvents(ctx context.Context) error {
 	// Process each log stream
 	for _, stream := range streams {
 		if err := h.processLogStreamWithRetry(ctx, stream); err != nil {
-			logrus.WithError(err).WithField("stream", *stream.LogStreamName).Error("Failed to process log stream after retries")
+			slog.Error("Failed to process log stream after retries", "error", err, "stream", *stream.LogStreamName)
 		}
 	}
 
@@ -159,10 +160,10 @@ func (h *CloudWatchHandler) getLogStreamsWithRetry(ctx context.Context) ([]types
 			return nil, fmt.Errorf("non-retryable error: %w", err)
 		}
 
-		logrus.WithError(err).WithFields(logrus.Fields{
-			"attempt":     attempt,
-			"max_retries": maxRetries,
-		}).Warn("Failed to get log streams, retrying...")
+		slog.Warn("Failed to get log streams, retrying...",
+			"error", err,
+			"attempt", attempt,
+			"max_retries", maxRetries)
 
 		if attempt < maxRetries {
 			select {
@@ -210,11 +211,11 @@ func (h *CloudWatchHandler) processLogStreamWithRetry(ctx context.Context, strea
 			return fmt.Errorf("non-retryable error: %w", err)
 		}
 
-		logrus.WithError(err).WithFields(logrus.Fields{
-			"stream":      *stream.LogStreamName,
-			"attempt":     attempt,
-			"max_retries": maxRetries,
-		}).Warn("Failed to process log stream, retrying...")
+		slog.Warn("Failed to process log stream, retrying...",
+			"error", err,
+			"stream", *stream.LogStreamName,
+			"attempt", attempt,
+			"max_retries", maxRetries)
 
 		if attempt < maxRetries {
 			select {
@@ -302,7 +303,7 @@ func (h *CloudWatchHandler) processLogStream(ctx context.Context, stream types.L
 	// Process each log event
 	for _, logEvent := range result.Events {
 		if err := h.processOutputLogEvent(ctx, logEvent); err != nil {
-			logrus.WithError(err).Error("Failed to process log event")
+			slog.Error("Failed to process log event", "error", err)
 		}
 	}
 
@@ -319,7 +320,7 @@ func (h *CloudWatchHandler) processFilteredLogEvents(ctx context.Context, input 
 	// Process each filtered log event
 	for _, logEvent := range result.Events {
 		if err := h.processLogEvent(ctx, logEvent); err != nil {
-			logrus.WithError(err).Error("Failed to process filtered log event")
+			slog.Error("Failed to process filtered log event", "error", err)
 		}
 	}
 
@@ -345,14 +346,13 @@ func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent 
 		if violationEvent != nil {
 			select {
 			case h.eventChannel <- violationEvent:
-				logrus.WithFields(logrus.Fields{
-					"policy_name": violationEvent.Data["policy_name"],
-					"resource":    fmt.Sprintf("%s/%s", violationEvent.Namespace, violationEvent.Name),
-				}).Debug("Sent policy violation event to channel")
+				slog.Debug("Sent policy violation event to channel",
+					"policy_name", violationEvent.Data["policy_name"],
+					"resource", fmt.Sprintf("%s/%s", violationEvent.Namespace, violationEvent.Name))
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
-				logrus.Warn("Event channel full, dropping policy violation event")
+				slog.Warn("Event channel full, dropping policy violation event")
 			}
 		}
 	}
@@ -379,14 +379,13 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 		if violationEvent != nil {
 			select {
 			case h.eventChannel <- violationEvent:
-				logrus.WithFields(logrus.Fields{
-					"policy_name": violationEvent.Data["policy_name"],
-					"resource":    fmt.Sprintf("%s/%s", violationEvent.Namespace, violationEvent.Name),
-				}).Debug("Sent policy violation event to channel")
+				slog.Debug("Sent policy violation event to channel",
+					"policy_name", violationEvent.Data["policy_name"],
+					"resource", fmt.Sprintf("%s/%s", violationEvent.Namespace, violationEvent.Name))
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
-				logrus.Warn("Event channel full, dropping policy violation event")
+				slog.Warn("Event channel full, dropping policy violation event")
 			}
 		}
 	}

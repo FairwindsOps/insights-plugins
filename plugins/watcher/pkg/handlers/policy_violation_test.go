@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/event"
@@ -14,8 +13,7 @@ import (
 )
 
 func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
-	// Set up test logger
-	logrus.SetLevel(logrus.DebugLevel)
+	// Set up test logger (slog is used by default)
 
 	// Create test server to capture API calls
 	var apiCalls []string
@@ -73,8 +71,7 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 }
 
 func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
-	// Set up test logger
-	logrus.SetLevel(logrus.DebugLevel)
+	// Set up test logger (slog is used by default)
 
 	// Create test server to capture API calls
 	var apiCalls []string
@@ -131,8 +128,7 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 }
 
 func TestPolicyViolationHandlerHandleValidatingAdmissionPolicyEvent(t *testing.T) {
-	// Set up test logger
-	logrus.SetLevel(logrus.DebugLevel)
+	// Set up test logger (slog is used by default)
 
 	// Create test server to capture API calls
 	var apiCalls []string
@@ -190,8 +186,7 @@ func TestPolicyViolationHandlerHandleValidatingAdmissionPolicyEvent(t *testing.T
 }
 
 func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
-	// Set up test logger
-	logrus.SetLevel(logrus.DebugLevel)
+	// Set up test logger (slog is used by default)
 
 	// Create test server to capture API calls
 	var apiCalls []string

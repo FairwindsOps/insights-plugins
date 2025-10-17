@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"github.com/sirupsen/logrus"
+	"log/slog"
+
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
@@ -55,7 +56,7 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 // Register adds a new handler to the factory
 func (f *EventHandlerFactory) Register(name string, handler EventHandler) {
 	f.handlers[name] = handler
-	logrus.WithField("handler_name", name).Debug("Registered event handler")
+	slog.Debug("Registered event handler", "handler_name", name)
 }
 
 // GetHandler returns the appropriate handler for an event
@@ -88,12 +89,11 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 func (f *EventHandlerFactory) ProcessEvent(watchedEvent *event.WatchedEvent) error {
 	handler := f.GetHandler(watchedEvent)
 	if handler == nil {
-		logrus.WithFields(logrus.Fields{
-			"event_type":    watchedEvent.EventType,
-			"resource_type": watchedEvent.ResourceType,
-			"namespace":     watchedEvent.Namespace,
-			"name":          watchedEvent.Name,
-		}).Debug("No handler found for event")
+		slog.Debug("No handler found for event",
+			"event_type", watchedEvent.EventType,
+			"resource_type", watchedEvent.ResourceType,
+			"namespace", watchedEvent.Namespace,
+			"name", watchedEvent.Name)
 		return nil
 	}
 
