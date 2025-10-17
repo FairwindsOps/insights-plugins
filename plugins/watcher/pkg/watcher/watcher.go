@@ -266,8 +266,14 @@ func (w *Watcher) watchEvents(resourceType string, watcher watch.Interface) {
 			return
 		case event, ok := <-watcher.ResultChan():
 			if !ok {
-				logrus.WithField("resource", resourceType).Warn("Watcher channel closed")
-				return
+				logrus.WithField("resource", resourceType).Warn("Watcher channel closed, attempting to reconnect")
+				// Attempt to reconnect
+				if err := w.reconnectWatcher(resourceType); err != nil {
+					logrus.WithError(err).WithField("resource", resourceType).Error("Failed to reconnect watcher")
+					return
+				}
+				logrus.WithField("resource", resourceType).Info("Successfully reconnected watcher")
+				return // Exit this goroutine, new one will be started by reconnectWatcher
 			}
 
 			if err := w.handleEvent(resourceType, event); err != nil {
@@ -406,6 +412,56 @@ func (w *Watcher) logMetricsPeriodically() {
 // GetMetrics returns the current metrics for external monitoring
 func (w *Watcher) GetMetrics() *metrics.Metrics {
 	return w.metrics
+}
+
+// reconnectWatcher attempts to reconnect a watcher for a specific resource type
+func (w *Watcher) reconnectWatcher(resourceType string) error {
+	const maxRetries = 5
+	const retryDelay = 5 * time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		// Check if we should stop
+		select {
+		case <-w.stopCh:
+			return fmt.Errorf("watcher is stopping")
+		default:
+		}
+
+		logrus.WithFields(logrus.Fields{
+			"resource": resourceType,
+			"attempt":  attempt,
+			"max_retries": maxRetries,
+		}).Info("Attempting to reconnect watcher")
+
+		// Create new context for the reconnection attempt
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		
+		// Try to reconnect
+		if err := w.watchResource(ctx, resourceType); err != nil {
+			cancel()
+			logrus.WithError(err).WithFields(logrus.Fields{
+				"resource": resourceType,
+				"attempt":  attempt,
+			}).Warn("Failed to reconnect watcher, retrying...")
+			
+			if attempt < maxRetries {
+				// Wait before retrying
+				select {
+				case <-w.stopCh:
+					return fmt.Errorf("watcher is stopping")
+				case <-time.After(retryDelay):
+					continue
+				}
+			}
+			return fmt.Errorf("failed to reconnect watcher after %d attempts: %w", maxRetries, err)
+		}
+		
+		cancel()
+		logrus.WithField("resource", resourceType).Info("Successfully reconnected watcher")
+		return nil
+	}
+
+	return fmt.Errorf("failed to reconnect watcher after %d attempts", maxRetries)
 }
 
 // checkExistingPolicies checks existing policies for audit duplicates

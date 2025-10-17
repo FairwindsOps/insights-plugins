@@ -58,8 +58,16 @@ func (h *CloudWatchHandler) Start(ctx context.Context) error {
 		return fmt.Errorf("invalid poll interval '%s': %w", h.cloudwatchConfig.PollInterval, err)
 	}
 
+	// Test initial connection
+	if err := h.testConnection(ctx); err != nil {
+		logrus.WithError(err).Warn("Initial CloudWatch connection test failed, will retry during processing")
+	}
+
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
+
+	consecutiveErrors := 0
+	const maxConsecutiveErrors = 5
 
 	for {
 		select {
@@ -71,10 +79,45 @@ func (h *CloudWatchHandler) Start(ctx context.Context) error {
 			return nil
 		case <-ticker.C:
 			if err := h.processLogEvents(ctx); err != nil {
-				logrus.WithError(err).Error("Failed to process CloudWatch log events")
+				consecutiveErrors++
+				logrus.WithError(err).WithField("consecutive_errors", consecutiveErrors).Error("Failed to process CloudWatch log events")
+				
+				// If we have too many consecutive errors, increase the poll interval temporarily
+				if consecutiveErrors >= maxConsecutiveErrors {
+					logrus.Warn("Too many consecutive errors, temporarily increasing poll interval")
+					ticker.Stop()
+					ticker = time.NewTicker(pollInterval * 2) // Double the interval
+					consecutiveErrors = 0 // Reset counter
+				}
+			} else {
+				// Reset consecutive error counter on success
+				if consecutiveErrors > 0 {
+					logrus.Info("CloudWatch processing recovered, resetting error counter")
+					consecutiveErrors = 0
+					// Reset to normal poll interval
+					ticker.Stop()
+					ticker = time.NewTicker(pollInterval)
+				}
 			}
 		}
 	}
+}
+
+// testConnection tests the CloudWatch connection
+func (h *CloudWatchHandler) testConnection(ctx context.Context) error {
+	// Try to describe the log group to test connectivity
+	input := &cloudwatchlogs.DescribeLogGroupsInput{
+		LogGroupNamePrefix: aws.String(h.cloudwatchConfig.LogGroupName),
+		Limit:              aws.Int32(1),
+	}
+
+	_, err := h.cloudwatchClient.DescribeLogGroups(ctx, input)
+	if err != nil {
+		return fmt.Errorf("failed to connect to CloudWatch: %w", err)
+	}
+
+	logrus.Info("CloudWatch connection test successful")
+	return nil
 }
 
 // Stop stops the CloudWatch handler
@@ -84,20 +127,54 @@ func (h *CloudWatchHandler) Stop() {
 
 // processLogEvents processes CloudWatch log events for policy violations
 func (h *CloudWatchHandler) processLogEvents(ctx context.Context) error {
-	// Get log streams for the log group
-	streams, err := h.getLogStreams(ctx)
+	// Get log streams for the log group with retry logic
+	streams, err := h.getLogStreamsWithRetry(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get log streams: %w", err)
+		return fmt.Errorf("failed to get log streams after retries: %w", err)
 	}
 
 	// Process each log stream
 	for _, stream := range streams {
-		if err := h.processLogStream(ctx, stream); err != nil {
-			logrus.WithError(err).WithField("stream", *stream.LogStreamName).Error("Failed to process log stream")
+		if err := h.processLogStreamWithRetry(ctx, stream); err != nil {
+			logrus.WithError(err).WithField("stream", *stream.LogStreamName).Error("Failed to process log stream after retries")
 		}
 	}
 
 	return nil
+}
+
+// getLogStreamsWithRetry retrieves log streams with retry logic
+func (h *CloudWatchHandler) getLogStreamsWithRetry(ctx context.Context) ([]types.LogStream, error) {
+	const maxRetries = 3
+	const retryDelay = 2 * time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		streams, err := h.getLogStreams(ctx)
+		if err == nil {
+			return streams, nil
+		}
+
+		// Check if error is retryable
+		if !h.isRetryableError(err) {
+			return nil, fmt.Errorf("non-retryable error: %w", err)
+		}
+
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"attempt":    attempt,
+			"max_retries": maxRetries,
+		}).Warn("Failed to get log streams, retrying...")
+
+		if attempt < maxRetries {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(retryDelay):
+				continue
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("failed to get log streams after %d attempts", maxRetries)
 }
 
 // getLogStreams retrieves log streams for the configured log group
@@ -115,6 +192,74 @@ func (h *CloudWatchHandler) getLogStreams(ctx context.Context) ([]types.LogStrea
 	}
 
 	return result.LogStreams, nil
+}
+
+// processLogStreamWithRetry processes a log stream with retry logic
+func (h *CloudWatchHandler) processLogStreamWithRetry(ctx context.Context, stream types.LogStream) error {
+	const maxRetries = 2
+	const retryDelay = 1 * time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		err := h.processLogStream(ctx, stream)
+		if err == nil {
+			return nil
+		}
+
+		// Check if error is retryable
+		if !h.isRetryableError(err) {
+			return fmt.Errorf("non-retryable error: %w", err)
+		}
+
+		logrus.WithError(err).WithFields(logrus.Fields{
+			"stream":     *stream.LogStreamName,
+			"attempt":    attempt,
+			"max_retries": maxRetries,
+		}).Warn("Failed to process log stream, retrying...")
+
+		if attempt < maxRetries {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(retryDelay):
+				continue
+			}
+		}
+	}
+
+	return fmt.Errorf("failed to process log stream after %d attempts", maxRetries)
+}
+
+// isRetryableError determines if an error is retryable
+func (h *CloudWatchHandler) isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errStr := err.Error()
+	
+	// Network/connection errors
+	if strings.Contains(errStr, "timeout") ||
+		strings.Contains(errStr, "connection") ||
+		strings.Contains(errStr, "network") ||
+		strings.Contains(errStr, "dial") {
+		return true
+	}
+
+	// AWS service errors that are retryable
+	if strings.Contains(errStr, "ThrottlingException") ||
+		strings.Contains(errStr, "ServiceUnavailable") ||
+		strings.Contains(errStr, "InternalServerError") ||
+		strings.Contains(errStr, "TooManyRequestsException") {
+		return true
+	}
+
+	// Rate limiting errors
+	if strings.Contains(errStr, "rate limit") ||
+		strings.Contains(errStr, "RateExceeded") {
+		return true
+	}
+
+	return false
 }
 
 // processLogStream processes events from a specific log stream
