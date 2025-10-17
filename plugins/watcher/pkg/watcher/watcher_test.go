@@ -181,3 +181,101 @@ func TestEventHandlerFactory_Creation(t *testing.T) {
 	assert.NotNil(t, factory)
 	assert.Greater(t, factory.GetHandlerCount(), 0)
 }
+
+// Test backpressure handling with small buffer
+func TestWatcherBackpressureHandling(t *testing.T) {
+	// Set up test logger
+	logrus.SetLevel(logrus.DebugLevel)
+
+	// Create test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true}`))
+	}))
+	defer server.Close()
+
+	// Create test configuration
+	config := models.InsightsConfig{
+		Hostname:     server.URL,
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	// Create watcher with very small buffer to trigger backpressure
+	backpressureConfig := BackpressureConfig{
+		MaxRetries:           2,
+		RetryDelay:           10 * time.Millisecond,
+		MetricsLogInterval:   1 * time.Second,
+		EnableMetricsLogging: false, // Disable for test
+	}
+
+	watcher, err := NewWatcherWithBackpressure(config, "local", "", nil, 1, 30, 60, false, backpressureConfig)
+	assert.NoError(t, err)
+	assert.NotNil(t, watcher)
+
+	// Get initial metrics
+	metrics := watcher.GetMetrics()
+	assert.NotNil(t, metrics)
+	assert.Equal(t, 1, metrics.ChannelCapacity)
+
+	// Test that metrics are working
+	metrics.RecordEventProcessed()
+	processed, dropped := metrics.GetTotalEvents()
+	assert.Equal(t, int64(1), processed)
+	assert.Equal(t, int64(0), dropped)
+}
+
+// Test metrics functionality
+func TestWatcherMetrics(t *testing.T) {
+	// Create test configuration
+	config := models.InsightsConfig{
+		Hostname:     "https://test.com",
+		Organization: "test-org",
+		Cluster:      "test-cluster",
+		Token:        "test-token",
+	}
+
+	// Create watcher
+	watcher, err := NewWatcher(config, "local", "", nil, 100, 30, 60, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, watcher)
+
+	// Get metrics
+	metrics := watcher.GetMetrics()
+	assert.NotNil(t, metrics)
+	assert.Equal(t, 100, metrics.ChannelCapacity)
+
+	// Test metrics recording
+	metrics.RecordEventInChannel()
+	metrics.RecordEventProcessed()
+	metrics.RecordEventDropped()
+
+	processed, dropped := metrics.GetTotalEvents()
+	assert.Equal(t, int64(1), processed)
+	assert.Equal(t, int64(1), dropped)
+	assert.Equal(t, int64(1), metrics.EventsInChannel)
+
+	// Test channel utilization
+	utilization := metrics.GetChannelUtilization()
+	assert.Equal(t, 1.0, utilization) // 1/100 * 100 = 1%
+
+	// Test uptime
+	uptime := metrics.GetUptime()
+	assert.True(t, uptime > 0)
+}
+
+// Test backpressure configuration
+func TestBackpressureConfig(t *testing.T) {
+	config := BackpressureConfig{
+		MaxRetries:           5,
+		RetryDelay:           50 * time.Millisecond,
+		MetricsLogInterval:   10 * time.Second,
+		EnableMetricsLogging: true,
+	}
+
+	assert.Equal(t, 5, config.MaxRetries)
+	assert.Equal(t, 50*time.Millisecond, config.RetryDelay)
+	assert.Equal(t, 10*time.Second, config.MetricsLogInterval)
+	assert.True(t, config.EnableMetricsLogging)
+}

@@ -12,6 +12,8 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 - **Insights Integration**: Sends blocked policy violations directly to Fairwinds Insights API
 - **Real-time Processing**: Processes events as they occur in the cluster (no historical data)
 - **Performance Optimized**: Configurable batch sizes, memory limits, and CloudWatch filtering
+- **Backpressure Handling**: Intelligent retry logic when event channel is full, preventing event loss
+- **Metrics & Monitoring**: Built-in metrics for dropped events, processing rates, and channel utilization
 - **IRSA Support**: Uses IAM Roles for Service Accounts for secure AWS access
 - **Automatic Policy Duplication**: Automatically creates, updates, and deletes audit duplicates of ValidatingAdmissionPolicies with Deny-only actions
 - **Audit Policy Support**: Supports dedicated audit policies for capturing policy violations without webhook dependencies
@@ -73,6 +75,11 @@ The watcher uses environment variables for sensitive configuration, following Fa
 - `--event-buffer-size`: Size of the event processing buffer (default: `1000`)
 - `--http-timeout-seconds`: HTTP client timeout in seconds (default: `30`)
 - `--rate-limit-per-minute`: Maximum API calls per minute (default: `60`)
+
+#### Performance & Monitoring Options
+- **Backpressure Handling**: Automatically retries when event channel is full (3 retries, 100ms delay)
+- **Metrics Logging**: Periodic logging of processing rates and dropped events (every 30 seconds)
+- **Channel Utilization**: Monitors event channel capacity and utilization
 
 #### Log Source Options
 - `--log-source`: Log source type - local, cloudwatch (default: `local`)
@@ -179,6 +186,39 @@ The watcher uses CloudWatch filter patterns to efficiently identify ValidatingAd
 ```json
 { $.stage = "ResponseComplete" && $.responseStatus.code >= 400 && $.requestURI = "/api/v1/*" && $.annotations."admission.k8s.io/validating-admission-policy" != null }
 ```
+
+## Performance & Monitoring
+
+### Backpressure Handling
+
+The watcher implements intelligent backpressure handling to prevent event loss when the event channel is full:
+
+- **Automatic Retries**: When the event channel is full, the watcher automatically retries up to 3 times with 100ms delays
+- **Graceful Degradation**: If all retries fail, events are dropped with detailed logging for monitoring
+- **Configurable Parameters**: Retry count, delay, and metrics logging intervals can be customized
+
+### Metrics & Monitoring
+
+The watcher provides comprehensive metrics for monitoring performance:
+
+#### Key Metrics Tracked
+- **Events Processed**: Total number of events successfully processed
+- **Events Dropped**: Total number of events dropped due to backpressure
+- **Channel Utilization**: Percentage of event channel capacity in use
+- **Processing Rate**: Events processed per second
+- **Dropped Events Rate**: Events dropped per second
+- **Processing Duration**: Time taken to process individual events
+
+#### Metrics Logging
+Metrics are automatically logged every 30 seconds with the following information:
+```
+INFO[2024-01-15T10:30:00Z] Watcher metrics events_processed=1250 events_dropped=5 events_in_channel=12 channel_capacity=1000 channel_utilization=1.2 events_per_second=41.7 processing_rate=42.1 dropped_events_rate=0.2 uptime=30s
+```
+
+#### Monitoring Recommendations
+- **Channel Utilization**: Keep below 80% for optimal performance
+- **Dropped Events**: Monitor for increases indicating backpressure issues
+- **Processing Rate**: Track for performance degradation over time
 
 ### Performance Tuning
 
@@ -522,6 +562,23 @@ kubectl get validatingadmissionpolicies | grep insights-audit
 # Check watcher logs for VAP duplicator activity
 kubectl logs -n insights-agent deployment/insights-event-watcher | grep -i "VAPDuplicator"
 ```
+
+## Troubleshooting
+
+### Backpressure Issues
+
+If you're experiencing high dropped event rates or channel utilization:
+
+1. **Increase Buffer Size**: Increase `--event-buffer-size` (default: 1000)
+2. **Monitor Metrics**: Check logs for metrics showing high channel utilization
+3. **Reduce Processing Load**: Consider reducing CloudWatch batch sizes or increasing poll intervals
+4. **Scale Resources**: Increase CPU/memory limits for the watcher pod
+
+### Common Issues
+
+- **High Dropped Events**: Indicates backpressure - increase buffer size or reduce event volume
+- **Low Processing Rate**: May indicate API rate limiting or network issues
+- **Channel Utilization > 80%**: Consider increasing buffer size or optimizing event processing
 
 ## Configuration
 
