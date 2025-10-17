@@ -4,14 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/health"
 	"github.com/fairwindsops/insights-plugins/plugins/watcher/pkg/models"
@@ -149,7 +148,7 @@ func validateConfiguration(logLevel, insightsHost, organization, cluster, auditL
 
 	// Console mode validation - if console mode is enabled, Insights config is optional
 	if consoleMode {
-		logrus.Info("Console mode enabled - events will be printed to console instead of sent to Insights")
+		slog.Info("Console mode enabled - events will be printed to console instead of sent to Insights")
 	}
 
 	return nil
@@ -164,12 +163,14 @@ func getInsightsToken(consoleMode bool) string {
 
 	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
 	if token == "" {
-		logrus.Fatal("FAIRWINDS_TOKEN environment variable not set")
+		slog.Error("FAIRWINDS_TOKEN environment variable not set")
+		os.Exit(1)
 	}
 
 	// Basic token validation
 	if len(token) < 10 {
-		logrus.Fatal("FAIRWINDS_TOKEN is too short (minimum 10 characters)")
+		slog.Error("FAIRWINDS_TOKEN is too short (minimum 10 characters)")
+		os.Exit(1)
 	}
 
 	return token
@@ -200,31 +201,48 @@ func main() {
 
 	// Validate all configuration parameters
 	if err := validateConfiguration(*logLevel, *insightsHost, *organization, *cluster, *auditLogPath, *logSource, *cloudwatchLogGroup, *cloudwatchRegion, *cloudwatchFilter, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *cloudwatchBatchSize, *cloudwatchMaxMemory, *healthPort, *consoleMode); err != nil {
-		logrus.WithError(err).Fatal("Configuration validation failed")
+		slog.Error("Configuration validation failed", "error", err)
+		os.Exit(1)
 	}
 
-	level, err := logrus.ParseLevel(*logLevel)
-	if err != nil {
-		logrus.WithError(err).Fatal("Invalid log level")
+	// Set up slog level
+	var level slog.Level
+	switch *logLevel {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		slog.Error("Invalid log level", "level", *logLevel)
+		os.Exit(1)
 	}
-	logrus.SetLevel(level)
 
-	logrus.Info("Starting Kubernetes Event Watcher")
-	logrus.WithFields(logrus.Fields{
-		"log_level":    *logLevel,
-		"log_source":   *logSource,
-		"console_mode": *consoleMode,
-	}).Info("Configuration")
+	// Create a new logger with the specified level
+	opts := &slog.HandlerOptions{
+		Level: level,
+	}
+	handler := slog.NewTextHandler(os.Stdout, opts)
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+
+	slog.Info("Starting Kubernetes Event Watcher")
+	slog.Info("Configuration", 
+		"log_level", *logLevel,
+		"log_source", *logSource,
+		"console_mode", *consoleMode)
 
 	// Log CloudWatch configuration if enabled
 	if *logSource == "cloudwatch" {
-		logrus.WithFields(logrus.Fields{
-			"log_group":      *cloudwatchLogGroup,
-			"region":         *cloudwatchRegion,
-			"filter_pattern": *cloudwatchFilter,
-			"batch_size":     *cloudwatchBatchSize,
-			"max_memory_mb":  *cloudwatchMaxMemory,
-		}).Info("CloudWatch configuration")
+		slog.Info("CloudWatch configuration",
+			"log_group", *cloudwatchLogGroup,
+			"region", *cloudwatchRegion,
+			"filter_pattern", *cloudwatchFilter,
+			"batch_size", *cloudwatchBatchSize,
+			"max_memory_mb", *cloudwatchMaxMemory)
 	}
 
 	// Create Insights configuration
@@ -238,15 +256,15 @@ func main() {
 	// Validate Insights configuration if provided
 	if insightsConfig.Hostname != "" {
 		if insightsConfig.Organization == "" || insightsConfig.Cluster == "" {
-			logrus.Fatal("If insights-host is provided, organization and cluster must also be provided")
+			slog.Error("If insights-host is provided, organization and cluster must also be provided")
+			os.Exit(1)
 		}
-		logrus.WithFields(logrus.Fields{
-			"hostname":     insightsConfig.Hostname,
-			"organization": insightsConfig.Organization,
-			"cluster":      insightsConfig.Cluster,
-		}).Info("Insights API configuration enabled")
+		slog.Info("Insights API configuration enabled",
+			"hostname", insightsConfig.Hostname,
+			"organization", insightsConfig.Organization,
+			"cluster", insightsConfig.Cluster)
 	} else if !*consoleMode {
-		logrus.Info("Insights API configuration not provided - running in local mode only")
+		slog.Info("Insights API configuration not provided - running in local mode only")
 	}
 
 	// Create context with cancellation
@@ -269,14 +287,15 @@ func main() {
 	// Create watcher with configuration
 	kubeWatcher, err := watcher.NewWatcher(insightsConfig, *logSource, *auditLogPath, cloudwatchConfig, *eventBufferSize, *httpTimeoutSeconds, *rateLimitPerMinute, *consoleMode)
 	if err != nil {
-		logrus.WithError(err).Fatal("Failed to create watcher")
+		slog.Error("Failed to create watcher", "error", err)
+		os.Exit(1)
 	}
 
 	// Log audit log configuration
 	if *auditLogPath != "" {
-		logrus.WithField("audit_log_path", *auditLogPath).Info("Audit log monitoring enabled")
+		slog.Info("Audit log monitoring enabled", "audit_log_path", *auditLogPath)
 	} else {
-		logrus.Info("Audit log monitoring disabled")
+		slog.Info("Audit log monitoring disabled")
 	}
 
 	// Create health check server
@@ -288,12 +307,14 @@ func main() {
 
 	// Start health check server
 	if err := healthServer.Start(); err != nil {
-		logrus.WithError(err).Fatal("Failed to start health check server")
+		slog.Error("Failed to start health check server", "error", err)
+		os.Exit(1)
 	}
 
 	// Start watcher
 	if err := kubeWatcher.Start(ctx); err != nil {
-		logrus.WithError(err).Fatal("Failed to start watcher")
+		slog.Error("Failed to start watcher", "error", err)
+		os.Exit(1)
 	}
 
 	// Wait for interrupt signal to gracefully shutdown
@@ -302,21 +323,21 @@ func main() {
 
 	// Block until signal is received
 	sig := <-sigChan
-	logrus.WithField("signal", sig).Info("Received signal, shutting down gracefully")
+	slog.Info("Received signal, shutting down gracefully", "signal", sig)
 
 	// Create shutdown context with timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), *shutdownTimeout)
 	defer shutdownCancel()
 
 	// Stop watcher
-	logrus.Info("Stopping Kubernetes watcher")
+	slog.Info("Stopping Kubernetes watcher")
 	kubeWatcher.Stop()
 
 	// Stop health check server
-	logrus.Info("Stopping health check server")
+	slog.Info("Stopping health check server")
 	if err := healthServer.Stop(shutdownCtx); err != nil {
-		logrus.WithError(err).Error("Failed to stop health check server gracefully")
+		slog.Error("Failed to stop health check server gracefully", "error", err)
 	}
 
-	logrus.Info("Kubernetes Event Watcher stopped")
+	slog.Info("Kubernetes Event Watcher stopped")
 }
