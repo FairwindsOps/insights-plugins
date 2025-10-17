@@ -26,4 +26,5 @@ images:
     - quay.io/fairwinds/fw-trivy:0.33.4
     - quay.io/fairwinds/insights-uploader:0.5.11
     - quay.io/fairwinds/insights-utils:0.0.10
+    - quay.io/fairwinds/watcher:0.1.0
     - quay.io/fairwinds/workloads:2.6.20
