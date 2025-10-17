@@ -23,10 +23,10 @@ const (
 
 // HealthResponse represents the response from health check endpoints
 type HealthResponse struct {
-	Status    HealthStatus          `json:"status"`
-	Timestamp time.Time             `json:"timestamp"`
-	Uptime    string                `json:"uptime"`
-	Version   string                `json:"version,omitempty"`
+	Status    HealthStatus           `json:"status"`
+	Timestamp time.Time              `json:"timestamp"`
+	Uptime    string                 `json:"uptime"`
+	Version   string                 `json:"version,omitempty"`
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
@@ -38,20 +38,20 @@ type HealthChecker interface {
 
 // Server provides HTTP health check endpoints
 type Server struct {
-	server        *http.Server
-	status        HealthStatus
-	startTime     time.Time
-	version       string
-	checkers      []HealthChecker
-	mu            sync.RWMutex
-	shutdownCh    chan struct{}
-	shutdownDone  chan struct{}
+	server       *http.Server
+	status       HealthStatus
+	startTime    time.Time
+	version      string
+	checkers     []HealthChecker
+	mu           sync.RWMutex
+	shutdownCh   chan struct{}
+	shutdownDone chan struct{}
 }
 
 // NewServer creates a new health check server
 func NewServer(port int, version string) *Server {
 	mux := http.NewServeMux()
-	
+
 	server := &Server{
 		server: &http.Server{
 			Addr:    fmt.Sprintf(":%d", port),
@@ -97,7 +97,7 @@ func (s *Server) GetStatus() HealthStatus {
 // Start starts the health check server
 func (s *Server) Start() error {
 	s.SetStatus(StatusHealthy)
-	
+
 	go func() {
 		logrus.WithField("addr", s.server.Addr).Info("Starting health check server")
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -111,9 +111,9 @@ func (s *Server) Start() error {
 // Stop gracefully stops the health check server
 func (s *Server) Stop(ctx context.Context) error {
 	s.SetStatus(StatusStopping)
-	
+
 	logrus.Info("Stopping health check server")
-	
+
 	// Shutdown the HTTP server
 	if err := s.server.Shutdown(ctx); err != nil {
 		logrus.WithError(err).Error("Failed to shutdown health check server")
@@ -128,14 +128,14 @@ func (s *Server) Stop(ctx context.Context) error {
 // livenessHandler handles Kubernetes liveness probes
 func (s *Server) livenessHandler(w http.ResponseWriter, r *http.Request) {
 	status := s.GetStatus()
-	
+
 	// Liveness check - if the process is running, it's alive
 	// Only return unhealthy if we're in a stopping state
 	if status == StatusStopping {
 		s.writeHealthResponse(w, StatusStopping, http.StatusServiceUnavailable)
 		return
 	}
-	
+
 	// For liveness, we return the actual status but with OK HTTP status
 	// This allows monitoring systems to see the actual health status
 	s.writeHealthResponse(w, status, http.StatusOK)
@@ -144,20 +144,20 @@ func (s *Server) livenessHandler(w http.ResponseWriter, r *http.Request) {
 // readinessHandler handles Kubernetes readiness probes
 func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
 	status := s.GetStatus()
-	
+
 	// Readiness check - only ready if healthy and not stopping
 	if status != StatusHealthy {
 		s.writeHealthResponse(w, status, http.StatusServiceUnavailable)
 		return
 	}
-	
+
 	// Check all registered health checkers
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	
+
 	details := make(map[string]interface{})
 	allHealthy := true
-	
+
 	for _, checker := range s.checkers {
 		if err := checker.CheckHealth(ctx); err != nil {
 			details[checker.GetName()] = map[string]interface{}{
@@ -171,7 +171,7 @@ func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	
+
 	if allHealthy {
 		s.writeHealthResponse(w, StatusHealthy, http.StatusOK, details)
 	} else {
@@ -183,11 +183,11 @@ func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	status := s.GetStatus()
 	details := make(map[string]interface{})
-	
+
 	// Check all registered health checkers
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	
+
 	for _, checker := range s.checkers {
 		if err := checker.CheckHealth(ctx); err != nil {
 			details[checker.GetName()] = map[string]interface{}{
@@ -200,7 +200,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	
+
 	s.writeHealthResponse(w, status, http.StatusOK, details)
 }
 
@@ -212,14 +212,14 @@ func (s *Server) writeHealthResponse(w http.ResponseWriter, status HealthStatus,
 		Uptime:    time.Since(s.startTime).String(),
 		Version:   s.version,
 	}
-	
+
 	if len(details) > 0 {
 		response.Details = details[0]
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)
-	
+
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		logrus.WithError(err).Error("Failed to encode health response")
 	}

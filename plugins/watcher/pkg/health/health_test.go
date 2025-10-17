@@ -42,10 +42,10 @@ func TestNewServer(t *testing.T) {
 
 func TestServer_SetStatus(t *testing.T) {
 	server := NewServer(8080, "1.0.0")
-	
+
 	server.SetStatus(StatusHealthy)
 	assert.Equal(t, StatusHealthy, server.GetStatus())
-	
+
 	server.SetStatus(StatusUnhealthy)
 	assert.Equal(t, StatusUnhealthy, server.GetStatus())
 }
@@ -53,22 +53,22 @@ func TestServer_SetStatus(t *testing.T) {
 func TestServer_RegisterChecker(t *testing.T) {
 	server := NewServer(8080, "1.0.0")
 	checker := &mockHealthChecker{name: "test-checker", healthy: true}
-	
+
 	server.RegisterChecker(checker)
-	
+
 	// Verify checker was registered by checking readiness
 	req := httptest.NewRequest("GET", "/readyz", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.SetStatus(StatusHealthy)
 	server.readinessHandler(w, req)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestLivenessHandler(t *testing.T) {
 	server := NewServer(8080, "1.0.0")
-	
+
 	tests := []struct {
 		name           string
 		status         HealthStatus
@@ -90,18 +90,18 @@ func TestLivenessHandler(t *testing.T) {
 			expectedStatus: http.StatusServiceUnavailable,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server.SetStatus(tt.status)
-			
+
 			req := httptest.NewRequest("GET", "/healthz", nil)
 			w := httptest.NewRecorder()
-			
+
 			server.livenessHandler(w, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			
+
 			var response HealthResponse
 			err := json.NewDecoder(w.Body).Decode(&response)
 			require.NoError(t, err)
@@ -148,29 +148,29 @@ func TestReadinessHandler(t *testing.T) {
 			expectedStatus: http.StatusServiceUnavailable,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a new server for each test to avoid state pollution
 			testServer := NewServer(8080, "1.0.0")
 			testServer.SetStatus(tt.status)
-			
+
 			// Register checkers
 			for _, checker := range tt.checkers {
 				testServer.RegisterChecker(checker)
 			}
-			
+
 			req := httptest.NewRequest("GET", "/readyz", nil)
 			w := httptest.NewRecorder()
-			
+
 			testServer.readinessHandler(w, req)
-			
+
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			
+
 			var response HealthResponse
 			err := json.NewDecoder(w.Body).Decode(&response)
 			require.NoError(t, err)
-			
+
 			if tt.expectedStatus == http.StatusOK {
 				assert.Equal(t, StatusHealthy, response.Status)
 			} else {
@@ -183,22 +183,22 @@ func TestReadinessHandler(t *testing.T) {
 func TestHealthHandler(t *testing.T) {
 	server := NewServer(8080, "1.0.0")
 	server.SetStatus(StatusHealthy)
-	
+
 	// Register a healthy checker
 	checker := &mockHealthChecker{name: "test-checker", healthy: true}
 	server.RegisterChecker(checker)
-	
+
 	req := httptest.NewRequest("GET", "/health", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.healthHandler(w, req)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	var response HealthResponse
 	err := json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, StatusHealthy, response.Status)
 	assert.NotEmpty(t, response.Details)
 	assert.Contains(t, response.Details, "test-checker")
@@ -207,19 +207,19 @@ func TestHealthHandler(t *testing.T) {
 func TestServer_Stop(t *testing.T) {
 	server := NewServer(8080, "1.0.0")
 	server.SetStatus(StatusHealthy)
-	
+
 	// Start server in a goroutine
 	go func() {
 		server.Start()
 	}()
-	
+
 	// Give server time to start
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Stop server with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	err := server.Stop(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, StatusStopping, server.GetStatus())
@@ -228,16 +228,16 @@ func TestServer_Stop(t *testing.T) {
 func TestHealthResponse_JSON(t *testing.T) {
 	server := NewServer(8080, "1.0.0")
 	server.SetStatus(StatusHealthy)
-	
+
 	req := httptest.NewRequest("GET", "/healthz", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.livenessHandler(w, req)
-	
+
 	var response HealthResponse
 	err := json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, StatusHealthy, response.Status)
 	assert.NotZero(t, response.Timestamp)
 	assert.NotEmpty(t, response.Uptime)

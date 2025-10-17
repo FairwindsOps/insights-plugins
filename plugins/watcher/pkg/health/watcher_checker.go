@@ -15,9 +15,9 @@ type MetricsProvider interface {
 
 // WatcherChecker implements HealthChecker for the Kubernetes watcher
 type WatcherChecker struct {
-	watcher     MetricsProvider
-	name        string
-	minUptime   time.Duration
+	watcher   MetricsProvider
+	name      string
+	minUptime time.Duration
 }
 
 // NewWatcherChecker creates a new watcher health checker
@@ -46,7 +46,7 @@ func (w *WatcherChecker) CheckHealth(ctx context.Context) error {
 		return ctx.Err()
 	default:
 	}
-	
+
 	// Check if the watcher is running by checking its metrics
 	metrics := w.watcher.GetMetrics()
 	if metrics == nil {
@@ -62,12 +62,12 @@ func (w *WatcherChecker) CheckHealth(ctx context.Context) error {
 
 	// Check if there are any critical issues
 	processed, dropped := metrics.GetTotalEvents()
-	
+
 	// If we have a high drop rate, consider it unhealthy
 	if processed > 0 {
 		dropRate := float64(dropped) / float64(processed+dropped) * 100
 		if dropRate > 50 {
-			return fmt.Errorf("high event drop rate: %.2f%% (%d dropped out of %d total)", 
+			return fmt.Errorf("high event drop rate: %.2f%% (%d dropped out of %d total)",
 				dropRate, dropped, processed+dropped)
 		}
 	}

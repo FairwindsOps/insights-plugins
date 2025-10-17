@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 // mockWatcher is a mock implementation of the MetricsProvider for testing
 type mockWatcher struct {
 	metrics *metrics.Metrics
@@ -23,7 +22,7 @@ func TestNewWatcherChecker(t *testing.T) {
 	mockWatcher := &mockWatcher{
 		metrics: metrics.NewMetrics(1000),
 	}
-	
+
 	checker := NewWatcherCheckerWithMinUptime(mockWatcher, 0)
 	assert.NotNil(t, checker)
 	assert.Equal(t, "kubernetes-watcher", checker.GetName())
@@ -31,10 +30,10 @@ func TestNewWatcherChecker(t *testing.T) {
 
 func TestWatcherChecker_CheckHealth(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		setupMetrics func(*metrics.Metrics)
-		expectError bool
-		errorMsg    string
+		expectError  bool
+		errorMsg     string
 	}{
 		{
 			name: "healthy watcher with low drop rate",
@@ -91,21 +90,21 @@ func TestWatcherChecker_CheckHealth(t *testing.T) {
 			errorMsg:    "",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockWatcher := &mockWatcher{
 				metrics: metrics.NewMetrics(1000),
 			}
-			
+
 			// Setup metrics based on test case
 			tt.setupMetrics(mockWatcher.metrics)
-			
+
 			checker := NewWatcherCheckerWithMinUptime(mockWatcher, 0)
-			
+
 			ctx := context.Background()
 			err := checker.CheckHealth(ctx)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -122,13 +121,13 @@ func TestWatcherChecker_CheckHealth_ContextTimeout(t *testing.T) {
 	mockWatcher := &mockWatcher{
 		metrics: metrics.NewMetrics(1000),
 	}
-	
+
 	checker := NewWatcherCheckerWithMinUptime(mockWatcher, 0)
-	
+
 	// Create a context that's already cancelled
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	
+
 	err := checker.CheckHealth(ctx)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "context canceled")
@@ -138,16 +137,16 @@ func TestWatcherChecker_GetName(t *testing.T) {
 	mockWatcher := &mockWatcher{
 		metrics: metrics.NewMetrics(1000),
 	}
-	
+
 	checker := NewWatcherCheckerWithMinUptime(mockWatcher, 0)
 	assert.Equal(t, "kubernetes-watcher", checker.GetName())
 }
 
 func TestWatcherChecker_CheckHealth_EdgeCases(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		setupMetrics func(*metrics.Metrics)
-		expectError bool
+		expectError  bool
 	}{
 		{
 			name: "exactly 50% drop rate should be healthy",
@@ -184,19 +183,19 @@ func TestWatcherChecker_CheckHealth_EdgeCases(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockWatcher := &mockWatcher{
 				metrics: metrics.NewMetrics(1000),
 			}
-			
+
 			tt.setupMetrics(mockWatcher.metrics)
-			
+
 			checker := NewWatcherCheckerWithMinUptime(mockWatcher, 0)
-			
+
 			err := checker.CheckHealth(context.Background())
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -210,17 +209,17 @@ func TestWatcherChecker_CheckHealth_WithTimeDelay(t *testing.T) {
 	mockWatcher := &mockWatcher{
 		metrics: metrics.NewMetrics(1000),
 	}
-	
+
 	checker := NewWatcherChecker(mockWatcher) // Use default 5 second minimum uptime
-	
+
 	// Initially should fail due to short uptime
 	err := checker.CheckHealth(context.Background())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "still starting up")
-	
+
 	// Wait for uptime to be > 5 seconds
 	time.Sleep(6 * time.Second)
-	
+
 	// Now should pass
 	err = checker.CheckHealth(context.Background())
 	assert.NoError(t, err)
@@ -230,18 +229,18 @@ func TestWatcherChecker_CheckHealth_UptimeCheck(t *testing.T) {
 	mockWatcher := &mockWatcher{
 		metrics: metrics.NewMetrics(1000),
 	}
-	
+
 	// Test with default minimum uptime (5 seconds)
 	checker := NewWatcherChecker(mockWatcher)
-	
+
 	// Should fail due to short uptime
 	err := checker.CheckHealth(context.Background())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "still starting up")
-	
+
 	// Test with zero minimum uptime
 	checkerZero := NewWatcherCheckerWithMinUptime(mockWatcher, 0)
-	
+
 	// Should pass with zero minimum uptime
 	err = checkerZero.CheckHealth(context.Background())
 	assert.NoError(t, err)
