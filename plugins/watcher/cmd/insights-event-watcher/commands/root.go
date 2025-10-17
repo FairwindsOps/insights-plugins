@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 var (
 	// Global flags
-	insightsAPIKey    string
 	insightsHost      string
 	eventBufferSize   int
 	httpTimeoutSeconds int
@@ -45,16 +45,34 @@ func Execute() {
 
 func init() {
 	// Global flags
-	RootCmd.PersistentFlags().StringVar(&insightsAPIKey, "api-key", "", "Fairwinds Insights API key (required)")
 	RootCmd.PersistentFlags().StringVar(&insightsHost, "host", "https://insights.fairwinds.com", "Fairwinds Insights host URL")
 	RootCmd.PersistentFlags().IntVar(&eventBufferSize, "buffer-size", 1000, "Event buffer size")
 	RootCmd.PersistentFlags().IntVar(&httpTimeoutSeconds, "http-timeout", 30, "HTTP timeout in seconds")
 	RootCmd.PersistentFlags().IntVar(&rateLimitPerMinute, "rate-limit", 60, "Rate limit per minute")
 	RootCmd.PersistentFlags().BoolVar(&consoleMode, "console", false, "Enable console mode (print events to stdout)")
 	RootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
+}
 
-	// Mark required flags
-	RootCmd.MarkPersistentFlagRequired("api-key")
+// getInsightsToken retrieves the Insights token from environment variables
+func getInsightsToken(consoleMode bool) string {
+	if consoleMode {
+		// In console mode, token is not required
+		return ""
+	}
+
+	token := strings.TrimSpace(os.Getenv("FAIRWINDS_TOKEN"))
+	if token == "" {
+		slog.Error("FAIRWINDS_TOKEN environment variable not set")
+		os.Exit(1)
+	}
+
+	// Basic token validation
+	if len(token) < 10 {
+		slog.Error("FAIRWINDS_TOKEN is too short (minimum 10 characters)")
+		os.Exit(1)
+	}
+
+	return token
 }
 
 func setupLogging() {

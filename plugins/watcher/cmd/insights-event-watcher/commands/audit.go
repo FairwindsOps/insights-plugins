@@ -49,7 +49,7 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	// Create insights config
 	insightsConfig := models.InsightsConfig{
 		Hostname: insightsHost,
-		Token:    insightsAPIKey,
+		Token:    getInsightsToken(consoleMode),
 	}
 
 	// Create watcher
