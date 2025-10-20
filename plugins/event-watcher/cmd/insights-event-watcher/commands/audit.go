@@ -94,7 +94,7 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	<-ctx.Done()
 
 	// Stop watcher
-	watcher.Stop()
+	watcher.Stop(ctx)
 	slog.Info("Audit log watcher stopped")
 
 	return nil

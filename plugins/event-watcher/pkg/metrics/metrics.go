@@ -208,3 +208,8 @@ func (m *Metrics) Reset() {
 	m.lastProcessedTime = time.Now()
 	m.lastDroppedTime = time.Now()
 }
+
+// GetMetrics returns the metrics instance itself (for health checker compatibility)
+func (m *Metrics) GetMetrics() *Metrics {
+	return m
+}

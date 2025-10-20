@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -412,7 +413,7 @@ func TestWatcherStop(t *testing.T) {
 
 	// Stop should not panic
 	assert.NotPanics(t, func() {
-		watcher.Stop()
+		watcher.Stop(context.Background())
 	})
 }
 

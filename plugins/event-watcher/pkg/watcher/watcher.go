@@ -10,6 +10,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/health"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/metrics"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
@@ -32,6 +33,7 @@ type Watcher struct {
 	eventSourceManager *EventSourceManager
 	handlerFactory     *handlers.EventHandlerFactory
 	metrics            *metrics.Metrics
+	healthServer       *health.Server
 
 	// Event processing
 	eventChannel chan *event.WatchedEvent
@@ -70,6 +72,13 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 	// Create metrics instance
 	metricsInstance := metrics.NewMetrics(eventBufferSize)
 
+	// Create health server
+	healthServer := health.NewServer(8080, "1.0.0")
+
+	// Register watcher health checker
+	watcherChecker := health.NewWatcherChecker(metricsInstance)
+	healthServer.RegisterChecker(watcherChecker)
+
 	// Create event source manager
 	eventSourceManager := NewEventSourceManager()
 
@@ -95,6 +104,7 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 		eventSourceManager: eventSourceManager,
 		handlerFactory:     handlerFactory,
 		metrics:            metricsInstance,
+		healthServer:       healthServer,
 		eventChannel:       eventChannel,
 		stopCh:             make(chan struct{}),
 		insightsConfig:     insightsConfig,
@@ -107,6 +117,12 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 // Start begins watching all event sources
 func (w *Watcher) Start(ctx context.Context) error {
 	slog.Info("Starting generic watcher")
+
+	// Start health server
+	if err := w.healthServer.Start(); err != nil {
+		return fmt.Errorf("failed to start health server: %w", err)
+	}
+	slog.Info("Health check server started", "port", 8080)
 
 	// Start all event sources
 	if err := w.eventSourceManager.StartAll(ctx); err != nil {
@@ -137,9 +153,16 @@ func (w *Watcher) Start(ctx context.Context) error {
 }
 
 // Stop stops the watcher
-func (w *Watcher) Stop() {
+func (w *Watcher) Stop(ctx context.Context) {
 	slog.Info("Stopping generic watcher")
 	close(w.stopCh)
+
+	// Stop health server
+	if w.healthServer != nil {
+		if err := w.healthServer.Stop(ctx); err != nil {
+			slog.Error("Failed to stop health server", "error", err)
+		}
+	}
 
 	// Stop all event sources
 	w.eventSourceManager.StopAll()

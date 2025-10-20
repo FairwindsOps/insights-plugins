@@ -110,7 +110,7 @@ func runCloudWatch(cmd *cobra.Command, args []string) error {
 	<-ctx.Done()
 
 	// Stop watcher
-	watcher.Stop()
+	watcher.Stop(ctx)
 	slog.Info("CloudWatch watcher stopped")
 
 	return nil
