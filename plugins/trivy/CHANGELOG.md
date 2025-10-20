@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.33.5
+* Bump trivy to 0.67.2
+
 ## 0.33.4
 * Bump trivy to 0.67.0
 
