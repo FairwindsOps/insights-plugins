@@ -46,6 +46,11 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	slog.Info("Starting audit log watcher",
 		"log_path", auditLogPath)
 
+	insightsHost := os.Getenv("FAIRWINDS_HOSTNAME")
+	if insightsHost == "" {
+		insightsHost = "https://insights.fairwinds.com"
+		slog.Info("FAIRWINDS_HOSTNAME environment variable not set, using default", "insights_host", insightsHost)
+	}
 	organizationName := os.Getenv("FAIRWINDS_ORGANIZATION")
 	clusterName := os.Getenv("FAIRWINDS_CLUSTER")
 	if organizationName == "" {

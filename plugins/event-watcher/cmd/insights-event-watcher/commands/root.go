@@ -11,7 +11,6 @@ import (
 
 var (
 	// Global flags
-	insightsHost       string
 	eventBufferSize    int
 	httpTimeoutSeconds int
 	rateLimitPerMinute int
@@ -45,7 +44,6 @@ func Execute() {
 
 func init() {
 	// Global flags
-	RootCmd.PersistentFlags().StringVar(&insightsHost, "host", "https://insights.fairwinds.com", "Fairwinds Insights host URL")
 	RootCmd.PersistentFlags().IntVar(&eventBufferSize, "buffer-size", 1000, "Event buffer size")
 	RootCmd.PersistentFlags().IntVar(&httpTimeoutSeconds, "http-timeout", 30, "HTTP timeout in seconds")
 	RootCmd.PersistentFlags().IntVar(&rateLimitPerMinute, "rate-limit", 60, "Rate limit per minute")
