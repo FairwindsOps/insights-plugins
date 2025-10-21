@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.17
+* Bumped libs
+
 ## 0.5.16
 * Bumped libs version
 

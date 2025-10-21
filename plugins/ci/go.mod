@@ -3,8 +3,8 @@ module github.com/fairwindsops/insights-plugins/plugins/ci
 go 1.24.6
 
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251016222556-4d68e0587d8d
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251016222556-4d68e0587d8d
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251021130730-d4ff6515743d
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251021130730-d4ff6515743d
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
@@ -54,6 +54,7 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.20.6 // indirect
+	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

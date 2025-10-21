@@ -44,10 +44,10 @@ github.com/evanphx/json-patch/v5 v5.9.11 h1:/8HVnzMq13/3x9TPvjG08wUGqBTmZBsCWzjT
 github.com/evanphx/json-patch/v5 v5.9.11/go.mod h1:3j+LviiESTElxA4p3EMKAB9HXj3/XEtnUf6OZxqIQTM=
 github.com/fairwindsops/controller-utils v0.3.4 h1:t1qulL2GVDVUJTIE4icpBy3KnsxFTavnNAbFnd60blc=
 github.com/fairwindsops/controller-utils v0.3.4/go.mod h1:9/hOHX70/LG40RgtFAjtXFiMWEpItqm6Scf+obRFB2Y=
-github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251016222556-4d68e0587d8d h1:oJuyArbmv3ZEXbPaz94cDQY1UeMBfl1i4iCbKoMcu90=
-github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251016222556-4d68e0587d8d/go.mod h1:9K+fyu9vAhNKVjPd3qhEcGCLB2GRJLSiEgUf3LEOGW0=
-github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251016222556-4d68e0587d8d h1:mXcoGWjcSV44mU5+3f9eb0iOIqo0A8KabT0i32V2KSg=
-github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251016222556-4d68e0587d8d/go.mod h1:nHupspGIYY/PtfPaT1nyesBrObdKFJuluOkCYn2CHLM=
+github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251021130730-d4ff6515743d h1:7qocdswHuvBrUDnUYx2ILA+/OQH44AmNKahc72jWu60=
+github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251021130730-d4ff6515743d/go.mod h1:4hLvH8b1oAh0uoBXonJQcay6w7SON+MNpRDP5aNJaVg=
+github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251021130730-d4ff6515743d h1:Kp60SEtooDP1g3rdWJKYd931unCzHxqeX0DXkH33kX8=
+github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251021130730-d4ff6515743d/go.mod h1:5i0sLtDKlDJe69VJhH5yoC7mi4Xx5Yd68xBLHd+iBJE=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
@@ -120,8 +120,8 @@ github.com/google/go-containerregistry v0.20.6/go.mod h1:T0x8MuoAoKX/873bkeSfLD2
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
 github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
-github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db h1:097atOisP2aRj7vFgYQBbFN4U4JNXUNYpxael3UzMyo=
-github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
+github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5 h1:xhMrHhTJ6zxu3gA4enFM9MLn9AY7613teCdFnlUVbSQ=
+github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5/go.mod h1:5hDyRhoBCxViHszMt12TnOpEI4VVi+U8Gm9iphldiMA=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 h1:8Tjv8EJ+pM1xP8mK6egEbD1OgnVTyacbefKhmbLhIhU=

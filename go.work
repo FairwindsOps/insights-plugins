@@ -3,9 +3,11 @@ go 1.24.6
 use (
 	./plugins/admission
 	./plugins/ci
+	./plugins/event-watcher
 	./plugins/falco-agent
 	./plugins/kube-bench
 	./plugins/kube-bench-aggregator
+	./plugins/kyverno
 	./plugins/kyverno-policy-sync
 	./plugins/on-demand-job-runner
 	./plugins/opa

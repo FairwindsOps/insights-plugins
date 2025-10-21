@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.22
+* Bumped libs
+
 ## 2.6.21
 * Bumped libs version
 

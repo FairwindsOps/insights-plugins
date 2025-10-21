@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.8
+* Bumped libs
+
 ## 6.1.7
 * Bumped libs version
 
