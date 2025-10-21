@@ -455,7 +455,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromOutput(auditEvent map[
 	}
 
 	policyName := "Unknown"
-	policyMessage := "Policy violation detected"
+	policyMessage := "(blocked) Policy violation detected"
 
 	// Try to extract policy name and message from annotations
 	for key, value := range annotations {
@@ -463,7 +463,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromOutput(auditEvent map[
 			policyName = fmt.Sprintf("%v", value)
 		}
 		if strings.Contains(strings.ToLower(key), "message") {
-			policyMessage = fmt.Sprintf("%v", value)
+			policyMessage = fmt.Sprintf("(blocked) %v", value)
 		}
 	}
 
@@ -484,7 +484,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromOutput(auditEvent map[
 		Data: map[string]interface{}{
 			"reason":        "PolicyViolation",
 			"type":          "Warning",
-			"message":       fmt.Sprintf("policy %s fail: %s", policyName, policyMessage),
+			"message":       fmt.Sprintf("(blocked) policy %s fail: %s", policyName, policyMessage),
 			"policy_name":   policyName,
 			"policy_result": "Block",
 			"blocked":       true,
