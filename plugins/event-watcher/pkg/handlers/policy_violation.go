@@ -178,10 +178,6 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 			if policyResult != "fail" && policyResult != "warn" && policyResult != "pass" && policyResult != "error" {
 				policyResult = "unknown"
 			}
-
-			// For Kyverno format, check if the message contains "(blocked)" to determine if it's blocked
-			blocked = strings.Contains(message, "(blocked)")
-
 			return policyName, policyResult, blocked, nil
 		}
 	}
@@ -196,10 +192,6 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 			if end != -1 {
 				policyName = message[start+1 : start+1+end]
 				policyResult = "fail" // ValidatingAdmissionPolicy warnings are always failures
-				// For audit policies, it's not blocked (just logged)
-				// For enforce policies, it would be blocked, but we can't determine this from the message alone
-				// We'll assume it's blocked if it's not an audit policy
-				blocked = !strings.Contains(policyName, "-insights-audit")
 				return policyName, policyResult, blocked, nil
 			}
 		}
