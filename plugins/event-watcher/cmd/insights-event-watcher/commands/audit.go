@@ -46,10 +46,21 @@ func runAudit(cmd *cobra.Command, args []string) error {
 	slog.Info("Starting audit log watcher",
 		"log_path", auditLogPath)
 
+	organizationName := os.Getenv("FAIRWINDS_ORGANIZATION")
+	clusterName := os.Getenv("FAIRWINDS_CLUSTER")
+	if organizationName == "" {
+		return fmt.Errorf("FAIRWINDS_ORGANIZATION environment variable not set")
+	}
+	if clusterName == "" {
+		return fmt.Errorf("FAIRWINDS_CLUSTER environment variable not set")
+	}
+
 	// Create insights config
 	insightsConfig := models.InsightsConfig{
-		Hostname: insightsHost,
-		Token:    getInsightsToken(consoleMode),
+		Hostname:     insightsHost,
+		Organization: organizationName,
+		Cluster:      clusterName,
+		Token:        getInsightsToken(consoleMode),
 	}
 
 	// Create watcher
