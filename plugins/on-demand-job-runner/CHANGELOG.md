@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.5
+* Bumped libs version
+
 ## 0.1.4
 * Added kyverno policies
 

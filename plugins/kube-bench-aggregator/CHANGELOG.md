@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.32
+* Bumped libs version
+
 ## 0.3.31
 * Bumped kube-bench
 

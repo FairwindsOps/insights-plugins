@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.21
+* Bumped libs version
+
 ## 2.6.20
 * Bumped go to 1.24.6 for fixing vulnerability
 
