@@ -81,7 +81,7 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error 
 
 	// Only send blocked policy violations to Insights (any type that blocks resource installation)
 	if !violationEvent.Blocked {
-		slog.Debug("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)",
+		slog.Info("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)",
 			"policy_name", violationEvent.PolicyName,
 			"result", violationEvent.PolicyResult,
 			"namespace", violationEvent.Namespace,
@@ -160,10 +160,10 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 		return "", "", false, fmt.Errorf("empty message")
 	}
 
-	slog.Debug("Parsing policy message", "message", message)
+	slog.Info("Parsing policy message", "message", message)
 
 	blocked = strings.Contains(message, " (blocked)") || strings.HasSuffix(message, "(blocked)") || strings.HasPrefix(message, "was blocked")
-
+	slog.Info("Blocked=", "blocked", blocked)
 	// Try to parse the new Kyverno format first: "policy namespace/policy-name result: description"
 	if strings.HasPrefix(message, "policy ") {
 		parts := strings.Fields(message)
