@@ -4,7 +4,7 @@
 * Bumped libs
 
 ## 6.1.7
-* Bump trivy to 0.67.2
+* Bumped libs version
 
 ## 6.1.6
 * Bump trivy to 0.67.0
