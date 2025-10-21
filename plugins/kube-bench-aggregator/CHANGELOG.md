@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.33
+* Bumped libs
+
 ## 0.3.32
 * Bumped libs version
 

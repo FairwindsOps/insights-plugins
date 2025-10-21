@@ -3,8 +3,8 @@ module github.com/fairwindsops/insights-plugins/plugins/ci
 go 1.24.6
 
 require (
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251016222556-4d68e0587d8d
-	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251016222556-4d68e0587d8d
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251021130730-d4ff6515743d
+	github.com/fairwindsops/insights-plugins/plugins/trivy v0.0.0-20251021130730-d4ff6515743d
 	github.com/ghodss/yaml v1.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jstemmer/go-junit-report v1.0.0
