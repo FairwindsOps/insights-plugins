@@ -162,7 +162,7 @@ func (h *PolicyViolationHandler) parsePolicyMessage(message string) (policyName,
 
 	slog.Info("Parsing policy message", "message", message)
 
-	blocked = strings.Contains(message, " (blocked)") || strings.HasSuffix(message, "(blocked)") || strings.Contains(message, "was blocked")
+	blocked = strings.Contains(message, " (blocked)") || strings.Contains(message, "was blocked")
 	slog.Info("Blocked=", "blocked", blocked)
 	// Try to parse the new Kyverno format first: "policy namespace/policy-name result: description"
 	if strings.HasPrefix(message, "policy ") {
