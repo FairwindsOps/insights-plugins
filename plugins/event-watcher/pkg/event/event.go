@@ -84,6 +84,8 @@ func NewWatchedEvent(eventType EventType, obj interface{}, resourceType string) 
 	var eventTime string
 	if eventTimeVal, ok := unstructuredObj.Object["eventTime"].(string); ok {
 		eventTime = eventTimeVal
+	} else {
+		eventTime = time.Now().UTC().Format(time.RFC3339)
 	}
 
 	event := &WatchedEvent{
