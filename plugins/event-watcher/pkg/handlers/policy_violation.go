@@ -247,7 +247,8 @@ func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyVio
 	}
 
 	// Convert to JSON
-	jsonData, err := json.Marshal(violationEvent)
+	array := []*models.PolicyViolationEvent{violationEvent}
+	jsonData, err := json.Marshal(array)
 	if err != nil {
 		return fmt.Errorf("failed to marshal violation event: %w", err)
 	}
