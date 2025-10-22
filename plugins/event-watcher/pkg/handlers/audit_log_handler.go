@@ -213,15 +213,16 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 
 // PolicyViolationEvent represents a detected policy violation from audit logs
 type PolicyViolationEvent struct {
-	Timestamp    time.Time `json:"timestamp"`
-	PolicyName   string    `json:"policy_name"`
-	ResourceType string    `json:"resource_type"`
-	ResourceName string    `json:"resource_name"`
-	Namespace    string    `json:"namespace"`
-	User         string    `json:"user"`
-	Action       string    `json:"action"` // "blocked" or "allowed"
-	Message      string    `json:"message"`
-	AuditID      string    `json:"audit_id"`
+	Timestamp    time.Time              `json:"timestamp"`
+	PolicyName   string                 `json:"policy_name"`
+	ResourceType string                 `json:"resource_type"`
+	ResourceName string                 `json:"resource_name"`
+	Namespace    string                 `json:"namespace"`
+	User         string                 `json:"user"`
+	Action       string                 `json:"action"` // "blocked" or "allowed"
+	Message      string                 `json:"message"`
+	AuditID      string                 `json:"audit_id"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // extractPolicyName extracts the policy name from the response message
@@ -246,7 +247,8 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		"resource_name", violation.ResourceName,
 		"namespace", violation.Namespace,
 		"action", violation.Action,
-		"audit_id", violation.AuditID)
+		"audit_id", violation.AuditID,
+		"metadata", violation.Metadata)
 
 	// Create a synthetic event that mimics a PolicyViolation event
 	syntheticEvent := &event.WatchedEvent{
@@ -273,6 +275,18 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 			"firstTimestamp": violation.Timestamp.Format(time.RFC3339),
 			"lastTimestamp":  violation.Timestamp.Format(time.RFC3339),
 			"count":          1,
+			"metadata":       violation.Metadata,
+		},
+		Metadata: map[string]interface{}{
+			"audit_id":      violation.AuditID,
+			"metadata":      violation.Metadata,
+			"policy_name":   violation.PolicyName,
+			"resource_name": violation.ResourceName,
+			"namespace":     violation.Namespace,
+			"action":        violation.Action,
+			"message":       violation.Message,
+			"timestamp":     violation.Timestamp.Format(time.RFC3339),
+			"event_time":    violation.Timestamp.Format(time.RFC3339),
 		},
 	}
 

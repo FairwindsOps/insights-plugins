@@ -141,6 +141,18 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent
 	if !ok {
 		return nil, fmt.Errorf("no involvedObject field in event or invalid format")
 	}
+	// Metadata can be nil, so we need to check if it is nil and if it is, we need to create a new map
+	if watchedEvent.Metadata == nil {
+		watchedEvent.Metadata = make(map[string]interface{})
+	}
+	// Add the metadata to the event
+	watchedEvent.Metadata["policy_name"] = policyName
+	watchedEvent.Metadata["policy_result"] = policyResult
+	watchedEvent.Metadata["blocked"] = blocked
+	watchedEvent.Metadata["message"] = message
+	watchedEvent.Metadata["involvedObject"] = involvedObject
+	watchedEvent.Metadata["timestamp"] = watchedEvent.Timestamp
+	watchedEvent.Metadata["event_time"] = watchedEvent.EventTime
 
 	violationEvent := &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
