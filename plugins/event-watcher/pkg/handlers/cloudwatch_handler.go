@@ -481,6 +481,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromOutput(auditEvent map[
 		Name:         name,
 		UID:          fmt.Sprintf("cloudwatch-%d", timestamp),
 		Timestamp:    timestamp,
+		EventTime:    time.Unix(*logEvent.Timestamp/1000, 0).UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
 			"reason":        "PolicyViolation",
 			"type":          "Warning",

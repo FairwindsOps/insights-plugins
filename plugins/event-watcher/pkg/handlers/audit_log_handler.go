@@ -258,6 +258,7 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		Name:         fmt.Sprintf("policy-violation-%s-%d", violation.ResourceName, time.Now().UnixNano()),
 		UID:          violation.AuditID,
 		Timestamp:    violation.Timestamp.Unix(),
+		EventTime:    violation.Timestamp.UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
 			"reason":  "PolicyViolation",
 			"type":    "Warning",

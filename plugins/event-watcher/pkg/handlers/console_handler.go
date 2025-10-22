@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -169,6 +170,7 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent
 		PolicyResult: policyResult,
 		Message:      message,
 		Blocked:      blocked,
+		EventTime:    watchedEvent.EventTime,
 	}
 
 	// Use extracted Kubernetes eventTime
@@ -192,8 +194,10 @@ func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyR
 	// This is the same parsing logic as the PolicyViolationHandler
 	// Handle different message formats for policy violations
 
+	slog.Info("Parsing policy message=" + message)
 	// Format 1: "Pod default/nginx: [require-team-label] fail (blocked); validation error: ..."
 	if strings.Contains(message, "] fail (blocked)") {
+		slog.Info("Format 1: " + message)
 		parts := strings.Split(message, "] fail (blocked)")
 		if len(parts) >= 1 {
 			policyPart := parts[0]
