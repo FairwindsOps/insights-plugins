@@ -137,6 +137,7 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 		PolicyResult: policyResult,
 		Message:      message,
 		Blocked:      blocked,
+		EventTime:    watchedEvent.EventTime,
 	}
 
 	// Use extracted Kubernetes eventTime
