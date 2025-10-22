@@ -248,7 +248,8 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		"namespace", violation.Namespace,
 		"action", violation.Action,
 		"audit_id", violation.AuditID,
-		"metadata", violation.Metadata)
+		"metadata", violation.Metadata,
+		"timestamp", violation.Timestamp)
 
 	ts := violation.Timestamp
 	if !violation.Timestamp.IsZero() {

@@ -286,7 +286,9 @@ func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyVio
 		"policy_result", violationEvent.PolicyResult,
 		"blocked", violationEvent.Blocked,
 		"namespace", violationEvent.Namespace,
-		"resource", violationEvent.Name)
+		"resource", violationEvent.Name,
+		"event_time", violationEvent.EventTime,
+		"timestamp", violationEvent.Timestamp)
 
 	return nil
 }
