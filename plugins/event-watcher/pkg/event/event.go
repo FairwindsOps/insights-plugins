@@ -81,17 +81,26 @@ func NewWatchedEvent(eventType EventType, obj interface{}, resourceType string) 
 	delete(metadata, "managedFields")
 
 	// Extract Kubernetes eventTime if available
-	var eventTime string
+	var eventTime time.Time
+	// try to convert eventTime to a time.Time object
 	if eventTimeVal, ok := unstructuredObj.Object["eventTime"].(string); ok {
-		eventTime = eventTimeVal
-	} else {
-		eventTime = time.Now().UTC().Format(time.RFC3339)
+		eventTimeTime, err := time.Parse(time.RFC3339, eventTimeVal)
+		if err != nil {
+			slog.Warn("failed to parse eventTime", "error", err)
+		} else {
+			eventTime = eventTimeTime
+		}
 	}
+	if eventTime.IsZero() {
+		slog.Warn("eventTime is zero")
+		eventTime = time.Now().UTC()
+	}
+	eventTimeString := eventTime.UTC().Format(time.RFC3339)
 
 	event := &WatchedEvent{
 		EventVersion: EventVersion,
 		Timestamp:    time.Now().Unix(), // Processing timestamp
-		EventTime:    eventTime,         // Kubernetes eventTime
+		EventTime:    eventTimeString,   // Kubernetes eventTime
 		EventType:    eventType,
 		ResourceType: resourceType,
 		Namespace:    namespace,
