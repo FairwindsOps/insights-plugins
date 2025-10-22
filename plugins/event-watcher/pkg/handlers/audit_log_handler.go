@@ -160,6 +160,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 
 		// Check if this is a policy violation
 		if violation := h.analyzeAuditEvent(auditEvent); violation != nil {
+			slog.Info("Line of audit log that triggered policy violation=" + line)
 			h.generateSyntheticEvent(violation)
 		}
 	}
