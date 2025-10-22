@@ -238,7 +238,28 @@ func (h *AuditLogHandler) extractPolicyName(message string) string {
 			}
 		}
 	}
-	return "unknown-policy"
+	// try to extract from this message: "admission webhook \\"validate.kyverno.svc-fail\\" denied the request: \\n\\nresource Deployment/default/nginx-deployment was blocked due to the following policies \\n\\njames-disallow-privileged-containers:\\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\\n    rule check-privileged-james-1 failed at path /spec/containers/'\\njames-require-labels:\\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\\n    environment) must be present. rule check-required-labels-james-1 failed at path\\n    /metadata/labels/environment/'\\njames-require-resource-limits:\\n  check-resource-limits-james-1: 'validation error: All containers must have resource\\n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'\\n"
+	// james-disallow-privileged-containers is just an example, we need to extract the policy name from the message
+	if strings.Contains(message, "admission webhook") && strings.Contains(message, "denied the request:") {
+		expectedText := "due to the following policies"
+		start := strings.Index(message, expectedText)
+		if start != -1 {
+			start = start + len(expectedText)
+			// fron start until next :
+			end := strings.Index(message[start:], ":") - 1
+			if end != -1 {
+				// now need to cleanup the message removing trim and \n and \
+				policyName := message[start+1 : start+1+end]
+				policyName = strings.TrimPrefix(policyName, "\\n")
+				policyName = strings.TrimSuffix(policyName, "\\n")
+				policyName = strings.TrimPrefix(policyName, "\\")
+				policyName = strings.TrimSuffix(policyName, "\\")
+				policyName = strings.TrimSpace(policyName)
+				return policyName
+			}
+		}
+	}
+	return "unknown-kyverno-policy"
 }
 
 // generateSyntheticEvent creates a synthetic PolicyViolation event from audit log data
@@ -256,7 +277,6 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 	if !violation.Timestamp.IsZero() {
 		ts = violation.Timestamp
 	}
-
 	// Create a synthetic event that mimics a PolicyViolation event
 	syntheticEvent := &event.WatchedEvent{
 		EventType:    event.EventTypeAdded,
