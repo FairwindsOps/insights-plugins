@@ -28,11 +28,11 @@ type EventReport struct {
 
 type PolicyViolationEvent struct {
 	EventReport
-	PolicyName   string `json:"policyName"`
-	PolicyResult string `json:"policyResult"`
-	Message      string `json:"message"`
-	Blocked      bool   `json:"blocked"`
-	EventTime    string `json:"eventTime,omitempty"` // Kubernetes eventTime
+	Policies     map[string]map[string]string `json:"policies"`
+	PolicyResult string                       `json:"policyResult"`
+	Message      string                       `json:"message"`
+	Blocked      bool                         `json:"blocked"`
+	EventTime    string                       `json:"eventTime,omitempty"` // Kubernetes eventTime
 }
 
 type EventHandlerConfig struct {

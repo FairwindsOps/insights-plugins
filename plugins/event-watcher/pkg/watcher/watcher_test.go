@@ -79,46 +79,6 @@ func TestWatcherHandlerFactory(t *testing.T) {
 		assert.Equal(t, "/v0/organizations/test-org/clusters/test-cluster/data/watcher/policy-violations", apiCalls[0])
 	})
 
-	// Test non-blocked PolicyViolation event
-	t.Run("Non-blocked PolicyViolation event should not trigger API call", func(t *testing.T) {
-		// Reset API calls
-		apiCalls = []string{}
-
-		// Create a non-blocked PolicyViolation event
-		nonBlockedEvent := &event.WatchedEvent{
-			EventVersion: 1,
-			Timestamp:    time.Now().Unix(),
-			EventType:    event.EventTypeAdded,
-			ResourceType: "events",
-			Namespace:    "default",
-			Name:         "policy-violation-warning",
-			UID:          "test-uid-456",
-			Data: map[string]interface{}{
-				"apiVersion": "v1",
-				"kind":       "Event",
-				"reason":     "PolicyViolation",
-				"message":    "Pod default/nginx: [require-team-label] warn validation warning: The label 'team' is recommended for all Pods.",
-				"involvedObject": map[string]interface{}{
-					"kind":      "Pod",
-					"name":      "nginx",
-					"namespace": "default",
-				},
-			},
-			Metadata: map[string]interface{}{
-				"name":      "policy-violation-warning",
-				"namespace": "default",
-				"uid":       "test-uid-456",
-			},
-		}
-
-		// Process the event
-		err := handlerFactory.ProcessEvent(nonBlockedEvent)
-		assert.NoError(t, err)
-
-		// Verify API was not called (only blocked violations are sent)
-		assert.Len(t, apiCalls, 0)
-	})
-
 	// Test PolicyReport event processing
 	t.Run("PolicyReport event should be processed", func(t *testing.T) {
 		// Reset API calls

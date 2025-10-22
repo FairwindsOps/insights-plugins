@@ -184,11 +184,11 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 	// Check if the request was blocked (HTTP 4xx or 5xx)
 	if auditEvent.ResponseStatus.Code >= 400 {
 		// This is a blocked request - extract policy violation information
-		policyName := h.extractPolicyName(auditEvent.ResponseStatus.Message)
+		policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 
 		slog.Info("Detected policy violation from audit logs",
 			"audit_id", auditEvent.AuditID,
-			"policy_name", policyName,
+			"policies", policies,
 			"resource_name", auditEvent.ObjectRef.Name,
 			"namespace", auditEvent.ObjectRef.Namespace,
 			"response_code", auditEvent.ResponseStatus.Code,
@@ -198,7 +198,7 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 
 		return &PolicyViolationEvent{
 			Timestamp:    auditEvent.RequestReceivedTimestamp,
-			PolicyName:   policyName,
+			Policies:     policies,
 			ResourceType: "Deployment",
 			ResourceName: auditEvent.ObjectRef.Name,
 			Namespace:    auditEvent.ObjectRef.Namespace,
@@ -214,58 +214,22 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 
 // PolicyViolationEvent represents a detected policy violation from audit logs
 type PolicyViolationEvent struct {
-	Timestamp    time.Time              `json:"timestamp"`
-	PolicyName   string                 `json:"policy_name"`
-	ResourceType string                 `json:"resource_type"`
-	ResourceName string                 `json:"resource_name"`
-	Namespace    string                 `json:"namespace"`
-	User         string                 `json:"user"`
-	Action       string                 `json:"action"` // "blocked" or "allowed"
-	Message      string                 `json:"message"`
-	AuditID      string                 `json:"audit_id"`
-	Metadata     map[string]interface{} `json:"metadata"`
-}
-
-// extractPolicyName extracts the policy name from the response message
-func (h *AuditLogHandler) extractPolicyName(message string) string {
-	// Try to extract policy name from message like "ValidatingAdmissionPolicy 'policy-name' denied request"
-	if strings.Contains(message, "ValidatingAdmissionPolicy") {
-		start := strings.Index(message, "'")
-		if start != -1 {
-			end := strings.Index(message[start+1:], "'")
-			if end != -1 {
-				return message[start+1 : start+1+end]
-			}
-		}
-	}
-	// try to extract from this message: "admission webhook \\"validate.kyverno.svc-fail\\" denied the request: \\n\\nresource Deployment/default/nginx-deployment was blocked due to the following policies \\n\\njames-disallow-privileged-containers:\\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\\n    rule check-privileged-james-1 failed at path /spec/containers/'\\njames-require-labels:\\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\\n    environment) must be present. rule check-required-labels-james-1 failed at path\\n    /metadata/labels/environment/'\\njames-require-resource-limits:\\n  check-resource-limits-james-1: 'validation error: All containers must have resource\\n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'\\n"
-	// james-disallow-privileged-containers is just an example, we need to extract the policy name from the message
-	if strings.Contains(message, "admission webhook") && strings.Contains(message, "denied the request:") {
-		expectedText := "due to the following policies"
-		start := strings.Index(message, expectedText)
-		if start != -1 {
-			start = start + len(expectedText)
-			// fron start until next :
-			end := strings.Index(message[start:], ":") - 1
-			if end != -1 {
-				// now need to cleanup the message removing trim and \n and \
-				policyName := message[start+1 : start+1+end]
-				policyName = strings.TrimPrefix(policyName, "\\n")
-				policyName = strings.TrimSuffix(policyName, "\\n")
-				policyName = strings.TrimPrefix(policyName, "\\")
-				policyName = strings.TrimSuffix(policyName, "\\")
-				policyName = strings.TrimSpace(policyName)
-				return policyName
-			}
-		}
-	}
-	return "unknown-kyverno-policy"
+	Timestamp    time.Time                    `json:"timestamp"`
+	ResourceType string                       `json:"resource_type"`
+	ResourceName string                       `json:"resource_name"`
+	Namespace    string                       `json:"namespace"`
+	User         string                       `json:"user"`
+	Action       string                       `json:"action"` // "blocked" or "allowed"
+	Message      string                       `json:"message"`
+	AuditID      string                       `json:"audit_id"`
+	Metadata     map[string]interface{}       `json:"metadata"`
+	Policies     map[string]map[string]string `json:"policies"`
 }
 
 // generateSyntheticEvent creates a synthetic PolicyViolation event from audit log data
 func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent) {
 	slog.Info("Detected policy violation from audit logs",
-		"policy_name", violation.PolicyName,
+		"policies", violation.Policies,
 		"resource_name", violation.ResourceName,
 		"namespace", violation.Namespace,
 		"action", violation.Action,
@@ -287,9 +251,10 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		Timestamp:    ts.Unix(),
 		EventTime:    ts.UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
-			"reason":  "PolicyViolation",
-			"type":    "Warning",
-			"message": fmt.Sprintf("policy %s fail: %s", violation.PolicyName, violation.Message),
+			"reason":   "PolicyViolation",
+			"type":     "Warning",
+			"message":  fmt.Sprintf("policies %s fail: %s", violation.Policies, violation.Message),
+			"policies": violation.Policies,
 			"source": map[string]interface{}{
 				"component": "audit-log-handler",
 			},
@@ -308,7 +273,7 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		Metadata: map[string]interface{}{
 			"audit_id":      violation.AuditID,
 			"metadata":      violation.Metadata,
-			"policy_name":   violation.PolicyName,
+			"policies":      violation.Policies,
 			"resource_name": violation.ResourceName,
 			"namespace":     violation.Namespace,
 			"action":        violation.Action,
@@ -322,11 +287,11 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 	select {
 	case h.eventChannel <- syntheticEvent:
 		slog.Debug("Sent synthetic PolicyViolation event",
-			"policy_name", violation.PolicyName,
+			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	default:
 		slog.Warn("Event channel full, dropping synthetic PolicyViolation event",
-			"policy_name", violation.PolicyName,
+			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	}
 }

@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -91,7 +90,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 		fmt.Printf("\n⚠️  Could not extract policy violation details: %v\n", err)
 	} else {
 		fmt.Println("\n🚨 Policy Violation Details:")
-		fmt.Printf("📜 Policy Name: %s\n", violationEvent.PolicyName)
+		fmt.Printf("📜 Policies: %s\n", violationEvent.Policies)
 		fmt.Printf("📊 Policy Result: %s\n", violationEvent.PolicyResult)
 		fmt.Printf("🚫 Blocked: %t\n", violationEvent.Blocked)
 		fmt.Printf("💬 Message: %s\n", violationEvent.Message)
@@ -133,29 +132,11 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policyName, policyResult, blocked, err := h.parsePolicyMessage(message)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse policy message: %w", err)
-	}
+	policies := ExtractPoliciesFromMessage(message)
+	policyResult := watchedEvent.Metadata["policyResult"].(string)
+	blocked := policyResult == "fail"
 
-	involvedObject, ok := watchedEvent.Data["involvedObject"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("no involvedObject field in event or invalid format")
-	}
-	// Metadata can be nil, so we need to check if it is nil and if it is, we need to create a new map
-	if watchedEvent.Metadata == nil {
-		watchedEvent.Metadata = make(map[string]interface{})
-	}
-	// Add the metadata to the event
-	watchedEvent.Metadata["policy_name"] = policyName
-	watchedEvent.Metadata["policy_result"] = policyResult
-	watchedEvent.Metadata["blocked"] = blocked
-	watchedEvent.Metadata["message"] = message
-	watchedEvent.Metadata["involvedObject"] = involvedObject
-	watchedEvent.Metadata["timestamp"] = watchedEvent.Timestamp
-	watchedEvent.Metadata["event_time"] = watchedEvent.EventTime
-
-	violationEvent := &models.PolicyViolationEvent{
+	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
 			EventType:    string(watchedEvent.EventType),
 			ResourceType: watchedEvent.ResourceType,
@@ -166,137 +147,10 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent
 			Data:         watchedEvent.Data,
 			Metadata:     watchedEvent.Metadata,
 		},
-		PolicyName:   policyName,
+		Policies:     policies,
 		PolicyResult: policyResult,
 		Message:      message,
 		Blocked:      blocked,
 		EventTime:    watchedEvent.EventTime,
-	}
-
-	// Use extracted Kubernetes eventTime
-	violationEvent.EventTime = watchedEvent.EventTime
-
-	if kind, ok := involvedObject["kind"].(string); ok {
-		violationEvent.ResourceType = kind
-	}
-	if name, ok := involvedObject["name"].(string); ok {
-		violationEvent.Name = name
-	}
-	if namespace, ok := involvedObject["namespace"].(string); ok {
-		violationEvent.Namespace = namespace
-	}
-
-	return violationEvent, nil
-}
-
-// parsePolicyMessage parses policy violation messages to extract policy name, result, and blocked status
-func (h *ConsoleHandler) parsePolicyMessage(message string) (policyName, policyResult string, blocked bool, err error) {
-	// This is the same parsing logic as the PolicyViolationHandler
-	// Handle different message formats for policy violations
-
-	slog.Info("Parsing policy message=" + message)
-	// Format 1: "Pod default/nginx: [require-team-label] fail (blocked); validation error: ..."
-	if strings.Contains(message, "] fail (blocked)") {
-		slog.Info("Format 1: " + message)
-		parts := strings.Split(message, "] fail (blocked)")
-		if len(parts) >= 1 {
-			policyPart := parts[0]
-			if strings.Contains(policyPart, "[") {
-				policyName = strings.TrimSpace(strings.Split(policyPart, "[")[1])
-				return policyName, "fail", true, nil
-			}
-		}
-	}
-
-	// Format 2: "Pod default/nginx: [require-team-label] warn validation warning: ..."
-	if strings.Contains(message, "] warn") {
-		parts := strings.Split(message, "] warn")
-		if len(parts) >= 1 {
-			policyPart := parts[0]
-			if strings.Contains(policyPart, "[") {
-				policyName = strings.TrimSpace(strings.Split(policyPart, "[")[1])
-				return policyName, "warn", false, nil
-			}
-		}
-	}
-
-	// Format 3: "Pod default/nginx: [require-team-label] validation error ..."
-	if strings.Contains(message, "] validation error") {
-		parts := strings.Split(message, "] validation error")
-		if len(parts) >= 1 {
-			policyPart := parts[0]
-			if strings.Contains(policyPart, "[") {
-				policyName = strings.TrimSpace(strings.Split(policyPart, "[")[1])
-				return policyName, "fail", false, nil
-			}
-		}
-	}
-
-	// Format 4: "policy disallow-host-path/disallow-host-path fail: ..."
-	if strings.HasPrefix(message, "policy ") && strings.Contains(message, " fail:") {
-		parts := strings.Split(message, " fail:")
-		if len(parts) >= 1 {
-			policyPart := strings.TrimPrefix(parts[0], "policy ")
-			policyName = strings.TrimSpace(policyPart)
-			return policyName, "fail", false, nil
-		}
-	}
-
-	// Format 5: "policy require-labels/require-labels fail (blocked): ..."
-	if strings.HasPrefix(message, "policy ") && strings.Contains(message, " fail (blocked):") {
-		parts := strings.Split(message, " fail (blocked):")
-		if len(parts) >= 1 {
-			policyPart := strings.TrimPrefix(parts[0], "policy ")
-			policyName = strings.TrimSpace(policyPart)
-			return policyName, "fail", true, nil
-		}
-	}
-
-	// Format 6: "policy security-context/security-context warn: ..."
-	if strings.HasPrefix(message, "policy ") && strings.Contains(message, " warn:") {
-		parts := strings.Split(message, " warn:")
-		if len(parts) >= 1 {
-			policyPart := strings.TrimPrefix(parts[0], "policy ")
-			policyName = strings.TrimSpace(policyPart)
-			return policyName, "warn", false, nil
-		}
-	}
-
-	// Format 7: "Deployment default/nginx: [disallow-host-path] fail; ..."
-	if strings.Contains(message, "] fail;") {
-		parts := strings.Split(message, "] fail;")
-		if len(parts) >= 1 {
-			policyPart := parts[0]
-			if strings.Contains(policyPart, "[") {
-				policyName = strings.TrimSpace(strings.Split(policyPart, "[")[1])
-				return policyName, "fail", false, nil
-			}
-		}
-	}
-
-	// Format 8: "Pod default/test: [require-labels] warn; ..."
-	if strings.Contains(message, "] warn;") {
-		parts := strings.Split(message, "] warn;")
-		if len(parts) >= 1 {
-			policyPart := parts[0]
-			if strings.Contains(policyPart, "[") {
-				policyName = strings.TrimSpace(strings.Split(policyPart, "[")[1])
-				return policyName, "warn", false, nil
-			}
-		}
-	}
-
-	// Format 9: "Deployment default/nginx: [disallow-host-path] fail (blocked); ..."
-	if strings.Contains(message, "] fail (blocked);") {
-		parts := strings.Split(message, "] fail (blocked);")
-		if len(parts) >= 1 {
-			policyPart := parts[0]
-			if strings.Contains(policyPart, "[") {
-				policyName = strings.TrimSpace(strings.Split(policyPart, "[")[1])
-				return policyName, "fail", true, nil
-			}
-		}
-	}
-
-	return "", "", false, fmt.Errorf("could not parse policy message format: %s", message)
+	}, nil
 }
