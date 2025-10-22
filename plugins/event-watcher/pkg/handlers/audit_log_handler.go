@@ -250,6 +250,11 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		"audit_id", violation.AuditID,
 		"metadata", violation.Metadata)
 
+	ts := violation.Timestamp
+	if !violation.Timestamp.IsZero() {
+		ts = violation.Timestamp
+	}
+
 	// Create a synthetic event that mimics a PolicyViolation event
 	syntheticEvent := &event.WatchedEvent{
 		EventType:    event.EventTypeAdded,
@@ -257,8 +262,8 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		Namespace:    violation.Namespace,
 		Name:         fmt.Sprintf("policy-violation-%s-%d", violation.ResourceName, time.Now().UnixNano()),
 		UID:          violation.AuditID,
-		Timestamp:    violation.Timestamp.Unix(),
-		EventTime:    violation.Timestamp.UTC().Format(time.RFC3339),
+		Timestamp:    ts.Unix(),
+		EventTime:    ts.UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
 			"reason":  "PolicyViolation",
 			"type":    "Warning",
