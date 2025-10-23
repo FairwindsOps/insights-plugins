@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+	_ "time/tzdata"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -51,6 +53,11 @@ func TestEventHandlerFactoryGetHandler(t *testing.T) {
 						"namespace": "default",
 					},
 				},
+				Metadata: map[string]interface{}{
+					"policyResult": "fail",
+				},
+				EventTime: time.Now().UTC().Format(time.RFC3339Nano),
+				Timestamp: time.Now().UTC().UnixNano(),
 			},
 			expectedHandler: "policy-violation",
 			expectNil:       false,
@@ -155,7 +162,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 				ResourceType: "events",
 				Data: map[string]interface{}{
 					"reason":  "PolicyViolation",
-					"message": "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods.",
+					"message": "Error from server: error when creating \"deploy.yaml\": admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Deployment/default/nginx-deployment was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'james-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'james-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource\n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
 					"involvedObject": map[string]interface{}{
 						"kind":      "Pod",
 						"name":      "nginx",

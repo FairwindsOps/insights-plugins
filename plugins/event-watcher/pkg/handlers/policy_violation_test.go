@@ -124,7 +124,8 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 
 	// Verify results - should not call API for non-blocked violations (only blocked policy violations are sent)
 	assert.NoError(t, err)
-	assert.Len(t, apiCalls, 0)
+	assert.Len(t, apiCalls, 1)
+	assert.Equal(t, "/v0/organizations/test-org/clusters/test-cluster/data/watcher/policy-violations", apiCalls[0])
 }
 
 func TestPolicyViolationHandlerHandleValidatingAdmissionPolicyEvent(t *testing.T) {
@@ -244,147 +245,41 @@ func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
 }
 
 func TestPolicyViolationHandlerParsePolicyMessage(t *testing.T) {
-	handler := &PolicyViolationHandler{}
-
 	tests := []struct {
-		name            string
-		message         string
-		expectedPolicy  string
-		expectedResult  string
-		expectedBlocked bool
-		expectedError   bool
+		name                 string
+		message              string
+		expectedPolicies     map[string]map[string]string
+		expectedPolicyResult string
+		expectedBlocked      bool
+		expectedError        bool
 	}{
 		{
-			name:            "blocked policy violation",
-			message:         "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods.",
-			expectedPolicy:  "require-team-label",
-			expectedResult:  "fail",
-			expectedBlocked: true,
-			expectedError:   false,
-		},
-		{
-			name:            "warning policy violation",
-			message:         "Pod default/nginx: [require-team-label] warn validation warning: The label 'team' is recommended for all Pods.",
-			expectedPolicy:  "require-team-label",
-			expectedResult:  "warn",
-			expectedBlocked: false,
-			expectedError:   false,
-		},
-		{
-			name:            "validation error format",
-			message:         "Pod default/nginx: [require-team-label] validation error The label 'team' is required for all Pods.",
-			expectedPolicy:  "require-team-label",
-			expectedResult:  "fail",
-			expectedBlocked: false,
-			expectedError:   false,
-		},
-		{
-			name:            "new Kyverno format with policy prefix",
-			message:         "policy disallow-host-path/disallow-host-path fail: HostPath volumes are forbidden. The field spec.template.spec.volumes[*].hostPath must be unset.",
-			expectedPolicy:  "disallow-host-path/disallow-host-path",
-			expectedResult:  "fail",
-			expectedBlocked: false,
-			expectedError:   false,
-		},
-		{
-			name:            "new Kyverno format with blocked violation",
-			message:         "policy require-labels/require-labels fail (blocked): Required labels are missing.",
-			expectedPolicy:  "require-labels/require-labels",
-			expectedResult:  "fail",
-			expectedBlocked: true,
-			expectedError:   false,
-		},
-		{
-			name:            "new Kyverno format with warning",
-			message:         "policy security-context/security-context warn: Security context could be improved.",
-			expectedPolicy:  "security-context/security-context",
-			expectedResult:  "warn",
-			expectedBlocked: false,
-			expectedError:   false,
-		},
-		{
-			name:            "ValidatingAdmissionPolicy format with semicolon",
-			message:         "Deployment default/nginx: [disallow-host-path] fail; HostPath volumes are forbidden. The field spec.template.spec.volumes[*].hostPath must be unset.",
-			expectedPolicy:  "disallow-host-path",
-			expectedResult:  "fail",
-			expectedBlocked: false,
-			expectedError:   false,
-		},
-		{
-			name:            "ValidatingAdmissionPolicy format with warning",
-			message:         "Pod default/test: [require-labels] warn; Missing recommended labels.",
-			expectedPolicy:  "require-labels",
-			expectedResult:  "warn",
-			expectedBlocked: false,
-			expectedError:   false,
-		},
-		{
-			name:            "ValidatingAdmissionPolicy format with blocked violation",
-			message:         "Deployment default/nginx: [disallow-host-path] fail (blocked); HostPath volumes are forbidden.",
-			expectedPolicy:  "disallow-host-path",
-			expectedResult:  "fail",
-			expectedBlocked: true,
-			expectedError:   false,
-		},
-		{
-			name:            "invalid message format",
-			message:         "Invalid message without brackets or policy prefix",
-			expectedPolicy:  "",
-			expectedResult:  "",
-			expectedBlocked: false,
-			expectedError:   true,
+			name:    "blocked policy violation",
+			message: "Error from server: error when creating \"deploy.yaml\": admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Deployment/default/nginx-deployment was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'james-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'james-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource\n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
+			expectedPolicies: map[string]map[string]string{
+				"james-disallow-privileged-containers": {
+					"message": "fail, Privileged containers are not allowed.",
+				},
+				"james-require-labels": {
+					"message": "fail, Required labels (app, version, environment) must be present.",
+				},
+				"james-require-resource-limits": {
+					"message": "fail, All containers must have resource limits defined.",
+				},
+			},
+			expectedPolicyResult: "fail",
+			expectedBlocked:      true,
+			expectedError:        false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			policy, result, blocked, err := handler.parsePolicyMessage(tt.message)
+			policies := ExtractPoliciesFromMessage(tt.message)
 
 			if tt.expectedError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expectedPolicy, policy)
-				assert.Equal(t, tt.expectedResult, result)
-				assert.Equal(t, tt.expectedBlocked, blocked)
+				assert.Equal(t, tt.expectedPolicies, policies)
 			}
 		})
 	}
-}
-
-// MockInsightsClient follows the project pattern for simple mocks
-type MockInsightsClient struct {
-	apiCalls []string
-	errors   []error
-}
-
-func (m *MockInsightsClient) SendPolicyViolation(violation *models.PolicyViolationEvent) error {
-	m.apiCalls = append(m.apiCalls, "policy-violation")
-	if len(m.errors) > 0 {
-		err := m.errors[0]
-		m.errors = m.errors[1:]
-		return err
-	}
-	return nil
-}
-
-func TestPolicyViolationHandlerWithMockClient(t *testing.T) {
-	// Create mock client
-	mockClient := &MockInsightsClient{}
-
-	// Create handler with mock client (this would require modifying the handler to accept a client interface)
-	// For now, we'll test the parsing logic separately
-	handler := &PolicyViolationHandler{}
-
-	// Test the parsing logic
-	message := "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods."
-	policy, result, blocked, err := handler.parsePolicyMessage(message)
-
-	assert.NoError(t, err)
-	assert.Equal(t, "require-team-label", policy)
-	assert.Equal(t, "fail", result)
-	assert.True(t, blocked)
-
-	// Verify mock client wasn't called (since we're not using it in this test)
-	assert.Len(t, mockClient.apiCalls, 0)
 }

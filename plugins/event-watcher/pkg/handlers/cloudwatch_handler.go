@@ -481,6 +481,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromOutput(auditEvent map[
 		Name:         name,
 		UID:          fmt.Sprintf("cloudwatch-%d", timestamp),
 		Timestamp:    timestamp,
+		EventTime:    time.Unix(*logEvent.Timestamp/1000, 0).UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
 			"reason":        "PolicyViolation",
 			"type":          "Warning",
@@ -491,10 +492,16 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromOutput(auditEvent map[
 			"source":        "cloudwatch",
 			"request_uri":   request,
 			"api_version":   apiVersion,
-		},
-		Metadata: map[string]interface{}{
-			"log_group":  h.cloudwatchConfig.LogGroupName,
-			"aws_region": h.cloudwatchConfig.Region,
+			"metadata": map[string]interface{}{
+				"log_group":      h.cloudwatchConfig.LogGroupName,
+				"aws_region":     h.cloudwatchConfig.Region,
+				"policy_name":    policyName,
+				"policy_message": policyMessage,
+				"request_uri":    request,
+				"api_version":    apiVersion,
+			},
+			"timestamp":  timestamp,
+			"event_time": timestamp,
 		},
 	}
 
@@ -565,10 +572,16 @@ func (h *CloudWatchHandler) createPolicyViolationEvent(auditEvent map[string]int
 			"api_version":   apiVersion,
 		},
 		Metadata: map[string]interface{}{
-			"log_group":  h.cloudwatchConfig.LogGroupName,
-			"log_stream": logEvent.LogStreamName,
-			"event_id":   logEvent.EventId,
-			"aws_region": h.cloudwatchConfig.Region,
+			"policy_name":    policyName,
+			"policy_message": policyMessage,
+			"request_uri":    request,
+			"api_version":    apiVersion,
+			"timestamp":      timestamp,
+			"event_time":     timestamp,
+			"log_group":      h.cloudwatchConfig.LogGroupName,
+			"log_stream":     logEvent.LogStreamName,
+			"event_id":       logEvent.EventId,
+			"aws_region":     h.cloudwatchConfig.Region,
 		},
 	}
 

@@ -200,7 +200,8 @@ func (w *Watcher) processEvents() {
 					"resource_type", watchedEvent.ResourceType,
 					"namespace", watchedEvent.Namespace,
 					"name", watchedEvent.Name,
-					"error_type", fmt.Sprintf("%T", err))
+					"error_type", fmt.Sprintf("%T", err),
+					"event_time", watchedEvent.EventTime)
 			}
 
 			// Record processing completion and duration

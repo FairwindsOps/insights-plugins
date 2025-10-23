@@ -160,6 +160,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 
 		// Check if this is a policy violation
 		if violation := h.analyzeAuditEvent(auditEvent); violation != nil {
+			slog.Info("Line of audit log that triggered policy violation=" + line)
 			h.generateSyntheticEvent(violation)
 		}
 	}
@@ -183,11 +184,11 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 	// Check if the request was blocked (HTTP 4xx or 5xx)
 	if auditEvent.ResponseStatus.Code >= 400 {
 		// This is a blocked request - extract policy violation information
-		policyName := h.extractPolicyName(auditEvent.ResponseStatus.Message)
+		policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 
 		slog.Info("Detected policy violation from audit logs",
 			"audit_id", auditEvent.AuditID,
-			"policy_name", policyName,
+			"policies", policies,
 			"resource_name", auditEvent.ObjectRef.Name,
 			"namespace", auditEvent.ObjectRef.Namespace,
 			"response_code", auditEvent.ResponseStatus.Code,
@@ -197,7 +198,7 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 
 		return &PolicyViolationEvent{
 			Timestamp:    auditEvent.RequestReceivedTimestamp,
-			PolicyName:   policyName,
+			Policies:     policies,
 			ResourceType: "Deployment",
 			ResourceName: auditEvent.ObjectRef.Name,
 			Namespace:    auditEvent.ObjectRef.Namespace,
@@ -213,41 +214,33 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 
 // PolicyViolationEvent represents a detected policy violation from audit logs
 type PolicyViolationEvent struct {
-	Timestamp    time.Time `json:"timestamp"`
-	PolicyName   string    `json:"policy_name"`
-	ResourceType string    `json:"resource_type"`
-	ResourceName string    `json:"resource_name"`
-	Namespace    string    `json:"namespace"`
-	User         string    `json:"user"`
-	Action       string    `json:"action"` // "blocked" or "allowed"
-	Message      string    `json:"message"`
-	AuditID      string    `json:"audit_id"`
-}
-
-// extractPolicyName extracts the policy name from the response message
-func (h *AuditLogHandler) extractPolicyName(message string) string {
-	// Try to extract policy name from message like "ValidatingAdmissionPolicy 'policy-name' denied request"
-	if strings.Contains(message, "ValidatingAdmissionPolicy") {
-		start := strings.Index(message, "'")
-		if start != -1 {
-			end := strings.Index(message[start+1:], "'")
-			if end != -1 {
-				return message[start+1 : start+1+end]
-			}
-		}
-	}
-	return "unknown-policy"
+	Timestamp    time.Time                    `json:"timestamp"`
+	ResourceType string                       `json:"resource_type"`
+	ResourceName string                       `json:"resource_name"`
+	Namespace    string                       `json:"namespace"`
+	User         string                       `json:"user"`
+	Action       string                       `json:"action"` // "blocked" or "allowed"
+	Message      string                       `json:"message"`
+	AuditID      string                       `json:"audit_id"`
+	Metadata     map[string]interface{}       `json:"metadata"`
+	Policies     map[string]map[string]string `json:"policies"`
 }
 
 // generateSyntheticEvent creates a synthetic PolicyViolation event from audit log data
 func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent) {
 	slog.Info("Detected policy violation from audit logs",
-		"policy_name", violation.PolicyName,
+		"policies", violation.Policies,
 		"resource_name", violation.ResourceName,
 		"namespace", violation.Namespace,
 		"action", violation.Action,
-		"audit_id", violation.AuditID)
+		"audit_id", violation.AuditID,
+		"metadata", violation.Metadata,
+		"timestamp", violation.Timestamp)
 
+	ts := violation.Timestamp
+	if !violation.Timestamp.IsZero() {
+		ts = violation.Timestamp
+	}
 	// Create a synthetic event that mimics a PolicyViolation event
 	syntheticEvent := &event.WatchedEvent{
 		EventType:    event.EventTypeAdded,
@@ -255,11 +248,13 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		Namespace:    violation.Namespace,
 		Name:         fmt.Sprintf("policy-violation-%s-%d", violation.ResourceName, time.Now().UnixNano()),
 		UID:          violation.AuditID,
-		Timestamp:    violation.Timestamp.Unix(),
+		Timestamp:    ts.Unix(),
+		EventTime:    ts.UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
-			"reason":  "PolicyViolation",
-			"type":    "Warning",
-			"message": fmt.Sprintf("policy %s fail: %s", violation.PolicyName, violation.Message),
+			"reason":   "PolicyViolation",
+			"type":     "Warning",
+			"message":  fmt.Sprintf("policies %s fail: %s", violation.Policies, violation.Message),
+			"policies": violation.Policies,
 			"source": map[string]interface{}{
 				"component": "audit-log-handler",
 			},
@@ -273,6 +268,18 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 			"firstTimestamp": violation.Timestamp.Format(time.RFC3339),
 			"lastTimestamp":  violation.Timestamp.Format(time.RFC3339),
 			"count":          1,
+			"metadata":       violation.Metadata,
+		},
+		Metadata: map[string]interface{}{
+			"audit_id":      violation.AuditID,
+			"metadata":      violation.Metadata,
+			"policies":      violation.Policies,
+			"resource_name": violation.ResourceName,
+			"namespace":     violation.Namespace,
+			"action":        violation.Action,
+			"message":       violation.Message,
+			"timestamp":     violation.Timestamp.Format(time.RFC3339),
+			"event_time":    violation.Timestamp.Format(time.RFC3339),
 		},
 	}
 
@@ -280,11 +287,11 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 	select {
 	case h.eventChannel <- syntheticEvent:
 		slog.Debug("Sent synthetic PolicyViolation event",
-			"policy_name", violation.PolicyName,
+			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	default:
 		slog.Warn("Event channel full, dropping synthetic PolicyViolation event",
-			"policy_name", violation.PolicyName,
+			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	}
 }

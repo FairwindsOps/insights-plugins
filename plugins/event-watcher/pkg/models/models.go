@@ -16,8 +16,8 @@ type CloudWatchConfig struct {
 	MaxMemoryMB   int
 }
 type EventReport struct {
-	EventType    string                 `json:"event_type"`
-	ResourceType string                 `json:"resource_type"`
+	EventType    string                 `json:"eventType"`
+	ResourceType string                 `json:"resourceType"`
 	Namespace    string                 `json:"namespace"`
 	Name         string                 `json:"name"`
 	UID          string                 `json:"uid"`
@@ -28,11 +28,11 @@ type EventReport struct {
 
 type PolicyViolationEvent struct {
 	EventReport
-	PolicyName   string `json:"policy_name"`
-	PolicyResult string `json:"policy_result"`
-	Message      string `json:"message"`
-	Blocked      bool   `json:"blocked"`
-	EventTime    string `json:"event_time,omitempty"` // Kubernetes eventTime
+	Policies     map[string]map[string]string `json:"policies"`
+	PolicyResult string                       `json:"policyResult"`
+	Message      string                       `json:"message"`
+	Blocked      bool                         `json:"blocked"`
+	EventTime    string                       `json:"eventTime,omitempty"` // Kubernetes eventTime
 }
 
 type EventHandlerConfig struct {
