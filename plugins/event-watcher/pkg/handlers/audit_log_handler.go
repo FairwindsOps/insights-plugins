@@ -246,7 +246,7 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 		EventType:    event.EventTypeAdded,
 		ResourceType: "events",
 		Namespace:    violation.Namespace,
-		Name:         fmt.Sprintf("policy-violation-%s-%d", violation.ResourceName, time.Now().UnixNano()),
+		Name:         fmt.Sprintf("policy-violation-%s-%s", violation.ResourceName, violation.AuditID),
 		UID:          violation.AuditID,
 		Timestamp:    ts.Unix(),
 		EventTime:    ts.UTC().Format(time.RFC3339),
