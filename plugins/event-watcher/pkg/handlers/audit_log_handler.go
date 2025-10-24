@@ -162,7 +162,9 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			continue
 		}
 		policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
+		slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 		if policyViolationEvent != nil {
+			slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
 			h.createWatchedEventFromPolicyViolationEvent(policyViolationEvent)
 		}
 	}
@@ -233,7 +235,9 @@ type PolicyViolationEvent struct {
 
 // createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
 func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *PolicyViolationEvent) {
+	slog.Info("Creating watched event from policy violation event", "violation", violation)
 	if violation == nil {
+		slog.Info("Policy violation event is nil, skipping", "violation", violation)
 		return
 	}
 	slog.Info("Creating watched event from policy violation event",
