@@ -173,7 +173,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 		if policyViolationEvent != nil {
 			slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
-			h.createWatchedEventFromPolicyViolationEvent(policyViolationEvent)
+			h.createWatchedEventFromPolicyViolationEvent(auditEvent, policyViolationEvent)
 		}
 	}
 
@@ -246,7 +246,7 @@ type PolicyViolationEvent struct {
 }
 
 // createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
-func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *PolicyViolationEvent) {
+func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(auditEvent AuditEvent, violation *PolicyViolationEvent) {
 	slog.Info("Creating watched event from policy violation event", "violation", violation)
 	if violation == nil {
 		slog.Info("Policy violation event is nil, skipping", "violation", violation)
@@ -265,17 +265,20 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *
 	if !violation.Timestamp.IsZero() {
 		ts = violation.Timestamp
 	}
+
+	name := fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID)
+	if h.isValidatingPolicyViolation(auditEvent) {
+		name = fmt.Sprintf("validating-policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID)
+	}
 	// Create a watched event from a policy violation event
 	watchedEvent := &event.WatchedEvent{
-		EventType:    event.EventTypeAdded,
-		ResourceType: violation.ResourceType,
-		Namespace:    violation.Namespace,
-		Name:         fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID),
-		UID:          violation.AuditID,
-		Timestamp:    ts.Unix(),
-		EventTime:    ts.UTC().Format(time.RFC3339),
-		Data: map[string]interface{}{
-			"reason":   violation.Action,
+		EventType: event.EventTypeAdded, ResourceType: violation.ResourceType,
+		Namespace: violation.Namespace,
+		Name:      name,
+		UID:       violation.AuditID,
+		Timestamp: ts.Unix(),
+		EventTime: ts.UTC().Format(time.RFC3339),
+		Data: map[string]interface{}{"reason": violation.Action,
 			"type":     "Warning",
 			"message":  violation.Message,
 			"policies": violation.Policies,
