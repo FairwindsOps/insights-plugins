@@ -159,7 +159,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		}
 
 		// Check if this is a policy violation
-		if violation := h.analyzeAuditEvent(auditEvent); violation != nil {
+		if violation := h.isPolicyViolation(auditEvent); violation != nil {
 			slog.Info("Line of audit log that triggered policy violation=" + line)
 			h.createWatchedEventFromPolicyViolationEvent(violation)
 		}
@@ -174,8 +174,8 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		"lines_processed", lineNumber)
 }
 
-// analyzeAuditEvent analyzes an audit event to detect policy violations
-func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolationEvent {
+// isPolicyViolation checks if an audit event is a policy violation
+func (h *AuditLogHandler) isPolicyViolation(auditEvent AuditEvent) *PolicyViolationEvent {
 	// Only process deployment creation requests
 	if auditEvent.ObjectRef.Resource != "deployments" || auditEvent.Verb != "create" {
 		return nil
@@ -183,6 +183,8 @@ func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolat
 
 	// Check if the request was blocked (HTTP 4xx or 5xx)
 	if auditEvent.ResponseStatus.Code >= 400 {
+		slog.Info("auditEvent==============================", auditEvent)
+
 		// This is a blocked request - extract policy violation information
 		policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 
