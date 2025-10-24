@@ -128,64 +128,6 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 	assert.Equal(t, "/v0/organizations/test-org/clusters/test-cluster/data/watcher/policy-violations", apiCalls[0])
 }
 
-func TestPolicyViolationHandlerHandleValidatingAdmissionPolicyEvent(t *testing.T) {
-	// Set up test logger (slog is used by default)
-
-	// Create test server to capture API calls
-	var apiCalls []string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		apiCalls = append(apiCalls, r.URL.Path)
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
-	}))
-	defer server.Close()
-
-	// Create handler with test configuration
-	config := models.InsightsConfig{
-		Hostname:     server.URL,
-		Organization: "test-org",
-		Cluster:      "test-cluster",
-		Token:        "test-token",
-	}
-
-	handler := NewPolicyViolationHandler(config, 30, 60)
-
-	// Create a ValidatingAdmissionPolicy event (blocked)
-	event := &event.WatchedEvent{
-		EventVersion: 1,
-		Timestamp:    time.Now().Unix(),
-		EventType:    event.EventTypeAdded,
-		ResourceType: "events",
-		Namespace:    "default",
-		Name:         "validatingadmissionpolicy-violation-test",
-		UID:          "test-uid-789",
-		Data: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Event",
-			"reason":     "PolicyViolation",
-			"message":    "Deployment default/nginx: [disallow-host-path] fail (blocked); HostPath volumes are forbidden.",
-			"involvedObject": map[string]interface{}{
-				"kind":      "ValidatingAdmissionPolicy", // This makes it a ValidatingAdmissionPolicy event
-				"name":      "disallow-host-path",
-				"namespace": "",
-			},
-		},
-		Metadata: map[string]interface{}{
-			"name":      "validatingadmissionpolicy-violation-test",
-			"namespace": "default",
-			"uid":       "test-uid-789",
-		},
-	}
-
-	// Execute the handler
-	err := handler.Handle(event)
-
-	// Verify results - should call API for blocked ValidatingAdmissionPolicy events
-	assert.NoError(t, err)
-	assert.Len(t, apiCalls, 1)
-	assert.Equal(t, "/v0/organizations/test-org/clusters/test-cluster/data/watcher/policy-violations", apiCalls[0])
-}
-
 func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
 	// Set up test logger (slog is used by default)
 

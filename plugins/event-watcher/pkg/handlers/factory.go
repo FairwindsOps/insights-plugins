@@ -65,22 +65,25 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) Event
 	slog.Info("Getting handler for event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	// Determine the handler name based on event characteristics
 	handlerName := f.getHandlerName(watchedEvent)
-
+	slog.Info("Handler name", "handler_name", handlerName)
 	// Return the registered handler
 	if handler, exists := f.handlers[handlerName]; exists {
+		slog.Info("Found handler", "handler_name", handlerName)
 		return handler
 	}
-
+	slog.Info("No handler found", "handler_name", handlerName)
 	return nil
 }
 
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) string {
 	// Check for PolicyViolation events first (most specific)
-	slog.Info("Getting handler name for event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
+	slog.Info("Getting handler name for event", "name", watchedEvent.Name, "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	if strings.HasPrefix(watchedEvent.Name, "kyverno-policy-violation") {
+		slog.Info("Found kyverno policy violation event", "name", watchedEvent.Name)
 		return "kyverno-policy-violation"
 	}
 
+	slog.Info("No kyverno policy violation event found", "name", watchedEvent.Name)
 	return ""
 }
 

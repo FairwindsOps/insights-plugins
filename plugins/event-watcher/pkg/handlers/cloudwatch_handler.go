@@ -466,7 +466,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 		EventType:    event.EventTypeAdded,
 		ResourceType: resource,
 		Namespace:    namespace,
-		Name:         fmt.Sprintf("policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID),
+		Name:         fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID),
 		UID:          auditEvent.AuditID,
 		Timestamp:    auditEvent.StageTimestamp.Unix(),
 		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),

@@ -258,7 +258,7 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *
 		EventType:    event.EventTypeAdded,
 		ResourceType: violation.ResourceType,
 		Namespace:    violation.Namespace,
-		Name:         fmt.Sprintf("policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID),
+		Name:         fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID),
 		UID:          violation.AuditID,
 		Timestamp:    ts.Unix(),
 		EventTime:    ts.UTC().Format(time.RFC3339),

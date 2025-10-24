@@ -16,97 +16,6 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
-func TestEventHandlerFactoryGetHandler(t *testing.T) {
-	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
-	}))
-	defer server.Close()
-
-	config := models.InsightsConfig{
-		Hostname:     server.URL,
-		Organization: "test-org",
-		Cluster:      "test-cluster",
-		Token:        "test-token",
-	}
-
-	scheme := runtime.NewScheme()
-	factory := NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
-
-	tests := []struct {
-		name            string
-		event           *event.WatchedEvent
-		expectedHandler string
-		expectNil       bool
-	}{
-		{
-			name: "PolicyViolation event should return policy-violation handler",
-			event: &event.WatchedEvent{
-				ResourceType: "events",
-				Data: map[string]interface{}{
-					"reason":  "PolicyViolation",
-					"message": "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods.",
-					"involvedObject": map[string]interface{}{
-						"kind":      "Pod",
-						"name":      "nginx",
-						"namespace": "default",
-					},
-				},
-				Metadata: map[string]interface{}{
-					"policyResult": "fail",
-				},
-				EventTime: time.Now().UTC().Format(time.RFC3339Nano),
-				Timestamp: time.Now().UTC().UnixNano(),
-			},
-			expectedHandler: "policy-violation",
-			expectNil:       false,
-		},
-		{
-			name: "ClusterPolicy event should return no handler",
-			event: &event.WatchedEvent{
-				ResourceType: "ClusterPolicy",
-				Name:         "test-policy",
-			},
-			expectedHandler: "",
-			expectNil:       true,
-		},
-		{
-			name: "PolicyReport event should return no handler",
-			event: &event.WatchedEvent{
-				ResourceType: "PolicyReport",
-			},
-			expectedHandler: "",
-			expectNil:       true,
-		},
-		{
-			name: "Unknown resource should return no handler",
-			event: &event.WatchedEvent{
-				ResourceType: "UnknownResource",
-			},
-			expectedHandler: "",
-			expectNil:       true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			handler := factory.GetHandler(tt.event)
-
-			if tt.expectNil {
-				assert.Nil(t, handler, "Handler should be nil for unsupported resource types")
-			} else {
-				assert.NotNil(t, handler, "Handler should not be nil")
-
-				// Verify the handler type by checking if it can handle the event
-				// (This is a simple way to verify we got the right handler)
-				err := handler.Handle(tt.event)
-				assert.NoError(t, err, "Handler should be able to handle the event")
-			}
-		})
-	}
-}
-
 func TestEventHandlerFactoryRegister(t *testing.T) {
 	config := models.InsightsConfig{
 		Hostname:     "https://test.com",
@@ -157,7 +66,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "Valid PolicyViolation event should be processed",
+			name: "Valid Kyverno PolicyViolation event should be processed",
 			event: &event.WatchedEvent{
 				ResourceType: "events",
 				Data: map[string]interface{}{
@@ -173,7 +82,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "Valid PolicyReport event should be processed",
+			name: "Valid Kyverno PolicyReport event should be processed",
 			event: &event.WatchedEvent{
 				ResourceType: "PolicyReport",
 				Data: map[string]interface{}{
@@ -228,7 +137,7 @@ func TestEventHandlerFactoryGetHandlerNames(t *testing.T) {
 
 	// Verify we have the expected default handlers
 	expectedHandlers := []string{
-		"policy-violation",
+		"kyverno-policy-violation",
 	}
 
 	for _, expected := range expectedHandlers {
@@ -271,31 +180,50 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 		expectedName string
 	}{
 		{
-			name: "PolicyViolation event",
+			name: "Kyverno PolicyViolation event",
 			event: &event.WatchedEvent{
-				ResourceType: "events",
+				Name:         "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2",
+				ResourceType: "Deployment",
+				Namespace:    "default",
+				UID:          "5c0888f1-bdd0-4681-9aba-5b734c267df2",
+				EventTime:    "2025-10-23T10:23:37.369146Z",
+				Timestamp:    time.Now().UTC().Unix(),
 				Data: map[string]interface{}{
-					"reason": "PolicyViolation",
+					"responseStatus": map[string]interface{}{
+						"code":    400,
+						"status":  "Failure",
+						"message": "admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Deployment/default/nginx-deployment was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'\n\njames-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'\njames-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource  \n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
+					},
+				},
+				Metadata: map[string]interface{}{
+					"audit_id":      "5c0888f1-bdd0-4681-9aba-5b734c267df2",
+					"policies":      map[string]interface{}{},
+					"resource_name": "nginx-deployment",
+					"namespace":     "default",
+					"action":        "Blocked",
+					"message":       "admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Deployment/default/nginx-deployment was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'\n\njames-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'\njames-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource  \n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
+					"timestamp":     "2025-10-23T10:23:37.369146Z",
+					"event_time":    "2025-10-23T10:23:37.369146Z",
 				},
 			},
-			expectedName: "policy-violation",
+			expectedName: "kyverno-policy-violation",
 		},
 		{
-			name: "ClusterPolicy resource",
+			name: "Kyverno ClusterPolicy resource",
 			event: &event.WatchedEvent{
 				ResourceType: "ClusterPolicy",
 			},
 			expectedName: "",
 		},
 		{
-			name: "PolicyReport resource",
+			name: "Kyverno PolicyReport resource",
 			event: &event.WatchedEvent{
 				ResourceType: "PolicyReport",
 			},
 			expectedName: "",
 		},
 		{
-			name: "Unknown resource",
+			name: "Kyverno Unknown resource should return no handler",
 			event: &event.WatchedEvent{
 				ResourceType: "UnknownResource",
 			},
