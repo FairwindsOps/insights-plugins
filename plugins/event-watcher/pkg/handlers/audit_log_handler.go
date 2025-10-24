@@ -161,7 +161,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		// Check if this is a policy violation
 		if violation := h.analyzeAuditEvent(auditEvent); violation != nil {
 			slog.Info("Line of audit log that triggered policy violation=" + line)
-			h.generateSyntheticEvent(violation)
+			h.createWatchedEventFromPolicyViolationEvent(violation)
 		}
 	}
 
@@ -226,8 +226,8 @@ type PolicyViolationEvent struct {
 	Policies     map[string]map[string]string `json:"policies"`
 }
 
-// generateSyntheticEvent creates a synthetic PolicyViolation event from audit log data
-func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent) {
+// createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
+func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *PolicyViolationEvent) {
 	slog.Info("Detected policy violation from audit logs",
 		"policies", violation.Policies,
 		"resource_name", violation.ResourceName,
@@ -241,26 +241,26 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 	if !violation.Timestamp.IsZero() {
 		ts = violation.Timestamp
 	}
-	// Create a synthetic event that mimics a PolicyViolation event
-	syntheticEvent := &event.WatchedEvent{
+	// Create a watched event from a policy violation event
+	watchedEvent := &event.WatchedEvent{
 		EventType:    event.EventTypeAdded,
-		ResourceType: "events",
+		ResourceType: violation.ResourceType,
 		Namespace:    violation.Namespace,
-		Name:         fmt.Sprintf("policy-violation-%s-%s", violation.ResourceName, violation.AuditID),
+		Name:         fmt.Sprintf("policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID),
 		UID:          violation.AuditID,
 		Timestamp:    ts.Unix(),
 		EventTime:    ts.UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
-			"reason":   "PolicyViolation",
+			"reason":   violation.Action,
 			"type":     "Warning",
-			"message":  fmt.Sprintf("policies %s fail: %s", violation.Policies, violation.Message),
+			"message":  violation.Message,
 			"policies": violation.Policies,
 			"source": map[string]interface{}{
 				"component": "audit-log-handler",
 			},
 			"involvedObject": map[string]interface{}{
 				"apiVersion": "apps/v1",
-				"kind":       "Deployment",
+				"kind":       violation.ResourceType,
 				"name":       violation.ResourceName,
 				"namespace":  violation.Namespace,
 				"uid":        violation.AuditID,
@@ -285,12 +285,12 @@ func (h *AuditLogHandler) generateSyntheticEvent(violation *PolicyViolationEvent
 
 	// Send the synthetic event to the event channel
 	select {
-	case h.eventChannel <- syntheticEvent:
-		slog.Debug("Sent synthetic PolicyViolation event",
+	case h.eventChannel <- watchedEvent:
+		slog.Debug("Sent watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	default:
-		slog.Warn("Event channel full, dropping synthetic PolicyViolation event",
+		slog.Warn("Event channel full, dropping watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	}

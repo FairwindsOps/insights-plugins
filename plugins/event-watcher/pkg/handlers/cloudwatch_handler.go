@@ -27,6 +27,92 @@ type CloudWatchHandler struct {
 	stopCh           chan struct{}
 }
 
+/*
+
+
+{
+    "kind": "Event",
+    "apiVersion": "audit.k8s.io/v1",
+    "level": "Request",
+    "auditID": "5c0888f1-bdd0-4681-9aba-5b734c267df2",
+    "stage": "ResponseComplete",
+    "requestURI": "/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicybindings?limit=500&resourceVersion=0",
+    "verb": "list",
+    "user": {
+        "username": "system:apiserver",
+        "uid": "7adf9ab0-3065-4682-bd5b-bd28d770c502",
+        "groups": [
+            "system:authenticated",
+            "system:masters"
+        ]
+    },
+    "sourceIPs": [
+        "::1"
+    ],
+    "userAgent": "kube-apiserver/v1.33.5 (linux/arm64) kubernetes/0862ded",
+    "objectRef": {
+        "resource": "validatingadmissionpolicybindings",
+        "apiGroup": "admissionregistration.k8s.io",
+        "apiVersion": "v1"
+    },
+    "responseStatus": {
+        "metadata": {},
+        "code": 200
+    },
+    "requestReceivedTimestamp": "2025-10-23T10:23:37.368934Z",
+    "stageTimestamp": "2025-10-23T10:23:37.369146Z",
+    "annotations": {
+        "authorization.k8s.io/decision": "allow",
+        "authorization.k8s.io/reason": ""
+    }
+}
+
+
+*/
+
+type CloudWatchAuditEvent struct {
+	Kind                     string                   `json:"kind"`
+	APIVersion               string                   `json:"apiVersion"`
+	Level                    string                   `json:"level"`
+	AuditID                  string                   `json:"auditID"`
+	Stage                    string                   `json:"stage"`
+	RequestURI               string                   `json:"requestURI"`
+	Verb                     string                   `json:"verb"`
+	User                     CloudWatchUser           `json:"user"`
+	SourceIPs                []string                 `json:"sourceIPs"`
+	UserAgent                string                   `json:"userAgent"`
+	ObjectRef                CloudWatchObjectRef      `json:"objectRef"`
+	ResponseStatus           CloudWatchResponseStatus `json:"responseStatus"`
+	RequestReceivedTimestamp time.Time                `json:"requestReceivedTimestamp"`
+	StageTimestamp           time.Time                `json:"stageTimestamp"`
+	Annotations              map[string]string        `json:"annotations"`
+}
+
+type CloudWatchUser struct {
+	Username string   `json:"username"`
+	UID      string   `json:"uid"`
+	Groups   []string `json:"groups"`
+}
+
+type CloudWatchObjectRef struct {
+	Resource        string `json:"resource"`
+	Namespace       string `json:"namespace"`
+	Name            string `json:"name"`
+	UID             string `json:"uid"`
+	APIGroup        string `json:"apiGroup"`
+	APIVersion      string `json:"apiVersion"`
+	ResourceVersion string `json:"resourceVersion"`
+	SubResource     string `json:"subResource"`
+}
+
+type CloudWatchResponseStatus struct {
+	Metadata map[string]interface{} `json:"metadata"`
+	Code     int                    `json:"code"`
+	Status   string                 `json:"status"`
+	Message  string                 `json:"message"`
+	Reason   string                 `json:"reason"`
+}
+
 // NewCloudWatchHandler creates a new CloudWatch log handler
 func NewCloudWatchHandler(insightsConfig models.InsightsConfig, cloudwatchConfig models.CloudWatchConfig, eventChannel chan *event.WatchedEvent) (*CloudWatchHandler, error) {
 	// Create AWS config
@@ -334,15 +420,15 @@ func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent 
 	}
 
 	// Parse the log message as JSON
-	var auditEvent map[string]interface{}
+	var auditEvent CloudWatchAuditEvent
 	if err := json.Unmarshal([]byte(*logEvent.Message), &auditEvent); err != nil {
 		// Skip non-JSON log entries
 		return nil
 	}
 
-	// Check if this is a ValidatingAdmissionPolicy violation
-	if h.isValidatingAdmissionPolicyViolation(auditEvent) {
-		violationEvent := h.createPolicyViolationEventFromOutput(auditEvent, logEvent)
+	// Check if this is a policy violation
+	if h.isPolicyViolation(auditEvent) {
+		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
 			case h.eventChannel <- violationEvent:
@@ -367,15 +453,15 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 	}
 
 	// Parse the log message as JSON
-	var auditEvent map[string]interface{}
+	var auditEvent CloudWatchAuditEvent
 	if err := json.Unmarshal([]byte(*logEvent.Message), &auditEvent); err != nil {
 		// Skip non-JSON log entries
 		return nil
 	}
 
 	// Check if this is a ValidatingAdmissionPolicy violation
-	if h.isValidatingAdmissionPolicyViolation(auditEvent) {
-		violationEvent := h.createPolicyViolationEvent(auditEvent, logEvent)
+	if h.isPolicyViolation(auditEvent) {
+		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
 			case h.eventChannel <- violationEvent:
@@ -393,197 +479,57 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 	return nil
 }
 
-// isValidatingAdmissionPolicyViolation checks if the audit event represents a VAP violation
-func (h *CloudWatchHandler) isValidatingAdmissionPolicyViolation(auditEvent map[string]interface{}) bool {
-	// Check if this is an admission controller response
-	stage, ok := auditEvent["stage"].(string)
-	if !ok || stage != "ResponseComplete" {
-		return false
-	}
-
-	// Check if the response was blocked (status code >= 400)
-	responseStatus, ok := auditEvent["responseStatus"].(map[string]interface{})
-	if !ok {
-		return false
-	}
-
-	code, ok := responseStatus["code"].(float64)
-	if !ok || code < 400 {
-		return false
-	}
-
-	// Check if this is related to ValidatingAdmissionPolicy
-	annotations, ok := auditEvent["annotations"].(map[string]interface{})
-	if !ok {
-		return false
-	}
-
-	// Look for VAP-related annotations
-	for key, value := range annotations {
-		if strings.Contains(strings.ToLower(key), "validatingadmissionpolicy") ||
-			strings.Contains(strings.ToLower(fmt.Sprintf("%v", value)), "validatingadmissionpolicy") {
-			return true
-		}
-	}
-
-	return false
+// isPolicyViolation checks if the audit event represents a policy violation response
+func (h *CloudWatchHandler) isPolicyViolation(auditEvent CloudWatchAuditEvent) bool {
+	// TODO improve this logic
+	return auditEvent.Stage == "ResponseComplete" && auditEvent.ResponseStatus.Code >= 400
 }
 
-// createPolicyViolationEventFromOutput creates a policy violation event from output log event
-func (h *CloudWatchHandler) createPolicyViolationEventFromOutput(auditEvent map[string]interface{}, logEvent types.OutputLogEvent) *event.WatchedEvent {
-	// Extract basic information
-	request, ok := auditEvent["requestURI"].(string)
-	if !ok {
-		return nil
+// createPolicyViolationEventFromAuditEvent creates a policy violation event from audit event
+func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *event.WatchedEvent {
+	objectRef := auditEvent.ObjectRef
+	namespace := objectRef.Namespace
+	name := objectRef.Name
+	resource := objectRef.Resource
+
+	policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	policyMessage := auditEvent.ResponseStatus.Message
+
+	reason := "Allowed"
+	if auditEvent.ResponseStatus.Code >= 400 {
+		reason = "Blocked"
 	}
-
-	// Extract resource information
-	objectRef, ok := auditEvent["objectRef"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	namespace, _ := objectRef["namespace"].(string)
-	name, _ := objectRef["name"].(string)
-	resource, _ := objectRef["resource"].(string)
-	apiVersion, _ := objectRef["apiVersion"].(string)
-
-	// Extract policy information from annotations
-	annotations, ok := auditEvent["annotations"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	policyName := "Unknown"
-	policyMessage := "Policy violation detected"
-
-	// Try to extract policy name and message from annotations
-	for key, value := range annotations {
-		if strings.Contains(strings.ToLower(key), "validatingadmissionpolicy") {
-			policyName = fmt.Sprintf("%v", value)
-		}
-		if strings.Contains(strings.ToLower(key), "message") {
-			policyMessage = fmt.Sprintf("%v", value)
-		}
-	}
-
-	// Extract timestamp
-	timestamp := time.Now().Unix()
-	if logEvent.Timestamp != nil {
-		timestamp = *logEvent.Timestamp / 1000
-	}
-
 	// Create the policy violation event
 	violationEvent := &event.WatchedEvent{
-		EventType:    "PolicyViolation",
+		EventType:    event.EventTypeAdded,
 		ResourceType: resource,
 		Namespace:    namespace,
-		Name:         name,
-		UID:          fmt.Sprintf("cloudwatch-%d", timestamp),
-		Timestamp:    timestamp,
-		EventTime:    time.Unix(*logEvent.Timestamp/1000, 0).UTC().Format(time.RFC3339),
+		Name:         fmt.Sprintf("policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID),
+		UID:          auditEvent.AuditID,
+		Timestamp:    auditEvent.StageTimestamp.Unix(),
+		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
 		Data: map[string]interface{}{
-			"reason":        "PolicyViolation",
-			"type":          "Warning",
-			"message":       fmt.Sprintf("policy %s fail: %s", policyName, policyMessage),
-			"policy_name":   policyName,
-			"policy_result": "Block",
-			"blocked":       true,
-			"source":        "cloudwatch",
-			"request_uri":   request,
-			"api_version":   apiVersion,
-			"metadata": map[string]interface{}{
-				"log_group":      h.cloudwatchConfig.LogGroupName,
-				"aws_region":     h.cloudwatchConfig.Region,
-				"policy_name":    policyName,
-				"policy_message": policyMessage,
-				"request_uri":    request,
-				"api_version":    apiVersion,
+			"reason":  reason,
+			"message": policyMessage,
+			"blocked": reason == "Blocked",
+			"source": map[string]interface{}{
+				"component": "cloudwatch",
 			},
-			"timestamp":  timestamp,
-			"event_time": timestamp,
-		},
-	}
-
-	return violationEvent
-}
-
-// createPolicyViolationEvent creates a policy violation event from audit log data
-func (h *CloudWatchHandler) createPolicyViolationEvent(auditEvent map[string]interface{}, logEvent types.FilteredLogEvent) *event.WatchedEvent {
-	// Extract basic information
-	request, ok := auditEvent["requestURI"].(string)
-	if !ok {
-		return nil
-	}
-
-	// Extract resource information
-	objectRef, ok := auditEvent["objectRef"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	namespace, _ := objectRef["namespace"].(string)
-	name, _ := objectRef["name"].(string)
-	resource, _ := objectRef["resource"].(string)
-	apiVersion, _ := objectRef["apiVersion"].(string)
-
-	// Extract policy information from annotations
-	annotations, ok := auditEvent["annotations"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	policyName := "Unknown"
-	policyMessage := "Policy violation detected"
-
-	// Try to extract policy name and message from annotations
-	for key, value := range annotations {
-		if strings.Contains(strings.ToLower(key), "validatingadmissionpolicy") {
-			policyName = fmt.Sprintf("%v", value)
-		}
-		if strings.Contains(strings.ToLower(key), "message") {
-			policyMessage = fmt.Sprintf("%v", value)
-		}
-	}
-
-	// Extract timestamp
-	timestamp := time.Now().Unix()
-	if logEvent.Timestamp != nil {
-		timestamp = *logEvent.Timestamp / 1000
-	}
-
-	// Create the policy violation event
-	violationEvent := &event.WatchedEvent{
-		EventType:    "PolicyViolation",
-		ResourceType: resource,
-		Namespace:    namespace,
-		Name:         name,
-		UID:          fmt.Sprintf("cloudwatch-%d", timestamp),
-		Timestamp:    timestamp,
-		Data: map[string]interface{}{
-			"reason":        "PolicyViolation",
-			"type":          "Warning",
-			"message":       fmt.Sprintf("policy %s fail: %s", policyName, policyMessage),
-			"policy_name":   policyName,
-			"policy_result": "Block",
-			"blocked":       true,
-			"source":        "cloudwatch",
-			"request_uri":   request,
-			"api_version":   apiVersion,
+			"involvedObject": objectRef,
+			"firstTimestamp": auditEvent.RequestReceivedTimestamp.Format(time.RFC3339),
+			"lastTimestamp":  auditEvent.StageTimestamp.Format(time.RFC3339),
+			"metadata":       auditEvent.Annotations,
 		},
 		Metadata: map[string]interface{}{
-			"policy_name":    policyName,
-			"policy_message": policyMessage,
-			"request_uri":    request,
-			"api_version":    apiVersion,
-			"timestamp":      timestamp,
-			"event_time":     timestamp,
-			"log_group":      h.cloudwatchConfig.LogGroupName,
-			"log_stream":     logEvent.LogStreamName,
-			"event_id":       logEvent.EventId,
-			"aws_region":     h.cloudwatchConfig.Region,
+			"audit_id":      auditEvent.AuditID,
+			"policies":      policies,
+			"resource_name": name,
+			"namespace":     namespace,
+			"action":        reason,
+			"message":       policyMessage,
+			"timestamp":     auditEvent.StageTimestamp.Format(time.RFC3339),
+			"event_time":    auditEvent.StageTimestamp.Format(time.RFC3339),
 		},
 	}
-
 	return violationEvent
 }
