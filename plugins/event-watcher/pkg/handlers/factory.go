@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"log/slog"
+	"strings"
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -46,10 +47,10 @@ func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kub
 func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 	if consoleMode {
 		// Console handler for printing events to console
-		f.Register("policy-violation", NewConsoleHandler(f.insightsConfig))
+		f.Register("kyverno-policy-violation", NewConsoleHandler(f.insightsConfig))
 	} else {
 		// PolicyViolation handler for Kubernetes events (sends to Insights)
-		f.Register("policy-violation", NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register("kyverno-policy-violation", NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
@@ -76,12 +77,8 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) Event
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) string {
 	// Check for PolicyViolation events first (most specific)
 	slog.Info("Getting handler name for event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
-	if watchedEvent.ResourceType == "events" {
-		if reason, ok := watchedEvent.Data["reason"].(string); ok {
-			if reason == "PolicyViolation" {
-				return "policy-violation"
-			}
-		}
+	if strings.HasPrefix(watchedEvent.Name, "kyverno-policy-violation") {
+		return "kyverno-policy-violation"
 	}
 
 	return ""
