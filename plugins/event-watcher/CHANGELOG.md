@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.5
+* Added support to validating policy violation
+
 ## 0.1.4
 * Improving logic to identify policy violation
 
