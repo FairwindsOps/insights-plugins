@@ -158,10 +158,12 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			continue
 		}
 
-		// Check if this is a policy violation
-		if violation := h.isPolicyViolation(auditEvent); violation != nil {
-			slog.Info("Line of audit log that triggered policy violation=" + line)
-			h.createWatchedEventFromPolicyViolationEvent(violation)
+		if !h.isKyvernoPolicyViolation(auditEvent) {
+			continue
+		}
+		policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
+		if policyViolationEvent != nil {
+			h.createWatchedEventFromPolicyViolationEvent(policyViolationEvent)
 		}
 	}
 
@@ -174,44 +176,45 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		"lines_processed", lineNumber)
 }
 
-// isPolicyViolation checks if an audit event is a policy violation
-func (h *AuditLogHandler) isPolicyViolation(auditEvent AuditEvent) *PolicyViolationEvent {
-	// Only process deployment creation requests
-	if auditEvent.ObjectRef.Resource != "deployments" || auditEvent.Verb != "create" {
+func (h *AuditLogHandler) isKyvernoPolicyViolation(auditEvent AuditEvent) bool {
+	message := auditEvent.ResponseStatus.Message
+	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "kyverno") &&
+		strings.Contains(message, "blocked due to the following policies") {
+		return true
+	}
+	return false
+}
+
+// createPolicyViolation creates a policy violation event from an audit event
+func (h *AuditLogHandler) createPolicyViolationEvent(auditEvent AuditEvent) *PolicyViolationEvent {
+	if !h.isKyvernoPolicyViolation(auditEvent) {
 		return nil
 	}
 
-	// Check if the request was blocked (HTTP 4xx or 5xx)
-	if auditEvent.ResponseStatus.Code >= 400 {
-		slog.Info("auditEvent==============================", auditEvent)
+	// This is a blocked request - extract policy violation information
+	policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 
-		// This is a blocked request - extract policy violation information
-		policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	slog.Info("Detected policy violation from audit logs",
+		"audit_id", auditEvent.AuditID,
+		"policies", policies,
+		"resource_name", auditEvent.ObjectRef.Name,
+		"namespace", auditEvent.ObjectRef.Namespace,
+		"response_code", auditEvent.ResponseStatus.Code,
+		"message", auditEvent.ResponseStatus.Message,
+		"level", auditEvent.Level,
+		"stage", auditEvent.Stage)
 
-		slog.Info("Detected policy violation from audit logs",
-			"audit_id", auditEvent.AuditID,
-			"policies", policies,
-			"resource_name", auditEvent.ObjectRef.Name,
-			"namespace", auditEvent.ObjectRef.Namespace,
-			"response_code", auditEvent.ResponseStatus.Code,
-			"message", auditEvent.ResponseStatus.Message,
-			"level", auditEvent.Level,
-			"stage", auditEvent.Stage)
-
-		return &PolicyViolationEvent{
-			Timestamp:    auditEvent.RequestReceivedTimestamp,
-			Policies:     policies,
-			ResourceType: "Deployment",
-			ResourceName: auditEvent.ObjectRef.Name,
-			Namespace:    auditEvent.ObjectRef.Namespace,
-			User:         auditEvent.User.Username,
-			Action:       "blocked",
-			Message:      auditEvent.ResponseStatus.Message,
-			AuditID:      auditEvent.AuditID,
-		}
+	return &PolicyViolationEvent{
+		Timestamp:    auditEvent.RequestReceivedTimestamp,
+		Policies:     policies,
+		ResourceType: auditEvent.ObjectRef.Resource,
+		ResourceName: auditEvent.ObjectRef.Name,
+		Namespace:    auditEvent.ObjectRef.Namespace,
+		User:         auditEvent.User.Username,
+		Action:       auditEvent.ResponseStatus.Status,
+		Message:      auditEvent.ResponseStatus.Message,
+		AuditID:      auditEvent.AuditID,
 	}
-
-	return nil
 }
 
 // PolicyViolationEvent represents a detected policy violation from audit logs
@@ -230,6 +233,9 @@ type PolicyViolationEvent struct {
 
 // createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
 func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *PolicyViolationEvent) {
+	if violation == nil {
+		return
+	}
 	slog.Info("Detected policy violation from audit logs",
 		"policies", violation.Policies,
 		"resource_name", violation.ResourceName,
