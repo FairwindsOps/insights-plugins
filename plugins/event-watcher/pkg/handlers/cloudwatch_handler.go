@@ -44,6 +44,8 @@ type CloudWatchAuditEvent struct {
 	Annotations              map[string]string        `json:"annotations"`
 }
 
+var alreadyProcessedCloudWatchAuditIDs = map[string]bool{}
+
 type CloudWatchUser struct {
 	Username string   `json:"username"`
 	UID      string   `json:"uid"`
@@ -384,6 +386,11 @@ func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent 
 
 	// Check if this is a policy violation
 	if h.isKyvernoPolicyViolation(auditEvent) || h.isValidatingPolicyViolation(auditEvent) {
+		if alreadyProcessedCloudWatchAuditIDs[auditEvent.AuditID] {
+			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
+			return nil
+		}
+		alreadyProcessedCloudWatchAuditIDs[auditEvent.AuditID] = true
 		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
