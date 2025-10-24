@@ -158,10 +158,14 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			continue
 		}
 
-		// Check if this is a policy violation
-		if violation := h.analyzeAuditEvent(auditEvent); violation != nil {
-			slog.Info("Line of audit log that triggered policy violation=" + line)
-			h.createWatchedEventFromPolicyViolationEvent(violation)
+		if !h.isKyvernoPolicyViolation(auditEvent) {
+			continue
+		}
+		policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
+		slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
+		if policyViolationEvent != nil {
+			slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
+			h.createWatchedEventFromPolicyViolationEvent(policyViolationEvent)
 		}
 	}
 
@@ -174,42 +178,45 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		"lines_processed", lineNumber)
 }
 
-// analyzeAuditEvent analyzes an audit event to detect policy violations
-func (h *AuditLogHandler) analyzeAuditEvent(auditEvent AuditEvent) *PolicyViolationEvent {
-	// Only process deployment creation requests
-	if auditEvent.ObjectRef.Resource != "deployments" || auditEvent.Verb != "create" {
+func (h *AuditLogHandler) isKyvernoPolicyViolation(auditEvent AuditEvent) bool {
+	message := auditEvent.ResponseStatus.Message
+	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "kyverno") &&
+		strings.Contains(message, "blocked due to the following policies") {
+		return true
+	}
+	return false
+}
+
+// createPolicyViolation creates a policy violation event from an audit event
+func (h *AuditLogHandler) createPolicyViolationEvent(auditEvent AuditEvent) *PolicyViolationEvent {
+	if !h.isKyvernoPolicyViolation(auditEvent) {
 		return nil
 	}
 
-	// Check if the request was blocked (HTTP 4xx or 5xx)
-	if auditEvent.ResponseStatus.Code >= 400 {
-		// This is a blocked request - extract policy violation information
-		policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	// This is a blocked request - extract policy violation information
+	policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 
-		slog.Info("Detected policy violation from audit logs",
-			"audit_id", auditEvent.AuditID,
-			"policies", policies,
-			"resource_name", auditEvent.ObjectRef.Name,
-			"namespace", auditEvent.ObjectRef.Namespace,
-			"response_code", auditEvent.ResponseStatus.Code,
-			"message", auditEvent.ResponseStatus.Message,
-			"level", auditEvent.Level,
-			"stage", auditEvent.Stage)
+	slog.Info("Detected policy violation from audit logs",
+		"audit_id", auditEvent.AuditID,
+		"policies", policies,
+		"resource_name", auditEvent.ObjectRef.Name,
+		"namespace", auditEvent.ObjectRef.Namespace,
+		"response_code", auditEvent.ResponseStatus.Code,
+		"message", auditEvent.ResponseStatus.Message,
+		"level", auditEvent.Level,
+		"stage", auditEvent.Stage)
 
-		return &PolicyViolationEvent{
-			Timestamp:    auditEvent.RequestReceivedTimestamp,
-			Policies:     policies,
-			ResourceType: "Deployment",
-			ResourceName: auditEvent.ObjectRef.Name,
-			Namespace:    auditEvent.ObjectRef.Namespace,
-			User:         auditEvent.User.Username,
-			Action:       "blocked",
-			Message:      auditEvent.ResponseStatus.Message,
-			AuditID:      auditEvent.AuditID,
-		}
+	return &PolicyViolationEvent{
+		Timestamp:    auditEvent.RequestReceivedTimestamp,
+		Policies:     policies,
+		ResourceType: auditEvent.ObjectRef.Resource,
+		ResourceName: auditEvent.ObjectRef.Name,
+		Namespace:    auditEvent.ObjectRef.Namespace,
+		User:         auditEvent.User.Username,
+		Action:       auditEvent.ResponseStatus.Status,
+		Message:      auditEvent.ResponseStatus.Message,
+		AuditID:      auditEvent.AuditID,
 	}
-
-	return nil
 }
 
 // PolicyViolationEvent represents a detected policy violation from audit logs
@@ -228,7 +235,12 @@ type PolicyViolationEvent struct {
 
 // createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
 func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *PolicyViolationEvent) {
-	slog.Info("Detected policy violation from audit logs",
+	slog.Info("Creating watched event from policy violation event", "violation", violation)
+	if violation == nil {
+		slog.Info("Policy violation event is nil, skipping", "violation", violation)
+		return
+	}
+	slog.Info("Creating watched event from policy violation event",
 		"policies", violation.Policies,
 		"resource_name", violation.ResourceName,
 		"namespace", violation.Namespace,
@@ -246,7 +258,7 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *
 		EventType:    event.EventTypeAdded,
 		ResourceType: violation.ResourceType,
 		Namespace:    violation.Namespace,
-		Name:         fmt.Sprintf("policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID),
+		Name:         fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID),
 		UID:          violation.AuditID,
 		Timestamp:    ts.Unix(),
 		EventTime:    ts.UTC().Format(time.RFC3339),
@@ -286,11 +298,11 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *
 	// Send the synthetic event to the event channel
 	select {
 	case h.eventChannel <- watchedEvent:
-		slog.Debug("Sent watched event",
+		slog.Info("Sent watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	default:
-		slog.Warn("Event channel full, dropping watched event",
+		slog.Info("Event channel full, dropping watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	}

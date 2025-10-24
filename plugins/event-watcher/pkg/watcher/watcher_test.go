@@ -50,13 +50,13 @@ func TestWatcherHandlerFactory(t *testing.T) {
 			EventType:    event.EventTypeAdded,
 			ResourceType: "events",
 			Namespace:    "default",
-			Name:         "validatingadmissionpolicy-violation-test",
+			Name:         "kyverno-policy-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
 			UID:          "test-uid-123",
 			Data: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Event",
 				"reason":     "PolicyViolation",
-				"message":    "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods.",
+				"message":    "admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource ValidatingAdmissionPolicy/default/require-team-label was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'\n\njames-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'\njames-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource  \n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
 				"involvedObject": map[string]interface{}{
 					"kind":      "ValidatingAdmissionPolicy", // This makes it a ValidatingAdmissionPolicy event
 					"name":      "require-team-label",
@@ -64,7 +64,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 				},
 			},
 			Metadata: map[string]interface{}{
-				"name":      "validatingadmissionpolicy-violation-test",
+				"name":      "kyverno-policy-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
 				"namespace": "default",
 				"uid":       "test-uid-123",
 			},

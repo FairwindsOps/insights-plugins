@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4
+* Improving logic to identify policy violation
+
 ## 0.1.3
 * Improving parsing cloud watch logs
 

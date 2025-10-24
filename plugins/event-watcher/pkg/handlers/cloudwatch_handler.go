@@ -383,7 +383,7 @@ func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent 
 	}
 
 	// Check if this is a policy violation
-	if h.isPolicyViolation(auditEvent) {
+	if h.isKyvernoPolicyViolation(auditEvent) {
 		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
@@ -416,7 +416,7 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 	}
 
 	// Check if this is a ValidatingAdmissionPolicy violation
-	if h.isPolicyViolation(auditEvent) {
+	if h.isKyvernoPolicyViolation(auditEvent) {
 		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
@@ -435,14 +435,20 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 	return nil
 }
 
-// isPolicyViolation checks if the audit event represents a policy violation response
-func (h *CloudWatchHandler) isPolicyViolation(auditEvent CloudWatchAuditEvent) bool {
-	// TODO improve this logic
-	return auditEvent.Stage == "ResponseComplete" && auditEvent.ResponseStatus.Code >= 400
+func (h *CloudWatchHandler) isKyvernoPolicyViolation(auditEvent CloudWatchAuditEvent) bool {
+	message := auditEvent.ResponseStatus.Message
+	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "kyverno") &&
+		strings.Contains(message, "blocked due to the following policies") {
+		return true
+	}
+	return false
 }
 
 // createPolicyViolationEventFromAuditEvent creates a policy violation event from audit event
 func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *event.WatchedEvent {
+	if !h.isKyvernoPolicyViolation(auditEvent) {
+		return nil
+	}
 	objectRef := auditEvent.ObjectRef
 	namespace := objectRef.Namespace
 	name := objectRef.Name
@@ -460,7 +466,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 		EventType:    event.EventTypeAdded,
 		ResourceType: resource,
 		Namespace:    namespace,
-		Name:         fmt.Sprintf("policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID),
+		Name:         fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID),
 		UID:          auditEvent.AuditID,
 		Timestamp:    auditEvent.StageTimestamp.Unix(),
 		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
