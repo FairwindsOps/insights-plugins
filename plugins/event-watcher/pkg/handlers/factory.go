@@ -48,9 +48,11 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 	if consoleMode {
 		// Console handler for printing events to console
 		f.Register("kyverno-policy-violation", NewConsoleHandler(f.insightsConfig))
+		f.Register("validating-policy-violation", NewConsoleHandler(f.insightsConfig))
 	} else {
 		// PolicyViolation handler for Kubernetes events (sends to Insights)
 		f.Register("kyverno-policy-violation", NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register("validating-policy-violation", NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
@@ -77,13 +79,16 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) Event
 
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) string {
 	// Check for PolicyViolation events first (most specific)
-	slog.Info("Getting handler name for event", "name", watchedEvent.Name, "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
+	slog.Info("Getting handler name for event", "name", watchedEvent.Name)
 	if strings.HasPrefix(watchedEvent.Name, "kyverno-policy-violation") {
 		slog.Info("Found kyverno policy violation event", "name", watchedEvent.Name)
 		return "kyverno-policy-violation"
 	}
-
-	slog.Info("No kyverno policy violation event found", "name", watchedEvent.Name)
+	if strings.HasPrefix(watchedEvent.Name, "validating-policy-violation") {
+		slog.Info("Found validating policy violation event", "name", watchedEvent.Name)
+		return "validating-policy-violation"
+	}
+	slog.Info("No handler found for event", "name", watchedEvent.Name)
 	return ""
 }
 
