@@ -41,7 +41,7 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 		EventType:    event.EventTypeAdded,
 		ResourceType: "events",
 		Namespace:    "default",
-		Name:         "policy-violation-test",
+		Name:         "kyverno-policy-violation-test",
 		UID:          "test-uid-123",
 		Data: map[string]interface{}{
 			"apiVersion": "v1",
@@ -55,7 +55,7 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 			},
 		},
 		Metadata: map[string]interface{}{
-			"name":      "policy-violation-test",
+			"name":      "kyverno-policy-violation-test",
 			"namespace": "default",
 			"uid":       "test-uid-123",
 		},
@@ -99,7 +99,7 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 		EventType:    event.EventTypeAdded,
 		ResourceType: "events",
 		Namespace:    "default",
-		Name:         "policy-violation-warning",
+		Name:         "kyverno-policy-violation-warning",
 		UID:          "test-uid-456",
 		Data: map[string]interface{}{
 			"apiVersion": "v1",
@@ -113,7 +113,7 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 			},
 		},
 		Metadata: map[string]interface{}{
-			"name":      "policy-violation-warning",
+			"name":      "kyverno-policy-violation-warning",
 			"namespace": "default",
 			"uid":       "test-uid-456",
 		},
