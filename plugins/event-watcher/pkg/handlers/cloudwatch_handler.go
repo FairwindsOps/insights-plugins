@@ -383,7 +383,7 @@ func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent 
 	}
 
 	// Check if this is a policy violation
-	if h.isKyvernoPolicyViolation(auditEvent) {
+	if h.isKyvernoPolicyViolation(auditEvent) || h.isValidatingPolicyViolation(auditEvent) {
 		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
@@ -416,7 +416,7 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 	}
 
 	// Check if this is a ValidatingAdmissionPolicy violation
-	if h.isKyvernoPolicyViolation(auditEvent) {
+	if h.isKyvernoPolicyViolation(auditEvent) || h.isValidatingPolicyViolation(auditEvent) {
 		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
@@ -444,29 +444,49 @@ func (h *CloudWatchHandler) isKyvernoPolicyViolation(auditEvent CloudWatchAuditE
 	return false
 }
 
+func (h *CloudWatchHandler) isValidatingPolicyViolation(auditEvent CloudWatchAuditEvent) bool {
+	message := auditEvent.ResponseStatus.Message
+	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "vpol") &&
+		strings.Contains(message, "kyverno") {
+		return true
+	}
+	return false
+}
+
 // createPolicyViolationEventFromAuditEvent creates a policy violation event from audit event
 func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *event.WatchedEvent {
-	if !h.isKyvernoPolicyViolation(auditEvent) {
+	if !h.isKyvernoPolicyViolation(auditEvent) && !h.isValidatingPolicyViolation(auditEvent) {
 		return nil
+	}
+	policies := map[string]map[string]string{}
+	if h.isKyvernoPolicyViolation(auditEvent) {
+		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	} else if h.isValidatingPolicyViolation(auditEvent) {
+		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
 	objectRef := auditEvent.ObjectRef
 	namespace := objectRef.Namespace
 	name := objectRef.Name
 	resource := objectRef.Resource
 
-	policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	policyMessage := auditEvent.ResponseStatus.Message
 
 	reason := "Allowed"
 	if auditEvent.ResponseStatus.Code >= 400 {
 		reason = "Blocked"
 	}
+
+	name = fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID)
+	if h.isValidatingPolicyViolation(auditEvent) {
+		name = fmt.Sprintf("validating-policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID)
+	}
+
 	// Create the policy violation event
 	violationEvent := &event.WatchedEvent{
 		EventType:    event.EventTypeAdded,
 		ResourceType: resource,
 		Namespace:    namespace,
-		Name:         fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID),
+		Name:         name,
 		UID:          auditEvent.AuditID,
 		Timestamp:    auditEvent.StageTimestamp.Unix(),
 		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),

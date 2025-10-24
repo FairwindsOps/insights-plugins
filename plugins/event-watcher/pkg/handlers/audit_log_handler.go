@@ -151,14 +151,14 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		// Parse the audit log entry
 		var auditEvent AuditEvent
 		if err := json.Unmarshal([]byte(line), &auditEvent); err != nil {
-			slog.Debug("Failed to parse audit log line",
+			slog.Info("Failed to parse audit log line",
 				"error", err,
 				"line_number", lineNumber,
 				"audit_log_path", h.auditLogPath)
 			continue
 		}
 
-		if !h.isKyvernoPolicyViolation(auditEvent) {
+		if !h.isKyvernoPolicyViolation(auditEvent) && !h.isValidatingPolicyViolation(auditEvent) {
 			continue
 		}
 		policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
@@ -181,7 +181,16 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 func (h *AuditLogHandler) isKyvernoPolicyViolation(auditEvent AuditEvent) bool {
 	message := auditEvent.ResponseStatus.Message
 	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "kyverno") &&
-		strings.Contains(message, "blocked due to the following policies") {
+		strings.Contains(message, "blocked due to the following policies") && !strings.Contains(message, "vpol") {
+		return true
+	}
+	return false
+}
+
+func (h *AuditLogHandler) isValidatingPolicyViolation(auditEvent AuditEvent) bool {
+	message := auditEvent.ResponseStatus.Message
+	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "vpol") &&
+		strings.Contains(message, "kyverno") {
 		return true
 	}
 	return false
@@ -189,23 +198,15 @@ func (h *AuditLogHandler) isKyvernoPolicyViolation(auditEvent AuditEvent) bool {
 
 // createPolicyViolation creates a policy violation event from an audit event
 func (h *AuditLogHandler) createPolicyViolationEvent(auditEvent AuditEvent) *PolicyViolationEvent {
-	if !h.isKyvernoPolicyViolation(auditEvent) {
+	if !h.isKyvernoPolicyViolation(auditEvent) && !h.isValidatingPolicyViolation(auditEvent) {
 		return nil
 	}
-
-	// This is a blocked request - extract policy violation information
-	policies := ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-
-	slog.Info("Detected policy violation from audit logs",
-		"audit_id", auditEvent.AuditID,
-		"policies", policies,
-		"resource_name", auditEvent.ObjectRef.Name,
-		"namespace", auditEvent.ObjectRef.Namespace,
-		"response_code", auditEvent.ResponseStatus.Code,
-		"message", auditEvent.ResponseStatus.Message,
-		"level", auditEvent.Level,
-		"stage", auditEvent.Stage)
-
+	policies := map[string]map[string]string{}
+	if h.isKyvernoPolicyViolation(auditEvent) {
+		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	} else if h.isValidatingPolicyViolation(auditEvent) {
+		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	}
 	return &PolicyViolationEvent{
 		Timestamp:    auditEvent.RequestReceivedTimestamp,
 		Policies:     policies,
