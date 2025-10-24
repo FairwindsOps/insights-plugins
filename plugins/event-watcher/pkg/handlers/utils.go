@@ -35,6 +35,23 @@ func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
 	return policies
 }
 
+func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]string {
+	policyName := "unknown"
+	if strings.Contains(message, "vpol") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
+		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
+		endIndex := strings.Index(message, " failed:")
+		if startIndex != -1 && endIndex != -1 {
+			policyName = message[startIndex:endIndex]
+			policyName = strings.TrimSpace(policyName)
+		}
+	}
+	return map[string]map[string]string{
+		policyName: {
+			policyName: message,
+		},
+	}
+}
+
 // sendToInsights sends the policy violation to Insights API
 func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, rateLimiter *rate.Limiter, violationEvent *models.PolicyViolationEvent) error {
 	// Apply rate limiting

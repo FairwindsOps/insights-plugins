@@ -29,11 +29,6 @@ func NewValidatingPolicyViolationHandler(insightsConfig models.InsightsConfig, h
 	}
 }
 
-/*
-We should look for the response
-admission webhook "vpol.validate.kyverno.svc-fail" denied the request: Policy check-labels failed: label 'environment' is required: failed to create resource: admission webhook "vpol.validate.kyverno.svc-fail" denied the request: Policy check-labels failed: label 'environment' is required
-*/
-
 func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
@@ -83,5 +78,48 @@ func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *event.WatchedEve
 }
 
 func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
-	return nil, nil
+	if watchedEvent == nil {
+		return nil, fmt.Errorf("watchedEvent is nil")
+	}
+	if watchedEvent.Data == nil {
+		return nil, fmt.Errorf("event data is nil")
+	}
+
+	message, ok := watchedEvent.Data["message"].(string)
+	if !ok || message == "" {
+		return nil, fmt.Errorf("no message field in event or message is empty")
+	}
+
+	policies := ExtractValidatingPoliciesFromMessage(message)
+	blocked := false
+	policyResult := ""
+	if watchedEvent.Metadata != nil && watchedEvent.Metadata["policyResult"] != nil {
+		policyResult, ok := watchedEvent.Metadata["policyResult"].(string)
+		if !ok {
+			slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
+		} else {
+			blocked = policyResult == "fail"
+		}
+	} else {
+		slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
+		blocked = true
+		policyResult = "fail"
+	}
+	return &models.PolicyViolationEvent{
+		EventReport: models.EventReport{
+			EventType:    string(watchedEvent.EventType),
+			ResourceType: watchedEvent.ResourceType,
+			Namespace:    watchedEvent.Namespace,
+			Name:         watchedEvent.Name,
+			UID:          watchedEvent.UID,
+			Timestamp:    watchedEvent.Timestamp,
+			Data:         watchedEvent.Data,
+			Metadata:     watchedEvent.Metadata,
+		},
+		Policies:     policies,
+		PolicyResult: policyResult,
+		Message:      message,
+		Blocked:      blocked,
+		EventTime:    watchedEvent.EventTime,
+	}, nil
 }
