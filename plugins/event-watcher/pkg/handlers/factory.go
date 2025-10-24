@@ -94,6 +94,7 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 
 // ProcessEvent processes an event using the appropriate handler
 func (f *EventHandlerFactory) ProcessEvent(watchedEvent *event.WatchedEvent) error {
+	slog.Info("Processing event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	handler := f.GetHandler(watchedEvent)
 	if handler == nil {
 		slog.Debug("No handler found for event",
