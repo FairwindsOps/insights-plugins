@@ -43,6 +43,8 @@ func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]
 		if startIndex != -1 && endIndex != -1 {
 			policyName = message[startIndex:endIndex]
 			policyName = strings.TrimSpace(policyName)
+			fmt.Println("policyName", policyName)
+			fmt.Println("message", message)
 		}
 	}
 	return map[string]map[string]string{
