@@ -61,6 +61,7 @@ func (f *EventHandlerFactory) Register(name string, handler EventHandler) {
 
 // GetHandler returns the appropriate handler for an event
 func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) EventHandler {
+	slog.Info("Getting handler for event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	// Determine the handler name based on event characteristics
 	handlerName := f.getHandlerName(watchedEvent)
 
@@ -74,6 +75,7 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) Event
 
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) string {
 	// Check for PolicyViolation events first (most specific)
+	slog.Info("Getting handler name for event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	if watchedEvent.ResourceType == "events" {
 		if reason, ok := watchedEvent.Data["reason"].(string); ok {
 			if reason == "PolicyViolation" {
@@ -87,6 +89,7 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 
 // ProcessEvent processes an event using the appropriate handler
 func (f *EventHandlerFactory) ProcessEvent(watchedEvent *event.WatchedEvent) error {
+	slog.Info("Processing event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	handler := f.GetHandler(watchedEvent)
 	if handler == nil {
 		slog.Debug("No handler found for event",

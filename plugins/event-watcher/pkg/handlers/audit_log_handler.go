@@ -236,7 +236,7 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *
 	if violation == nil {
 		return
 	}
-	slog.Info("Detected policy violation from audit logs",
+	slog.Info("Creating watched event from policy violation event",
 		"policies", violation.Policies,
 		"resource_name", violation.ResourceName,
 		"namespace", violation.Namespace,
@@ -294,11 +294,11 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(violation *
 	// Send the synthetic event to the event channel
 	select {
 	case h.eventChannel <- watchedEvent:
-		slog.Debug("Sent watched event",
+		slog.Info("Sent watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	default:
-		slog.Warn("Event channel full, dropping watched event",
+		slog.Info("Event channel full, dropping watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.ResourceName)
 	}
