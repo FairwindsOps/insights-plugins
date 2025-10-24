@@ -26,6 +26,8 @@ type AuditLogHandler struct {
 	stopCh         chan struct{}
 }
 
+var alreadyProcessedAuditIDs = map[string]bool{}
+
 // AuditEvent represents a Kubernetes audit log entry
 type AuditEvent struct {
 	Kind                     string            `json:"kind"`
@@ -161,6 +163,12 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		if !h.isKyvernoPolicyViolation(auditEvent) && !h.isValidatingPolicyViolation(auditEvent) {
 			continue
 		}
+
+		if alreadyProcessedAuditIDs[auditEvent.AuditID] {
+			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
+			continue
+		}
+		alreadyProcessedAuditIDs[auditEvent.AuditID] = true
 		policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
 		slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 		if policyViolationEvent != nil {
@@ -181,7 +189,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 func (h *AuditLogHandler) isKyvernoPolicyViolation(auditEvent AuditEvent) bool {
 	message := auditEvent.ResponseStatus.Message
 	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "kyverno") &&
-		strings.Contains(message, "blocked due to the following policies") && !strings.Contains(message, "vpol") {
+		strings.Contains(message, "blocked due to the following policies") {
 		return true
 	}
 	return false
