@@ -1,9 +1,6 @@
 package handlers
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -13,7 +10,6 @@ import (
 
 	"golang.org/x/time/rate"
 
-	version "github.com/fairwindsops/insights-plugins/plugins/event-watcher"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
@@ -96,7 +92,7 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error 
 		"resource", violationEvent.Name,
 		"blocked", violationEvent.Blocked)
 
-	return h.sendToInsights(violationEvent)
+	return SendToInsights(h.insightsConfig, h.client, h.rateLimiter, violationEvent)
 }
 
 func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
@@ -144,59 +140,4 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 		Blocked:      blocked,
 		EventTime:    watchedEvent.EventTime,
 	}, nil
-}
-
-// sendToInsights sends the policy violation to Insights API
-func (h *PolicyViolationHandler) sendToInsights(violationEvent *models.PolicyViolationEvent) error {
-	// Apply rate limiting
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := h.rateLimiter.Wait(ctx); err != nil {
-		return fmt.Errorf("rate limit exceeded: %w", err)
-	}
-
-	// Convert to JSON
-	jsonData, err := json.Marshal(violationEvent)
-	if err != nil {
-		return fmt.Errorf("failed to marshal violation event: %w", err)
-	}
-
-	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/watcher/policy-violations",
-		h.insightsConfig.Hostname,
-		h.insightsConfig.Organization,
-		h.insightsConfig.Cluster)
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Set headers
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+h.insightsConfig.Token)
-
-	watcherVersion := version.Version
-	req.Header.Set("X-Fairwinds-Watcher-Version", watcherVersion)
-
-	resp, err := h.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("insights API returned status %d", resp.StatusCode)
-	}
-
-	slog.Info("Successfully sent blocked policy violation to Insights API",
-		"policies", violationEvent.Policies,
-		"result", violationEvent.PolicyResult,
-		"blocked", violationEvent.Blocked,
-		"namespace", violationEvent.Namespace,
-		"resource", violationEvent.Name,
-		"event_time", violationEvent.EventTime,
-		"timestamp", violationEvent.Timestamp)
-
-	return nil
 }
