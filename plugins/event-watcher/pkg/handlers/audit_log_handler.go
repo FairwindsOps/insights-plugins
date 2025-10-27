@@ -15,7 +15,22 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+
+	"github.com/allegro/bigcache/v3"
 )
+
+var alreadyProcessedAuditIDs *bigcache.BigCache
+
+func init() {
+	var err error
+	config := bigcache.DefaultConfig(60 * time.Minute)
+	config.HardMaxCacheSize = 256 // 512MB
+	alreadyProcessedAuditIDs, err = bigcache.New(context.Background(), config)
+	if err != nil {
+		slog.Error("Failed to create bigcache", "error", err)
+	}
+	slog.Info("Bigcache created", "size", alreadyProcessedAuditIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
+}
 
 // AuditLogHandler handles audit log monitoring and policy violation detection
 type AuditLogHandler struct {
@@ -25,8 +40,6 @@ type AuditLogHandler struct {
 	eventChannel   chan *event.WatchedEvent
 	stopCh         chan struct{}
 }
-
-var alreadyProcessedAuditIDs = map[string]bool{}
 
 // AuditEvent represents a Kubernetes audit log entry
 type AuditEvent struct {
@@ -164,11 +177,14 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			continue
 		}
 
-		if alreadyProcessedAuditIDs[auditEvent.AuditID] {
+		if value, err := alreadyProcessedAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
 			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 			continue
 		}
-		alreadyProcessedAuditIDs[auditEvent.AuditID] = true
+		err = alreadyProcessedAuditIDs.Set(auditEvent.AuditID, []byte("true"))
+		if err != nil {
+			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
+		}
 		policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
 		slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 		if policyViolationEvent != nil {

@@ -9,6 +9,7 @@ import (
 
 	"log/slog"
 
+	"github.com/allegro/bigcache/v3"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
@@ -17,6 +18,19 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
+
+var alreadyProcessedCloudWatchAuditIDs *bigcache.BigCache
+
+func init() {
+	var err error
+	config := bigcache.DefaultConfig(60 * time.Minute)
+	config.HardMaxCacheSize = 256 // 512MB
+	alreadyProcessedCloudWatchAuditIDs, err = bigcache.New(context.Background(), config)
+	if err != nil {
+		slog.Error("Failed to create bigcache", "error", err)
+	}
+	slog.Info("Bigcache created", "size", alreadyProcessedCloudWatchAuditIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
+}
 
 // CloudWatchHandler handles CloudWatch log processing for policy violations
 type CloudWatchHandler struct {
@@ -43,9 +57,6 @@ type CloudWatchAuditEvent struct {
 	StageTimestamp           time.Time                `json:"stageTimestamp"`
 	Annotations              map[string]string        `json:"annotations"`
 }
-
-var alreadyProcessedCloudWatchAuditIDs = map[string]bool{}
-
 type CloudWatchUser struct {
 	Username string   `json:"username"`
 	UID      string   `json:"uid"`
@@ -386,11 +397,15 @@ func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent 
 
 	// Check if this is a policy violation
 	if h.isKyvernoPolicyViolation(auditEvent) || h.isValidatingPolicyViolation(auditEvent) {
-		if alreadyProcessedCloudWatchAuditIDs[auditEvent.AuditID] {
+		if value, err := alreadyProcessedCloudWatchAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
 			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 			return nil
 		}
-		alreadyProcessedCloudWatchAuditIDs[auditEvent.AuditID] = true
+		err := alreadyProcessedCloudWatchAuditIDs.Set(auditEvent.AuditID, []byte("true"))
+		if err != nil {
+			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
+			return nil
+		}
 		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
