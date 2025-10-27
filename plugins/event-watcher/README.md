@@ -516,22 +516,6 @@ insights-event-watcher:
       memory: 256Mi
 ```
 
-### Testing Automatic Policy Duplication
-
-To test the automatic policy duplication functionality:
-
-1. **Deploy the watcher** with proper RBAC permissions
-2. **Create a ValidatingAdmissionPolicy** with Deny-only bindings
-3. **Check for automatically created audit policies**:
-
-```bash
-# Check for audit policies
-kubectl get validatingadmissionpolicies | grep insights-audit
-
-# Check watcher logs for VAP duplicator activity
-kubectl logs -n insights-agent deployment/insights-event-watcher | grep -i "VAPDuplicator"
-```
-
 ## Configuration
 
 The watcher uses in-cluster configuration by default. Ensure it has appropriate RBAC permissions to watch the desired resources.
