@@ -306,55 +306,6 @@ readinessProbe:
   failureThreshold: 3
 ```
 
-#### Example
-
-When you create a policy like this:
-```yaml
-apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingAdmissionPolicy
-metadata:
-  name: disallow-host-path
-spec:
-  validations:
-  - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
-    message: "HostPath volumes are forbidden"
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingAdmissionPolicyBinding
-metadata:
-  name: disallow-host-path-binding
-spec:
-  policyName: disallow-host-path
-  validationActions:
-  - Deny  # Only Deny action
-```
-
-The watcher automatically creates:
-```yaml
-apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingAdmissionPolicy
-metadata:
-  name: disallow-host-path-insights-audit
-  labels:
-    insights.fairwinds.com/audit-policy: "true"
-    insights.fairwinds.com/original-policy: "disallow-host-path"
-spec:
-  validations:
-  - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
-    message: "HostPath volumes are forbidden"
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingAdmissionPolicyBinding
-metadata:
-  name: disallow-host-path-binding-insights-audit
-  labels:
-    insights.fairwinds.com/audit-binding: "true"
-    insights.fairwinds.com/original-binding: "disallow-host-path-binding"
-spec:
-  policyName: disallow-host-path-insights-audit
-  validationActions:
-  - Audit  # Only Audit action
-```
 
 #### Example PolicyViolation Events
 
@@ -367,10 +318,6 @@ Warning   PolicyViolation     validatingadmissionpolicy/disallow-host-path   Dep
 
 # Regular Kyverno policy format:
 Warning   PolicyViolation     deployment/nginx                               policy disallow-host-path/disallow-host-path fail (blocked): HostPath volumes are forbidden...
-
-# VAPViolation format (from audit policies):
-Warning   VAPViolation        replicaset/nginx-578557b98b                   VAP Policy Violation: ReplicaSet default/nginx-578557b98b: [disallow-host-path] fail; HostPath volumes are forbidden...
-```
 
 #### Creating Policies That Generate Blocked Events
 
@@ -396,54 +343,6 @@ spec:
           =(volumes):
             - X(hostPath): "null"
 ```
-
-**ValidatingAdmissionPolicy Example:**
-```yaml
-apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingAdmissionPolicy
-metadata:
-  name: disallow-host-path
-spec:
-  failurePolicy: Fail  # This generates "(blocked)" events
-  validations:
-  - expression: "!has(object.spec.volumes) || !object.spec.volumes.exists(v, has(v.hostPath))"
-    message: "HostPath volumes are forbidden"
-  matchConstraints:
-    resourceRules:
-    - apiGroups: [""]
-      apiVersions: ["v1"]
-      operations: ["CREATE", "UPDATE"]
-      resources: ["pods"]
-```
-
-
-### Extensible Event Handler System
-
-The watcher uses a factory pattern for event handling, making it easy to add new event types:
-
-- **PolicyViolation Events**: Captures any blocked policy violation (ValidatingAdmissionPolicy or Kyverno) and sends to Insights API
-- **VAPViolation Events**: Processes VAPViolation events from audit policies
-- **ValidatingAdmissionPolicy Events**: Handles ValidatingAdmissionPolicy resources for automatic audit policy duplication
-- **Easy Extension**: Add new handlers by implementing the `EventHandler` interface
-
-#### Handler Architecture
-
-```go
-type EventHandler interface {
-    Handle(watchedEvent *event.WatchedEvent) error
-}
-```
-
-The factory automatically selects the most appropriate handler based on:
-1. **Event characteristics** (e.g., `reason: PolicyViolation` or `reason: VAPViolation` → `policy-violation` handler)
-2. **Resource type** (e.g., `ValidatingAdmissionPolicy` → `vap-duplicator` handler)
-3. **Fallback to no handler** for unmatched resources
-
-**No `CanHandle` method needed** - the factory uses a simple naming convention!
-
-#### Watched Resources
-- **events** - Kubernetes events (CRITICAL for policy violations)
-- **ValidatingAdmissionPolicy, ValidatingAdmissionPolicyBinding** - Admission control policies for automatic audit policy duplication
 
 ## Building
 
@@ -616,39 +515,6 @@ insights-event-watcher:
       cpu: 100m
       memory: 256Mi
 ```
-
-### Testing Automatic Policy Duplication
-
-To test the automatic policy duplication functionality:
-
-1. **Deploy the watcher** with proper RBAC permissions
-2. **Create a ValidatingAdmissionPolicy** with Deny-only bindings
-3. **Check for automatically created audit policies**:
-
-```bash
-# Check for audit policies
-kubectl get validatingadmissionpolicies | grep insights-audit
-
-# Check watcher logs for VAP duplicator activity
-kubectl logs -n insights-agent deployment/insights-event-watcher | grep -i "VAPDuplicator"
-```
-
-## Troubleshooting
-
-### Backpressure Issues
-
-If you're experiencing high dropped event rates or channel utilization:
-
-1. **Increase Buffer Size**: Increase `--event-buffer-size` (default: 1000)
-2. **Monitor Metrics**: Check logs for metrics showing high channel utilization
-3. **Reduce Processing Load**: Consider reducing CloudWatch batch sizes or increasing poll intervals
-4. **Scale Resources**: Increase CPU/memory limits for the watcher pod
-
-### Common Issues
-
-- **High Dropped Events**: Indicates backpressure - increase buffer size or reduce event volume
-- **Low Processing Rate**: May indicate API rate limiting or network issues
-- **Channel Utilization > 80%**: Consider increasing buffer size or optimizing event processing
 
 ## Configuration
 
