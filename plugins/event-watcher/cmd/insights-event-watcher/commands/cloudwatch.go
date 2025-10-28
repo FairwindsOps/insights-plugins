@@ -28,10 +28,11 @@ to Fairwinds Insights API.`,
 var (
 	// CloudWatch specific flags
 	logGroup      string
+	batchSize     int
+	pollInterval  string
+	maxMemoryMB   int
 	filterPattern string
 	region        string
-	startTime     string
-	endTime       string
 )
 
 func init() {
@@ -41,8 +42,9 @@ func init() {
 	cloudwatchCmd.Flags().StringVar(&logGroup, "log-group", "", "CloudWatch log group name (required)")
 	cloudwatchCmd.Flags().StringVar(&filterPattern, "filter-pattern", "", "CloudWatch filter pattern")
 	cloudwatchCmd.Flags().StringVar(&region, "region", "", "AWS region (required)")
-	cloudwatchCmd.Flags().StringVar(&startTime, "start-time", "", "Start time for log query (RFC3339 format)")
-	cloudwatchCmd.Flags().StringVar(&endTime, "end-time", "", "End time for log query (RFC3339 format)")
+	cloudwatchCmd.Flags().IntVar(&batchSize, "batch-size", 100, "Number of log events to process in each batch")
+	cloudwatchCmd.Flags().StringVar(&pollInterval, "poll-interval", "30s", "Interval between CloudWatch log polls")
+	cloudwatchCmd.Flags().IntVar(&maxMemoryMB, "max-memory", 512, "Maximum memory usage in MB for CloudWatch processing")
 
 	// Mark required flags
 	cloudwatchCmd.MarkFlagRequired("log-group")
@@ -53,6 +55,9 @@ func runCloudWatch(cmd *cobra.Command, args []string) error {
 	slog.Info("Starting CloudWatch event watcher",
 		"log_group", logGroup,
 		"region", region,
+		"batch_size", batchSize,
+		"poll_interval", pollInterval,
+		"max_memory", maxMemoryMB,
 		"filter_pattern", filterPattern)
 
 	// Create insights config
@@ -81,6 +86,9 @@ func runCloudWatch(cmd *cobra.Command, args []string) error {
 		LogGroupName:  logGroup,
 		FilterPattern: filterPattern,
 		Region:        region,
+		BatchSize:     batchSize,
+		PollInterval:  pollInterval,
+		MaxMemoryMB:   maxMemoryMB,
 	}
 
 	// Create watcher
