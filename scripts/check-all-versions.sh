@@ -38,6 +38,7 @@ done
 rewrites["falco-agent"]="falco"
 rewrites["kube-bench-aggregator"]="kube-bench.aggregator"
 rewrites["prometheus"]="prometheus-metrics"
+rewrites["event-watcher"]="insights-event-watcher"
 
 for proj in ${plugin_projects[@]}; do
   latest_versions[$proj]=$(cat ../plugins/$proj/version.txt)
