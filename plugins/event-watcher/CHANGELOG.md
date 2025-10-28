@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.7
+* Added missing parameters
+
 ## 0.1.6
 * Added big cache
 
