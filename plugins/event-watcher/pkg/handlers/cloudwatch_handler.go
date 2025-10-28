@@ -325,11 +325,6 @@ func (h *CloudWatchHandler) processLogStream(ctx context.Context, stream types.L
 		return nil
 	}
 
-	lastEventTime := time.Unix(*stream.LastIngestionTime/1000, 0)
-	if time.Since(lastEventTime) > 5*time.Minute {
-		return nil // Skip old streams
-	}
-
 	// Get log events from the stream
 	input := &cloudwatchlogs.GetLogEventsInput{
 		LogGroupName:  aws.String(h.cloudwatchConfig.LogGroupName),
