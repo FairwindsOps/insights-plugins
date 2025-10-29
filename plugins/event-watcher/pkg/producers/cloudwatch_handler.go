@@ -1,4 +1,4 @@
-package handlers
+package producers
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
 var alreadyProcessedCloudWatchAuditIDs *bigcache.BigCache
@@ -476,9 +477,9 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 	}
 	policies := map[string]map[string]string{}
 	if h.isKyvernoPolicyViolation(auditEvent) {
-		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if h.isValidatingPolicyViolation(auditEvent) {
-		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
 	objectRef := auditEvent.ObjectRef
 	namespace := objectRef.Namespace

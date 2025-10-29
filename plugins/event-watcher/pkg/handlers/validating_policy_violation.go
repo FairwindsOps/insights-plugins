@@ -10,6 +10,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
 type ValidatingPolicyViolationHandler struct {
@@ -73,7 +74,7 @@ func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *models.WatchedEv
 		"result", validatingEvent.PolicyResult,
 		"namespace", validatingEvent.Namespace)
 
-	return SendToInsights(h.insightsConfig, h.client, h.rateLimiter, validatingEvent)
+	return utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, validatingEvent)
 }
 
 func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
@@ -89,7 +90,7 @@ func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watc
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policies := ExtractValidatingPoliciesFromMessage(message)
+	policies := utils.ExtractValidatingPoliciesFromMessage(message)
 	blocked := false
 	success := false
 	policyResult := ""

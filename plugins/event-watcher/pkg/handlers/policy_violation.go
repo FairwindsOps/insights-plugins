@@ -11,6 +11,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
 type PolicyViolationHandler struct {
@@ -91,7 +92,7 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error
 		"resource", violationEvent.Name,
 		"blocked", violationEvent.Blocked)
 
-	return SendToInsights(h.insightsConfig, h.client, h.rateLimiter, violationEvent)
+	return utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, violationEvent)
 }
 
 func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
@@ -107,7 +108,7 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *models.Wat
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policies := ExtractPoliciesFromMessage(message)
+	policies := utils.ExtractPoliciesFromMessage(message)
 	blocked := false
 	policyResult := ""
 	if watchedEvent.Metadata != nil && watchedEvent.Metadata["policyResult"] != nil {

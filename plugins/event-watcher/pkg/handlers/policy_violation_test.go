@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
 func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
@@ -216,7 +217,7 @@ func TestPolicyViolationHandlerParsePolicyMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			policies := ExtractPoliciesFromMessage(tt.message)
+			policies := utils.ExtractPoliciesFromMessage(tt.message)
 
 			if tt.expectedError {
 				assert.Equal(t, tt.expectedPolicies, policies)

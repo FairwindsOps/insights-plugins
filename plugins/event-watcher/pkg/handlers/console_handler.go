@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
 // ConsoleHandler prints events to console instead of sending to Insights
@@ -131,7 +132,7 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *models.WatchedEven
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policies := ExtractPoliciesFromMessage(message)
+	policies := utils.ExtractPoliciesFromMessage(message)
 	policyResult := watchedEvent.Metadata["policyResult"].(string)
 	blocked := policyResult == "fail"
 

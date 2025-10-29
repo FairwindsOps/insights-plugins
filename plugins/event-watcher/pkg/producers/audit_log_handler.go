@@ -1,4 +1,4 @@
-package handlers
+package producers
 
 import (
 	"bufio"
@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 
 	"github.com/allegro/bigcache/v3"
 )
@@ -227,10 +228,10 @@ func (h *AuditLogHandler) createPolicyViolationEvent(auditEvent AuditEvent) *Pol
 	policies := map[string]map[string]string{}
 	if h.isKyvernoPolicyViolation(auditEvent) {
 		slog.Info("Kyverno policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if h.isValidatingPolicyViolation(auditEvent) {
 		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	}
 	return &PolicyViolationEvent{

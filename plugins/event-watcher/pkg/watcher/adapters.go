@@ -3,35 +3,35 @@ package watcher
 import (
 	"context"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/producers"
 	"k8s.io/client-go/kubernetes"
 )
 
 // AuditLogEventSourceAdapter adapts AuditLogHandler to implement EventSource interface
 type AuditLogEventSourceAdapter struct {
-	handler *handlers.AuditLogHandler
-	enabled bool
+	producer *producers.AuditLogHandler
+	enabled  bool
 }
 
 // NewAuditLogEventSourceAdapter creates a new adapter for audit log handler
 func NewAuditLogEventSourceAdapter(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *models.WatchedEvent) *AuditLogEventSourceAdapter {
-	handler := handlers.NewAuditLogHandler(config, kubeClient, auditLogPath, eventChannel)
+	producer := producers.NewAuditLogHandler(config, kubeClient, auditLogPath, eventChannel)
 
 	return &AuditLogEventSourceAdapter{
-		handler: handler,
-		enabled: auditLogPath != "",
+		producer: producer,
+		enabled:  auditLogPath != "",
 	}
 }
 
 // Start implements EventSource interface
 func (a *AuditLogEventSourceAdapter) Start(ctx context.Context) error {
-	return a.handler.Start(ctx)
+	return a.producer.Start(ctx)
 }
 
 // Stop implements EventSource interface
 func (a *AuditLogEventSourceAdapter) Stop() {
-	a.handler.Stop()
+	a.producer.Stop()
 }
 
 // GetName implements EventSource interface
@@ -46,31 +46,31 @@ func (a *AuditLogEventSourceAdapter) IsEnabled() bool {
 
 // CloudWatchEventSourceAdapter adapts CloudWatchHandler to implement EventSource interface
 type CloudWatchEventSourceAdapter struct {
-	handler *handlers.CloudWatchHandler
-	enabled bool
+	producer *producers.CloudWatchHandler
+	enabled  bool
 }
 
 // NewCloudWatchEventSourceAdapter creates a new adapter for CloudWatch handler
 func NewCloudWatchEventSourceAdapter(config models.InsightsConfig, cloudwatchConfig models.CloudWatchConfig, eventChannel chan *models.WatchedEvent) (*CloudWatchEventSourceAdapter, error) {
-	handler, err := handlers.NewCloudWatchHandler(config, cloudwatchConfig, eventChannel)
+	producer, err := producers.NewCloudWatchHandler(config, cloudwatchConfig, eventChannel)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CloudWatchEventSourceAdapter{
-		handler: handler,
-		enabled: true, // CloudWatch is enabled if we can create the handler
+		producer: producer,
+		enabled:  true, // CloudWatch is enabled if we can create the handler
 	}, nil
 }
 
 // Start implements EventSource interface
 func (a *CloudWatchEventSourceAdapter) Start(ctx context.Context) error {
-	return a.handler.Start(ctx)
+	return a.producer.Start(ctx)
 }
 
 // Stop implements EventSource interface
 func (a *CloudWatchEventSourceAdapter) Stop() {
-	a.handler.Stop()
+	a.producer.Stop()
 }
 
 // GetName implements EventSource interface
@@ -84,27 +84,27 @@ func (a *CloudWatchEventSourceAdapter) IsEnabled() bool {
 }
 
 type KubernetesEventSourceAdapter struct {
-	handler *handlers.KubernetesEventHandler
-	enabled bool
+	producer *producers.KubernetesEventHandler
+	enabled  bool
 }
 
 // NewKubernetesEventSourceAdapter creates a new adapter for Kubernetes handler
 func NewKubernetesEventSourceAdapter(config models.InsightsConfig, eventChannel chan *models.WatchedEvent) *KubernetesEventSourceAdapter {
-	handler := handlers.NewKubernetesEventHandler(config, eventChannel)
+	producer := producers.NewKubernetesEventHandler(config, eventChannel)
 	return &KubernetesEventSourceAdapter{
-		handler: handler,
-		enabled: true,
+		producer: producer,
+		enabled:  true,
 	}
 }
 
 // Start implements EventSource interface
 func (a *KubernetesEventSourceAdapter) Start(ctx context.Context) error {
-	return a.handler.Start(ctx)
+	return a.producer.Start(ctx)
 }
 
 // Stop implements EventSource interface
 func (a *KubernetesEventSourceAdapter) Stop() {
-	a.handler.Stop()
+	a.producer.Stop()
 }
 
 // GetName implements EventSource interface
