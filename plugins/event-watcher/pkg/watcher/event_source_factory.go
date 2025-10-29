@@ -14,6 +14,7 @@ type EventSourceType string
 const (
 	EventSourceTypeAuditLog   EventSourceType = "audit-log"
 	EventSourceTypeCloudWatch EventSourceType = "cloudwatch"
+	EventSourceTypeKubernetes EventSourceType = "kubernetes"
 )
 
 // EventSourceConfig represents configuration for creating event sources
@@ -55,6 +56,7 @@ func NewEventSourceFactory() *EventSourceFactory {
 func (f *EventSourceFactory) registerDefaultCreators() {
 	f.RegisterCreator(EventSourceTypeAuditLog, f.createAuditLogEventSource)
 	f.RegisterCreator(EventSourceTypeCloudWatch, f.createCloudWatchEventSource)
+	f.RegisterCreator(EventSourceTypeKubernetes, f.createKubernetesEventSource)
 }
 
 // RegisterCreator registers a new event source creator
@@ -138,31 +140,7 @@ func (f *EventSourceFactory) createCloudWatchEventSource(config EventSourceConfi
 	)
 }
 
-// BuildEventSourceConfigs creates a list of event source configurations based on the watcher parameters
-func BuildEventSourceConfigs(insightsConfig models.InsightsConfig, kubeClient *client.Client, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventChannel chan *models.WatchedEvent) []EventSourceConfig {
-	var configs []EventSourceConfig
-
-	// Add audit log event source if enabled (for local/kind clusters)
-	if auditLogPath != "" {
-		configs = append(configs, EventSourceConfig{
-			Type:           EventSourceTypeAuditLog,
-			InsightsConfig: insightsConfig,
-			KubeClient:     kubeClient,
-			EventChannel:   eventChannel,
-			AuditLogPath:   auditLogPath,
-		})
-	}
-
-	// Add CloudWatch event source if enabled (for EKS clusters)
-	if logSource == "cloudwatch" && cloudwatchConfig != nil {
-		configs = append(configs, EventSourceConfig{
-			Type:             EventSourceTypeCloudWatch,
-			InsightsConfig:   insightsConfig,
-			KubeClient:       kubeClient,
-			EventChannel:     eventChannel,
-			CloudWatchConfig: cloudwatchConfig,
-		})
-	}
-
-	return configs
+// createKubernetesEventSource creates a Kubernetes event source
+func (f *EventSourceFactory) createKubernetesEventSource(config EventSourceConfig) (EventSource, error) {
+	return NewKubernetesEventSourceAdapter(config.InsightsConfig, config.EventChannel), nil
 }

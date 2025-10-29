@@ -82,3 +82,37 @@ func (a *CloudWatchEventSourceAdapter) GetName() string {
 func (a *CloudWatchEventSourceAdapter) IsEnabled() bool {
 	return a.enabled
 }
+
+type KubernetesEventSourceAdapter struct {
+	handler *handlers.KubernetesEventHandler
+	enabled bool
+}
+
+// NewKubernetesEventSourceAdapter creates a new adapter for Kubernetes handler
+func NewKubernetesEventSourceAdapter(config models.InsightsConfig, eventChannel chan *models.WatchedEvent) *KubernetesEventSourceAdapter {
+	handler := handlers.NewKubernetesEventHandler(config, eventChannel)
+	return &KubernetesEventSourceAdapter{
+		handler: handler,
+		enabled: true,
+	}
+}
+
+// Start implements EventSource interface
+func (a *KubernetesEventSourceAdapter) Start(ctx context.Context) error {
+	return a.handler.Start(ctx)
+}
+
+// Stop implements EventSource interface
+func (a *KubernetesEventSourceAdapter) Stop() {
+	a.handler.Stop()
+}
+
+// GetName implements EventSource interface
+func (a *KubernetesEventSourceAdapter) GetName() string {
+	return "kubernetes"
+}
+
+// IsEnabled implements EventSource interface
+func (a *KubernetesEventSourceAdapter) IsEnabled() bool {
+	return a.enabled
+}

@@ -85,7 +85,14 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 	factory := NewEventSourceFactory()
 
 	// Build event source configurations
-	configs := BuildEventSourceConfigs(insightsConfig, kubeClient, logSource, auditLogPath, cloudwatchConfig, eventChannel)
+	configs := []EventSourceConfig{
+		{
+			Type:           EventSourceTypeKubernetes,
+			InsightsConfig: insightsConfig,
+			KubeClient:     kubeClient,
+			EventChannel:   eventChannel,
+		},
+	}
 
 	// Create event sources using factory
 	sources, err := factory.CreateEventSources(configs)

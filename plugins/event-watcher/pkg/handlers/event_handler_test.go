@@ -1,4 +1,4 @@
-package event
+package handlers
 
 import (
 	"testing"
@@ -75,8 +75,9 @@ func TestNewWatchedEvent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			event, err := NewWatchedEvent(models.EventType(tt.eventType), tt.obj, tt.resourceType)
-
+			eventChannel := make(chan *models.WatchedEvent)
+			eventHandler := NewKubernetesEventHandler(models.InsightsConfig{Hostname: "test-hostname"}, eventChannel)
+			event, err := eventHandler.processKubernetesEvent(models.EventType(tt.eventType), tt.obj, tt.resourceType)
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorContains)
@@ -259,7 +260,9 @@ func TestWatchedEventComplexData(t *testing.T) {
 		},
 	}
 
-	event, err := NewWatchedEvent(models.EventTypeModified, obj, "PolicyReport")
+	eventChannel := make(chan *models.WatchedEvent)
+	eventHandler := NewKubernetesEventHandler(models.InsightsConfig{Hostname: "test-hostname"}, eventChannel)
+	event, err := eventHandler.processKubernetesEvent(models.EventTypeModified, obj, "PolicyReport")
 	require.NoError(t, err)
 
 	assert.Equal(t, "test-report", event.Name)
