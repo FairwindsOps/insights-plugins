@@ -33,6 +33,7 @@ type Watcher struct {
 	handlerFactory     *handlers.EventHandlerFactory
 	metrics            *metrics.Metrics
 	healthServer       *health.Server
+	eventPollInterval  string
 
 	// Event processing
 	eventChannel chan *models.WatchedEvent
@@ -45,17 +46,18 @@ type Watcher struct {
 }
 
 // NewWatcher creates a new generic watcher
-func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool) (*Watcher, error) {
-	return NewWatcherWithBackpressure(insightsConfig, logSource, auditLogPath, cloudwatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, consoleMode, BackpressureConfig{
-		MaxRetries:           3,
-		RetryDelay:           100 * time.Millisecond,
-		MetricsLogInterval:   30 * time.Second,
-		EnableMetricsLogging: true,
-	})
+func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool, eventPollInterval string) (*Watcher, error) {
+	return NewWatcherWithBackpressure(insightsConfig, logSource, auditLogPath, cloudwatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, consoleMode,
+		BackpressureConfig{
+			MaxRetries:           3,
+			RetryDelay:           100 * time.Millisecond,
+			MetricsLogInterval:   30 * time.Second,
+			EnableMetricsLogging: true,
+		}, eventPollInterval)
 }
 
 // NewWatcherWithBackpressure creates a new generic watcher with custom backpressure configuration
-func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool, backpressureConfig BackpressureConfig) (*Watcher, error) {
+func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool, backpressureConfig BackpressureConfig, eventPollInterval string) (*Watcher, error) {
 	// Create Kubernetes client
 	kubeClient, err := client.NewClient()
 	if err != nil {
@@ -85,14 +87,7 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 	factory := NewEventSourceFactory()
 
 	// Build event source configurations
-	configs := []EventSourceConfig{
-		{
-			Type:           EventSourceTypeKubernetes,
-			InsightsConfig: insightsConfig,
-			KubeClient:     kubeClient,
-			EventChannel:   eventChannel,
-		},
-	}
+	configs := BuildEventSourceConfigs(insightsConfig, kubeClient, logSource, auditLogPath, cloudwatchConfig, eventChannel)
 
 	// Create event sources using factory
 	sources, err := factory.CreateEventSources(configs)

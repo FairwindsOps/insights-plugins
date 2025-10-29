@@ -29,7 +29,8 @@ where audit logs are written to local files.`,
 
 var (
 	// Audit specific flags
-	auditLogPath string
+	auditLogPath      string
+	eventPollInterval string
 )
 
 func init() {
@@ -37,7 +38,7 @@ func init() {
 
 	// Audit specific flags
 	auditCmd.Flags().StringVar(&auditLogPath, "log-path", "", "Path to audit log file (required)")
-
+	auditCmd.Flags().StringVar(&eventPollInterval, "poll-interval", "15s", "Interval between audit log polls")
 	// Mark required flags
 	auditCmd.MarkFlagRequired("log-path")
 }
@@ -78,6 +79,7 @@ func runAudit(cmd *cobra.Command, args []string) error {
 		httpTimeoutSeconds,
 		rateLimitPerMinute,
 		consoleMode,
+		eventPollInterval,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create watcher: %w", err)

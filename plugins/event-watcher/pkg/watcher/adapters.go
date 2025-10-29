@@ -3,6 +3,7 @@ package watcher
 import (
 	"context"
 
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/producers"
 	"k8s.io/client-go/kubernetes"
@@ -10,12 +11,13 @@ import (
 
 // AuditLogEventSourceAdapter adapts AuditLogHandler to implement EventSource interface
 type AuditLogEventSourceAdapter struct {
-	producer *producers.AuditLogHandler
-	enabled  bool
+	producer          *producers.AuditLogHandler
+	enabled           bool
+	eventPollInterval string
 }
 
 // NewAuditLogEventSourceAdapter creates a new adapter for audit log handler
-func NewAuditLogEventSourceAdapter(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *models.WatchedEvent) *AuditLogEventSourceAdapter {
+func NewAuditLogEventSourceAdapter(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *models.WatchedEvent, eventPollInterval string) *AuditLogEventSourceAdapter {
 	producer := producers.NewAuditLogHandler(config, kubeClient, auditLogPath, eventChannel)
 
 	return &AuditLogEventSourceAdapter{
@@ -84,16 +86,16 @@ func (a *CloudWatchEventSourceAdapter) IsEnabled() bool {
 }
 
 type KubernetesEventSourceAdapter struct {
-	producer *producers.KubernetesEventHandler
-	enabled  bool
+	producer     *producers.KubernetesEventHandler
+	pollInterval string
 }
 
 // NewKubernetesEventSourceAdapter creates a new adapter for Kubernetes handler
-func NewKubernetesEventSourceAdapter(config models.InsightsConfig, eventChannel chan *models.WatchedEvent) *KubernetesEventSourceAdapter {
-	producer := producers.NewKubernetesEventHandler(config, eventChannel)
+func NewKubernetesEventSourceAdapter(config models.InsightsConfig, kubeClient *client.Client, pollInterval string, eventChannel chan *models.WatchedEvent) *KubernetesEventSourceAdapter {
+	producer := producers.NewKubernetesEventHandler(config, kubeClient, pollInterval, eventChannel)
 	return &KubernetesEventSourceAdapter{
-		producer: producer,
-		enabled:  true,
+		producer:     producer,
+		pollInterval: pollInterval,
 	}
 }
 
@@ -114,5 +116,5 @@ func (a *KubernetesEventSourceAdapter) GetName() string {
 
 // IsEnabled implements EventSource interface
 func (a *KubernetesEventSourceAdapter) IsEnabled() bool {
-	return a.enabled
+	return true
 }

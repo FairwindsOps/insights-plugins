@@ -98,15 +98,15 @@ func (e *WatchedEvent) LogEvent() {
 
 	switch e.EventType {
 	case EventTypeAdded:
-		slog.Info("Resource added", fields...)
+		slog.Debug("Resource added", fields...)
 	case EventTypeModified:
-		slog.Info("Resource modified", fields...)
+		slog.Debug("Resource modified", fields...)
 	case EventTypeDeleted:
-		slog.Info("Resource deleted", fields...)
+		slog.Debug("Resource deleted", fields...)
 	case EventTypeError:
 		slog.Error("Resource event error", fields...)
 	default:
-		slog.Info("Resource event", fields...)
+		slog.Debug("Resource event", fields...)
 	}
 }
 
