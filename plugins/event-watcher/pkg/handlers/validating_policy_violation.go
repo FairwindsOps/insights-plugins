@@ -9,7 +9,6 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -29,7 +28,7 @@ func NewValidatingPolicyViolationHandler(insightsConfig models.InsightsConfig, h
 	}
 }
 
-func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error {
+func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
 		"resource_type", watchedEvent.ResourceType,
@@ -77,7 +76,7 @@ func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *event.WatchedEve
 	return SendToInsights(h.insightsConfig, h.client, h.rateLimiter, validatingEvent)
 }
 
-func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
+func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
 	if watchedEvent == nil {
 		return nil, fmt.Errorf("watchedEvent is nil")
 	}
@@ -92,6 +91,7 @@ func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watc
 
 	policies := ExtractValidatingPoliciesFromMessage(message)
 	blocked := false
+	success := false
 	policyResult := ""
 	if watchedEvent.Metadata != nil && watchedEvent.Metadata["policyResult"] != nil {
 		policyResult, ok := watchedEvent.Metadata["policyResult"].(string)
@@ -99,6 +99,7 @@ func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watc
 			slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
 		} else {
 			blocked = policyResult == "fail"
+			success = policyResult == "pass"
 		}
 	} else {
 		slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
@@ -120,6 +121,7 @@ func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watc
 		PolicyResult: policyResult,
 		Message:      message,
 		Blocked:      blocked,
+		Success:      success,
 		EventTime:    watchedEvent.EventTime,
 	}, nil
 }

@@ -10,7 +10,6 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -34,7 +33,7 @@ func NewPolicyViolationHandler(config models.InsightsConfig, httpTimeoutSeconds,
 	}
 }
 
-func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error {
+func (h *PolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
 		"resource_type", watchedEvent.ResourceType,
@@ -95,7 +94,7 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error 
 	return SendToInsights(h.insightsConfig, h.client, h.rateLimiter, violationEvent)
 }
 
-func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
+func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
 	if watchedEvent == nil {
 		return nil, fmt.Errorf("watchedEvent is nil")
 	}

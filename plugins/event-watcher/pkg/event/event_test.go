@@ -3,6 +3,7 @@ package event
 import (
 	"testing"
 
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -11,7 +12,7 @@ import (
 func TestNewWatchedEvent(t *testing.T) {
 	tests := []struct {
 		name          string
-		eventType     EventType
+		eventType     models.EventType
 		obj           interface{}
 		resourceType  string
 		expectError   bool
@@ -19,7 +20,7 @@ func TestNewWatchedEvent(t *testing.T) {
 	}{
 		{
 			name:      "valid unstructured object",
-			eventType: EventTypeAdded,
+			eventType: models.EventTypeAdded,
 			obj: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
@@ -37,7 +38,7 @@ func TestNewWatchedEvent(t *testing.T) {
 		},
 		{
 			name:      "object without metadata",
-			eventType: EventTypeAdded,
+			eventType: models.EventTypeAdded,
 			obj: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
@@ -50,7 +51,7 @@ func TestNewWatchedEvent(t *testing.T) {
 		},
 		{
 			name:      "object with invalid metadata type",
-			eventType: EventTypeAdded,
+			eventType: models.EventTypeAdded,
 			obj: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"apiVersion": "v1",
@@ -64,7 +65,7 @@ func TestNewWatchedEvent(t *testing.T) {
 		},
 		{
 			name:          "invalid object type",
-			eventType:     EventTypeAdded,
+			eventType:     models.EventTypeAdded,
 			obj:           "invalid-object",
 			resourceType:  "events",
 			expectError:   true,
@@ -74,7 +75,7 @@ func TestNewWatchedEvent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			event, err := NewWatchedEvent(tt.eventType, tt.obj, tt.resourceType)
+			event, err := NewWatchedEvent(models.EventType(tt.eventType), tt.obj, tt.resourceType)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -157,7 +158,7 @@ func TestWatchedEventIsKyvernoResource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			event := &WatchedEvent{
+			event := &models.WatchedEvent{
 				ResourceType: tt.resourceType,
 			}
 			assert.Equal(t, tt.expected, event.IsKyvernoResource())
@@ -228,7 +229,7 @@ func TestWatchedEventGetPolicyName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			event := &WatchedEvent{
+			event := &models.WatchedEvent{
 				ResourceType: tt.resourceType,
 				Name:         tt.eventName,
 				Data:         tt.data,
@@ -258,7 +259,7 @@ func TestWatchedEventComplexData(t *testing.T) {
 		},
 	}
 
-	event, err := NewWatchedEvent(EventTypeModified, obj, "PolicyReport")
+	event, err := NewWatchedEvent(models.EventTypeModified, obj, "PolicyReport")
 	require.NoError(t, err)
 
 	assert.Equal(t, "test-report", event.Name)

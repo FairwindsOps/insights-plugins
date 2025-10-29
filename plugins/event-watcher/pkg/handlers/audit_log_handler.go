@@ -13,7 +13,6 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 
 	"github.com/allegro/bigcache/v3"
@@ -37,7 +36,7 @@ type AuditLogHandler struct {
 	insightsConfig models.InsightsConfig
 	kubeClient     kubernetes.Interface
 	auditLogPath   string
-	eventChannel   chan *event.WatchedEvent
+	eventChannel   chan *models.WatchedEvent
 	stopCh         chan struct{}
 }
 
@@ -88,7 +87,7 @@ type ResponseStatus struct {
 }
 
 // NewAuditLogHandler creates a new audit log handler
-func NewAuditLogHandler(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *event.WatchedEvent) *AuditLogHandler {
+func NewAuditLogHandler(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *models.WatchedEvent) *AuditLogHandler {
 	return &AuditLogHandler{
 		insightsConfig: config,
 		kubeClient:     kubeClient,
@@ -287,8 +286,8 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(auditEvent 
 		name = fmt.Sprintf("validating-policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID)
 	}
 	// Create a watched event from a policy violation event
-	watchedEvent := &event.WatchedEvent{
-		EventType: event.EventTypeAdded, ResourceType: violation.ResourceType,
+	watchedEvent := &models.WatchedEvent{
+		EventType: models.EventTypeAdded, ResourceType: violation.ResourceType,
 		Namespace: violation.Namespace,
 		Name:      name,
 		UID:       violation.AuditID,

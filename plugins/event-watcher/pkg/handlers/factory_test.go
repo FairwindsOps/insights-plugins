@@ -12,7 +12,6 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -62,12 +61,12 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		event       *event.WatchedEvent
+		event       *models.WatchedEvent
 		expectError bool
 	}{
 		{
 			name: "Valid Kyverno PolicyViolation event should be processed",
-			event: &event.WatchedEvent{
+			event: &models.WatchedEvent{
 				ResourceType: "events",
 				Data: map[string]interface{}{
 					"reason":  "PolicyViolation",
@@ -83,7 +82,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		},
 		{
 			name: "Valid Kyverno PolicyReport event should be processed",
-			event: &event.WatchedEvent{
+			event: &models.WatchedEvent{
 				ResourceType: "PolicyReport",
 				Data: map[string]interface{}{
 					"results": []interface{}{
@@ -98,7 +97,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		},
 		{
 			name: "Valid generic resource event should be processed",
-			event: &event.WatchedEvent{
+			event: &models.WatchedEvent{
 				ResourceType: "Pod",
 				Data: map[string]interface{}{
 					"spec": map[string]interface{}{
@@ -176,12 +175,12 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		event        *event.WatchedEvent
+		event        *models.WatchedEvent
 		expectedName string
 	}{
 		{
 			name: "Kyverno PolicyViolation event",
-			event: &event.WatchedEvent{
+			event: &models.WatchedEvent{
 				Name:         "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2",
 				ResourceType: "Deployment",
 				Namespace:    "default",
@@ -210,21 +209,21 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 		},
 		{
 			name: "Kyverno ClusterPolicy resource",
-			event: &event.WatchedEvent{
+			event: &models.WatchedEvent{
 				ResourceType: "ClusterPolicy",
 			},
 			expectedName: "",
 		},
 		{
 			name: "Kyverno PolicyReport resource",
-			event: &event.WatchedEvent{
+			event: &models.WatchedEvent{
 				ResourceType: "PolicyReport",
 			},
 			expectedName: "",
 		},
 		{
 			name: "Kyverno Unknown resource should return no handler",
-			event: &event.WatchedEvent{
+			event: &models.WatchedEvent{
 				ResourceType: "UnknownResource",
 			},
 			expectedName: "",

@@ -11,7 +11,6 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
@@ -44,10 +43,10 @@ func TestWatcherHandlerFactory(t *testing.T) {
 	// Test ValidatingAdmissionPolicy event processing
 	t.Run("ValidatingAdmissionPolicy event should trigger API call", func(t *testing.T) {
 		// Create a ValidatingAdmissionPolicy event
-		policyViolationEvent := &event.WatchedEvent{
+		policyViolationEvent := &models.WatchedEvent{
 			EventVersion: 1,
 			Timestamp:    time.Now().Unix(),
-			EventType:    event.EventTypeAdded,
+			EventType:    models.EventTypeAdded,
 			ResourceType: "events",
 			Namespace:    "default",
 			Name:         "kyverno-policy-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
@@ -85,10 +84,10 @@ func TestWatcherHandlerFactory(t *testing.T) {
 		apiCalls = []string{}
 
 		// Create a PolicyReport event
-		policyReportEvent := &event.WatchedEvent{
+		policyReportEvent := &models.WatchedEvent{
 			EventVersion: 1,
 			Timestamp:    time.Now().Unix(),
-			EventType:    event.EventTypeAdded,
+			EventType:    models.EventTypeAdded,
 			ResourceType: "PolicyReport",
 			Namespace:    "default",
 			Name:         "policy-report-test",

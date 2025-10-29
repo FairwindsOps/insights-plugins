@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -22,7 +21,7 @@ type EventSourceConfig struct {
 	Type           EventSourceType
 	InsightsConfig models.InsightsConfig
 	KubeClient     *client.Client
-	EventChannel   chan *event.WatchedEvent
+	EventChannel   chan *models.WatchedEvent
 
 	// Source-specific configurations
 	AuditLogPath     string
@@ -140,7 +139,7 @@ func (f *EventSourceFactory) createCloudWatchEventSource(config EventSourceConfi
 }
 
 // BuildEventSourceConfigs creates a list of event source configurations based on the watcher parameters
-func BuildEventSourceConfigs(insightsConfig models.InsightsConfig, kubeClient *client.Client, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventChannel chan *event.WatchedEvent) []EventSourceConfig {
+func BuildEventSourceConfigs(insightsConfig models.InsightsConfig, kubeClient *client.Client, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventChannel chan *models.WatchedEvent) []EventSourceConfig {
 	var configs []EventSourceConfig
 
 	// Add audit log event source if enabled (for local/kind clusters)

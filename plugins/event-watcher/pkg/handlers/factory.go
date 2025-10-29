@@ -7,13 +7,12 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
 // EventHandler interface for processing events
 type EventHandler interface {
-	Handle(watchedEvent *event.WatchedEvent) error
+	Handle(watchedEvent *models.WatchedEvent) error
 }
 
 // EventHandlerFactory creates event handlers based on event characteristics
@@ -63,7 +62,7 @@ func (f *EventHandlerFactory) Register(name string, handler EventHandler) {
 }
 
 // GetHandler returns the appropriate handler for an event
-func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) EventHandler {
+func (f *EventHandlerFactory) GetHandler(watchedEvent *models.WatchedEvent) EventHandler {
 	slog.Info("Getting handler for event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	// Determine the handler name based on event characteristics
 	handlerName := f.getHandlerName(watchedEvent)
@@ -77,7 +76,7 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *event.WatchedEvent) Event
 	return nil
 }
 
-func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) string {
+func (f *EventHandlerFactory) getHandlerName(watchedEvent *models.WatchedEvent) string {
 	// Check for PolicyViolation events first (most specific)
 	slog.Info("Getting handler name for event", "name", watchedEvent.Name)
 	if strings.HasPrefix(watchedEvent.Name, "kyverno-policy-violation") {
@@ -93,7 +92,7 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *event.WatchedEvent) s
 }
 
 // ProcessEvent processes an event using the appropriate handler
-func (f *EventHandlerFactory) ProcessEvent(watchedEvent *event.WatchedEvent) error {
+func (f *EventHandlerFactory) ProcessEvent(watchedEvent *models.WatchedEvent) error {
 	slog.Info("Processing event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	handler := f.GetHandler(watchedEvent)
 	if handler == nil {

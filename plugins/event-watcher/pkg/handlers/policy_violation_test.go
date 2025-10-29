@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -35,10 +34,10 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 	handler := NewPolicyViolationHandler(config, 30, 60)
 
 	// Create a blocked PolicyViolation event
-	event := &event.WatchedEvent{
+	event := &models.WatchedEvent{
 		EventVersion: 1,
 		Timestamp:    time.Now().Unix(),
-		EventType:    event.EventTypeAdded,
+		EventType:    models.EventTypeAdded,
 		ResourceType: "events",
 		Namespace:    "default",
 		Name:         "kyverno-policy-violation-test",
@@ -93,10 +92,10 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 	handler := NewPolicyViolationHandler(config, 30, 60)
 
 	// Create a non-blocked PolicyViolation event
-	event := &event.WatchedEvent{
+	event := &models.WatchedEvent{
 		EventVersion: 1,
 		Timestamp:    time.Now().Unix(),
-		EventType:    event.EventTypeAdded,
+		EventType:    models.EventTypeAdded,
 		ResourceType: "events",
 		Namespace:    "default",
 		Name:         "kyverno-policy-violation-warning",
@@ -151,10 +150,10 @@ func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
 	handler := NewPolicyViolationHandler(config, 30, 60)
 
 	// Create a blocked regular Kyverno policy event
-	event := &event.WatchedEvent{
+	event := &models.WatchedEvent{
 		EventVersion: 1,
 		Timestamp:    time.Now().Unix(),
-		EventType:    event.EventTypeAdded,
+		EventType:    models.EventTypeAdded,
 		ResourceType: "events",
 		Namespace:    "default",
 		Name:         "kyverno-policy-violation-test",

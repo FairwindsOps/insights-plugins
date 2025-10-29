@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -23,7 +22,7 @@ func NewConsoleHandler(insightsConfig models.InsightsConfig) *ConsoleHandler {
 }
 
 // Handle prints the event to console
-func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
+func (h *ConsoleHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	// Print a nice header for the event
 	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Printf("🚨 POLICY VIOLATION EVENT DETECTED\n")
@@ -119,7 +118,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *event.WatchedEvent) error {
 }
 
 // extractPolicyViolation extracts policy violation details from the event
-func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
+func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
 	if watchedEvent == nil {
 		return nil, fmt.Errorf("watchedEvent is nil")
 	}

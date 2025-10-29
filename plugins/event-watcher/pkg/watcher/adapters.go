@@ -3,7 +3,6 @@ package watcher
 import (
 	"context"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"k8s.io/client-go/kubernetes"
@@ -16,7 +15,7 @@ type AuditLogEventSourceAdapter struct {
 }
 
 // NewAuditLogEventSourceAdapter creates a new adapter for audit log handler
-func NewAuditLogEventSourceAdapter(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *event.WatchedEvent) *AuditLogEventSourceAdapter {
+func NewAuditLogEventSourceAdapter(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *models.WatchedEvent) *AuditLogEventSourceAdapter {
 	handler := handlers.NewAuditLogHandler(config, kubeClient, auditLogPath, eventChannel)
 
 	return &AuditLogEventSourceAdapter{
@@ -52,7 +51,7 @@ type CloudWatchEventSourceAdapter struct {
 }
 
 // NewCloudWatchEventSourceAdapter creates a new adapter for CloudWatch handler
-func NewCloudWatchEventSourceAdapter(config models.InsightsConfig, cloudwatchConfig models.CloudWatchConfig, eventChannel chan *event.WatchedEvent) (*CloudWatchEventSourceAdapter, error) {
+func NewCloudWatchEventSourceAdapter(config models.InsightsConfig, cloudwatchConfig models.CloudWatchConfig, eventChannel chan *models.WatchedEvent) (*CloudWatchEventSourceAdapter, error) {
 	handler, err := handlers.NewCloudWatchHandler(config, cloudwatchConfig, eventChannel)
 	if err != nil {
 		return nil, err

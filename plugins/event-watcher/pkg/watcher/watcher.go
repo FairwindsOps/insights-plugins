@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/health"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/metrics"
@@ -36,7 +35,7 @@ type Watcher struct {
 	healthServer       *health.Server
 
 	// Event processing
-	eventChannel chan *event.WatchedEvent
+	eventChannel chan *models.WatchedEvent
 	stopCh       chan struct{}
 	wg           sync.WaitGroup
 
@@ -67,7 +66,7 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute, consoleMode)
 
 	// Create event channel
-	eventChannel := make(chan *event.WatchedEvent, eventBufferSize)
+	eventChannel := make(chan *models.WatchedEvent, eventBufferSize)
 
 	// Create metrics instance
 	metricsInstance := metrics.NewMetrics(eventBufferSize)
