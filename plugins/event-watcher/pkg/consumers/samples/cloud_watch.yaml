@@ -1,0 +1,36 @@
+{
+    "kind": "Event",
+    "apiVersion": "audit.k8s.io/v1",
+    "level": "Request",
+    "auditID": "5c0888f1-bdd0-4681-9aba-5b734c267df2",
+    "stage": "ResponseComplete",
+    "requestURI": "/apis/admissionregistration.k8s.io/v1/validatingadmissionpolicybindings?limit=500&resourceVersion=0",
+    "verb": "list",
+    "user": {
+        "username": "system:apiserver",
+        "uid": "7adf9ab0-3065-4682-bd5b-bd28d770c502",
+        "groups": [
+            "system:authenticated",
+            "system:masters"
+        ]
+    },
+    "sourceIPs": [
+        "::1"
+    ],
+    "userAgent": "kube-apiserver/v1.33.5 (linux/arm64) kubernetes/0862ded",
+    "objectRef": {
+        "resource": "validatingadmissionpolicybindings",
+        "apiGroup": "admissionregistration.k8s.io",
+        "apiVersion": "v1"
+    },
+    "responseStatus": {
+        "metadata": {},
+        "code": 200
+    },
+    "requestReceivedTimestamp": "2025-10-23T10:23:37.368934Z",
+    "stageTimestamp": "2025-10-23T10:23:37.369146Z",
+    "annotations": {
+        "authorization.k8s.io/decision": "allow",
+        "authorization.k8s.io/reason": ""
+    }
+}

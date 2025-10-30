@@ -82,6 +82,7 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *models.WatchedEvent) Even
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *models.WatchedEvent) string {
 	// Check for PolicyViolation events first (most specific)
 	slog.Debug("Getting handler name for event", "name", watchedEvent.Name)
+
 	if strings.HasPrefix(watchedEvent.Name, utils.KyvernoPolicyViolationPrefix) {
 		slog.Debug("Found kyverno policy violation event", "name", watchedEvent.Name)
 		return utils.KyvernoPolicyViolationPrefix
@@ -89,6 +90,10 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *models.WatchedEvent) 
 	if strings.HasPrefix(watchedEvent.Name, utils.ValidatingPolicyViolationPrefix) {
 		slog.Debug("Found validating policy violation event", "name", watchedEvent.Name)
 		return utils.ValidatingPolicyViolationPrefix
+	}
+	if strings.HasPrefix(watchedEvent.Name, utils.ValidatingAdmissionPolicyViolationPrefix) {
+		slog.Debug("Found validating admission policy violation event", "name", watchedEvent.Name)
+		return utils.ValidatingAdmissionPolicyViolationPrefix
 	}
 	slog.Debug("No handler found for event", "name", watchedEvent.Name)
 	return ""
