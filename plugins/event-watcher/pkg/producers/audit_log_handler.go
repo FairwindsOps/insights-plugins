@@ -1,4 +1,4 @@
-package handlers
+package producers
 
 import (
 	"bufio"
@@ -13,8 +13,8 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 
 	"github.com/allegro/bigcache/v3"
 )
@@ -37,7 +37,7 @@ type AuditLogHandler struct {
 	insightsConfig models.InsightsConfig
 	kubeClient     kubernetes.Interface
 	auditLogPath   string
-	eventChannel   chan *event.WatchedEvent
+	eventChannel   chan *models.WatchedEvent
 	stopCh         chan struct{}
 }
 
@@ -88,7 +88,7 @@ type ResponseStatus struct {
 }
 
 // NewAuditLogHandler creates a new audit log handler
-func NewAuditLogHandler(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *event.WatchedEvent) *AuditLogHandler {
+func NewAuditLogHandler(config models.InsightsConfig, kubeClient kubernetes.Interface, auditLogPath string, eventChannel chan *models.WatchedEvent) *AuditLogHandler {
 	return &AuditLogHandler{
 		insightsConfig: config,
 		kubeClient:     kubeClient,
@@ -228,10 +228,10 @@ func (h *AuditLogHandler) createPolicyViolationEvent(auditEvent AuditEvent) *Pol
 	policies := map[string]map[string]string{}
 	if h.isKyvernoPolicyViolation(auditEvent) {
 		slog.Info("Kyverno policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if h.isValidatingPolicyViolation(auditEvent) {
 		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	}
 	return &PolicyViolationEvent{
@@ -287,8 +287,8 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(auditEvent 
 		name = fmt.Sprintf("validating-policy-violation-%s-%s-%s", violation.ResourceType, violation.ResourceName, violation.AuditID)
 	}
 	// Create a watched event from a policy violation event
-	watchedEvent := &event.WatchedEvent{
-		EventType: event.EventTypeAdded, ResourceType: violation.ResourceType,
+	watchedEvent := &models.WatchedEvent{
+		EventType: models.EventTypeAdded, ResourceType: violation.ResourceType,
 		Namespace: violation.Namespace,
 		Name:      name,
 		UID:       violation.AuditID,

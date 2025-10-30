@@ -1,4 +1,4 @@
-package handlers
+package producers
 
 import (
 	"context"
@@ -15,8 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
 var alreadyProcessedCloudWatchAuditIDs *bigcache.BigCache
@@ -36,7 +36,7 @@ func init() {
 type CloudWatchHandler struct {
 	insightsConfig   models.InsightsConfig
 	cloudwatchConfig models.CloudWatchConfig
-	eventChannel     chan *event.WatchedEvent
+	eventChannel     chan *models.WatchedEvent
 	cloudwatchClient *cloudwatchlogs.Client
 	stopCh           chan struct{}
 }
@@ -83,7 +83,7 @@ type CloudWatchResponseStatus struct {
 }
 
 // NewCloudWatchHandler creates a new CloudWatch log handler
-func NewCloudWatchHandler(insightsConfig models.InsightsConfig, cloudwatchConfig models.CloudWatchConfig, eventChannel chan *event.WatchedEvent) (*CloudWatchHandler, error) {
+func NewCloudWatchHandler(insightsConfig models.InsightsConfig, cloudwatchConfig models.CloudWatchConfig, eventChannel chan *models.WatchedEvent) (*CloudWatchHandler, error) {
 	// Create AWS config
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(cloudwatchConfig.Region),
@@ -471,15 +471,15 @@ func (h *CloudWatchHandler) isValidatingPolicyViolation(auditEvent CloudWatchAud
 }
 
 // createPolicyViolationEventFromAuditEvent creates a policy violation event from audit event
-func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *event.WatchedEvent {
+func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *models.WatchedEvent {
 	if !h.isKyvernoPolicyViolation(auditEvent) && !h.isValidatingPolicyViolation(auditEvent) {
 		return nil
 	}
 	policies := map[string]map[string]string{}
 	if h.isKyvernoPolicyViolation(auditEvent) {
-		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if h.isValidatingPolicyViolation(auditEvent) {
-		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
 	objectRef := auditEvent.ObjectRef
 	namespace := objectRef.Namespace
@@ -499,8 +499,8 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 	}
 
 	// Create the policy violation event
-	violationEvent := &event.WatchedEvent{
-		EventType:    event.EventTypeAdded,
+	violationEvent := &models.WatchedEvent{
+		EventType:    models.EventTypeAdded,
 		ResourceType: resource,
 		Namespace:    namespace,
 		Name:         name,

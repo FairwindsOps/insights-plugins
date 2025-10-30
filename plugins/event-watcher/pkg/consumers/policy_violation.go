@@ -1,35 +1,40 @@
-package handlers
+package consumers
 
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"log/slog"
 
 	"golang.org/x/time/rate"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
-type ValidatingPolicyViolationHandler struct {
+type PolicyViolationHandler struct {
 	insightsConfig models.InsightsConfig
 	client         *http.Client
 	rateLimiter    *rate.Limiter
+	mu             sync.Mutex
 }
 
-func NewValidatingPolicyViolationHandler(insightsConfig models.InsightsConfig, httpTimeoutSeconds, rateLimitPerMinute int) *ValidatingPolicyViolationHandler {
-	return &ValidatingPolicyViolationHandler{
-		insightsConfig: insightsConfig,
+func NewPolicyViolationHandler(config models.InsightsConfig, httpTimeoutSeconds, rateLimitPerMinute int) *PolicyViolationHandler {
+	// Create rate limiter: rateLimitPerMinute calls per minute
+	limiter := rate.NewLimiter(rate.Limit(rateLimitPerMinute)/60.0, 1)
+
+	return &PolicyViolationHandler{
+		insightsConfig: config,
 		client: &http.Client{
 			Timeout: time.Duration(httpTimeoutSeconds) * time.Second,
 		},
-		rateLimiter: rate.NewLimiter(rate.Limit(rateLimitPerMinute)/60.0, 1),
+		rateLimiter: limiter,
 	}
 }
 
-func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error {
+func (h *PolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
 		"resource_type", watchedEvent.ResourceType,
@@ -63,21 +68,34 @@ func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *event.WatchedEve
 		}
 	}
 
-	validatingEvent, err := h.extractValidatingPolicyViolation(watchedEvent)
+	violationEvent, err := h.extractPolicyViolation(watchedEvent)
 	if err != nil {
 		errorFields := append(logFields, "error", err)
-		slog.Warn("Failed to extract validating policy violation", errorFields...)
-		return fmt.Errorf("failed to extract validating policy violation: %w", err)
+		slog.Warn("Failed to extract policy violation", errorFields...)
+		return fmt.Errorf("failed to extract policy violation: %w", err)
 	}
-	slog.Info("Sending validating policy violation to Insights",
-		"policies", validatingEvent.Policies,
-		"result", validatingEvent.PolicyResult,
-		"namespace", validatingEvent.Namespace)
 
-	return SendToInsights(h.insightsConfig, h.client, h.rateLimiter, validatingEvent)
+	// Only send blocked policy violations to Insights (any type that blocks resource installation)
+	if !violationEvent.Blocked {
+		slog.Info("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)",
+			"policies", violationEvent.Policies,
+			"result", violationEvent.PolicyResult,
+			"namespace", violationEvent.Namespace,
+			"resource", violationEvent.Name)
+		return nil
+	}
+
+	slog.Info("Sending blocked policy violation to Insights",
+		"policies", violationEvent.Policies,
+		"result", violationEvent.PolicyResult,
+		"namespace", violationEvent.Namespace,
+		"resource", violationEvent.Name,
+		"blocked", violationEvent.Blocked)
+
+	return utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, violationEvent)
 }
 
-func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
+func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
 	if watchedEvent == nil {
 		return nil, fmt.Errorf("watchedEvent is nil")
 	}
@@ -90,7 +108,7 @@ func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watc
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policies := ExtractValidatingPoliciesFromMessage(message)
+	policies := utils.ExtractPoliciesFromMessage(message)
 	blocked := false
 	policyResult := ""
 	if watchedEvent.Metadata != nil && watchedEvent.Metadata["policyResult"] != nil {

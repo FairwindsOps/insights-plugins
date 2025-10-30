@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -15,6 +14,7 @@ type EventSourceType string
 const (
 	EventSourceTypeAuditLog   EventSourceType = "audit-log"
 	EventSourceTypeCloudWatch EventSourceType = "cloudwatch"
+	//EventSourceTypeKubernetes EventSourceType = "kubernetes"
 )
 
 // EventSourceConfig represents configuration for creating event sources
@@ -22,14 +22,12 @@ type EventSourceConfig struct {
 	Type           EventSourceType
 	InsightsConfig models.InsightsConfig
 	KubeClient     *client.Client
-	EventChannel   chan *event.WatchedEvent
+	EventChannel   chan *models.WatchedEvent
 
 	// Source-specific configurations
-	AuditLogPath     string
-	CloudWatchConfig *models.CloudWatchConfig
-	FileSystemPath   string
-	WebhookURL       string
-	DatabaseConfig   map[string]interface{}
+	AuditLogPath      string
+	CloudWatchConfig  *models.CloudWatchConfig
+	EventPollInterval string
 }
 
 // EventSourceFactory creates event sources based on configuration
@@ -56,6 +54,7 @@ func NewEventSourceFactory() *EventSourceFactory {
 func (f *EventSourceFactory) registerDefaultCreators() {
 	f.RegisterCreator(EventSourceTypeAuditLog, f.createAuditLogEventSource)
 	f.RegisterCreator(EventSourceTypeCloudWatch, f.createCloudWatchEventSource)
+	//f.RegisterCreator(EventSourceTypeKubernetes, f.createKubernetesEventSource)
 }
 
 // RegisterCreator registers a new event source creator
@@ -68,10 +67,11 @@ func (f *EventSourceFactory) RegisterCreator(sourceType EventSourceType, creator
 func (f *EventSourceFactory) CreateEventSource(config EventSourceConfig) (EventSource, error) {
 	creator, exists := f.creators[config.Type]
 	if !exists {
-		return nil, fmt.Errorf("unsupported event source type: %s", config.Type)
+		slog.Error("Unsupported event source type", "type", config.Type)
+		return nil, nil
 	}
 
-	slog.Debug("Creating event source", "type", config.Type)
+	slog.Info("Creating event source", "type", config.Type)
 	return creator(config)
 }
 
@@ -85,6 +85,9 @@ func (f *EventSourceFactory) CreateEventSources(configs []EventSourceConfig) ([]
 		if err != nil {
 			slog.Error("Failed to create event source", "type", config.Type, "error", err)
 			errors = append(errors, fmt.Errorf("failed to create %s event source: %w", config.Type, err))
+			continue
+		}
+		if source == nil {
 			continue
 		}
 
@@ -123,6 +126,7 @@ func (f *EventSourceFactory) createAuditLogEventSource(config EventSourceConfig)
 		config.KubeClient.KubeInterface,
 		config.AuditLogPath,
 		config.EventChannel,
+		config.EventPollInterval,
 	), nil
 }
 
@@ -140,7 +144,7 @@ func (f *EventSourceFactory) createCloudWatchEventSource(config EventSourceConfi
 }
 
 // BuildEventSourceConfigs creates a list of event source configurations based on the watcher parameters
-func BuildEventSourceConfigs(insightsConfig models.InsightsConfig, kubeClient *client.Client, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventChannel chan *event.WatchedEvent) []EventSourceConfig {
+func BuildEventSourceConfigs(insightsConfig models.InsightsConfig, kubeClient *client.Client, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventChannel chan *models.WatchedEvent) []EventSourceConfig {
 	var configs []EventSourceConfig
 
 	// Add audit log event source if enabled (for local/kind clusters)
@@ -167,3 +171,9 @@ func BuildEventSourceConfigs(insightsConfig models.InsightsConfig, kubeClient *c
 
 	return configs
 }
+
+// createKubernetesEventSource creates a Kubernetes event source
+//func (f *EventSourceFactory) createKubernetesEventSource(config EventSourceConfig) (EventSource, error) {
+//	return NewKubernetesEventSourceAdapter(config.InsightsConfig, config.KubeClient, config.EventPollInterval, config.EventChannel), nil
+//}
+//}

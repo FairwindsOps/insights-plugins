@@ -1,40 +1,35 @@
-package handlers
+package consumers
 
 import (
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"log/slog"
 
 	"golang.org/x/time/rate"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
-type PolicyViolationHandler struct {
+type ValidatingPolicyViolationHandler struct {
 	insightsConfig models.InsightsConfig
 	client         *http.Client
 	rateLimiter    *rate.Limiter
-	mu             sync.Mutex
 }
 
-func NewPolicyViolationHandler(config models.InsightsConfig, httpTimeoutSeconds, rateLimitPerMinute int) *PolicyViolationHandler {
-	// Create rate limiter: rateLimitPerMinute calls per minute
-	limiter := rate.NewLimiter(rate.Limit(rateLimitPerMinute)/60.0, 1)
-
-	return &PolicyViolationHandler{
-		insightsConfig: config,
+func NewValidatingPolicyViolationHandler(insightsConfig models.InsightsConfig, httpTimeoutSeconds, rateLimitPerMinute int) *ValidatingPolicyViolationHandler {
+	return &ValidatingPolicyViolationHandler{
+		insightsConfig: insightsConfig,
 		client: &http.Client{
 			Timeout: time.Duration(httpTimeoutSeconds) * time.Second,
 		},
-		rateLimiter: limiter,
+		rateLimiter: rate.NewLimiter(rate.Limit(rateLimitPerMinute)/60.0, 1),
 	}
 }
 
-func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error {
+func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
 		"resource_type", watchedEvent.ResourceType,
@@ -68,34 +63,21 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *event.WatchedEvent) error 
 		}
 	}
 
-	violationEvent, err := h.extractPolicyViolation(watchedEvent)
+	validatingEvent, err := h.extractValidatingPolicyViolation(watchedEvent)
 	if err != nil {
 		errorFields := append(logFields, "error", err)
-		slog.Warn("Failed to extract policy violation", errorFields...)
-		return fmt.Errorf("failed to extract policy violation: %w", err)
+		slog.Warn("Failed to extract validating policy violation", errorFields...)
+		return fmt.Errorf("failed to extract validating policy violation: %w", err)
 	}
+	slog.Info("Sending validating policy violation to Insights",
+		"policies", validatingEvent.Policies,
+		"result", validatingEvent.PolicyResult,
+		"namespace", validatingEvent.Namespace)
 
-	// Only send blocked policy violations to Insights (any type that blocks resource installation)
-	if !violationEvent.Blocked {
-		slog.Info("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)",
-			"policies", violationEvent.Policies,
-			"result", violationEvent.PolicyResult,
-			"namespace", violationEvent.Namespace,
-			"resource", violationEvent.Name)
-		return nil
-	}
-
-	slog.Info("Sending blocked policy violation to Insights",
-		"policies", violationEvent.Policies,
-		"result", violationEvent.PolicyResult,
-		"namespace", violationEvent.Namespace,
-		"resource", violationEvent.Name,
-		"blocked", violationEvent.Blocked)
-
-	return SendToInsights(h.insightsConfig, h.client, h.rateLimiter, violationEvent)
+	return utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, validatingEvent)
 }
 
-func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.WatchedEvent) (*models.PolicyViolationEvent, error) {
+func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
 	if watchedEvent == nil {
 		return nil, fmt.Errorf("watchedEvent is nil")
 	}
@@ -108,8 +90,9 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policies := ExtractPoliciesFromMessage(message)
+	policies := utils.ExtractValidatingPoliciesFromMessage(message)
 	blocked := false
+	success := false
 	policyResult := ""
 	if watchedEvent.Metadata != nil && watchedEvent.Metadata["policyResult"] != nil {
 		policyResult, ok := watchedEvent.Metadata["policyResult"].(string)
@@ -117,6 +100,7 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 			slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
 		} else {
 			blocked = policyResult == "fail"
+			success = policyResult == "pass"
 		}
 	} else {
 		slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
@@ -138,6 +122,7 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *event.Watc
 		PolicyResult: policyResult,
 		Message:      message,
 		Blocked:      blocked,
+		Success:      success,
 		EventTime:    watchedEvent.EventTime,
 	}, nil
 }
