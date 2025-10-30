@@ -1,7 +1,10 @@
 # Changelog
 
+## 0.1.9
+* Handling validatingadmissionpolicy
+
 ## 0.1.8
-* Added successful admission
+* Code refactoring
 
 ## 0.1.7
 * Added missing parameters
