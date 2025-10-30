@@ -72,7 +72,7 @@ func (h *ValidatingAdmissionPolicyViolationHandler) extractValidatingAdmissionPo
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policies := utils.ExtractValidatingPoliciesFromMessage(message)
+	policies := utils.ExtractValidatingAdmissionPoliciesFromMessage(message)
 	blocked := false
 	success := false
 	policyResult := ""

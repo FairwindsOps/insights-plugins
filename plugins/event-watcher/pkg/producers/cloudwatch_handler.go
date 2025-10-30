@@ -462,6 +462,8 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	} else if utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		policies = utils.ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
 	objectRef := auditEvent.ObjectRef
 	namespace := objectRef.Namespace
