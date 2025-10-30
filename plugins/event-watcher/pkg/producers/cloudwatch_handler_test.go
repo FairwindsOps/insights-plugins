@@ -1,10 +1,9 @@
-package handlers
+package producers
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -71,7 +70,7 @@ func TestCloudWatchHandlerCreatePolicyViolationEventFromAuditEvent(t *testing.T)
 		PollInterval:  "1s",
 		MaxMemoryMB:   100,
 	}
-	h, err := NewCloudWatchHandler(insightsConfig, cloudwatchConfig, make(chan *event.WatchedEvent))
+	h, err := NewCloudWatchHandler(insightsConfig, cloudwatchConfig, make(chan *models.WatchedEvent))
 	if err != nil {
 		t.Fatalf("Failed to create cloudwatch handler: %v", err)
 	}

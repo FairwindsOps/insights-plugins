@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/event"
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/consumers"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/health"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/metrics"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
@@ -31,12 +30,13 @@ type BackpressureConfig struct {
 type Watcher struct {
 	// Core components
 	eventSourceManager *EventSourceManager
-	handlerFactory     *handlers.EventHandlerFactory
+	consumersFactory   *consumers.EventHandlerFactory
 	metrics            *metrics.Metrics
 	healthServer       *health.Server
+	eventPollInterval  string
 
 	// Event processing
-	eventChannel chan *event.WatchedEvent
+	eventChannel chan *models.WatchedEvent
 	stopCh       chan struct{}
 	wg           sync.WaitGroup
 
@@ -46,17 +46,18 @@ type Watcher struct {
 }
 
 // NewWatcher creates a new generic watcher
-func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool) (*Watcher, error) {
-	return NewWatcherWithBackpressure(insightsConfig, logSource, auditLogPath, cloudwatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, consoleMode, BackpressureConfig{
-		MaxRetries:           3,
-		RetryDelay:           100 * time.Millisecond,
-		MetricsLogInterval:   30 * time.Second,
-		EnableMetricsLogging: true,
-	})
+func NewWatcher(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool, eventPollInterval string) (*Watcher, error) {
+	return NewWatcherWithBackpressure(insightsConfig, logSource, auditLogPath, cloudwatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute, consoleMode,
+		BackpressureConfig{
+			MaxRetries:           3,
+			RetryDelay:           100 * time.Millisecond,
+			MetricsLogInterval:   30 * time.Second,
+			EnableMetricsLogging: true,
+		}, eventPollInterval)
 }
 
 // NewWatcherWithBackpressure creates a new generic watcher with custom backpressure configuration
-func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool, backpressureConfig BackpressureConfig) (*Watcher, error) {
+func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource, auditLogPath string, cloudwatchConfig *models.CloudWatchConfig, eventBufferSize, httpTimeoutSeconds, rateLimitPerMinute int, consoleMode bool, backpressureConfig BackpressureConfig, eventPollInterval string) (*Watcher, error) {
 	// Create Kubernetes client
 	kubeClient, err := client.NewClient()
 	if err != nil {
@@ -64,10 +65,10 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 	}
 
 	// Create handler factory
-	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute, consoleMode)
+	consumersFactory := consumers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute, consoleMode)
 
 	// Create event channel
-	eventChannel := make(chan *event.WatchedEvent, eventBufferSize)
+	eventChannel := make(chan *models.WatchedEvent, eventBufferSize)
 
 	// Create metrics instance
 	metricsInstance := metrics.NewMetrics(eventBufferSize)
@@ -102,7 +103,7 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 
 	w := &Watcher{
 		eventSourceManager: eventSourceManager,
-		handlerFactory:     handlerFactory,
+		consumersFactory:   consumersFactory,
 		metrics:            metricsInstance,
 		healthServer:       healthServer,
 		eventChannel:       eventChannel,
@@ -193,7 +194,7 @@ func (w *Watcher) processEvents() {
 
 			watchedEvent.LogEvent()
 
-			if err := w.handlerFactory.ProcessEvent(watchedEvent); err != nil {
+			if err := w.consumersFactory.ProcessEvent(watchedEvent); err != nil {
 				slog.Error("Failed to process event through handlers - this may indicate issues with event handler logic or API communication",
 					"error", err,
 					"event_type", watchedEvent.EventType,

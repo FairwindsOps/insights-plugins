@@ -1,8 +1,9 @@
-package handlers
+package producers
 
 import (
 	"testing"
 
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ james-require-resource-limits:
     limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'`
 
 func TestAuditLogHandlerExtractPolicyName(t *testing.T) {
-	result := ExtractPoliciesFromMessage(errorMessage)
+	result := utils.ExtractPoliciesFromMessage(errorMessage)
 	assert.Equal(t, 3, len(result))
 	assert.Equal(t, "validation error: Privileged containers are not allowed. rule check-privileged-james-1 failed at path /spec/containers/", result["james-disallow-privileged-containers"]["check-privileged-james-1"])
 	assert.Equal(t, "validation error: Required labels (app, version, environment) must be present. rule check-required-labels-james-1 failed at path /metadata/labels/environment/", result["james-require-labels"]["check-required-labels-james-1"])

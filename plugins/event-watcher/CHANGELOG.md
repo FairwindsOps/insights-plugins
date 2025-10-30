@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.1.8
+## 0.1.9
 * Bumped go for fixing vulnerabilities
+
+## 0.1.8
+* Added successful admission
 
 ## 0.1.7
 * Added missing parameters
