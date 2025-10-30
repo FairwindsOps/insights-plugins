@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.23
+* Bumped go for fixing vulnerabilities
+
 ## 2.6.22
 * Bumped libs
 

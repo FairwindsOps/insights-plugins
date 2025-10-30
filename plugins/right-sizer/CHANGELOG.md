@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.18
+* Bumped go for fixing vulnerabilities
+
 ## 0.5.17
 * Bumped libs
 

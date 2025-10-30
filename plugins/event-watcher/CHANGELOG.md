@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.8
+* Bumped go for fixing vulnerabilities
+
 ## 0.1.7
 * Added missing parameters
 
