@@ -14,7 +14,11 @@ docker rm -f kind-control-plane 2>/dev/null || true
 
 # Create audit logs directory
 echo "📁 Creating audit logs directory..."
-mkdir -p /tmp/audit-logs
+if [ ! -d "/tmp/audit-logs" ]; then
+    mkdir -p /tmp/audit-logs
+else
+    echo "📁 Audit logs directory already exists"
+fi
 
 # Create audit policy file on host
 echo "📝 Creating audit policy file..."
@@ -109,11 +113,6 @@ kind get kubeconfig --name kind > ~/.kube/config
 echo "✅ Verifying cluster..."
 kubectl get nodes
 
-# Test audit logging by creating some resources
-echo "🧪 Testing REAL audit logging..."
-kubectl create deployment test-nginx --image=nginx --replicas=1 || true
-kubectl create deployment test-httpd --image=httpd --replicas=1 || true
-sleep 3
 
 # Check if audit log file exists and has content
 if [ -f "/tmp/audit-logs/kube-apiserver-audit.log" ]; then
