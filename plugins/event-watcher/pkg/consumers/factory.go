@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
 
 // EventHandler interface for processing events
@@ -46,14 +47,14 @@ func NewEventHandlerFactory(insightsConfig models.InsightsConfig, kubeClient kub
 func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 	if consoleMode {
 		// Console handler for printing events to console
-		f.Register("kyverno-policy-violation", NewConsoleHandler(f.insightsConfig))
-		f.Register("validating-policy-violation", NewConsoleHandler(f.insightsConfig))
-		f.Register("validating-admission-policy-violation", NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.KyvernoPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.ValidatingPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 	} else {
 		// PolicyViolation handler for Kubernetes events (sends to Insights)
-		f.Register("kyverno-policy-violation", NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
-		f.Register("validating-policy-violation", NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
-		f.Register("validating-admission-policy-violation", NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.KyvernoPolicyViolationPrefix, NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.ValidatingPolicyViolationPrefix, NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
@@ -81,13 +82,13 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *models.WatchedEvent) Even
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *models.WatchedEvent) string {
 	// Check for PolicyViolation events first (most specific)
 	slog.Debug("Getting handler name for event", "name", watchedEvent.Name)
-	if strings.HasPrefix(watchedEvent.Name, "kyverno-policy-violation") {
+	if strings.HasPrefix(watchedEvent.Name, utils.KyvernoPolicyViolationPrefix) {
 		slog.Debug("Found kyverno policy violation event", "name", watchedEvent.Name)
-		return "kyverno-policy-violation"
+		return utils.KyvernoPolicyViolationPrefix
 	}
-	if strings.HasPrefix(watchedEvent.Name, "validating-policy-violation") {
+	if strings.HasPrefix(watchedEvent.Name, utils.ValidatingPolicyViolationPrefix) {
 		slog.Debug("Found validating policy violation event", "name", watchedEvent.Name)
-		return "validating-policy-violation"
+		return utils.ValidatingPolicyViolationPrefix
 	}
 	slog.Debug("No handler found for event", "name", watchedEvent.Name)
 	return ""

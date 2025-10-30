@@ -391,7 +391,7 @@ func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent 
 	}
 
 	// Check if this is a policy violation
-	if h.isKyvernoPolicyViolation(auditEvent) || h.isValidatingPolicyViolation(auditEvent) {
+	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		if value, err := alreadyProcessedCloudWatchAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
 			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 			return nil
@@ -433,7 +433,7 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 	}
 
 	// Check if this is a ValidatingAdmissionPolicy violation
-	if h.isKyvernoPolicyViolation(auditEvent) || h.isValidatingPolicyViolation(auditEvent) {
+	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
@@ -452,33 +452,15 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 	return nil
 }
 
-func (h *CloudWatchHandler) isKyvernoPolicyViolation(auditEvent CloudWatchAuditEvent) bool {
-	message := auditEvent.ResponseStatus.Message
-	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "kyverno") &&
-		strings.Contains(message, "blocked due to the following policies") {
-		return true
-	}
-	return false
-}
-
-func (h *CloudWatchHandler) isValidatingPolicyViolation(auditEvent CloudWatchAuditEvent) bool {
-	message := auditEvent.ResponseStatus.Message
-	if auditEvent.ResponseStatus.Code >= 400 && strings.Contains(message, "vpol") &&
-		strings.Contains(message, "kyverno") {
-		return true
-	}
-	return false
-}
-
 // createPolicyViolationEventFromAuditEvent creates a policy violation event from audit event
 func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *models.WatchedEvent {
-	if !h.isKyvernoPolicyViolation(auditEvent) && !h.isValidatingPolicyViolation(auditEvent) {
+	if !utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		return nil
 	}
 	policies := map[string]map[string]string{}
-	if h.isKyvernoPolicyViolation(auditEvent) {
+	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-	} else if h.isValidatingPolicyViolation(auditEvent) {
+	} else if utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
 	objectRef := auditEvent.ObjectRef
@@ -493,9 +475,11 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 		reason = "Blocked"
 	}
 
-	name = fmt.Sprintf("kyverno-policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID)
-	if h.isValidatingPolicyViolation(auditEvent) {
-		name = fmt.Sprintf("validating-policy-violation-%s-%s-%s", resource, name, auditEvent.AuditID)
+	name = fmt.Sprintf("%s-%s-%s-%s", utils.KyvernoPolicyViolationPrefix, resource, name, auditEvent.AuditID)
+	if utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		name = fmt.Sprintf("%s-%s-%s-%s", utils.ValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
+	} else if utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		name = fmt.Sprintf("%s-%s-%s-%s", utils.ValidatingAdmissionPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	}
 
 	// Create the policy violation event
