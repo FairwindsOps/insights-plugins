@@ -43,8 +43,6 @@ func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]
 		if startIndex != -1 && endIndex != -1 {
 			policyName = message[startIndex:endIndex]
 			policyName = strings.TrimSpace(policyName)
-			fmt.Println("policyName", policyName)
-			fmt.Println("message", message)
 		}
 	}
 	return map[string]map[string]string{
@@ -55,17 +53,18 @@ func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]
 }
 
 func ExtractValidatingAdmissionPoliciesFromMessage(message string) map[string]map[string]string {
-	if strings.Contains(message, "admission webhook") && strings.Contains(message, "denied the request:") {
+	// Parsing example: "deployments.apps \"nginx-deployment\" is forbidden: ValidatingAdmissionPolicy 'check-deployment-replicas' with binding 'check-deployment-replicas-binding' denied request: failed expression: object.spec.replicas >= 5"
+	if strings.Contains(message, "ValidatingAdmissionPolicy") && strings.Contains(message, "denied request:") {
 		policyName := "unknown"
-		if strings.Contains(message, "denied the request: Policy") {
-			policyName = message[strings.Index(message, "denied the request: Policy")+len("denied the request: Policy") : strings.Index(message, " failed:")]
+		if strings.Contains(message, "ValidatingAdmissionPolicy") {
+			policyName = message[strings.Index(message, "ValidatingAdmissionPolicy")+len("ValidatingAdmissionPolicy") : strings.Index(message, " with binding ")]
+			// remove quotes
+			policyName = strings.ReplaceAll(policyName, "'", "")
 			policyName = strings.TrimSpace(policyName)
-			fmt.Println("policyName", policyName)
-			fmt.Println("message", message)
 		}
 		return map[string]map[string]string{
 			policyName: {
-				"message": message,
+				policyName: message,
 			},
 		}
 	}
