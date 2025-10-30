@@ -54,6 +54,24 @@ func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]
 	}
 }
 
+func ExtractValidatingAdmissionPoliciesFromMessage(message string) map[string]map[string]string {
+	if strings.Contains(message, "admission webhook") && strings.Contains(message, "denied the request:") {
+		policyName := "unknown"
+		if strings.Contains(message, "denied the request: Policy") {
+			policyName = message[strings.Index(message, "denied the request: Policy")+len("denied the request: Policy") : strings.Index(message, " failed:")]
+			policyName = strings.TrimSpace(policyName)
+			fmt.Println("policyName", policyName)
+			fmt.Println("message", message)
+		}
+		return map[string]map[string]string{
+			policyName: {
+				"message": message,
+			},
+		}
+	}
+	return map[string]map[string]string{}
+}
+
 // sendToInsights sends the policy violation to Insights API
 func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, rateLimiter *rate.Limiter, violationEvent *models.PolicyViolationEvent) error {
 	// Apply rate limiting

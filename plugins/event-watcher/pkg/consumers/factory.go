@@ -48,10 +48,12 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		// Console handler for printing events to console
 		f.Register("kyverno-policy-violation", NewConsoleHandler(f.insightsConfig))
 		f.Register("validating-policy-violation", NewConsoleHandler(f.insightsConfig))
+		f.Register("validating-admission-policy-violation", NewConsoleHandler(f.insightsConfig))
 	} else {
 		// PolicyViolation handler for Kubernetes events (sends to Insights)
 		f.Register("kyverno-policy-violation", NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register("validating-policy-violation", NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register("validating-admission-policy-violation", NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
