@@ -1,4 +1,4 @@
-package handlers
+package consumers
 
 import (
 	"log/slog"

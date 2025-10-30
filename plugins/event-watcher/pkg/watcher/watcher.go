@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/consumers"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/health"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/metrics"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
@@ -30,7 +30,7 @@ type BackpressureConfig struct {
 type Watcher struct {
 	// Core components
 	eventSourceManager *EventSourceManager
-	handlerFactory     *handlers.EventHandlerFactory
+	consumersFactory   *consumers.EventHandlerFactory
 	metrics            *metrics.Metrics
 	healthServer       *health.Server
 	eventPollInterval  string
@@ -65,7 +65,7 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 	}
 
 	// Create handler factory
-	handlerFactory := handlers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute, consoleMode)
+	consumersFactory := consumers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute, consoleMode)
 
 	// Create event channel
 	eventChannel := make(chan *models.WatchedEvent, eventBufferSize)
@@ -103,7 +103,7 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 
 	w := &Watcher{
 		eventSourceManager: eventSourceManager,
-		handlerFactory:     handlerFactory,
+		consumersFactory:   consumersFactory,
 		metrics:            metricsInstance,
 		healthServer:       healthServer,
 		eventChannel:       eventChannel,
@@ -194,7 +194,7 @@ func (w *Watcher) processEvents() {
 
 			watchedEvent.LogEvent()
 
-			if err := w.handlerFactory.ProcessEvent(watchedEvent); err != nil {
+			if err := w.consumersFactory.ProcessEvent(watchedEvent); err != nil {
 				slog.Error("Failed to process event through handlers - this may indicate issues with event handler logic or API communication",
 					"error", err,
 					"event_type", watchedEvent.EventType,

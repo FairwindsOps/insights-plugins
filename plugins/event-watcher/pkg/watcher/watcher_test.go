@@ -11,7 +11,7 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/handlers"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/consumers"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 )
 
@@ -37,8 +37,8 @@ func TestWatcherHandlerFactory(t *testing.T) {
 
 	// Create handler factory directly (following project pattern)
 	scheme := runtime.NewScheme()
-	handlerFactory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
-	assert.NotNil(t, handlerFactory)
+	consumersFactory := consumers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
+	assert.NotNil(t, consumersFactory)
 
 	// Test ValidatingAdmissionPolicy event processing
 	t.Run("ValidatingAdmissionPolicy event should trigger API call", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 		}
 
 		// Process the event
-		err := handlerFactory.ProcessEvent(policyViolationEvent)
+		err := consumersFactory.ProcessEvent(policyViolationEvent)
 		assert.NoError(t, err)
 
 		// Verify API was called
@@ -116,7 +116,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 		}
 
 		// Process the event
-		err := handlerFactory.ProcessEvent(policyReportEvent)
+		err := consumersFactory.ProcessEvent(policyReportEvent)
 		assert.NoError(t, err)
 
 		// PolicyReport handler should not call API, just log
@@ -125,7 +125,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 }
 
 // Simple test for handler factory creation (following project patterns)
-func TestEventHandlerFactory_Creation(t *testing.T) {
+func TestConsumersFactory_Creation(t *testing.T) {
 	config := models.InsightsConfig{
 		Hostname:     "https://test.com",
 		Organization: "test-org",
@@ -134,9 +134,9 @@ func TestEventHandlerFactory_Creation(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	factory := handlers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
-	assert.NotNil(t, factory)
-	assert.Greater(t, factory.GetHandlerCount(), 0)
+	consumersFactory := consumers.NewEventHandlerFactory(config, fake.NewSimpleClientset(), dynamicfake.NewSimpleDynamicClient(scheme), 30, 60, false)
+	assert.NotNil(t, consumersFactory)
+	assert.Greater(t, consumersFactory.GetHandlerCount(), 0)
 }
 
 // Test backpressure configuration
