@@ -6,7 +6,7 @@ require (
 	github.com/fairwindsops/controller-utils v0.3.4
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.22.5
+	github.com/fairwindsops/pluto/v5 v5.22.6
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.52.0
 	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
