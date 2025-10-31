@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.10
+* Improve parsing blocked field
+
 ## 0.1.9
 * Handling validatingadmissionpolicy
 
