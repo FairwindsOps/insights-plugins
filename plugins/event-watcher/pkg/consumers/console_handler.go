@@ -32,7 +32,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	// Basic event information
 	fmt.Printf("📅 Timestamp: %s\n", time.Unix(watchedEvent.Timestamp, 0).Format(time.RFC3339))
 	fmt.Printf("🏷️  Event Type: %s\n", watchedEvent.EventType)
-	fmt.Printf("📦 Resource Type: %s\n", watchedEvent.ResourceType)
+	fmt.Printf("📦 Kind: %s\n", watchedEvent.Kind)
 	fmt.Printf("🏠 Namespace: %s\n", watchedEvent.Namespace)
 	fmt.Printf("📝 Name: %s\n", watchedEvent.Name)
 	fmt.Printf("🆔 UID: %s\n", watchedEvent.UID)
@@ -139,14 +139,13 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *models.WatchedEven
 
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
-			EventType:    string(watchedEvent.EventType),
-			ResourceType: watchedEvent.ResourceType,
-			Namespace:    watchedEvent.Namespace,
-			Name:         watchedEvent.Name,
-			UID:          watchedEvent.UID,
-			Timestamp:    watchedEvent.Timestamp,
-			Data:         watchedEvent.Data,
-			Metadata:     watchedEvent.Metadata,
+			EventType: string(watchedEvent.EventType),
+			Namespace: watchedEvent.Namespace,
+			Name:      watchedEvent.Name,
+			UID:       watchedEvent.UID,
+			Timestamp: watchedEvent.Timestamp,
+			Data:      watchedEvent.Data,
+			Metadata:  watchedEvent.Metadata,
 		},
 		Policies:  policies,
 		Message:   message,

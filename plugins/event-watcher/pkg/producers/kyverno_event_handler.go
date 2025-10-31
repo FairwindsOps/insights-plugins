@@ -80,7 +80,7 @@ func (h *KubernetesEventHandler) processBlockedKubernetesEvents(ctx context.Cont
 			Timestamp:    time.Now().Unix(),
 			EventTime:    event.LastTimestamp.Format(time.RFC3339),
 			EventType:    models.EventType(event.Type),
-			ResourceType: event.InvolvedObject.Kind,
+			Kind:         event.InvolvedObject.Kind,
 			Namespace:    event.InvolvedObject.Namespace,
 			Name:         event.InvolvedObject.Name,
 			UID:          string(event.InvolvedObject.UID),

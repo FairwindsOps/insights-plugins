@@ -1,0 +1,47 @@
+{
+    "kind": "Event",
+    "apiVersion": "audit.k8s.io/v1",
+    "level": "Metadata",
+    "auditID": "266c75cc-d3c6-4d6f-8714-80cb5f7d8464",
+    "stage": "ResponseComplete",
+    "requestURI": "/apis/events.k8s.io/v1/namespaces/default/events",
+    "verb": "create",
+    "user": {
+        "username": "system:serviceaccount:kyverno:kyverno-admission-controller",
+        "uid": "3ec72838-2033-4c37-a995-f859cb2447a8",
+        "groups": [
+            "system:serviceaccounts",
+            "system:serviceaccounts:kyverno",
+            "system:authenticated"
+        ]
+    },
+    "sourceIPs": [
+        "10.244.0.9"
+    ],
+    "userAgent": "kyverno/v0.0.0 (linux/arm64) kubernetes/$Format",
+    "objectRef": {
+        "resource": "events",
+        "namespace": "default",
+        "name": "require-labels.1873047382b4fbdd",
+        "uid": "",
+        "apiGroup": "events.k8s.io",
+        "apiVersion": "v1",
+        "resourceVersion": "",
+        "subResource": ""
+    },
+    "responseStatus": {
+        "metadata": {},
+        "code": 201,
+        "status": "",
+        "message": "",
+        "reason": ""
+    },
+    "requestObject": null,
+    "responseObject": null,
+    "annotations": {
+        "authorization.k8s.io/decision": "allow",
+        "authorization.k8s.io/reason": "RBAC: allowed by ClusterRoleBinding \"kyverno:admission-controller\" of ClusterRole \"kyverno:admission-controller\" to ServiceAccount \"kyverno-admission-controller/kyverno\""
+    },
+    "requestReceivedTimestamp": "2025-10-29T16:52:53.393483Z",
+    "stageTimestamp": "2025-10-29T16:52:53.399513Z"
+}

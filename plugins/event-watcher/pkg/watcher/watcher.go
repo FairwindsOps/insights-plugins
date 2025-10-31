@@ -198,7 +198,7 @@ func (w *Watcher) processEvents() {
 				slog.Error("Failed to process event through handlers - this may indicate issues with event handler logic or API communication",
 					"error", err,
 					"event_type", watchedEvent.EventType,
-					"resource_type", watchedEvent.ResourceType,
+					"kind", watchedEvent.Kind,
 					"namespace", watchedEvent.Namespace,
 					"name", watchedEvent.Name,
 					"error_type", fmt.Sprintf("%T", err),

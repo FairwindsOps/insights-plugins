@@ -34,7 +34,7 @@ func TestValidatingAdmissionPolicyHandlerHandle(t *testing.T) {
 		EventVersion: 1,
 		Timestamp:    time.Now().Unix(),
 		EventType:    models.EventTypeAdded,
-		ResourceType: "events",
+		Kind:         "events",
 		Namespace:    "default",
 		Name:         "validating-admission-policy-violation-test",
 		UID:          "test-uid-123",

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +56,7 @@ const cloudWatchKyvernoBlock = `
 }
 `
 
-func TestCloudWatchHandlerCreatePolicyViolationEventFromAuditEvent(t *testing.T) {
+func TestCloudWatchHandlerCreateBlockedWatchedEventFromPolicyViolationEvent(t *testing.T) {
 	insightsConfig := models.InsightsConfig{
 		Hostname:     "test-hostname",
 		Organization: "test-organization",
@@ -70,34 +71,24 @@ func TestCloudWatchHandlerCreatePolicyViolationEventFromAuditEvent(t *testing.T)
 		PollInterval:  "1s",
 		MaxMemoryMB:   100,
 	}
-	h, err := NewCloudWatchHandler(insightsConfig, cloudwatchConfig, make(chan *models.WatchedEvent))
+	_, err := NewCloudWatchHandler(insightsConfig, cloudwatchConfig, make(chan *models.WatchedEvent))
 	if err != nil {
 		t.Fatalf("Failed to create cloudwatch handler: %v", err)
 	}
 
-	auditEvent := CloudWatchAuditEvent{}
+	auditEvent := models.AuditEvent{}
 	err = json.Unmarshal([]byte(cloudWatchKyvernoBlock), &auditEvent)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal cloud watch kyverno block: %v", err)
 	}
 
-	violationEvent := h.createBlockedPolicyViolationEventFromAuditEvent(auditEvent)
-	if violationEvent == nil {
-		t.Fatalf("Failed to create blocked policy violation event from audit event")
-	}
+	policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
 
-	assert.Equal(t, "Deployment", violationEvent.ResourceType)
-	assert.Equal(t, "default", violationEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2", violationEvent.Metadata["resource_name"])
-	assert.Equal(t, "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2", violationEvent.Name)
-	assert.Equal(t, "5c0888f1-bdd0-4681-9aba-5b734c267df2", violationEvent.UID)
-	assert.NotNil(t, violationEvent.Timestamp)
-	assert.NotNil(t, violationEvent.EventTime)
-	assert.Equal(t, "Blocked", violationEvent.Data["reason"])
-	assert.Equal(t, "nginx-deployment", violationEvent.Data["involvedObject"].(CloudWatchObjectRef).Name)
-	assert.Equal(t, "default", violationEvent.Data["involvedObject"].(CloudWatchObjectRef).Namespace)
-	assert.Equal(t, "5c0888f1-bdd0-4681-9aba-5b734c267df2", violationEvent.Data["involvedObject"].(CloudWatchObjectRef).UID)
-	assert.NotNil(t, violationEvent.Data["firstTimestamp"])
-	assert.NotNil(t, violationEvent.Data["lastTimestamp"])
-	assert.NotNil(t, violationEvent.Data["metadata"])
+	assert.Equal(t, "Deployment", policyViolationEvent.ResourceType)
+	assert.Equal(t, "default", policyViolationEvent.Namespace)
+	assert.Equal(t, "nginx-deployment", policyViolationEvent.Name)
+	assert.Equal(t, "Failure", policyViolationEvent.Action)
+	assert.Equal(t, "5c0888f1-bdd0-4681-9aba-5b734c267df2", policyViolationEvent.AuditID)
+
+	utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, make(chan *models.WatchedEvent))
 }

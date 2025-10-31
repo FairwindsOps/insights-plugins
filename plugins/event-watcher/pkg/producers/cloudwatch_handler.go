@@ -40,23 +40,7 @@ type CloudWatchHandler struct {
 	cloudwatchClient *cloudwatchlogs.Client
 	stopCh           chan struct{}
 }
-type CloudWatchAuditEvent struct {
-	Kind                     string                   `json:"kind"`
-	APIVersion               string                   `json:"apiVersion"`
-	Level                    string                   `json:"level"`
-	AuditID                  string                   `json:"auditID"`
-	Stage                    string                   `json:"stage"`
-	RequestURI               string                   `json:"requestURI"`
-	Verb                     string                   `json:"verb"`
-	User                     CloudWatchUser           `json:"user"`
-	SourceIPs                []string                 `json:"sourceIPs"`
-	UserAgent                string                   `json:"userAgent"`
-	ObjectRef                CloudWatchObjectRef      `json:"objectRef"`
-	ResponseStatus           CloudWatchResponseStatus `json:"responseStatus"`
-	RequestReceivedTimestamp time.Time                `json:"requestReceivedTimestamp"`
-	StageTimestamp           time.Time                `json:"stageTimestamp"`
-	Annotations              map[string]string        `json:"annotations"`
-}
+
 type CloudWatchUser struct {
 	Username string   `json:"username"`
 	UID      string   `json:"uid"`
@@ -379,7 +363,7 @@ func (h *CloudWatchHandler) processFilteredLogEvents(ctx context.Context, input 
 // processOutputLogEvent processes a single output log event for policy violations
 func (h *CloudWatchHandler) processLogEvent(ctx context.Context, message string) error {
 	// Parse the log message as JSON
-	var auditEvent CloudWatchAuditEvent
+	var auditEvent models.AuditEvent
 	if err := json.Unmarshal([]byte(message), &auditEvent); err != nil {
 		// Skip non-JSON log entries
 		return nil
@@ -399,90 +383,24 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, message string)
 			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
 			return nil
 		}
-		violationEvent := h.createBlockedPolicyViolationEventFromAuditEvent(auditEvent)
-		if violationEvent != nil {
-			select {
-			case h.eventChannel <- violationEvent:
-				slog.Debug("Sent policy violation event to channel",
-					"policy_name", violationEvent.Data["policy_name"],
-					"resource", fmt.Sprintf("%s/%s", violationEvent.Namespace, violationEvent.Name))
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-				slog.Warn("Event channel full, dropping policy violation event")
-			}
+		policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
+		if policyViolationEvent != nil {
+			slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
+			slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
+			utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, h.eventChannel)
+		}
+	} else if utils.IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent.Annotations) {
+		err := alreadyProcessedCloudWatchAuditIDs.Set(auditEvent.AuditID, []byte("true"))
+		if err != nil {
+			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
+			return nil
+		}
+		auditOnlyAllowEvent := utils.CreateValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent)
+		slog.Info("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
+		if auditOnlyAllowEvent != nil {
+			slog.Info("Creating watched event from validating admission policy violation audit only allow event", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
+			utils.CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(auditOnlyAllowEvent, h.eventChannel)
 		}
 	}
-
 	return nil
-}
-
-// createPolicyViolationEventFromAuditEvent creates a policy violation event from audit event
-func (h *CloudWatchHandler) createBlockedPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *models.WatchedEvent {
-	if !utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
-		!utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
-		!utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		return nil
-	}
-	policies := map[string]map[string]string{}
-	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-	} else if utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-	} else if utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		policies = utils.ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-	}
-	objectRef := auditEvent.ObjectRef
-	namespace := objectRef.Namespace
-	name := objectRef.Name
-	resource := objectRef.Resource
-
-	policyMessage := auditEvent.ResponseStatus.Message
-
-	reason := "Allowed"
-	if auditEvent.ResponseStatus.Code >= 400 {
-		reason = "Blocked"
-	}
-
-	name = fmt.Sprintf("%s-%s-%s-%s", utils.KyvernoPolicyViolationPrefix, resource, name, auditEvent.AuditID)
-	if utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		name = fmt.Sprintf("%s-%s-%s-%s", utils.ValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
-	} else if utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		name = fmt.Sprintf("%s-%s-%s-%s", utils.ValidatingAdmissionPolicyViolationPrefix, resource, name, auditEvent.AuditID)
-	}
-
-	// Create the policy violation event
-	violationEvent := &models.WatchedEvent{
-		EventType:    models.EventTypeAdded,
-		ResourceType: resource,
-		Namespace:    namespace,
-		Name:         name,
-		UID:          auditEvent.AuditID,
-		Timestamp:    auditEvent.StageTimestamp.Unix(),
-		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
-		Success:      false,
-		Blocked:      true,
-		Data: map[string]interface{}{
-			"reason":  reason,
-			"message": policyMessage,
-			"source": map[string]interface{}{
-				"component": "cloudwatch",
-			},
-			"involvedObject": objectRef,
-			"firstTimestamp": auditEvent.RequestReceivedTimestamp.Format(time.RFC3339),
-			"lastTimestamp":  auditEvent.StageTimestamp.Format(time.RFC3339),
-			"metadata":       auditEvent.Annotations,
-		},
-		Metadata: map[string]interface{}{
-			"audit_id":      auditEvent.AuditID,
-			"policies":      policies,
-			"resource_name": name,
-			"namespace":     namespace,
-			"action":        reason,
-			"message":       policyMessage,
-			"timestamp":     auditEvent.StageTimestamp.Format(time.RFC3339),
-			"event_time":    auditEvent.StageTimestamp.Format(time.RFC3339),
-		},
-	}
-	return violationEvent
 }
