@@ -163,8 +163,6 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			continue
 		}
 
-		fmt.Println("line============", line)
-
 		// Parse the audit log entry
 		var auditEvent AuditEvent
 		if err := json.Unmarshal([]byte(line), &auditEvent); err != nil {
