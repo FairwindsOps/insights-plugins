@@ -51,6 +51,8 @@ func TestWatcherHandlerFactory(t *testing.T) {
 			Namespace:    "default",
 			Name:         "kyverno-policy-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
 			UID:          "test-uid-123",
+			Success:      false,
+			Blocked:      true,
 			Data: map[string]interface{}{
 				"apiVersion": "v1",
 				"kind":       "Event",
@@ -92,6 +94,8 @@ func TestWatcherHandlerFactory(t *testing.T) {
 			Namespace:    "default",
 			Name:         "policy-report-test",
 			UID:          "test-uid-789",
+			Success:      false,
+			Blocked:      true,
 			Data: map[string]interface{}{
 				"apiVersion": "wgpolicyk8s.io/v1alpha2",
 				"kind":       "PolicyReport",

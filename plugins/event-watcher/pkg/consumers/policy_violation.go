@@ -79,7 +79,8 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error
 	if !violationEvent.Blocked {
 		slog.Info("Policy violation is not blocked, skipping (only blocked policy violations are sent to Insights)",
 			"policies", violationEvent.Policies,
-			"result", violationEvent.PolicyResult,
+			"success", violationEvent.Success,
+			"blocked", violationEvent.Blocked,
 			"namespace", violationEvent.Namespace,
 			"resource", violationEvent.Name)
 		return nil
@@ -87,7 +88,8 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error
 
 	slog.Info("Sending blocked policy violation to Insights",
 		"policies", violationEvent.Policies,
-		"result", violationEvent.PolicyResult,
+		"success", violationEvent.Success,
+		"blocked", violationEvent.Blocked,
 		"namespace", violationEvent.Namespace,
 		"resource", violationEvent.Name,
 		"blocked", violationEvent.Blocked)
@@ -109,20 +111,7 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *models.Wat
 	}
 
 	policies := utils.ExtractPoliciesFromMessage(message)
-	blocked := false
-	policyResult := ""
-	if watchedEvent.Metadata != nil && watchedEvent.Metadata["policyResult"] != nil {
-		policyResult, ok := watchedEvent.Metadata["policyResult"].(string)
-		if !ok {
-			slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
-		} else {
-			blocked = policyResult == "fail"
-		}
-	} else {
-		slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
-		blocked = true
-		policyResult = "fail"
-	}
+
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
 			EventType:    string(watchedEvent.EventType),
@@ -134,10 +123,10 @@ func (h *PolicyViolationHandler) extractPolicyViolation(watchedEvent *models.Wat
 			Data:         watchedEvent.Data,
 			Metadata:     watchedEvent.Metadata,
 		},
-		Policies:     policies,
-		PolicyResult: policyResult,
-		Message:      message,
-		Blocked:      blocked,
-		EventTime:    watchedEvent.EventTime,
+		Policies:  policies,
+		Message:   message,
+		Blocked:   watchedEvent.Blocked,
+		Success:   watchedEvent.Success,
+		EventTime: watchedEvent.EventTime,
 	}, nil
 }

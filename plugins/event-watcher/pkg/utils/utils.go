@@ -122,12 +122,10 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 
 	slog.Info("Successfully sent blocked policy violation to Insights API",
 		"policies", violationEvent.Policies,
-		"result", violationEvent.PolicyResult,
+		"success", violationEvent.Success,
 		"blocked", violationEvent.Blocked,
 		"namespace", violationEvent.Namespace,
-		"resource", violationEvent.Name,
-		"event_time", violationEvent.EventTime,
-		"timestamp", violationEvent.Timestamp)
+		"resource", violationEvent.Name)
 
 	return nil
 }

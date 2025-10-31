@@ -493,10 +493,11 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 		UID:          auditEvent.AuditID,
 		Timestamp:    auditEvent.StageTimestamp.Unix(),
 		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
+		Success:      false,
+		Blocked:      true, // TODO: Fix this
 		Data: map[string]interface{}{
 			"reason":  reason,
 			"message": policyMessage,
-			"blocked": reason == "Blocked",
 			"source": map[string]interface{}{
 				"component": "cloudwatch",
 			},

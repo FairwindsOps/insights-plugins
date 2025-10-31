@@ -87,6 +87,8 @@ func (h *KubernetesEventHandler) processKubernetesEvents(ctx context.Context) er
 			Data:         map[string]interface{}{"event": event},
 			Metadata:     map[string]interface{}{"annotations": event.ObjectMeta.Annotations, "labels": event.ObjectMeta.Labels},
 			EventSource:  "kubernetes",
+			Success:      false,
+			Blocked:      true, // TODO: Fix this
 		}
 		h.eventChannel <- event
 	}

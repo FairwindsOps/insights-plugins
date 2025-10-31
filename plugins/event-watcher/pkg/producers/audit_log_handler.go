@@ -283,7 +283,10 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(auditEvent 
 		UID:       violation.AuditID,
 		Timestamp: ts.Unix(),
 		EventTime: ts.UTC().Format(time.RFC3339),
-		Data: map[string]interface{}{"reason": violation.Action,
+		Success:   false,
+		Blocked:   true, // TODO: Fix this
+		Data: map[string]interface{}{
+			"reason":   violation.Action,
 			"type":     "Warning",
 			"message":  violation.Message,
 			"policies": violation.Policies,
