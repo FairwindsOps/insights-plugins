@@ -74,7 +74,6 @@ func (h *ValidatingAdmissionPolicyViolationHandler) extractValidatingAdmissionPo
 	}
 
 	policies := utils.ExtractValidatingAdmissionPoliciesFromMessage(message)
-
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
 			EventType:    string(watchedEvent.EventType),

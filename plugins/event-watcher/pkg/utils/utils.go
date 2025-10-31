@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	KyvernoPolicyViolationPrefix             = "kyverno-policy-violation"
-	ValidatingPolicyViolationPrefix          = "validating-policy-violation"
-	ValidatingAdmissionPolicyViolationPrefix = "validating-admission-policy-violation"
+	KyvernoPolicyViolationPrefix                    = "kyverno-policy-violation"
+	ValidatingPolicyViolationPrefix                 = "validating-policy-violation"
+	ValidatingAdmissionPolicyViolationPrefix        = "validating-admission-policy-violation"
+	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
 )
 
 func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
@@ -75,6 +76,24 @@ func ExtractValidatingAdmissionPoliciesFromMessage(message string) map[string]ma
 		}
 	}
 	return map[string]map[string]string{}
+}
+
+func ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations map[string]string) map[string]map[string]string {
+	// "[{\"message\":\"failed expression: object.spec.replicas \\u003e= 5\",\"policy\":\"check-deployment-replicas\",\"binding\":\"check-deployment-replicas-binding\",\"expressionIndex\":0,\"validationActions\":[\"Audit\"]}]"
+	validationFailure := annotations["validation.policy.admission.k8s.io/validation_failure"]
+	policyName := "unknown"
+	startIndex := strings.Index(validationFailure, "policy\":\"")
+	if startIndex != -1 {
+		endIndex := strings.Index(validationFailure, "\"")
+		if endIndex != -1 {
+			policyName = validationFailure[startIndex+len("policy:\"") : endIndex]
+		}
+	}
+	return map[string]map[string]string{
+		policyName: {
+			policyName: validationFailure,
+		},
+	}
 }
 
 // sendToInsights sends the policy violation to Insights API
@@ -148,6 +167,19 @@ func IsValidatingPolicyViolation(responseCode int, message string) bool {
 
 func IsValidatingAdmissionPolicyViolation(responseCode int, message string) bool {
 	if responseCode >= 400 && strings.Contains(message, "ValidatingAdmissionPolicy") {
+		return true
+	}
+	return false
+}
+
+/*
+From audit event sample: samples/audit-validating-admission-policy.json
+Check if the audit event is a validating admission policy violation
+*/
+func IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(annotations map[string]string) bool {
+	decision := annotations["authorization.k8s.io/decision"]
+	validationFailure := annotations["validation.policy.admission.k8s.io/validation_failure"]
+	if decision == "allow" && validationFailure != "" {
 		return true
 	}
 	return false

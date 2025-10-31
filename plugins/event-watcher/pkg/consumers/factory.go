@@ -55,6 +55,7 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		f.Register(utils.KyvernoPolicyViolationPrefix, NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingPolicyViolationPrefix, NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewAuditOnlyAllowedValidatingAdmissionPolicyHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
@@ -94,6 +95,10 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *models.WatchedEvent) 
 	if strings.HasPrefix(watchedEvent.Name, utils.ValidatingAdmissionPolicyViolationPrefix) {
 		slog.Debug("Found validating admission policy violation event", "name", watchedEvent.Name)
 		return utils.ValidatingAdmissionPolicyViolationPrefix
+	}
+	if strings.HasPrefix(watchedEvent.Name, utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix) {
+		slog.Debug("Found audit only allowed validating admission policy event", "name", watchedEvent.Name)
+		return utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix
 	}
 	slog.Debug("No handler found for event", "name", watchedEvent.Name)
 	return ""
