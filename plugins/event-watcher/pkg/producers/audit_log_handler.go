@@ -173,23 +173,25 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			continue
 		}
 
-		if !utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-			continue
-		}
-
 		if value, err := alreadyProcessedAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
 			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 			continue
 		}
-		err = alreadyProcessedAuditIDs.Set(auditEvent.AuditID, []byte("true"))
-		if err != nil {
-			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
-		}
-		policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
-		slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
-		if policyViolationEvent != nil {
-			slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
-			h.createWatchedEventFromPolicyViolationEvent(auditEvent, policyViolationEvent)
+
+		if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
+			utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
+			utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+
+			err = alreadyProcessedAuditIDs.Set(auditEvent.AuditID, []byte("true"))
+			if err != nil {
+				slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
+			}
+			policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
+			slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
+			if policyViolationEvent != nil {
+				slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
+				h.createBlockedWatchedEventFromPolicyViolationEvent(auditEvent, policyViolationEvent)
+			}
 		}
 	}
 
@@ -248,13 +250,13 @@ type PolicyViolationEvent struct {
 }
 
 // createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
-func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(auditEvent AuditEvent, violation *PolicyViolationEvent) {
-	slog.Info("Creating watched event from policy violation event", "violation", violation)
+func (h *AuditLogHandler) createBlockedWatchedEventFromPolicyViolationEvent(auditEvent AuditEvent, violation *PolicyViolationEvent) {
+	slog.Info("Creating blocked watched event from policy violation event", "violation", violation)
 	if violation == nil {
 		slog.Info("Policy violation event is nil, skipping", "violation", violation)
 		return
 	}
-	slog.Info("Creating watched event from policy violation event",
+	slog.Info("Creating blocked watched event from policy violation event",
 		"policies", violation.Policies,
 		"resource_name", violation.ResourceName,
 		"namespace", violation.Namespace,
@@ -283,7 +285,10 @@ func (h *AuditLogHandler) createWatchedEventFromPolicyViolationEvent(auditEvent 
 		UID:       violation.AuditID,
 		Timestamp: ts.Unix(),
 		EventTime: ts.UTC().Format(time.RFC3339),
-		Data: map[string]interface{}{"reason": violation.Action,
+		Success:   false,
+		Blocked:   true,
+		Data: map[string]interface{}{
+			"reason":   violation.Action,
 			"type":     "Warning",
 			"message":  violation.Message,
 			"policies": violation.Policies,

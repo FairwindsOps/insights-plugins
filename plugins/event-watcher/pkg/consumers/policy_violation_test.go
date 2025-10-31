@@ -43,6 +43,8 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 		Namespace:    "default",
 		Name:         "kyverno-policy-violation-test",
 		UID:          "test-uid-123",
+		Success:      false,
+		Blocked:      true,
 		Data: map[string]interface{}{
 			"apiVersion": "v1",
 			"kind":       "Event",
@@ -101,6 +103,8 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 		Namespace:    "default",
 		Name:         "kyverno-policy-violation-warning",
 		UID:          "test-uid-456",
+		Success:      false,
+		Blocked:      true,
 		Data: map[string]interface{}{
 			"apiVersion": "v1",
 			"kind":       "Event",
@@ -159,6 +163,8 @@ func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
 		Namespace:    "default",
 		Name:         "kyverno-policy-violation-test",
 		UID:          "test-uid-999",
+		Success:      false,
+		Blocked:      true,
 		Data: map[string]interface{}{
 			"apiVersion": "v1",
 			"kind":       "Event",

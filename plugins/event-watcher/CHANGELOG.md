@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.1.10
+## 0.1.11
 * Bumped go for fixing vulnerabilities
+
+## 0.1.10
+* Improve parsing blocked field
 
 ## 0.1.9
 * Handling validatingadmissionpolicy

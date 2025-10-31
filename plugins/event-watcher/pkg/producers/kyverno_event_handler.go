@@ -52,7 +52,7 @@ func (h *KubernetesEventHandler) Start(ctx context.Context) error {
 			slog.Info("Kubernetes event processing context cancelled")
 			return ctx.Err()
 		case <-ticker.C:
-			if err := h.processKubernetesEvents(ctx); err != nil {
+			if err := h.processBlockedKubernetesEvents(ctx); err != nil {
 				slog.Error("Failed to process events", "error", err)
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -66,7 +66,7 @@ func (h *KubernetesEventHandler) Stop() {
 }
 
 // NewWatchedEvent creates a new WatchedEvent from a Kubernetes object
-func (h *KubernetesEventHandler) processKubernetesEvents(ctx context.Context) error {
+func (h *KubernetesEventHandler) processBlockedKubernetesEvents(ctx context.Context) error {
 	events, err := h.kubeClient.KubeInterface.CoreV1().Events("").List(ctx, metav1.ListOptions{
 		//FieldSelector: "involvedObject.name=kyverno-policy-report",
 	})
@@ -87,6 +87,8 @@ func (h *KubernetesEventHandler) processKubernetesEvents(ctx context.Context) er
 			Data:         map[string]interface{}{"event": event},
 			Metadata:     map[string]interface{}{"annotations": event.ObjectMeta.Annotations, "labels": event.ObjectMeta.Labels},
 			EventSource:  "kubernetes",
+			Success:      false,
+			Blocked:      true,
 		}
 		h.eventChannel <- event
 	}

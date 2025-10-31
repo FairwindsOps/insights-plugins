@@ -91,7 +91,8 @@ func (h *ConsoleHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	} else {
 		fmt.Println("\n🚨 Policy Violation Details:")
 		fmt.Printf("📜 Policies: %s\n", violationEvent.Policies)
-		fmt.Printf("📊 Policy Result: %s\n", violationEvent.PolicyResult)
+		fmt.Printf("🚫 Blocked: %t\n", violationEvent.Blocked)
+		fmt.Printf("✅ Success: %t\n", violationEvent.Success)
 		fmt.Printf("🚫 Blocked: %t\n", violationEvent.Blocked)
 		fmt.Printf("💬 Message: %s\n", violationEvent.Message)
 
@@ -147,10 +148,9 @@ func (h *ConsoleHandler) extractPolicyViolation(watchedEvent *models.WatchedEven
 			Data:         watchedEvent.Data,
 			Metadata:     watchedEvent.Metadata,
 		},
-		Policies:     policies,
-		PolicyResult: policyResult,
-		Message:      message,
-		Blocked:      blocked,
-		EventTime:    watchedEvent.EventTime,
+		Policies:  policies,
+		Message:   message,
+		Blocked:   blocked,
+		EventTime: watchedEvent.EventTime,
 	}, nil
 }

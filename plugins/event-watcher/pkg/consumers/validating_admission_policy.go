@@ -53,7 +53,8 @@ func (h *ValidatingAdmissionPolicyViolationHandler) Handle(watchedEvent *models.
 	}
 	slog.Info("Sending validating admission policy violation to Insights",
 		"policies", validatingEvent.Policies,
-		"result", validatingEvent.PolicyResult,
+		"success", validatingEvent.Success,
+		"blocked", validatingEvent.Blocked,
 		"namespace", validatingEvent.Namespace)
 
 	return utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, validatingEvent)
@@ -73,22 +74,7 @@ func (h *ValidatingAdmissionPolicyViolationHandler) extractValidatingAdmissionPo
 	}
 
 	policies := utils.ExtractValidatingAdmissionPoliciesFromMessage(message)
-	blocked := false
-	success := false
-	policyResult := ""
-	if watchedEvent.Metadata != nil && watchedEvent.Metadata["policyResult"] != nil {
-		policyResult, ok := watchedEvent.Metadata["policyResult"].(string)
-		if !ok {
-			slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
-		} else {
-			blocked = policyResult == "fail"
-			success = policyResult == "pass"
-		}
-	} else {
-		slog.Warn("No policy result found in metadata, blocked is set to true", "metadata", watchedEvent.Metadata)
-		blocked = true
-		policyResult = "fail"
-	}
+
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
 			EventType:    string(watchedEvent.EventType),
@@ -100,11 +86,10 @@ func (h *ValidatingAdmissionPolicyViolationHandler) extractValidatingAdmissionPo
 			Data:         watchedEvent.Data,
 			Metadata:     watchedEvent.Metadata,
 		},
-		Policies:     policies,
-		PolicyResult: policyResult,
-		Message:      message,
-		Blocked:      blocked,
-		Success:      success,
-		EventTime:    watchedEvent.EventTime,
+		Policies:  policies,
+		Message:   message,
+		Blocked:   watchedEvent.Blocked,
+		Success:   watchedEvent.Success,
+		EventTime: watchedEvent.EventTime,
 	}, nil
 }

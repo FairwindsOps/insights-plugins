@@ -33,12 +33,11 @@ type EventReport struct {
 
 type PolicyViolationEvent struct {
 	EventReport
-	Policies     map[string]map[string]string `json:"policies"`
-	PolicyResult string                       `json:"policyResult"`
-	Message      string                       `json:"message"`
-	Blocked      bool                         `json:"blocked"`
-	Success      bool                         `json:"success"`
-	EventTime    string                       `json:"eventTime,omitempty"` // Kubernetes eventTime
+	Policies  map[string]map[string]string `json:"policies"`
+	Message   string                       `json:"message"`
+	Blocked   bool                         `json:"blocked"`
+	Success   bool                         `json:"success"`
+	EventTime string                       `json:"eventTime,omitempty"` // Kubernetes eventTime
 }
 
 type EventHandlerConfig struct {
@@ -78,6 +77,8 @@ type WatchedEvent struct {
 	Data         map[string]interface{} `json:"data"`
 	Metadata     map[string]interface{} `json:"metadata"`
 	EventSource  string                 `json:"event_source"`
+	Success      bool                   `json:"success"`
+	Blocked      bool                   `json:"blocked"`
 }
 
 // ToJSON converts the event to JSON bytes
@@ -94,6 +95,8 @@ func (e *WatchedEvent) LogEvent() {
 		"name", e.Name,
 		"uid", e.UID,
 		"timestamp", e.Timestamp,
+		"success", e.Success,
+		"blocked", e.Blocked,
 	}
 
 	switch e.EventType {
