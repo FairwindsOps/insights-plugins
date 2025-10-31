@@ -82,11 +82,15 @@ func ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations m
 	// "[{\"message\":\"failed expression: object.spec.replicas \\u003e= 5\",\"policy\":\"check-deployment-replicas\",\"binding\":\"check-deployment-replicas-binding\",\"expressionIndex\":0,\"validationActions\":[\"Audit\"]}]"
 	validationFailure := annotations["validation.policy.admission.k8s.io/validation_failure"]
 	policyName := "unknown"
-	startIndex := strings.Index(validationFailure, "policy\":\"")
+	fmt.Println("validationFailure", validationFailure)
+	startIndex := strings.Index(validationFailure, "\"policy\":") + len("\"policy\":")
 	if startIndex != -1 {
-		endIndex := strings.Index(validationFailure, "\"")
+		substring := string(validationFailure[startIndex:])
+		endIndex := strings.Index(substring, ",")
 		if endIndex != -1 {
-			policyName = validationFailure[startIndex+len("policy:\"") : endIndex]
+			policyName = substring[:endIndex]
+			policyName = strings.ReplaceAll(policyName, "\"", "")
+			policyName = strings.TrimSpace(policyName)
 		}
 	}
 	return map[string]map[string]string{
