@@ -1,13 +1,16 @@
 FROM alpine:3.22
 WORKDIR /usr/local/bin
 
+ARG TARGETARCH
+ARG TARGETOS
+
 RUN apk -U upgrade
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates curl
 
 # Install kubectl
-ARG KUBECTL_VERSION=v1.34.1
-RUN wget -O /usr/local/bin/kubectl https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
-    chmod +x /usr/local/bin/kubectl
+ENV kubectlVersion=1.33.4
+RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl
+RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
 # Switch to non-root user
 USER 1200

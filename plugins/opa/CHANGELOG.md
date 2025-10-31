@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.0.4
+* Bumped go for fixing vulnerabilities
+
 ## 3.0.3
 * Bumped libs
 

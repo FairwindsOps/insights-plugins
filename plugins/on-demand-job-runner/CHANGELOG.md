@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.6
+* Bumped go for fixing vulnerabilities
+
 ## 0.1.5
 * Bumped libs version
 

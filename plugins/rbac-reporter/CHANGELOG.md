@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.32
+* Bumped go for fixing vulnerabilities
+
 ## 1.3.31
 * Bumped libs
 

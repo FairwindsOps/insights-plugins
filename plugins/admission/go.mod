@@ -1,12 +1,12 @@
 module github.com/fairwindsops/insights-plugins/plugins/admission
 
-go 1.24.6
+go 1.24.9
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.22.5
+	github.com/fairwindsops/pluto/v5 v5.22.6
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.52.0
 	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
@@ -22,7 +22,7 @@ require (
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20251021130730-d4ff6515743d
-	github.com/fairwindsops/polaris v0.0.0-20250818160119-ec1ba2f2db4d
+	github.com/fairwindsops/polaris v0.0.0-20251031140110-21ef1f495cf7
 	golang.org/x/mod v0.29.0
 )
 
@@ -87,8 +87,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.67.1 // indirect
-	github.com/prometheus/procfs v0.17.0 // indirect
+	github.com/prometheus/common v0.67.2 // indirect
+	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/qri-io/jsonpointer v0.1.1 // indirect
 	github.com/qri-io/jsonschema v0.2.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect

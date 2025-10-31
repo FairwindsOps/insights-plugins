@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/kyverno
 
-go 1.24.6
+go 1.24.9
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
