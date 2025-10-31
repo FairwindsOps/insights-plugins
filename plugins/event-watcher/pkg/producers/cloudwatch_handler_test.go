@@ -81,9 +81,9 @@ func TestCloudWatchHandlerCreatePolicyViolationEventFromAuditEvent(t *testing.T)
 		t.Fatalf("Failed to unmarshal cloud watch kyverno block: %v", err)
 	}
 
-	violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
+	violationEvent := h.createBlockedPolicyViolationEventFromAuditEvent(auditEvent)
 	if violationEvent == nil {
-		t.Fatalf("Failed to create policy violation event from audit event")
+		t.Fatalf("Failed to create blocked policy violation event from audit event")
 	}
 
 	assert.Equal(t, "Deployment", violationEvent.ResourceType)

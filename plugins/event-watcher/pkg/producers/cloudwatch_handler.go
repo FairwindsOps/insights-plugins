@@ -352,7 +352,7 @@ func (h *CloudWatchHandler) processLogStream(ctx context.Context, stream types.L
 
 	// Process each log event
 	for _, logEvent := range result.Events {
-		if err := h.processOutputLogEvent(ctx, logEvent); err != nil {
+		if err := h.processLogEvent(ctx, *logEvent.Message); err != nil {
 			slog.Error("Failed to process log event", "error", err)
 		}
 	}
@@ -367,10 +367,9 @@ func (h *CloudWatchHandler) processFilteredLogEvents(ctx context.Context, input 
 		return fmt.Errorf("failed to filter log events: %w", err)
 	}
 
-	// Process each filtered log event
-	for _, logEvent := range result.Events {
-		if err := h.processLogEvent(ctx, logEvent); err != nil {
-			slog.Error("Failed to process filtered log event", "error", err)
+	for _, outputLogEvent := range result.Events {
+		if err := h.processLogEvent(ctx, *outputLogEvent.Message); err != nil {
+			slog.Error("Failed to process output log event", "error", err)
 		}
 	}
 
@@ -378,63 +377,28 @@ func (h *CloudWatchHandler) processFilteredLogEvents(ctx context.Context, input 
 }
 
 // processOutputLogEvent processes a single output log event for policy violations
-func (h *CloudWatchHandler) processOutputLogEvent(ctx context.Context, logEvent types.OutputLogEvent) error {
-	if logEvent.Message == nil {
-		return nil
-	}
-
+func (h *CloudWatchHandler) processLogEvent(ctx context.Context, message string) error {
 	// Parse the log message as JSON
 	var auditEvent CloudWatchAuditEvent
-	if err := json.Unmarshal([]byte(*logEvent.Message), &auditEvent); err != nil {
+	if err := json.Unmarshal([]byte(message), &auditEvent); err != nil {
 		// Skip non-JSON log entries
+		return nil
+	}
+	if value, err := alreadyProcessedCloudWatchAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
+		slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 		return nil
 	}
 
 	// Check if this is a policy violation
-	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		if value, err := alreadyProcessedCloudWatchAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
-			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
-			return nil
-		}
+	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
+		utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
+		utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		err := alreadyProcessedCloudWatchAuditIDs.Set(auditEvent.AuditID, []byte("true"))
 		if err != nil {
 			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
 			return nil
 		}
-		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
-		if violationEvent != nil {
-			select {
-			case h.eventChannel <- violationEvent:
-				slog.Debug("Sent policy violation event to channel",
-					"policy_name", violationEvent.Data["policy_name"],
-					"resource", fmt.Sprintf("%s/%s", violationEvent.Namespace, violationEvent.Name))
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-				slog.Warn("Event channel full, dropping policy violation event")
-			}
-		}
-	}
-
-	return nil
-}
-
-// processLogEvent processes a single filtered log event for policy violations
-func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.FilteredLogEvent) error {
-	if logEvent.Message == nil {
-		return nil
-	}
-
-	// Parse the log message as JSON
-	var auditEvent CloudWatchAuditEvent
-	if err := json.Unmarshal([]byte(*logEvent.Message), &auditEvent); err != nil {
-		// Skip non-JSON log entries
-		return nil
-	}
-
-	// Check if this is a ValidatingAdmissionPolicy violation
-	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) || utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		violationEvent := h.createPolicyViolationEventFromAuditEvent(auditEvent)
+		violationEvent := h.createBlockedPolicyViolationEventFromAuditEvent(auditEvent)
 		if violationEvent != nil {
 			select {
 			case h.eventChannel <- violationEvent:
@@ -453,8 +417,10 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, logEvent types.
 }
 
 // createPolicyViolationEventFromAuditEvent creates a policy violation event from audit event
-func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *models.WatchedEvent {
-	if !utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+func (h *CloudWatchHandler) createBlockedPolicyViolationEventFromAuditEvent(auditEvent CloudWatchAuditEvent) *models.WatchedEvent {
+	if !utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
+		!utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
+		!utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		return nil
 	}
 	policies := map[string]map[string]string{}
@@ -494,7 +460,7 @@ func (h *CloudWatchHandler) createPolicyViolationEventFromAuditEvent(auditEvent 
 		Timestamp:    auditEvent.StageTimestamp.Unix(),
 		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
 		Success:      false,
-		Blocked:      true, // TODO: Fix this
+		Blocked:      true,
 		Data: map[string]interface{}{
 			"reason":  reason,
 			"message": policyMessage,
