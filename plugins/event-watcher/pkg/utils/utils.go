@@ -16,6 +16,12 @@ import (
 	"golang.org/x/time/rate"
 )
 
+const (
+	KyvernoPolicyViolationPrefix             = "kyverno-policy-violation"
+	ValidatingPolicyViolationPrefix          = "validating-policy-violation"
+	ValidatingAdmissionPolicyViolationPrefix = "validating-admission-policy-violation"
+)
+
 func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
 	policies := map[string]map[string]string{}
 	allPolicies := ""
@@ -50,6 +56,25 @@ func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]
 			policyName: message,
 		},
 	}
+}
+
+func ExtractValidatingAdmissionPoliciesFromMessage(message string) map[string]map[string]string {
+	// Parsing example: "deployments.apps \"nginx-deployment\" is forbidden: ValidatingAdmissionPolicy 'check-deployment-replicas' with binding 'check-deployment-replicas-binding' denied request: failed expression: object.spec.replicas >= 5"
+	if strings.Contains(message, "ValidatingAdmissionPolicy") && strings.Contains(message, "denied request:") {
+		policyName := "unknown"
+		if strings.Contains(message, "ValidatingAdmissionPolicy") {
+			policyName = message[strings.Index(message, "ValidatingAdmissionPolicy")+len("ValidatingAdmissionPolicy") : strings.Index(message, " with binding ")]
+			// remove quotes
+			policyName = strings.ReplaceAll(policyName, "'", "")
+			policyName = strings.TrimSpace(policyName)
+		}
+		return map[string]map[string]string{
+			policyName: {
+				policyName: message,
+			},
+		}
+	}
+	return map[string]map[string]string{}
 }
 
 // sendToInsights sends the policy violation to Insights API
@@ -105,4 +130,27 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 		"timestamp", violationEvent.Timestamp)
 
 	return nil
+}
+
+func IsKyvernoPolicyViolation(responseCode int, message string) bool {
+	if responseCode >= 400 && strings.Contains(message, "kyverno") &&
+		strings.Contains(message, "blocked due to the following policies") {
+		return true
+	}
+	return false
+}
+
+func IsValidatingPolicyViolation(responseCode int, message string) bool {
+	if responseCode >= 400 && strings.Contains(message, "vpol") &&
+		strings.Contains(message, "kyverno") {
+		return true
+	}
+	return false
+}
+
+func IsValidatingAdmissionPolicyViolation(responseCode int, message string) bool {
+	if responseCode >= 400 && strings.Contains(message, "ValidatingAdmissionPolicy") {
+		return true
+	}
+	return false
 }
