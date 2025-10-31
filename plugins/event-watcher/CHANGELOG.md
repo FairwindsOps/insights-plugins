@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.12
+* Add support to Audit only validationg admission policy
+
 ## 0.1.11
 * Bumped go for fixing vulnerabilities
 
