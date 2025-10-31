@@ -5,7 +5,7 @@ ARG TARGETARCH
 ARG TARGETOS
 
 RUN apk -U upgrade
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates curl
 
 # Install kubectl
 ENV kubectlVersion=1.33.4
