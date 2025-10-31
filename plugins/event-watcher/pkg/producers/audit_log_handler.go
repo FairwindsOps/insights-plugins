@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -39,52 +38,6 @@ type AuditLogHandler struct {
 	auditLogPath   string
 	eventChannel   chan *models.WatchedEvent
 	stopCh         chan struct{}
-}
-
-// AuditEvent represents a Kubernetes audit log entry
-type AuditEvent struct {
-	Kind                     string            `json:"kind"`
-	APIVersion               string            `json:"apiVersion"`
-	Level                    string            `json:"level"`
-	AuditID                  string            `json:"auditID"`
-	Stage                    string            `json:"stage"`
-	RequestURI               string            `json:"requestURI"`
-	Verb                     string            `json:"verb"`
-	User                     User              `json:"user"`
-	SourceIPs                []string          `json:"sourceIPs"`
-	UserAgent                string            `json:"userAgent"`
-	ObjectRef                ObjectRef         `json:"objectRef"`
-	ResponseStatus           ResponseStatus    `json:"responseStatus"`
-	RequestObject            interface{}       `json:"requestObject"`
-	ResponseObject           interface{}       `json:"responseObject"`
-	Annotations              map[string]string `json:"annotations"`
-	RequestReceivedTimestamp time.Time         `json:"requestReceivedTimestamp"`
-	StageTimestamp           time.Time         `json:"stageTimestamp"`
-}
-
-type User struct {
-	Username string   `json:"username"`
-	UID      string   `json:"uid"`
-	Groups   []string `json:"groups"`
-}
-
-type ObjectRef struct {
-	Resource        string `json:"resource"`
-	Namespace       string `json:"namespace"`
-	Name            string `json:"name"`
-	UID             string `json:"uid"`
-	APIGroup        string `json:"apiGroup"`
-	APIVersion      string `json:"apiVersion"`
-	ResourceVersion string `json:"resourceVersion"`
-	SubResource     string `json:"subResource"`
-}
-
-type ResponseStatus struct {
-	Metadata map[string]interface{} `json:"metadata"`
-	Code     int                    `json:"code"`
-	Status   string                 `json:"status"`
-	Message  string                 `json:"message"`
-	Reason   string                 `json:"reason"`
 }
 
 // NewAuditLogHandler creates a new audit log handler
@@ -164,7 +117,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		}
 
 		// Parse the audit log entry
-		var auditEvent AuditEvent
+		var auditEvent models.AuditEvent
 		if err := json.Unmarshal([]byte(line), &auditEvent); err != nil {
 			slog.Info("Failed to parse audit log line",
 				"error", err,
@@ -186,22 +139,22 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			if err != nil {
 				slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
 			}
-			policyViolationEvent := h.createPolicyViolationEvent(auditEvent)
+			policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
 			slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 			if policyViolationEvent != nil {
 				slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
-				h.createBlockedWatchedEventFromPolicyViolationEvent(auditEvent, policyViolationEvent)
+				utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, h.eventChannel)
 			}
 		} else if utils.IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent.Annotations) {
 			err = alreadyProcessedAuditIDs.Set(auditEvent.AuditID, []byte("true"))
 			if err != nil {
 				slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
 			}
-			auditOnlyAllowEvent := h.createValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent)
+			auditOnlyAllowEvent := utils.CreateValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent)
 			slog.Info("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
 			if auditOnlyAllowEvent != nil {
 				slog.Info("Creating watched event from validating admission policy violation audit only allow event", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
-				h.createAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(auditEvent, auditOnlyAllowEvent)
+				utils.CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(auditOnlyAllowEvent, h.eventChannel)
 			}
 		}
 
@@ -214,189 +167,4 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 	slog.Debug("Processed audit log entries",
 		"file_size", fileInfo.Size(),
 		"lines_processed", lineNumber)
-}
-
-// createPolicyViolation creates a policy violation event from an audit event
-func (h *AuditLogHandler) createPolicyViolationEvent(auditEvent AuditEvent) *PolicyViolationEvent {
-	if !utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		return nil
-	}
-	policies := map[string]map[string]string{}
-	if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		slog.Info("Kyverno policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-		policies = utils.ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-	} else if utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-		policies = utils.ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-	} else if utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		slog.Info("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-		policies = utils.ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		slog.Info("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
-	}
-	return &PolicyViolationEvent{
-		Timestamp:    auditEvent.RequestReceivedTimestamp,
-		Policies:     policies,
-		ResourceType: auditEvent.ObjectRef.Resource,
-		ResourceName: auditEvent.ObjectRef.Name,
-		Namespace:    auditEvent.ObjectRef.Namespace,
-		User:         auditEvent.User.Username,
-		Action:       auditEvent.ResponseStatus.Status,
-		Message:      auditEvent.ResponseStatus.Message,
-		AuditID:      auditEvent.AuditID,
-	}
-}
-
-// PolicyViolationEvent represents a detected policy violation from audit logs
-type PolicyViolationEvent struct {
-	Timestamp    time.Time                    `json:"timestamp"`
-	ResourceType string                       `json:"resource_type"`
-	ResourceName string                       `json:"resource_name"`
-	Namespace    string                       `json:"namespace"`
-	User         string                       `json:"user"`
-	Action       string                       `json:"action"` // "blocked" or "allowed"
-	Message      string                       `json:"message"`
-	AuditID      string                       `json:"audit_id"`
-	Metadata     map[string]interface{}       `json:"metadata"`
-	Policies     map[string]map[string]string `json:"policies"`
-}
-
-// createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
-func (h *AuditLogHandler) createBlockedWatchedEventFromPolicyViolationEvent(auditEvent AuditEvent, violation *PolicyViolationEvent) {
-	slog.Info("Creating blocked watched event from policy violation event", "violation", violation)
-	if violation == nil {
-		slog.Info("Policy violation event is nil, skipping", "violation", violation)
-		return
-	}
-	slog.Info("Creating blocked watched event from policy violation event",
-		"policies", violation.Policies,
-		"resource_name", violation.ResourceName,
-		"namespace", violation.Namespace,
-		"action", violation.Action,
-		"audit_id", violation.AuditID,
-		"metadata", violation.Metadata,
-		"timestamp", violation.Timestamp)
-
-	ts := violation.Timestamp
-	if !violation.Timestamp.IsZero() {
-		ts = violation.Timestamp
-	}
-
-	name := fmt.Sprintf("%s-%s-%s-%s", utils.KyvernoPolicyViolationPrefix, violation.ResourceType, violation.ResourceName, violation.AuditID)
-	if utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		name = fmt.Sprintf("%s-%s-%s-%s", utils.ValidatingPolicyViolationPrefix, violation.ResourceType, violation.ResourceName, violation.AuditID)
-	} else if utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		name = fmt.Sprintf("%s-%s-%s-%s", utils.ValidatingAdmissionPolicyViolationPrefix, violation.ResourceType, violation.ResourceName, violation.AuditID)
-	}
-
-	// Create a watched event from a policy violation event
-	watchedEvent := &models.WatchedEvent{
-		EventType: models.EventTypeAdded, ResourceType: violation.ResourceType,
-		Namespace: violation.Namespace,
-		Name:      name,
-		UID:       violation.AuditID,
-		Timestamp: ts.Unix(),
-		EventTime: ts.UTC().Format(time.RFC3339),
-		Success:   false,
-		Blocked:   true,
-		Data: map[string]interface{}{
-			"reason":   violation.Action,
-			"type":     "Warning",
-			"message":  violation.Message,
-			"policies": violation.Policies,
-			"source": map[string]interface{}{
-				"component": "audit-log-handler",
-			},
-			"involvedObject": map[string]interface{}{
-				"apiVersion": "apps/v1",
-				"kind":       violation.ResourceType,
-				"name":       violation.ResourceName,
-				"namespace":  violation.Namespace,
-				"uid":        violation.AuditID,
-			},
-			"firstTimestamp": violation.Timestamp.Format(time.RFC3339),
-			"lastTimestamp":  violation.Timestamp.Format(time.RFC3339),
-			"count":          1,
-			"metadata":       violation.Metadata,
-		},
-		Metadata: map[string]interface{}{
-			"audit_id":      violation.AuditID,
-			"metadata":      violation.Metadata,
-			"policies":      violation.Policies,
-			"resource_name": violation.ResourceName,
-			"namespace":     violation.Namespace,
-			"action":        violation.Action,
-			"message":       violation.Message,
-			"timestamp":     violation.Timestamp.Format(time.RFC3339),
-			"event_time":    violation.Timestamp.Format(time.RFC3339),
-		},
-	}
-
-	// Send the event to the event channel
-	select {
-	case h.eventChannel <- watchedEvent:
-		slog.Info("Sent watched event",
-			"policies", violation.Policies,
-			"resource_name", violation.ResourceName)
-	default:
-		slog.Info("Event channel full, dropping watched event",
-			"policies", violation.Policies,
-			"resource_name", violation.ResourceName)
-	}
-}
-
-func (h *AuditLogHandler) createValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent AuditEvent) *PolicyViolationEvent {
-	slog.Info("Creating validating admission policy violation audit only, allow event", "audit_event", auditEvent)
-	if !utils.IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent.Annotations) {
-		return nil
-	}
-	policies := map[string]map[string]string{}
-	policies = utils.ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(auditEvent.Annotations)
-	metadata := map[string]interface{}{
-		"annotations": map[string]string(auditEvent.Annotations),
-	}
-	return &PolicyViolationEvent{
-		Timestamp:    auditEvent.RequestReceivedTimestamp,
-		Policies:     policies,
-		ResourceType: auditEvent.ObjectRef.Resource,
-		ResourceName: auditEvent.ObjectRef.Name,
-		Namespace:    auditEvent.ObjectRef.Namespace,
-		User:         auditEvent.User.Username,
-		Action:       auditEvent.ResponseStatus.Status,
-		Message:      auditEvent.ResponseStatus.Message,
-		AuditID:      auditEvent.AuditID,
-		Metadata:     metadata,
-	}
-}
-
-func (h *AuditLogHandler) createAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(auditEvent AuditEvent, policyViolationEvent *PolicyViolationEvent) {
-	slog.Info("Creating audit only allow watched event from validating admission policy violation", "audit_event", auditEvent)
-	if policyViolationEvent == nil {
-		slog.Info("Policy violation event is nil, skipping", "policy_violation_event", policyViolationEvent)
-		return
-	}
-	slog.Info("Creating audit only allow watched event from validating admission policy violation", "policies", policyViolationEvent.Policies, "resource_name", policyViolationEvent.ResourceName, "namespace", policyViolationEvent.Namespace, "action", policyViolationEvent.Action, "audit_id", policyViolationEvent.AuditID, "metadata", policyViolationEvent.Metadata, "timestamp", policyViolationEvent.Timestamp)
-
-	watchedEvent := &models.WatchedEvent{
-		EventType: models.EventTypeAdded, ResourceType: policyViolationEvent.ResourceType,
-		Namespace: policyViolationEvent.Namespace,
-		Name:      fmt.Sprintf("%s-%s-%s-%s", utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, policyViolationEvent.ResourceType, policyViolationEvent.ResourceName, policyViolationEvent.AuditID),
-		UID:       policyViolationEvent.AuditID,
-		Timestamp: policyViolationEvent.Timestamp.Unix(),
-		EventTime: policyViolationEvent.Timestamp.Format(time.RFC3339),
-		Success:   false,
-		Blocked:   false,
-	}
-
-	// Send the event to the event channel
-	select {
-	case h.eventChannel <- watchedEvent:
-		slog.Info("Sent watched event",
-			"policies", policyViolationEvent.Policies,
-			"resource_name", policyViolationEvent.ResourceName)
-	default:
-		slog.Info("Event channel full, dropping watched event",
-			"policies", policyViolationEvent.Policies,
-			"resource_name", policyViolationEvent.ResourceName)
-	}
 }
