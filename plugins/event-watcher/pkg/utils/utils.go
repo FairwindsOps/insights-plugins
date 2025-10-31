@@ -82,7 +82,6 @@ func ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations m
 	// "[{\"message\":\"failed expression: object.spec.replicas \\u003e= 5\",\"policy\":\"check-deployment-replicas\",\"binding\":\"check-deployment-replicas-binding\",\"expressionIndex\":0,\"validationActions\":[\"Audit\"]}]"
 	validationFailure := annotations["validation.policy.admission.k8s.io/validation_failure"]
 	policyName := "unknown"
-	fmt.Println("validationFailure", validationFailure)
 	startIndex := strings.Index(validationFailure, "\"policy\":") + len("\"policy\":")
 	if startIndex != -1 {
 		substring := string(validationFailure[startIndex:])
@@ -90,7 +89,6 @@ func ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations m
 		if endIndex != -1 {
 			policyName = substring[:endIndex]
 			policyName = strings.ReplaceAll(policyName, "\"", "")
-			policyName = strings.TrimSpace(policyName)
 		}
 	}
 	return map[string]map[string]string{
@@ -225,15 +223,15 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 
 	// Create the policy violation event
 	violationEvent := &models.WatchedEvent{
-		EventType:    models.EventTypeAdded,
-		ResourceType: resource,
-		Namespace:    namespace,
-		Name:         name,
-		UID:          auditEvent.AuditID,
-		Timestamp:    auditEvent.StageTimestamp.Unix(),
-		EventTime:    auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
-		Success:      false,
-		Blocked:      true,
+		EventType: models.EventTypeAdded,
+		Kind:      resource,
+		Namespace: namespace,
+		Name:      name,
+		UID:       auditEvent.AuditID,
+		Timestamp: auditEvent.StageTimestamp.Unix(),
+		EventTime: auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
+		Success:   false,
+		Blocked:   true,
 		Data: map[string]interface{}{
 			"reason":  reason,
 			"message": policyMessage,
@@ -243,7 +241,7 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 			"involvedObject": objectRef,
 			"firstTimestamp": auditEvent.RequestReceivedTimestamp.Format(time.RFC3339),
 			"lastTimestamp":  auditEvent.StageTimestamp.Format(time.RFC3339),
-			"metadata":       auditEvent.Annotations,
+			"annotations":    auditEvent.Annotations,
 		},
 		Metadata: map[string]interface{}{
 			"audit_id":      auditEvent.AuditID,
@@ -268,11 +266,14 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 	}
 	slog.Info("Creating blocked watched event from policy violation event",
 		"policies", violation.Policies,
-		"resource_name", violation.ResourceName,
+		"api_group", violation.APIGroup,
+		"resource_type", violation.ResourceType,
+		"api_version", violation.APIVersion,
+		"name", violation.Name,
 		"namespace", violation.Namespace,
 		"action", violation.Action,
 		"audit_id", violation.AuditID,
-		"metadata", violation.Metadata,
+		"annotations", violation.Annotations,
 		"timestamp", violation.Timestamp)
 
 	ts := violation.Timestamp
@@ -281,9 +282,10 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 	}
 	// Create a watched event from a policy violation event
 	watchedEvent := &models.WatchedEvent{
-		EventType: models.EventTypeAdded, ResourceType: violation.ResourceType,
+		EventType: models.EventTypeAdded,
+		Kind:      violation.ResourceType,
 		Namespace: violation.Namespace,
-		Name:      violation.ResourceName,
+		Name:      violation.Name,
 		UID:       violation.AuditID,
 		Timestamp: ts.Unix(),
 		EventTime: ts.UTC().Format(time.RFC3339),
@@ -298,22 +300,24 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 				"component": "audit-log-handler",
 			},
 			"involvedObject": map[string]interface{}{
-				"apiVersion": "apps/v1",
-				"kind":       violation.ResourceType,
-				"name":       violation.ResourceName,
-				"namespace":  violation.Namespace,
-				"uid":        violation.AuditID,
+				"apiVersion":   violation.APIVersion,
+				"apiGroup":     violation.APIGroup,
+				"kind":         violation.ResourceType,
+				"resourceType": violation.ResourceType,
+				"name":         violation.Name,
+				"namespace":    violation.Namespace,
+				"uid":          violation.AuditID,
 			},
 			"firstTimestamp": violation.Timestamp.Format(time.RFC3339),
 			"lastTimestamp":  violation.Timestamp.Format(time.RFC3339),
 			"count":          1,
-			"metadata":       violation.Metadata,
+			"annotations":    violation.Annotations,
 		},
 		Metadata: map[string]interface{}{
 			"audit_id":      violation.AuditID,
-			"metadata":      violation.Metadata,
+			"annotations":   violation.Annotations,
 			"policies":      violation.Policies,
-			"resource_name": violation.ResourceName,
+			"resource_name": violation.Name,
 			"namespace":     violation.Namespace,
 			"action":        violation.Action,
 			"message":       violation.Message,
@@ -327,12 +331,12 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 	case eventChannel <- watchedEvent:
 		slog.Info("Sent watched event",
 			"policies", violation.Policies,
-			"resource_name", violation.ResourceName)
+			"resource_name", violation.Name)
 		return nil
 	default:
 		slog.Info("Event channel full, dropping watched event",
 			"policies", violation.Policies,
-			"resource_name", violation.ResourceName)
+			"resource_name", violation.Name)
 		return fmt.Errorf("event channel full")
 	}
 }
@@ -344,20 +348,19 @@ func CreateValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent mode
 	}
 	policies := map[string]map[string]string{}
 	policies = ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(auditEvent.Annotations)
-	metadata := map[string]interface{}{
-		"annotations": map[string]string(auditEvent.Annotations),
-	}
 	return &models.PolicyViolationEventModel{
 		Timestamp:    auditEvent.RequestReceivedTimestamp,
 		Policies:     policies,
+		APIVersion:   auditEvent.ObjectRef.APIVersion,
+		APIGroup:     auditEvent.ObjectRef.APIGroup,
 		ResourceType: auditEvent.ObjectRef.Resource,
-		ResourceName: auditEvent.ObjectRef.Name,
+		Name:         auditEvent.ObjectRef.Name,
 		Namespace:    auditEvent.ObjectRef.Namespace,
 		User:         auditEvent.User.Username,
 		Action:       auditEvent.ResponseStatus.Status,
 		Message:      auditEvent.ResponseStatus.Message,
 		AuditID:      auditEvent.AuditID,
-		Metadata:     metadata,
+		Annotations:  auditEvent.Annotations,
 	}
 }
 
@@ -367,17 +370,49 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 		slog.Info("Policy violation event is nil, skipping", "policy_violation_event", policyViolationEvent)
 		return
 	}
-	slog.Info("Creating audit only allow watched event from validating admission policy violation", "policies", policyViolationEvent.Policies, "resource_name", policyViolationEvent.ResourceName, "namespace", policyViolationEvent.Namespace, "action", policyViolationEvent.Action, "audit_id", policyViolationEvent.AuditID, "metadata", policyViolationEvent.Metadata, "timestamp", policyViolationEvent.Timestamp)
+	slog.Info("Creating audit only allow watched event from validating admission policy violation", "policies", policyViolationEvent.Policies, "resource_name", policyViolationEvent.Name, "namespace", policyViolationEvent.Namespace, "action", policyViolationEvent.Action, "audit_id", policyViolationEvent.AuditID, "annotations", policyViolationEvent.Annotations, "timestamp", policyViolationEvent.Timestamp)
 
 	watchedEvent := &models.WatchedEvent{
-		EventType: models.EventTypeAdded, ResourceType: policyViolationEvent.ResourceType,
+		EventType: models.EventTypeAdded,
+		Kind:      policyViolationEvent.ResourceType,
 		Namespace: policyViolationEvent.Namespace,
-		Name:      fmt.Sprintf("%s-%s-%s-%s", AuditOnlyAllowedValidatingAdmissionPolicyPrefix, policyViolationEvent.ResourceType, policyViolationEvent.ResourceName, policyViolationEvent.AuditID),
+		Name:      fmt.Sprintf("%s-%s-%s-%s", AuditOnlyAllowedValidatingAdmissionPolicyPrefix, policyViolationEvent.ResourceType, policyViolationEvent.Name, policyViolationEvent.AuditID),
 		UID:       policyViolationEvent.AuditID,
 		Timestamp: policyViolationEvent.Timestamp.Unix(),
 		EventTime: policyViolationEvent.Timestamp.Format(time.RFC3339),
 		Success:   false,
 		Blocked:   false,
+		Data: map[string]interface{}{
+			"reason":  policyViolationEvent.Action,
+			"message": policyViolationEvent.Message,
+			"source": map[string]interface{}{
+				"component": "cloudwatch",
+			},
+			"involvedObject": map[string]interface{}{
+				"apiVersion": policyViolationEvent.APIVersion,
+				"apiGroup":   policyViolationEvent.APIGroup,
+				"kind":       policyViolationEvent.ResourceType,
+				"name":       policyViolationEvent.Name,
+				"namespace":  policyViolationEvent.Namespace,
+				"uid":        policyViolationEvent.AuditID,
+			},
+			"firstTimestamp": policyViolationEvent.Timestamp.Format(time.RFC3339),
+			"lastTimestamp":  policyViolationEvent.Timestamp.Format(time.RFC3339),
+			"annotations":    policyViolationEvent.Annotations,
+		},
+		Metadata: map[string]interface{}{
+			"audit_id":      policyViolationEvent.AuditID,
+			"policies":      policyViolationEvent.Policies,
+			"resource_type": policyViolationEvent.ResourceType,
+			"api_group":     policyViolationEvent.APIGroup,
+			"api_version":   policyViolationEvent.APIVersion,
+			"name":          policyViolationEvent.Name,
+			"namespace":     policyViolationEvent.Namespace,
+			"action":        policyViolationEvent.Action,
+			"message":       policyViolationEvent.Message,
+			"timestamp":     policyViolationEvent.Timestamp.Format(time.RFC3339),
+			"event_time":    policyViolationEvent.Timestamp.Format(time.RFC3339),
+		},
 	}
 
 	// Send the event to the event channel
@@ -385,11 +420,16 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 	case eventChannel <- watchedEvent:
 		slog.Info("Sent watched event",
 			"policies", policyViolationEvent.Policies,
-			"resource_name", policyViolationEvent.ResourceName)
+			"api_group", policyViolationEvent.APIGroup,
+			"resource_type", policyViolationEvent.ResourceType,
+			"api_version", policyViolationEvent.APIVersion,
+			"name", policyViolationEvent.Name)
 	default:
 		slog.Info("Event channel full, dropping watched event",
 			"policies", policyViolationEvent.Policies,
-			"resource_name", policyViolationEvent.ResourceName)
+			"resource_type", policyViolationEvent.ResourceType,
+			"api_version", policyViolationEvent.APIVersion,
+			"name", policyViolationEvent.Name)
 	}
 }
 
@@ -414,8 +454,10 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 	return &models.PolicyViolationEventModel{
 		Timestamp:    auditEvent.RequestReceivedTimestamp,
 		Policies:     policies,
+		APIVersion:   auditEvent.ObjectRef.APIVersion,
+		APIGroup:     auditEvent.ObjectRef.APIGroup,
 		ResourceType: auditEvent.ObjectRef.Resource,
-		ResourceName: auditEvent.ObjectRef.Name,
+		Name:         auditEvent.ObjectRef.Name,
 		Namespace:    auditEvent.ObjectRef.Namespace,
 		User:         auditEvent.User.Username,
 		Action:       auditEvent.ResponseStatus.Status,

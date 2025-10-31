@@ -30,7 +30,7 @@ func NewAuditOnlyAllowedValidatingAdmissionPolicyHandler(insightsConfig models.I
 func (h *AuditOnlyAllowedValidatingAdmissionPolicyHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
-		"resource_type", watchedEvent.ResourceType,
+		"kind", watchedEvent.Kind,
 		"namespace", watchedEvent.Namespace,
 		"name", watchedEvent.Name,
 	}
@@ -63,24 +63,16 @@ func (h *AuditOnlyAllowedValidatingAdmissionPolicyHandler) extractAuditOnlyAllow
 	if watchedEvent == nil {
 		return nil, fmt.Errorf("watchedEvent is nil")
 	}
-	if watchedEvent.Data == nil {
-		return nil, fmt.Errorf("event data is nil")
-	}
-	message, ok := watchedEvent.Data["message"].(string)
-	if !ok || message == "" {
-		return nil, fmt.Errorf("no message field in event or message is empty")
-	}
-
 	annotations, ok := watchedEvent.Data["annotations"].(map[string]string)
 	if !ok {
 		return nil, fmt.Errorf("no annotations field in event or annotations is not a map")
 	}
-
 	policies := utils.ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations)
+	validationFailureMessage := annotations["validation.policy.admission.k8s.io/validation_failure"]
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
 			EventType:    string(watchedEvent.EventType),
-			ResourceType: watchedEvent.ResourceType,
+			ResourceType: watchedEvent.Kind,
 			Namespace:    watchedEvent.Namespace,
 			Name:         watchedEvent.Name,
 			UID:          watchedEvent.UID,
@@ -89,7 +81,7 @@ func (h *AuditOnlyAllowedValidatingAdmissionPolicyHandler) extractAuditOnlyAllow
 			Metadata:     watchedEvent.Metadata,
 		},
 		Policies:  policies,
-		Message:   message,
+		Message:   validationFailureMessage,
 		Success:   watchedEvent.Success,
 		Blocked:   watchedEvent.Blocked,
 		EventTime: watchedEvent.EventTime,
