@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.13
+* Add support to Audit only for ClusterPolicy
+
 ## 0.1.12
 * Add support to Audit only validationg admission policy
 

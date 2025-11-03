@@ -68,7 +68,9 @@ func (h *AuditLogHandler) Start(ctx context.Context) error {
 
 // Stop stops monitoring the audit log file
 func (h *AuditLogHandler) Stop() {
-	close(h.stopCh)
+	if h != nil && h.stopCh != nil {
+		close(h.stopCh)
+	}
 }
 
 // monitorAuditLog continuously monitors the audit log file for new entries

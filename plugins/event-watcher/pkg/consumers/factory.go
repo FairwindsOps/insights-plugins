@@ -50,12 +50,15 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		f.Register(utils.KyvernoPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.ValidatingPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.AuditOnlyClusterPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 	} else {
 		// PolicyViolation handler for Kubernetes events (sends to Insights)
 		f.Register(utils.KyvernoPolicyViolationPrefix, NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingPolicyViolationPrefix, NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewAuditOnlyAllowedValidatingAdmissionPolicyHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.AuditOnlyClusterPolicyViolationPrefix, NewClusterPolicyAuditHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
@@ -81,24 +84,11 @@ func (f *EventHandlerFactory) GetHandler(watchedEvent *models.WatchedEvent) Even
 }
 
 func (f *EventHandlerFactory) getHandlerName(watchedEvent *models.WatchedEvent) string {
-	// Check for PolicyViolation events first (most specific)
 	slog.Debug("Getting handler name for event", "name", watchedEvent.Name)
-
-	if strings.HasPrefix(watchedEvent.Name, utils.KyvernoPolicyViolationPrefix) {
-		slog.Debug("Found kyverno policy violation event", "name", watchedEvent.Name)
-		return utils.KyvernoPolicyViolationPrefix
-	}
-	if strings.HasPrefix(watchedEvent.Name, utils.ValidatingPolicyViolationPrefix) {
-		slog.Debug("Found validating policy violation event", "name", watchedEvent.Name)
-		return utils.ValidatingPolicyViolationPrefix
-	}
-	if strings.HasPrefix(watchedEvent.Name, utils.ValidatingAdmissionPolicyViolationPrefix) {
-		slog.Debug("Found validating admission policy violation event", "name", watchedEvent.Name)
-		return utils.ValidatingAdmissionPolicyViolationPrefix
-	}
-	if strings.HasPrefix(watchedEvent.Name, utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix) {
-		slog.Debug("Found audit only allowed validating admission policy event", "name", watchedEvent.Name)
-		return utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix
+	for name := range f.handlers {
+		if strings.HasPrefix(watchedEvent.Name, name) {
+			return name
+		}
 	}
 	slog.Debug("No handler found for event", "name", watchedEvent.Name)
 	return ""
