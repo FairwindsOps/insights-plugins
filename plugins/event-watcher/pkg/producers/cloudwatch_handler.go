@@ -162,7 +162,9 @@ func (h *CloudWatchHandler) testConnection(ctx context.Context) error {
 
 // Stop stops the CloudWatch handler
 func (h *CloudWatchHandler) Stop() {
-	close(h.stopCh)
+	if h != nil && h.stopCh != nil {
+		close(h.stopCh)
+	}
 }
 
 // processLogEvents processes CloudWatch log events for policy violations

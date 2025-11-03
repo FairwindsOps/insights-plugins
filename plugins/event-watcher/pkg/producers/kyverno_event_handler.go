@@ -7,16 +7,32 @@ import (
 
 	"log/slog"
 
+	"github.com/allegro/bigcache/v3"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 )
 
 const (
-	EventVersion = 1
+	EventVersion                        = 1
+	KyvernoPolicyViolationFieldSelector = "involvedObject.kind=ClusterPolicy,reason=PolicyViolation"
 )
+
+var alreadyProcessedKyvernoPolicyViolationIDs *bigcache.BigCache
+
+func init() {
+	var err error
+	config := bigcache.DefaultConfig(60 * time.Minute)
+	config.HardMaxCacheSize = 256 // 512MB
+	alreadyProcessedKyvernoPolicyViolationIDs, err = bigcache.New(context.Background(), config)
+	if err != nil {
+		slog.Error("Failed to create bigcache", "error", err)
+	}
+	slog.Info("Bigcache created", "size", alreadyProcessedKyvernoPolicyViolationIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
+}
 
 type KubernetesEventHandler struct {
 	eventChannel chan *models.WatchedEvent
@@ -63,7 +79,9 @@ func (h *KubernetesEventHandler) Start(ctx context.Context) error {
 
 // Stop stops the CloudWatch handler
 func (h *KubernetesEventHandler) Stop() {
-	close(h.stopCh)
+	if h != nil && h.stopCh != nil {
+		close(h.stopCh)
+	}
 }
 
 /*
@@ -109,10 +127,11 @@ Type:    Warning
 Events:  <none>
 */
 func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Context) error {
-	fieldSelector, err := fields.ParseSelector("involvedObject.kind=ClusterPolicy")
+	fieldSelector, err := fields.ParseSelector(KyvernoPolicyViolationFieldSelector)
 	if err != nil {
 		return fmt.Errorf("failed to parse field selector: %w", err)
 	}
+	slog.Info("Field selector: ", "fieldSelector", fieldSelector.String())
 	options := metav1.ListOptions{
 		FieldSelector: fieldSelector.String(),
 	}
@@ -122,6 +141,18 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 		return fmt.Errorf("failed to list latest kubernetes events: %w", err)
 	}
 	for _, event := range events.Items {
+		if !utils.IsAuditOnlyClusterPolicyViolation(event) {
+			continue
+		}
+		key := fmt.Sprintf("%s-%s-%s-%s", event.InvolvedObject.Namespace, event.InvolvedObject.Name, event.InvolvedObject.Kind, event.ObjectMeta.UID)
+		if value, err := alreadyProcessedKyvernoPolicyViolationIDs.Get(key); err == nil && value != nil {
+			slog.Debug("Kyverno policy violation ID already processed, skipping", "kyverno_policy_violation_id", key)
+			continue
+		}
+		err = alreadyProcessedKyvernoPolicyViolationIDs.Set(key, []byte("true"))
+		if err != nil {
+			slog.Warn("Failed to set kyverno policy violation ID in bigcache", "error", err, "kyverno_policy_violation_id", event.ObjectMeta.UID)
+		}
 		event := &models.WatchedEvent{
 			EventVersion: EventVersion,
 			Timestamp:    event.EventTime.Unix(),
@@ -129,7 +160,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			EventType:    models.EventTypeAdded,
 			Kind:         event.Related.Kind,
 			Namespace:    event.Related.Namespace,
-			Name:         event.Related.Name,
+			Name:         fmt.Sprintf("%s-%s-%s-%s", utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
 			UID:          string(event.Related.UID),
 			Data: map[string]interface{}{
 				"event": event,

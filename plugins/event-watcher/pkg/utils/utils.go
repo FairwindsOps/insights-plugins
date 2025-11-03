@@ -14,6 +14,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/ghodss/yaml"
 	"golang.org/x/time/rate"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 	ValidatingPolicyViolationPrefix                 = "validating-policy-violation"
 	ValidatingAdmissionPolicyViolationPrefix        = "validating-admission-policy-violation"
 	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
+	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cluster-policy-violation"
 )
 
 func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
@@ -185,6 +187,10 @@ func IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(annotations map[str
 		return true
 	}
 	return false
+}
+
+func IsAuditOnlyClusterPolicyViolation(event v1.Event) bool {
+	return event.Kind == "ClusterPolicy" && event.Reason == "PolicyViolation" && event.Action == "Resource Passed"
 }
 
 // CreateBlockedPolicyViolationEventFromAuditEvent creates a blocked policy violation event from an audit event
@@ -464,4 +470,22 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 		Message:      auditEvent.ResponseStatus.Message,
 		AuditID:      auditEvent.AuditID,
 	}
+}
+
+func ExtractAuditOnlyClusterPoliciesFromMessage(message string) map[string]map[string]string {
+	// Deployment default/james1-deployment: [check-for-labels] fail; validation error: The label `abcapp.kubernetes.io/name` is required. rule check-for-labels failed at path /metadata/labels/abcapp.kubernetes.io/name/
+	policies := map[string]map[string]string{}
+	if strings.Contains(message, "fail; validation error:") {
+		policyName := "unknown"
+		startIndex := strings.Index(message, "[")
+		endIndex := strings.Index(message, "]")
+		if startIndex != -1 && endIndex != -1 {
+			policyName = message[startIndex:endIndex]
+			policyName = strings.TrimSpace(policyName)
+		}
+		policies[policyName] = map[string]string{
+			policyName: message,
+		}
+	}
+	return policies
 }
