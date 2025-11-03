@@ -142,12 +142,12 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 	}
 	for _, event := range events.Items {
 		if !utils.IsAuditOnlyClusterPolicyViolation(event) {
-			slog.Info("Skipping non-audit only cluster policy violation event", "event", event)
+			slog.Debug("Skipping non-audit only cluster policy violation event", "event", event)
 			continue
 		}
 		key := fmt.Sprintf("%s-%s-%s-%s", event.InvolvedObject.Namespace, event.InvolvedObject.Name, event.InvolvedObject.Kind, event.ObjectMeta.UID)
 		if value, err := alreadyProcessedKyvernoPolicyViolationIDs.Get(key); err == nil && value != nil {
-			slog.Info("Kyverno policy violation ID already processed, skipping", "kyverno_policy_violation_id", key)
+			slog.Debug("Kyverno policy violation ID already processed, skipping", "kyverno_policy_violation_id", key)
 			continue
 		}
 		err = alreadyProcessedKyvernoPolicyViolationIDs.Set(key, []byte("true"))
