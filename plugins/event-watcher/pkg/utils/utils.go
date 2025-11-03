@@ -278,7 +278,7 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 
 	ts := violation.Timestamp
 	if !violation.Timestamp.IsZero() {
-		ts = violation.Timestamp
+		ts = time.Now()
 	}
 	// Create a watched event from a policy violation event
 	watchedEvent := &models.WatchedEvent{
