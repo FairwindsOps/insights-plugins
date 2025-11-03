@@ -70,14 +70,18 @@ func (h *ClusterPolicyAuditHandler) Handle(watchedEvent *models.WatchedEvent) er
 	}
 
 	slog.Info("Processing ClusterPolicyAudit event", logFields...)
-	if watchedEvent.Data == nil || watchedEvent.Data["message"] == nil {
-		return fmt.Errorf("event data is nil or message is nil in event %+v", watchedEvent)
+	if watchedEvent.Metadata == nil || watchedEvent.Metadata["message"] == nil {
+		return fmt.Errorf("event metadata is nil or message is nil in event %+v", watchedEvent)
 	}
-	message, ok := watchedEvent.Data["message"].(string)
+	message, ok := watchedEvent.Metadata["message"].(string)
 	if !ok {
 		return fmt.Errorf("message is not a string in event %+v", watchedEvent)
 	}
-	policies := utils.ExtractAuditOnlyClusterPoliciesFromMessage(message)
+	policyName, ok := watchedEvent.Metadata["policyName"].(string)
+	if !ok {
+		return fmt.Errorf("policyName is not a string in event %+v", watchedEvent)
+	}
+	policies := utils.ExtractAuditOnlyClusterPoliciesFromMessage(policyName, message)
 	slog.Info("Sending cluster policy audit to Insights", "policies", policies, "message", message)
 	err := utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, &models.PolicyViolationEvent{
 		EventReport: models.EventReport{

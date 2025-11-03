@@ -180,9 +180,6 @@ func BuildEventSourceConfigs(insightsConfig models.InsightsConfig, kubeClient *c
 		EventChannel:      eventChannel,
 		EventPollInterval: eventPollInterval,
 	})
-
-	fmt.Println("Appending Kubernetes events event source========")
-
 	return configs
 }
 

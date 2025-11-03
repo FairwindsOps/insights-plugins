@@ -131,7 +131,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 	if err != nil {
 		return fmt.Errorf("failed to parse field selector: %w", err)
 	}
-	slog.Info("Field selector: ", "fieldSelector", fieldSelector.String())
+	slog.Debug("Field selector: ", "fieldSelector", fieldSelector.String())
 	options := metav1.ListOptions{
 		FieldSelector: fieldSelector.String(),
 	}
@@ -142,11 +142,12 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 	}
 	for _, event := range events.Items {
 		if !utils.IsAuditOnlyClusterPolicyViolation(event) {
+			slog.Info("Skipping non-audit only cluster policy violation event", "event", event)
 			continue
 		}
 		key := fmt.Sprintf("%s-%s-%s-%s", event.InvolvedObject.Namespace, event.InvolvedObject.Name, event.InvolvedObject.Kind, event.ObjectMeta.UID)
 		if value, err := alreadyProcessedKyvernoPolicyViolationIDs.Get(key); err == nil && value != nil {
-			slog.Debug("Kyverno policy violation ID already processed, skipping", "kyverno_policy_violation_id", key)
+			slog.Info("Kyverno policy violation ID already processed, skipping", "kyverno_policy_violation_id", key)
 			continue
 		}
 		err = alreadyProcessedKyvernoPolicyViolationIDs.Set(key, []byte("true"))
@@ -160,12 +161,20 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			EventType:    models.EventTypeAdded,
 			Kind:         event.Related.Kind,
 			Namespace:    event.Related.Namespace,
-			Name:         fmt.Sprintf("%s-%s-%s-%s", utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
+			Name:         fmt.Sprintf("%s-%s-%s-%s", utils.AuditOnlyClusterPolicyViolationPrefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
 			UID:          string(event.Related.UID),
 			Data: map[string]interface{}{
-				"event": event,
+				"message":           event.Message,
+				"policyName":        event.InvolvedObject.Name,
+				"annotations":       event.ObjectMeta.Annotations,
+				"labels":            event.ObjectMeta.Labels,
+				"creationTimestamp": event.ObjectMeta.CreationTimestamp.Format(time.RFC3339),
+				"resourceVersion":   event.ObjectMeta.ResourceVersion,
+				"uid":               event.ObjectMeta.UID,
+				"reason":            event.Reason,
 			},
 			Metadata: map[string]interface{}{
+				"policyName":        event.InvolvedObject.Name,
 				"annotations":       event.ObjectMeta.Annotations,
 				"labels":            event.ObjectMeta.Labels,
 				"creationTimestamp": event.ObjectMeta.CreationTimestamp.Format(time.RFC3339),
@@ -173,7 +182,6 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 				"uid":               event.ObjectMeta.UID,
 				"reason":            event.Reason,
 				"message":           event.Message,
-				"involvedObject":    event.InvolvedObject,
 				"related":           event.Related,
 				"reportingInstance": event.ReportingInstance,
 				"source":            event.Source,
@@ -183,6 +191,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			Success:     false,
 			Blocked:     true,
 		}
+		slog.Info("Sending audit only cluster policy violation event", "event", event)
 		h.eventChannel <- event
 	}
 	return nil
