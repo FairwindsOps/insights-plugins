@@ -111,7 +111,7 @@ func (a *KubernetesEventSourceAdapter) Stop() {
 
 // GetName implements EventSource interface
 func (a *KubernetesEventSourceAdapter) GetName() string {
-	return "kubernetes"
+	return "kubernetes-events"
 }
 
 // IsEnabled implements EventSource interface
