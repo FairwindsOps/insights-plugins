@@ -26,41 +26,6 @@ func NewClusterPolicyAuditHandler(config models.InsightsConfig, httpTimeoutSecon
 	}
 }
 
-/*
-
-event := &models.WatchedEvent{
-			EventVersion: EventVersion,
-			Timestamp:    event.EventTime.Unix(),
-			EventTime:    event.EventTime.UTC().Format(time.RFC3339),
-			EventType:    models.EventTypeAdded,
-			Kind:         event.Related.Kind,
-			Namespace:    event.Related.Namespace,
-			Name:         fmt.Sprintf("%s-%s-%s-%s", utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
-			UID:          string(event.Related.UID),
-			Data: map[string]interface{}{
-				"event": event,
-			},
-			Metadata: map[string]interface{}{
-				"annotations":       event.ObjectMeta.Annotations,
-				"labels":            event.ObjectMeta.Labels,
-				"creationTimestamp": event.ObjectMeta.CreationTimestamp.Format(time.RFC3339),
-				"resourceVersion":   event.ObjectMeta.ResourceVersion,
-				"uid":               event.ObjectMeta.UID,
-				"reason":            event.Reason,
-				"message":           event.Message,
-				"involvedObject":    event.InvolvedObject,
-				"related":           event.Related,
-				"reportingInstance": event.ReportingInstance,
-				"source":            event.Source,
-				"type":              event.Type,
-			},
-			EventSource: "kubernetes_events",
-			Success:     false,
-			Blocked:     true,
-		}
-
-*/
-
 func (h *ClusterPolicyAuditHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
