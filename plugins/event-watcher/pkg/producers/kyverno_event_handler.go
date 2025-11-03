@@ -189,7 +189,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			},
 			EventSource: "kubernetes_events",
 			Success:     false,
-			Blocked:     true,
+			Blocked:     false,
 		}
 		slog.Info("Sending audit only cluster policy violation event", "event", event)
 		h.eventChannel <- event

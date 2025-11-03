@@ -82,7 +82,7 @@ func (h *ClusterPolicyAuditHandler) Handle(watchedEvent *models.WatchedEvent) er
 		return fmt.Errorf("policyName is not a string in event %+v", watchedEvent)
 	}
 	policies := utils.ExtractAuditOnlyClusterPoliciesFromMessage(policyName, message)
-	slog.Info("Sending cluster policy audit to Insights", "policies", policies, "message", message)
+	slog.Info("Sending cluster policy audit to Insights", "policies", policies, "message", message, "blocked", watchedEvent.Blocked)
 	err := utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
 			EventType: string(watchedEvent.EventType),
@@ -95,8 +95,8 @@ func (h *ClusterPolicyAuditHandler) Handle(watchedEvent *models.WatchedEvent) er
 		},
 		Policies:  policies,
 		Message:   message,
-		Blocked:   false,
-		Success:   true,
+		Blocked:   watchedEvent.Blocked,
+		Success:   watchedEvent.Success,
 		EventTime: watchedEvent.EventTime,
 	})
 	if err != nil {
