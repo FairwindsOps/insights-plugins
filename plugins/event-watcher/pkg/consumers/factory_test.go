@@ -67,7 +67,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		{
 			name: "Valid Kyverno PolicyViolation event should be processed",
 			event: &models.WatchedEvent{
-				ResourceType: "events",
+				Kind: "events",
 				Data: map[string]interface{}{
 					"reason":  "PolicyViolation",
 					"message": "Error from server: error when creating \"deploy.yaml\": admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Deployment/default/nginx-deployment was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'james-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'james-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource\n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
@@ -83,7 +83,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		{
 			name: "Valid Kyverno PolicyReport event should be processed",
 			event: &models.WatchedEvent{
-				ResourceType: "PolicyReport",
+				Kind: "PolicyReport",
 				Data: map[string]interface{}{
 					"results": []interface{}{
 						map[string]interface{}{
@@ -98,7 +98,7 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 		{
 			name: "Valid generic resource event should be processed",
 			event: &models.WatchedEvent{
-				ResourceType: "Pod",
+				Kind: "Pod",
 				Data: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"containers": []interface{}{},
@@ -181,12 +181,12 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 		{
 			name: "Kyverno PolicyViolation event",
 			event: &models.WatchedEvent{
-				Name:         "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2",
-				ResourceType: "Deployment",
-				Namespace:    "default",
-				UID:          "5c0888f1-bdd0-4681-9aba-5b734c267df2",
-				EventTime:    "2025-10-23T10:23:37.369146Z",
-				Timestamp:    time.Now().UTC().Unix(),
+				Name:      "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2",
+				Kind:      "Deployment",
+				Namespace: "default",
+				UID:       "5c0888f1-bdd0-4681-9aba-5b734c267df2",
+				EventTime: "2025-10-23T10:23:37.369146Z",
+				Timestamp: time.Now().UTC().Unix(),
 				Data: map[string]interface{}{
 					"responseStatus": map[string]interface{}{
 						"code":    400,
@@ -210,21 +210,21 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 		{
 			name: "Kyverno ClusterPolicy resource",
 			event: &models.WatchedEvent{
-				ResourceType: "ClusterPolicy",
+				Kind: "ClusterPolicy",
 			},
 			expectedName: "",
 		},
 		{
 			name: "Kyverno PolicyReport resource",
 			event: &models.WatchedEvent{
-				ResourceType: "PolicyReport",
+				Kind: "PolicyReport",
 			},
 			expectedName: "",
 		},
 		{
 			name: "Kyverno Unknown resource should return no handler",
 			event: &models.WatchedEvent{
-				ResourceType: "UnknownResource",
+				Kind: "UnknownResource",
 			},
 			expectedName: "",
 		},

@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"log/slog"
+	"time"
 )
 
 type InsightsConfig struct {
@@ -10,6 +11,68 @@ type InsightsConfig struct {
 	Organization string
 	Cluster      string
 	Token        string
+}
+
+// ViolationEvent represents a detected policy violation from audit logs
+type PolicyViolationEventModel struct {
+	Timestamp    time.Time                    `json:"timestamp"`
+	APIVersion   string                       `json:"apiVersion"`
+	APIGroup     string                       `json:"apiGroup"`
+	Name         string                       `json:"name"`
+	Namespace    string                       `json:"namespace"`
+	ResourceType string                       `json:"resourceType"`
+	User         string                       `json:"user"`
+	Action       string                       `json:"action"` // "blocked" or "allowed"
+	Message      string                       `json:"message"`
+	AuditID      string                       `json:"audit_id"`
+	Policies     map[string]map[string]string `json:"policies"`
+	Annotations  map[string]string            `json:"annotations"`
+}
+
+// AuditEvent represents a Kubernetes audit log entry
+type AuditEvent struct {
+	Kind                     string            `json:"kind"`
+	APIVersion               string            `json:"apiVersion"`
+	Level                    string            `json:"level"`
+	AuditID                  string            `json:"auditID"`
+	Stage                    string            `json:"stage"`
+	RequestURI               string            `json:"requestURI"`
+	Verb                     string            `json:"verb"`
+	User                     User              `json:"user"`
+	SourceIPs                []string          `json:"sourceIPs"`
+	UserAgent                string            `json:"userAgent"`
+	ObjectRef                ObjectRef         `json:"objectRef"`
+	ResponseStatus           ResponseStatus    `json:"responseStatus"`
+	RequestObject            interface{}       `json:"requestObject"`
+	ResponseObject           interface{}       `json:"responseObject"`
+	Annotations              map[string]string `json:"annotations"`
+	RequestReceivedTimestamp time.Time         `json:"requestReceivedTimestamp"`
+	StageTimestamp           time.Time         `json:"stageTimestamp"`
+}
+
+type User struct {
+	Username string   `json:"username"`
+	UID      string   `json:"uid"`
+	Groups   []string `json:"groups"`
+}
+
+type ObjectRef struct {
+	Resource        string `json:"resource"`
+	Namespace       string `json:"namespace"`
+	Name            string `json:"name"`
+	UID             string `json:"uid"`
+	APIGroup        string `json:"apiGroup"`
+	APIVersion      string `json:"apiVersion"`
+	ResourceVersion string `json:"resourceVersion"`
+	SubResource     string `json:"subResource"`
+}
+
+type ResponseStatus struct {
+	Metadata map[string]interface{} `json:"metadata"`
+	Code     int                    `json:"code"`
+	Status   string                 `json:"status"`
+	Message  string                 `json:"message"`
+	Reason   string                 `json:"reason"`
 }
 
 type CloudWatchConfig struct {
@@ -70,7 +133,7 @@ type WatchedEvent struct {
 	Timestamp    int64                  `json:"timestamp"`            // Processing timestamp
 	EventTime    string                 `json:"event_time,omitempty"` // Kubernetes eventTime
 	EventType    EventType              `json:"event_type"`
-	ResourceType string                 `json:"resource_type"`
+	Kind         string                 `json:"kind"`
 	Namespace    string                 `json:"namespace"`
 	Name         string                 `json:"name"`
 	UID          string                 `json:"uid"`
@@ -90,7 +153,7 @@ func (e *WatchedEvent) ToJSON() ([]byte, error) {
 func (e *WatchedEvent) LogEvent() {
 	fields := []interface{}{
 		"event_type", e.EventType,
-		"resource_type", e.ResourceType,
+		"kind", e.Kind,
 		"namespace", e.Namespace,
 		"name", e.Name,
 		"uid", e.UID,
@@ -127,7 +190,7 @@ func (e *WatchedEvent) IsKyvernoResource() bool {
 	}
 
 	for _, resource := range kyvernoResources {
-		if e.ResourceType == resource {
+		if e.Kind == resource {
 			return true
 		}
 	}
@@ -141,7 +204,7 @@ func (e *WatchedEvent) GetPolicyName() string {
 	}
 
 	// For PolicyReport and ClusterPolicyReport, look in the results
-	if e.ResourceType == "PolicyReport" || e.ResourceType == "ClusterPolicyReport" {
+	if e.Kind == "PolicyReport" || e.Kind == "ClusterPolicyReport" {
 		if results, ok := e.Data["results"].([]interface{}); ok {
 			for _, result := range results {
 				if resultMap, ok := result.(map[string]interface{}); ok {

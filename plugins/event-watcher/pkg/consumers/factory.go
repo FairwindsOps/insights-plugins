@@ -55,6 +55,7 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		f.Register(utils.KyvernoPolicyViolationPrefix, NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingPolicyViolationPrefix, NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewAuditOnlyAllowedValidatingAdmissionPolicyHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
@@ -66,7 +67,7 @@ func (f *EventHandlerFactory) Register(name string, handler EventHandler) {
 
 // GetHandler returns the appropriate handler for an event
 func (f *EventHandlerFactory) GetHandler(watchedEvent *models.WatchedEvent) EventHandler {
-	slog.Debug("Getting handler for event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
+	slog.Debug("Getting handler for event", "event_type", watchedEvent.EventType, "kind", watchedEvent.Kind, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	// Determine the handler name based on event characteristics
 	handlerName := f.getHandlerName(watchedEvent)
 	slog.Debug("Handler name", "handler_name", handlerName)
@@ -95,18 +96,22 @@ func (f *EventHandlerFactory) getHandlerName(watchedEvent *models.WatchedEvent) 
 		slog.Debug("Found validating admission policy violation event", "name", watchedEvent.Name)
 		return utils.ValidatingAdmissionPolicyViolationPrefix
 	}
+	if strings.HasPrefix(watchedEvent.Name, utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix) {
+		slog.Debug("Found audit only allowed validating admission policy event", "name", watchedEvent.Name)
+		return utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix
+	}
 	slog.Debug("No handler found for event", "name", watchedEvent.Name)
 	return ""
 }
 
 // ProcessEvent processes an event using the appropriate handler
 func (f *EventHandlerFactory) ProcessEvent(watchedEvent *models.WatchedEvent) error {
-	slog.Debug("Processing event", "event_type", watchedEvent.EventType, "resource_type", watchedEvent.ResourceType, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
+	slog.Debug("Processing event", "event_type", watchedEvent.EventType, "kind", watchedEvent.Kind, "namespace", watchedEvent.Namespace, "name", watchedEvent.Name)
 	handler := f.GetHandler(watchedEvent)
 	if handler == nil {
 		slog.Debug("No handler found for event",
 			"event_type", watchedEvent.EventType,
-			"resource_type", watchedEvent.ResourceType,
+			"kind", watchedEvent.Kind,
 			"namespace", watchedEvent.Namespace,
 			"name", watchedEvent.Name)
 		return nil

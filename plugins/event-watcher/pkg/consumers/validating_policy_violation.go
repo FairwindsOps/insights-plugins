@@ -32,7 +32,7 @@ func NewValidatingPolicyViolationHandler(insightsConfig models.InsightsConfig, h
 func (h *ValidatingPolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	logFields := []interface{}{
 		"event_type", watchedEvent.EventType,
-		"resource_type", watchedEvent.ResourceType,
+		"kind", watchedEvent.Kind,
 		"namespace", watchedEvent.Namespace,
 		"name", watchedEvent.Name,
 	}
@@ -94,14 +94,13 @@ func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watc
 	policies := utils.ExtractValidatingPoliciesFromMessage(message)
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
-			EventType:    string(watchedEvent.EventType),
-			ResourceType: watchedEvent.ResourceType,
-			Namespace:    watchedEvent.Namespace,
-			Name:         watchedEvent.Name,
-			UID:          watchedEvent.UID,
-			Timestamp:    watchedEvent.Timestamp,
-			Data:         watchedEvent.Data,
-			Metadata:     watchedEvent.Metadata,
+			EventType: string(watchedEvent.EventType),
+			Namespace: watchedEvent.Namespace,
+			Name:      watchedEvent.Name,
+			UID:       watchedEvent.UID,
+			Timestamp: watchedEvent.Timestamp,
+			Data:      watchedEvent.Data,
+			Metadata:  watchedEvent.Metadata,
 		},
 		Policies:  policies,
 		Message:   message,

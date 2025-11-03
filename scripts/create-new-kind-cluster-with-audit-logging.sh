@@ -20,6 +20,13 @@ else
     echo "📁 Audit logs directory already exists"
 fi
 
+# Remove audit policy file if it exists
+echo "📁 Creating audit logs directory..."
+if [  -d "/tmp/audit-policy.yaml" ]; then
+    rmdir /tmp/audit-policy.yaml
+fi
+
+
 # Create audit policy file on host
 echo "📝 Creating audit policy file..."
 cat > /tmp/audit-policy.yaml << 'EOF'
