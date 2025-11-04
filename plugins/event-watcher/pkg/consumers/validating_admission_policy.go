@@ -30,7 +30,7 @@ func NewValidatingAdmissionPolicyViolationHandler(insightsConfig models.Insights
 }
 
 func (h *ValidatingAdmissionPolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
-	logFields := []interface{}{
+	logFields := []any{
 		"event_type", watchedEvent.EventType,
 		"kind", watchedEvent.Kind,
 		"namespace", watchedEvent.Namespace,

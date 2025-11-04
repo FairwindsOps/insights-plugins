@@ -27,7 +27,7 @@ func NewClusterPolicyAuditHandler(config models.InsightsConfig, httpTimeoutSecon
 }
 
 func (h *ClusterPolicyAuditHandler) Handle(watchedEvent *models.WatchedEvent) error {
-	logFields := []interface{}{
+	logFields := []any{
 		"event_type", watchedEvent.EventType,
 		"kind", watchedEvent.Kind,
 		"namespace", watchedEvent.Namespace,

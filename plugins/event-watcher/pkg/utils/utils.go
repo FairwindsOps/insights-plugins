@@ -239,10 +239,10 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 		EventTime: auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
 		Success:   false,
 		Blocked:   true,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"reason":  reason,
 			"message": policyMessage,
-			"source": map[string]interface{}{
+			"source": map[string]any{
 				"component": "cloudwatch",
 			},
 			"involvedObject": objectRef,
@@ -250,7 +250,7 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 			"lastTimestamp":  auditEvent.StageTimestamp.Format(time.RFC3339),
 			"annotations":    auditEvent.Annotations,
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"audit_id":      auditEvent.AuditID,
 			"policies":      policies,
 			"resource_name": name,
@@ -298,15 +298,15 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 		EventTime: ts.UTC().Format(time.RFC3339),
 		Success:   false,
 		Blocked:   true,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"reason":   violation.Action,
 			"type":     "Warning",
 			"message":  violation.Message,
 			"policies": violation.Policies,
-			"source": map[string]interface{}{
+			"source": map[string]any{
 				"component": "audit-log-handler",
 			},
-			"involvedObject": map[string]interface{}{
+			"involvedObject": map[string]any{
 				"apiVersion":   violation.APIVersion,
 				"apiGroup":     violation.APIGroup,
 				"kind":         violation.ResourceType,
@@ -320,7 +320,7 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 			"count":          1,
 			"annotations":    violation.Annotations,
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"audit_id":      violation.AuditID,
 			"annotations":   violation.Annotations,
 			"policies":      violation.Policies,
@@ -389,13 +389,13 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 		EventTime: policyViolationEvent.Timestamp.Format(time.RFC3339),
 		Success:   false,
 		Blocked:   false,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"reason":  policyViolationEvent.Action,
 			"message": policyViolationEvent.Message,
-			"source": map[string]interface{}{
+			"source": map[string]any{
 				"component": "cloudwatch",
 			},
-			"involvedObject": map[string]interface{}{
+			"involvedObject": map[string]any{
 				"apiVersion": policyViolationEvent.APIVersion,
 				"apiGroup":   policyViolationEvent.APIGroup,
 				"kind":       policyViolationEvent.ResourceType,
@@ -407,7 +407,7 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 			"lastTimestamp":  policyViolationEvent.Timestamp.Format(time.RFC3339),
 			"annotations":    policyViolationEvent.Annotations,
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"audit_id":      policyViolationEvent.AuditID,
 			"policies":      policyViolationEvent.Policies,
 			"resource_type": policyViolationEvent.ResourceType,

@@ -163,7 +163,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			Namespace:    event.Related.Namespace,
 			Name:         fmt.Sprintf("%s-%s-%s-%s", utils.AuditOnlyClusterPolicyViolationPrefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
 			UID:          string(event.Related.UID),
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"message":           event.Message,
 				"policyName":        event.InvolvedObject.Name,
 				"annotations":       event.ObjectMeta.Annotations,
@@ -173,7 +173,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 				"uid":               event.ObjectMeta.UID,
 				"reason":            event.Reason,
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"policyName":        event.InvolvedObject.Name,
 				"annotations":       event.ObjectMeta.Annotations,
 				"labels":            event.ObjectMeta.Labels,

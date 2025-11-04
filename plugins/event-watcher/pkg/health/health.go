@@ -22,11 +22,11 @@ const (
 
 // HealthResponse represents the response from health check endpoints
 type HealthResponse struct {
-	Status    HealthStatus           `json:"status"`
-	Timestamp time.Time              `json:"timestamp"`
-	Uptime    string                 `json:"uptime"`
-	Version   string                 `json:"version,omitempty"`
-	Details   map[string]interface{} `json:"details,omitempty"`
+	Status    HealthStatus   `json:"status"`
+	Timestamp time.Time      `json:"timestamp"`
+	Uptime    string         `json:"uptime"`
+	Version   string         `json:"version,omitempty"`
+	Details   map[string]any `json:"details,omitempty"`
 }
 
 // HealthChecker defines the interface for health check components
@@ -154,18 +154,18 @@ func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	details := make(map[string]interface{})
+	details := make(map[string]any)
 	allHealthy := true
 
 	for _, checker := range s.checkers {
 		if err := checker.CheckHealth(ctx); err != nil {
-			details[checker.GetName()] = map[string]interface{}{
+			details[checker.GetName()] = map[string]any{
 				"status": "unhealthy",
 				"error":  err.Error(),
 			}
 			allHealthy = false
 		} else {
-			details[checker.GetName()] = map[string]interface{}{
+			details[checker.GetName()] = map[string]any{
 				"status": "healthy",
 			}
 		}
@@ -181,7 +181,7 @@ func (s *Server) readinessHandler(w http.ResponseWriter, r *http.Request) {
 // healthHandler provides detailed health information
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	status := s.GetStatus()
-	details := make(map[string]interface{})
+	details := make(map[string]any)
 
 	// Check all registered health checkers
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
@@ -189,12 +189,12 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, checker := range s.checkers {
 		if err := checker.CheckHealth(ctx); err != nil {
-			details[checker.GetName()] = map[string]interface{}{
+			details[checker.GetName()] = map[string]any{
 				"status": "unhealthy",
 				"error":  err.Error(),
 			}
 		} else {
-			details[checker.GetName()] = map[string]interface{}{
+			details[checker.GetName()] = map[string]any{
 				"status": "healthy",
 			}
 		}
@@ -204,7 +204,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // writeHealthResponse writes a health response to the HTTP response writer
-func (s *Server) writeHealthResponse(w http.ResponseWriter, status HealthStatus, httpStatus int, details ...map[string]interface{}) {
+func (s *Server) writeHealthResponse(w http.ResponseWriter, status HealthStatus, httpStatus int, details ...map[string]any) {
 	response := HealthResponse{
 		Status:    status,
 		Timestamp: time.Now(),

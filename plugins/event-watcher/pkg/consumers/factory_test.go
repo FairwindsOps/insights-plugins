@@ -68,10 +68,10 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 			name: "Valid Kyverno PolicyViolation event should be processed",
 			event: &models.WatchedEvent{
 				Kind: "events",
-				Data: map[string]interface{}{
+				Data: map[string]any{
 					"reason":  "PolicyViolation",
 					"message": "Error from server: error when creating \"deploy.yaml\": admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Deployment/default/nginx-deployment was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'james-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'james-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource\n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
-					"involvedObject": map[string]interface{}{
+					"involvedObject": map[string]any{
 						"kind":      "Pod",
 						"name":      "nginx",
 						"namespace": "default",
@@ -84,9 +84,9 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 			name: "Valid Kyverno PolicyReport event should be processed",
 			event: &models.WatchedEvent{
 				Kind: "PolicyReport",
-				Data: map[string]interface{}{
-					"results": []interface{}{
-						map[string]interface{}{
+				Data: map[string]any{
+					"results": []any{
+						map[string]any{
 							"result": "fail",
 							"policy": "test-policy",
 						},
@@ -99,9 +99,9 @@ func TestEventHandlerFactoryProcessEvent(t *testing.T) {
 			name: "Valid generic resource event should be processed",
 			event: &models.WatchedEvent{
 				Kind: "Pod",
-				Data: map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{},
+				Data: map[string]any{
+					"spec": map[string]any{
+						"containers": []any{},
 					},
 				},
 			},
@@ -187,16 +187,16 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 				UID:       "5c0888f1-bdd0-4681-9aba-5b734c267df2",
 				EventTime: "2025-10-23T10:23:37.369146Z",
 				Timestamp: time.Now().UTC().Unix(),
-				Data: map[string]interface{}{
-					"responseStatus": map[string]interface{}{
+				Data: map[string]any{
+					"responseStatus": map[string]any{
 						"code":    400,
 						"status":  "Failure",
 						"message": "admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Deployment/default/nginx-deployment was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'\n\njames-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'\njames-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource  \n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
 					},
 				},
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"audit_id":      "5c0888f1-bdd0-4681-9aba-5b734c267df2",
-					"policies":      map[string]interface{}{},
+					"policies":      map[string]any{},
 					"resource_name": "nginx-deployment",
 					"namespace":     "default",
 					"action":        "Blocked",

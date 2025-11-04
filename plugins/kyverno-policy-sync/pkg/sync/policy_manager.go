@@ -252,7 +252,7 @@ func (pm *PolicyManager) policyToYAML(policy ClusterPolicy) (string, error) {
 	policyMap := map[string]any{
 		"apiVersion": "kyverno.io/v1",
 		"kind":       "ClusterPolicy",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name": policy.Name,
 		},
 		"spec": policy.Spec,
@@ -260,7 +260,7 @@ func (pm *PolicyManager) policyToYAML(policy ClusterPolicy) (string, error) {
 
 	// Add annotations if they exist
 	if len(policy.Annotations) > 0 {
-		policyMap["metadata"].(map[string]interface{})["annotations"] = policy.Annotations
+		policyMap["metadata"].(map[string]any)["annotations"] = policy.Annotations
 	}
 
 	// Convert to YAML

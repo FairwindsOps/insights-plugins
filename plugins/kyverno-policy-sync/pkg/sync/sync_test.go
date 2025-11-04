@@ -82,7 +82,7 @@ func TestClusterPolicy(t *testing.T) {
 		Annotations: map[string]string{
 			"insights.fairwinds.com/owned-by": "Fairwinds Insights",
 		},
-		Spec: map[string]interface{}{
+		Spec: map[string]any{
 			"validationFailureAction": "enforce",
 		},
 	}
