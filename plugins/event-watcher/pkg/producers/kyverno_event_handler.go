@@ -18,7 +18,7 @@ import (
 
 const (
 	EventVersion                        = 1
-	KyvernoPolicyViolationFieldSelector = "involvedObject.kind=ClusterPolicy,reason=PolicyViolation"
+	KyvernoPolicyViolationFieldSelector = "reason=PolicyViolation"
 )
 
 var alreadyProcessedKyvernoPolicyViolationIDs *bigcache.BigCache

@@ -387,8 +387,7 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, message string)
 		}
 		policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
 		if policyViolationEvent != nil {
-			slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
-			slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
+			slog.Debug("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
 			utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, h.eventChannel)
 		}
 	} else if utils.IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent.Annotations) {
@@ -398,9 +397,9 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, message string)
 			return nil
 		}
 		auditOnlyAllowEvent := utils.CreateValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent)
-		slog.Info("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
+		slog.Debug("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
 		if auditOnlyAllowEvent != nil {
-			slog.Info("Creating watched event from validating admission policy violation audit only allow event", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
+			slog.Debug("Creating watched event from validating admission policy violation audit only allow event", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
 			utils.CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(auditOnlyAllowEvent, h.eventChannel)
 		}
 	}
