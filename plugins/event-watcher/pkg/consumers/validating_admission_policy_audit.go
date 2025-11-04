@@ -28,7 +28,7 @@ func NewAuditOnlyAllowedValidatingAdmissionPolicyHandler(insightsConfig models.I
 }
 
 func (h *AuditOnlyAllowedValidatingAdmissionPolicyHandler) Handle(watchedEvent *models.WatchedEvent) error {
-	logFields := []interface{}{
+	logFields := []any{
 		"event_type", watchedEvent.EventType,
 		"kind", watchedEvent.Kind,
 		"namespace", watchedEvent.Namespace,

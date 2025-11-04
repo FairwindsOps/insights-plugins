@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.5
+* Code cleanup
+
 ## 0.4.4
 * Bumped go for fixing vulnerabilities
 

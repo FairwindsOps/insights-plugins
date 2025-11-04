@@ -151,7 +151,7 @@ func (e *WatchedEvent) ToJSON() ([]byte, error) {
 
 // LogEvent logs the event with appropriate level
 func (e *WatchedEvent) LogEvent() {
-	fields := []interface{}{
+	fields := []any{
 		"event_type", e.EventType,
 		"kind", e.Kind,
 		"namespace", e.Namespace,

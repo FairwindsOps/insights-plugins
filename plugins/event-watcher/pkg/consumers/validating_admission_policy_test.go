@@ -38,10 +38,10 @@ func TestValidatingAdmissionPolicyHandlerHandle(t *testing.T) {
 		Namespace:    "default",
 		Name:         "validating-admission-policy-violation-test",
 		UID:          "test-uid-123",
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"message": "deployments.apps \"nginx-deployment\" is forbidden: ValidatingAdmissionPolicy 'check-deployment-replicas' with binding 'check-deployment-replicas-binding' denied request: failed expression: object.spec.replicas >= 5",
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"policyResult": "fail",
 		},
 	})

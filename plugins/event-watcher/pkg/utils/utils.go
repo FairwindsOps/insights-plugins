@@ -154,8 +154,7 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 }
 
 func IsKyvernoPolicyViolation(responseCode int, message string) bool {
-	if responseCode >= 400 && strings.Contains(message, "kyverno") &&
-		strings.Contains(message, "blocked due to the following policies") {
+	if responseCode >= 400 && strings.Contains(message, "kyverno") && strings.Contains(message, "blocked due to the following policies") {
 		return true
 	}
 	return false
@@ -190,7 +189,9 @@ func IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(annotations map[str
 }
 
 func IsAuditOnlyClusterPolicyViolation(event v1.Event) bool {
-	return event.InvolvedObject.Kind == "ClusterPolicy" && event.Reason == "PolicyViolation" && event.Action == "Resource Passed"
+	return (event.InvolvedObject.Kind == "ClusterPolicy" || event.InvolvedObject.Kind == "Policy") &&
+		event.Reason == "PolicyViolation" &&
+		event.Action == "Resource Passed"
 }
 
 // CreateBlockedPolicyViolationEventFromAuditEvent creates a blocked policy violation event from an audit event
@@ -238,10 +239,10 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 		EventTime: auditEvent.StageTimestamp.UTC().Format(time.RFC3339),
 		Success:   false,
 		Blocked:   true,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"reason":  reason,
 			"message": policyMessage,
-			"source": map[string]interface{}{
+			"source": map[string]any{
 				"component": "cloudwatch",
 			},
 			"involvedObject": objectRef,
@@ -249,7 +250,7 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 			"lastTimestamp":  auditEvent.StageTimestamp.Format(time.RFC3339),
 			"annotations":    auditEvent.Annotations,
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"audit_id":      auditEvent.AuditID,
 			"policies":      policies,
 			"resource_name": name,
@@ -265,12 +266,12 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 
 // createWatchedEventFromPolicyViolationEvent creates a watched event from a policy violation event
 func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyViolationEventModel, eventChannel chan *models.WatchedEvent) error {
-	slog.Info("Creating blocked watched event from policy violation event", "violation", violation)
+	slog.Debug("Creating blocked watched event from policy violation event", "violation", violation)
 	if violation == nil {
 		slog.Info("Policy violation event is nil, skipping", "violation", violation)
 		return fmt.Errorf("policy violation event is nil")
 	}
-	slog.Info("Creating blocked watched event from policy violation event",
+	slog.Debug("Creating blocked watched event from policy violation event",
 		"policies", violation.Policies,
 		"api_group", violation.APIGroup,
 		"resource_type", violation.ResourceType,
@@ -297,15 +298,15 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 		EventTime: ts.UTC().Format(time.RFC3339),
 		Success:   false,
 		Blocked:   true,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"reason":   violation.Action,
 			"type":     "Warning",
 			"message":  violation.Message,
 			"policies": violation.Policies,
-			"source": map[string]interface{}{
+			"source": map[string]any{
 				"component": "audit-log-handler",
 			},
-			"involvedObject": map[string]interface{}{
+			"involvedObject": map[string]any{
 				"apiVersion":   violation.APIVersion,
 				"apiGroup":     violation.APIGroup,
 				"kind":         violation.ResourceType,
@@ -319,7 +320,7 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 			"count":          1,
 			"annotations":    violation.Annotations,
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"audit_id":      violation.AuditID,
 			"annotations":   violation.Annotations,
 			"policies":      violation.Policies,
@@ -388,13 +389,13 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 		EventTime: policyViolationEvent.Timestamp.Format(time.RFC3339),
 		Success:   false,
 		Blocked:   false,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"reason":  policyViolationEvent.Action,
 			"message": policyViolationEvent.Message,
-			"source": map[string]interface{}{
+			"source": map[string]any{
 				"component": "cloudwatch",
 			},
-			"involvedObject": map[string]interface{}{
+			"involvedObject": map[string]any{
 				"apiVersion": policyViolationEvent.APIVersion,
 				"apiGroup":   policyViolationEvent.APIGroup,
 				"kind":       policyViolationEvent.ResourceType,
@@ -406,7 +407,7 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 			"lastTimestamp":  policyViolationEvent.Timestamp.Format(time.RFC3339),
 			"annotations":    policyViolationEvent.Annotations,
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"audit_id":      policyViolationEvent.AuditID,
 			"policies":      policyViolationEvent.Policies,
 			"resource_type": policyViolationEvent.ResourceType,
@@ -424,7 +425,7 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 	// Send the event to the event channel
 	select {
 	case eventChannel <- watchedEvent:
-		slog.Info("Sent watched event",
+		slog.Info("Sent audit only watched event",
 			"policies", policyViolationEvent.Policies,
 			"api_group", policyViolationEvent.APIGroup,
 			"resource_type", policyViolationEvent.ResourceType,
@@ -445,17 +446,21 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 		return nil
 	}
 	policies := map[string]map[string]string{}
+	name := "unknown"
 	if IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		slog.Info("Kyverno policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+		slog.Debug("Kyverno policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		name = fmt.Sprintf("%s-%s-%s-%s", KyvernoPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
 	} else if IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		slog.Info("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
-		slog.Info("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		slog.Info("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingAdmissionPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	}
 	return &models.PolicyViolationEventModel{
 		Timestamp:    auditEvent.RequestReceivedTimestamp,
@@ -463,7 +468,7 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 		APIVersion:   auditEvent.ObjectRef.APIVersion,
 		APIGroup:     auditEvent.ObjectRef.APIGroup,
 		ResourceType: auditEvent.ObjectRef.Resource,
-		Name:         auditEvent.ObjectRef.Name,
+		Name:         name,
 		Namespace:    auditEvent.ObjectRef.Namespace,
 		User:         auditEvent.User.Username,
 		Action:       auditEvent.ResponseStatus.Status,

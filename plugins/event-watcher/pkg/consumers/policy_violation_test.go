@@ -45,18 +45,18 @@ func TestPolicyViolationHandlerHandleBlockedViolation(t *testing.T) {
 		UID:          "test-uid-123",
 		Success:      false,
 		Blocked:      true,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"apiVersion": "v1",
 			"kind":       "Event",
 			"reason":     "PolicyViolation",
 			"message":    "Pod default/nginx: [require-team-label] fail (blocked); validation error: The label 'team' is required for all Pods.",
-			"involvedObject": map[string]interface{}{
+			"involvedObject": map[string]any{
 				"kind":      "ValidatingAdmissionPolicy", // This makes it a ValidatingAdmissionPolicy event
 				"name":      "require-team-label",
 				"namespace": "",
 			},
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"name":      "kyverno-policy-violation-test",
 			"namespace": "default",
 			"uid":       "test-uid-123",
@@ -105,18 +105,18 @@ func TestPolicyViolationHandlerHandleNonBlockedViolation(t *testing.T) {
 		UID:          "test-uid-456",
 		Success:      false,
 		Blocked:      true,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"apiVersion": "v1",
 			"kind":       "Event",
 			"reason":     "PolicyViolation",
 			"message":    "Pod default/nginx: [require-team-label] warn validation warning: The label 'team' is recommended for all Pods.",
-			"involvedObject": map[string]interface{}{
+			"involvedObject": map[string]any{
 				"kind":      "Pod",
 				"name":      "nginx",
 				"namespace": "default",
 			},
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"name":      "kyverno-policy-violation-warning",
 			"namespace": "default",
 			"uid":       "test-uid-456",
@@ -165,18 +165,18 @@ func TestPolicyViolationHandlerHandleBlockedKyvernoPolicyEvent(t *testing.T) {
 		UID:          "test-uid-999",
 		Success:      false,
 		Blocked:      true,
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"apiVersion": "v1",
 			"kind":       "Event",
 			"reason":     "PolicyViolation",
 			"message":    "policy disallow-host-path/disallow-host-path fail (blocked): HostPath volumes are forbidden.",
-			"involvedObject": map[string]interface{}{
+			"involvedObject": map[string]any{
 				"kind":      "Deployment", // This makes it a regular Kyverno policy event
 				"name":      "nginx",
 				"namespace": "default",
 			},
 		},
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"name":      "kyverno-policy-violation-test",
 			"namespace": "default",
 			"uid":       "test-uid-999",

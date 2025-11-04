@@ -53,18 +53,18 @@ func TestWatcherHandlerFactory(t *testing.T) {
 			UID:          "test-uid-123",
 			Success:      false,
 			Blocked:      true,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "Event",
 				"reason":     "PolicyViolation",
 				"message":    "admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource ValidatingAdmissionPolicy/default/require-team-label was blocked due to the following policies \n\njames-disallow-privileged-containers:\n  check-privileged-james-1: 'validation error: Privileged containers are not allowed.\n    rule check-privileged-james-1 failed at path /spec/containers/'\n\njames-require-labels:\n  check-required-labels-james-1: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-1 failed at path\n    /metadata/labels/environment/'\njames-require-resource-limits:\n  check-resource-limits-james-1: 'validation error: All containers must have resource  \n    limits defined. rule check-resource-limits-james-1 failed at path /spec/containers/'",
-				"involvedObject": map[string]interface{}{
+				"involvedObject": map[string]any{
 					"kind":      "ValidatingAdmissionPolicy", // This makes it a ValidatingAdmissionPolicy event
 					"name":      "require-team-label",
 					"namespace": "",
 				},
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"name":      "kyverno-policy-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
 				"namespace": "default",
 				"uid":       "test-uid-123",
@@ -96,23 +96,23 @@ func TestWatcherHandlerFactory(t *testing.T) {
 			UID:          "test-uid-789",
 			Success:      false,
 			Blocked:      true,
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"apiVersion": "wgpolicyk8s.io/v1alpha2",
 				"kind":       "PolicyReport",
-				"results": []interface{}{
-					map[string]interface{}{
+				"results": []any{
+					map[string]any{
 						"result":  "fail",
 						"policy":  "require-team-label",
 						"message": "Missing required label",
 					},
-					map[string]interface{}{
+					map[string]any{
 						"result":  "warn",
 						"policy":  "recommend-labels",
 						"message": "Missing recommended label",
 					},
 				},
 			},
-			Metadata: map[string]interface{}{
+			Metadata: map[string]any{
 				"name":      "policy-report-test",
 				"namespace": "default",
 				"uid":       "test-uid-789",

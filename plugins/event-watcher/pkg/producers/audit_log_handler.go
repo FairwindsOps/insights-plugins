@@ -142,7 +142,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 				slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
 			}
 			policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
-			slog.Info("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
+			slog.Debug("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 			if policyViolationEvent != nil {
 				slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
 				utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, h.eventChannel)
@@ -153,7 +153,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 				slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
 			}
 			auditOnlyAllowEvent := utils.CreateValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent)
-			slog.Info("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
+			slog.Debug("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
 			if auditOnlyAllowEvent != nil {
 				slog.Info("Creating watched event from validating admission policy violation audit only allow event", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
 				utils.CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(auditOnlyAllowEvent, h.eventChannel)
