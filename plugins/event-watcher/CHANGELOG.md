@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.14
+* Add support to Blocked and Audit type Policy
+
 ## 0.1.13
 * Add support to Audit only for ClusterPolicy
 
