@@ -133,6 +133,8 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 // listInsightsManagedPolicies lists all currently deployed policies managed by Insights
 func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) ([]ClusterPolicy, error) {
 	// Get all ClusterPolicies from the cluster
+
+	// TODO fixme handling only cluster policies
 	policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
 		Group:    "kyverno.io",
 		Version:  "v1",
@@ -147,11 +149,16 @@ func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) (
 	for _, item := range policies.Items {
 		// Check if policy has Insights ownership annotation
 		annotations := item.GetAnnotations()
+		yaml, err := yaml.Marshal(item.Object)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal policy to YAML: %w", err)
+		}
 		if annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights" {
 			insightsManagedPolicies = append(insightsManagedPolicies, ClusterPolicy{
 				Name:        item.GetName(),
 				Annotations: annotations,
 				Spec:        item.Object["spec"].(map[string]interface{}),
+				YAML:        yaml,
 			})
 		}
 	}
@@ -207,6 +214,7 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 
 		policies = append(policies, ClusterPolicy{
 			Name:        name,
+			YAML:        []byte(doc),
 			Annotations: annotations,
 			Spec:        policy["spec"].(map[string]interface{}),
 		})

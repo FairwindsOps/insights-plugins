@@ -39,6 +39,7 @@ type ClusterPolicy struct {
 	Name        string                 `json:"name"`
 	Annotations map[string]string      `json:"annotations,omitempty"`
 	Spec        map[string]interface{} `json:"spec,omitempty"`
+	YAML        []byte                 `json:"yaml"`
 }
 
 // PolicySyncLock represents a distributed lock using Kubernetes ConfigMap for preventing concurrent sync operations

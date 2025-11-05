@@ -129,15 +129,6 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 		slog.Info("[DRY-RUN] Would apply policy", "policy", policy.Name)
 		return nil
 	}
-
-	// Convert policy to YAML
-	policyYAML, err := pm.policyToYAML(policy)
-	if err != nil {
-		return fmt.Errorf("failed to convert policy to YAML: %w", err)
-	}
-
-	slog.Info("Policy YAML", "policy", policyYAML)
-
 	// Ensure temp directory exists
 	if err := ensureTempDir(); err != nil {
 		return err
@@ -151,7 +142,7 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 	defer os.Remove(tempFile.Name())
 
 	// Write policy to temporary file
-	if _, err := tempFile.WriteString(policyYAML); err != nil {
+	if _, err := tempFile.Write(policy.YAML); err != nil {
 		return fmt.Errorf("failed to write policy to temporary file: %w", err)
 	}
 	tempFile.Close()
@@ -188,10 +179,8 @@ func (pm *PolicyManager) removePolicy(ctx context.Context, policyName string, dr
 		return nil
 	}
 
-	// Delete the policy using kubectl
-	// FIXME: This is not working as expected. It should use the Kyverno CLI.
-	policyType := "clusterpolicy"
-	cmd := exec.CommandContext(ctx, "kubectl", "delete", policyType, policyName)
+	kind := policy.GetKind()
+	cmd := exec.CommandContext(ctx, "kubectl", "delete", kind, policyName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to delete policy %s with kubectl: %s: %s: %w", policyName, cmd.String(), string(output), err)

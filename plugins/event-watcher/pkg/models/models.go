@@ -187,6 +187,7 @@ func (e *WatchedEvent) IsKyvernoResource() bool {
 		"ValidatingAdmissionPolicyBinding",
 		"MutatingAdmissionPolicy",
 		"MutatingAdmissionPolicyBinding",
+		"ValidatingPolicy",
 	}
 
 	for _, resource := range kyvernoResources {
