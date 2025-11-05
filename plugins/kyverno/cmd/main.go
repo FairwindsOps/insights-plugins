@@ -180,7 +180,6 @@ func removeManagedFields(policies []unstructured.Unstructured) ([]map[string]any
 }
 
 func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]any, error) {
-	// TODO fixme handling only cluster policies
 	clusterPoliciesMetadata, err := client.ListResources(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		return nil, err
