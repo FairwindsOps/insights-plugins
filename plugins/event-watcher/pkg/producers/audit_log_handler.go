@@ -23,7 +23,7 @@ var alreadyProcessedAuditIDs *bigcache.BigCache
 func init() {
 	var err error
 	config := bigcache.DefaultConfig(60 * time.Minute)
-	config.HardMaxCacheSize = 256 // 512MB
+	config.HardMaxCacheSize = 512 // 512MB
 	alreadyProcessedAuditIDs, err = bigcache.New(context.Background(), config)
 	if err != nil {
 		slog.Error("Failed to create bigcache", "error", err)
@@ -129,7 +129,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		}
 
 		if value, err := alreadyProcessedAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
-			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
+			slog.Info("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 			continue
 		}
 
@@ -139,7 +139,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 
 			err = alreadyProcessedAuditIDs.Set(auditEvent.AuditID, []byte("true"))
 			if err != nil {
-				slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
+				slog.Info("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
 			}
 			policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
 			slog.Debug("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
