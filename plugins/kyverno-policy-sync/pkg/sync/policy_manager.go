@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 
-	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +38,7 @@ func ensureTempDir() error {
 }
 
 // executeDryRun performs a dry-run of the sync actions
-func (p *PolicySyncProcessor) executeDryRun(ctx context.Context, actions PolicySyncActions, expectedPolicies []ClusterPolicy) (*PolicySyncResult, error) {
+func (p *PolicySyncProcessor) executeDryRun(ctx context.Context, actions PolicySyncActions) (*PolicySyncResult, error) {
 	slog.Info("Executing dry-run to validate sync plan")
 
 	result := &PolicySyncResult{
@@ -71,39 +70,35 @@ func (p *PolicySyncProcessor) executeDryRun(ctx context.Context, actions PolicyS
 }
 
 // executeSyncActions executes the actual sync actions
-func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions PolicySyncActions, expectedPolicies []ClusterPolicy, result *PolicySyncResult) error {
+func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions PolicySyncActions, managedPoliciesByInsights []ClusterPolicy, result *PolicySyncResult) error {
 	policyManager := NewPolicyManager(p.k8sClient, p.dynamicClient)
 
-	// Create expected policies map for lookup
-	expectedMap := make(map[string]ClusterPolicy)
-	for _, policy := range expectedPolicies {
-		expectedMap[policy.Name] = policy
+	// Create managed policies by Insights map for lookup
+	managedPoliciesByInsightsMap := make(map[string]ClusterPolicy)
+	for _, policy := range managedPoliciesByInsights {
+		managedPoliciesByInsightsMap[policy.Name] = policy
 	}
 
 	// Apply new policies
 	for _, policyName := range actions.ToApply {
-		if policy, exists := expectedMap[policyName]; exists {
+		if policy, exists := managedPoliciesByInsightsMap[policyName]; exists {
 			if err := policyManager.applyPolicy(ctx, policy, p.config.DryRun); err != nil {
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, fmt.Sprintf("Failed to apply policy %s: %v", policyName, err))
-				slog.Error("Failed to apply policy", "policy", policyName, "error", err)
 			} else {
 				result.Applied = append(result.Applied, policyName)
-				slog.Info("Successfully applied policy", "policy", policyName)
 			}
 		}
 	}
 
 	// Update existing policies
 	for _, policyName := range actions.ToUpdate {
-		if policy, exists := expectedMap[policyName]; exists {
+		if policy, exists := managedPoliciesByInsightsMap[policyName]; exists {
 			if err := policyManager.applyPolicy(ctx, policy, p.config.DryRun); err != nil {
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, fmt.Sprintf("Failed to update policy %s: %v", policyName, err))
-				slog.Error("Failed to update policy", "policy", policyName, "error", err)
 			} else {
 				result.Updated = append(result.Updated, policyName)
-				slog.Info("Successfully updated policy", "policy", policyName)
 			}
 		}
 	}
@@ -149,7 +144,6 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 
 	// Apply policy using kubectl
 	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", tempFile.Name())
-	slog.Info("Applying policy================================================", "command", cmd.String())
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to apply policy %s with kubectl: %s: %s: %w", policy.Name, cmd.String(), string(output), err)
@@ -180,6 +174,11 @@ func (pm *PolicyManager) removePolicy(ctx context.Context, policyName string, dr
 	}
 
 	kind := policy.GetKind()
+	if !validatePolicyKinds(kind) {
+		slog.Warn("Invalid policy kind, skipping deletion", "policy", policyName, "kind", kind)
+		return nil
+	}
+
 	cmd := exec.CommandContext(ctx, "kubectl", "delete", kind, policyName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -199,27 +198,22 @@ func (pm *PolicyManager) getPolicy(ctx context.Context, policyName string) (*uns
 	}).Get(ctx, policyName, metav1.GetOptions{})
 }
 
-// policyToYAML converts a ClusterPolicy to YAML string
-func (pm *PolicyManager) policyToYAML(policy ClusterPolicy) (string, error) {
-	policyMap := map[string]any{
-		"apiVersion": "kyverno.io/v1",
-		"kind":       "ClusterPolicy",
-		"metadata": map[string]any{
-			"name": policy.Name,
-		},
-		"spec": policy.Spec,
+// validatePolicyKinds validates the kind of a policy
+func validatePolicyKinds(kind string) bool {
+	validKinds := getPolicyKinds()
+	for _, validKind := range validKinds {
+		if kind == validKind {
+			return true
+		}
 	}
+	return false
+}
 
-	// Add annotations if they exist
-	if len(policy.Annotations) > 0 {
-		policyMap["metadata"].(map[string]any)["annotations"] = policy.Annotations
+func getPolicyKinds() []string {
+	return []string{
+		"ClusterPolicy",
+		"Policy",
+		"ValidatingPolicy",
+		"ValidatingAdmissionPolicy",
 	}
-
-	// Convert to YAML
-	yamlBytes, err := yaml.Marshal(policyMap)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal policy to YAML: %w", err)
-	}
-
-	return string(yamlBytes), nil
 }

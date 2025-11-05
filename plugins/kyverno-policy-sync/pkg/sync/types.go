@@ -36,6 +36,7 @@ type PolicySyncResult struct {
 
 // ClusterPolicy represents a Kyverno ClusterPolicy
 type ClusterPolicy struct {
+	Kind        string                 `json:"kind"`
 	Name        string                 `json:"name"`
 	Annotations map[string]string      `json:"annotations,omitempty"`
 	Spec        map[string]interface{} `json:"spec,omitempty"`
