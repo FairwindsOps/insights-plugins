@@ -158,6 +158,7 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 
 	// Apply policy using kubectl
 	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", tempFile.Name())
+	slog.Info("Applying policy================================================", "command", cmd.String())
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to apply policy %s with kubectl: %s: %w", policy.Name, string(output), err)
