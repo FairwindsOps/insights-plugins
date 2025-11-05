@@ -139,6 +139,10 @@ func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) (
 			Resource: kind,
 		}).List(ctx, metav1.ListOptions{})
 		if err != nil {
+			// the server could not find the requested resource - we should continue if no resource is found
+			if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "could not find the requested resource") {
+				continue
+			}
 			return nil, fmt.Errorf("failed to list %s policies: %w", kind, err)
 		}
 		insightsManagedPoliciesByKind[kind] = policies
