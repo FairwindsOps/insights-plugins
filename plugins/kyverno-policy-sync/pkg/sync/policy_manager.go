@@ -136,6 +136,8 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 		return fmt.Errorf("failed to convert policy to YAML: %w", err)
 	}
 
+	slog.Info("Policy YAML", "policy", policyYAML)
+
 	// Ensure temp directory exists
 	if err := ensureTempDir(); err != nil {
 		return err
@@ -158,7 +160,7 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", tempFile.Name())
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to apply policy %s with kubectl: %s", policy.Name, string(output))
+		return fmt.Errorf("failed to apply policy %s with kubectl: %s: %w", policy.Name, string(output), err)
 	}
 
 	slog.Info("Successfully applied policy", "policy", policy.Name, "output", string(output))
@@ -200,7 +202,7 @@ func (pm *PolicyManager) updatePolicy(ctx context.Context, policy ClusterPolicy,
 	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", tempFile.Name())
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to update policy %s with kubectl: %s", policy.Name, string(output))
+		return fmt.Errorf("failed to update policy %s with kubectl: %s: %w", policy.Name, string(output), err)
 	}
 
 	slog.Info("Successfully updated policy", "policy", policy.Name, "output", string(output))
@@ -231,7 +233,7 @@ func (pm *PolicyManager) removePolicy(ctx context.Context, policyName string, dr
 	cmd := exec.CommandContext(ctx, "kubectl", "delete", "clusterpolicy", policyName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to delete policy %s with kubectl: %s", policyName, string(output))
+		return fmt.Errorf("failed to delete policy %s with kubectl: %s: %w", policyName, string(output), err)
 	}
 
 	slog.Info("Successfully removed policy", "policy", policyName, "output", string(output))
