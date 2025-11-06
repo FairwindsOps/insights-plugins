@@ -7,7 +7,6 @@ import (
 
 	"log/slog"
 
-	"github.com/allegro/bigcache/v3"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/client"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
@@ -20,19 +19,6 @@ const (
 	EventVersion                        = 1
 	KyvernoPolicyViolationFieldSelector = "reason=PolicyViolation"
 )
-
-var alreadyProcessedKyvernoPolicyViolationIDs *bigcache.BigCache
-
-func init() {
-	var err error
-	config := bigcache.DefaultConfig(60 * time.Minute)
-	config.HardMaxCacheSize = 512 // 512MB
-	alreadyProcessedKyvernoPolicyViolationIDs, err = bigcache.New(context.Background(), config)
-	if err != nil {
-		slog.Error("Failed to create bigcache", "error", err)
-	}
-	slog.Info("Bigcache created", "size", alreadyProcessedKyvernoPolicyViolationIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
-}
 
 type KubernetesEventHandler struct {
 	eventChannel chan *models.WatchedEvent
@@ -146,13 +132,9 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			continue
 		}
 		key := fmt.Sprintf("%s-%s-%s-%s", event.InvolvedObject.Namespace, event.InvolvedObject.Name, event.InvolvedObject.Kind, event.ObjectMeta.UID)
-		if value, err := alreadyProcessedKyvernoPolicyViolationIDs.Get(key); err == nil && value != nil {
+		if utils.IsPolicyViolationAlreadyProcessed(key) {
 			slog.Debug("Kyverno policy violation ID already processed, skipping", "kyverno_policy_violation_id", key)
 			continue
-		}
-		err = alreadyProcessedKyvernoPolicyViolationIDs.Set(key, []byte("true"))
-		if err != nil {
-			slog.Warn("Failed to set kyverno policy violation ID in bigcache", "error", err, "kyverno_policy_violation_id", event.ObjectMeta.UID)
 		}
 		event := &models.WatchedEvent{
 			EventVersion: EventVersion,

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/allegro/bigcache/v3"
 	version "github.com/fairwindsops/insights-plugins/plugins/event-watcher"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/ghodss/yaml"
@@ -24,6 +25,27 @@ const (
 	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
 	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
 )
+
+var alreadyProcessedAuditIDs *bigcache.BigCache
+
+func init() {
+	var err error
+	config := bigcache.DefaultConfig(60 * time.Minute)
+	config.HardMaxCacheSize = 512 // 512MB
+	alreadyProcessedAuditIDs, err = bigcache.New(context.Background(), config)
+	if err != nil {
+		panic(err)
+	}
+	slog.Info("Bigcache created", "size", alreadyProcessedAuditIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
+}
+
+func IsPolicyViolationAlreadyProcessed(uid string) bool {
+	if value, err := alreadyProcessedAuditIDs.Get(uid); err == nil && value != nil {
+		slog.Debug("Policy violation already processed, skipping", "policy_violation_id", uid)
+		return true
+	}
+	return false
+}
 
 func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
 	policies := map[string]map[string]string{}
@@ -102,6 +124,15 @@ func ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations m
 
 // sendToInsights sends the policy violation to Insights API
 func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, rateLimiter *rate.Limiter, violationEvent *models.PolicyViolationEvent) error {
+	if value, err := alreadyProcessedAuditIDs.Get(violationEvent.UID); err == nil && value != nil {
+		slog.Debug("Policy violation already processed, skipping", "policy_violation_id", violationEvent.UID)
+		return nil
+	}
+
+	err := alreadyProcessedAuditIDs.Set(violationEvent.UID, []byte("true"))
+	if err != nil {
+		slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", violationEvent.UID)
+	}
 	// Apply rate limiting
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -121,7 +152,7 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 		insightsConfig.Organization,
 		insightsConfig.Cluster)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

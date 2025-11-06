@@ -14,22 +14,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
-
-	"github.com/allegro/bigcache/v3"
 )
-
-var alreadyProcessedAuditIDs *bigcache.BigCache
-
-func init() {
-	var err error
-	config := bigcache.DefaultConfig(60 * time.Minute)
-	config.HardMaxCacheSize = 512 // 512MB
-	alreadyProcessedAuditIDs, err = bigcache.New(context.Background(), config)
-	if err != nil {
-		slog.Error("Failed to create bigcache", "error", err)
-	}
-	slog.Info("Bigcache created", "size", alreadyProcessedAuditIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
-}
 
 // AuditLogHandler handles audit log monitoring and policy violation detection
 type AuditLogHandler struct {
@@ -128,7 +113,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			continue
 		}
 
-		if value, err := alreadyProcessedAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
+		if utils.IsPolicyViolationAlreadyProcessed(auditEvent.AuditID) {
 			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 			continue
 		}
@@ -137,10 +122,6 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
 			utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 
-			err = alreadyProcessedAuditIDs.Set(auditEvent.AuditID, []byte("true"))
-			if err != nil {
-				slog.Info("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
-			}
 			policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
 			slog.Debug("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 			if policyViolationEvent != nil {
@@ -148,10 +129,6 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 				utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, h.eventChannel)
 			}
 		} else if utils.IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent.Annotations) {
-			err = alreadyProcessedAuditIDs.Set(auditEvent.AuditID, []byte("true"))
-			if err != nil {
-				slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
-			}
 			auditOnlyAllowEvent := utils.CreateValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent)
 			slog.Debug("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
 			if auditOnlyAllowEvent != nil {

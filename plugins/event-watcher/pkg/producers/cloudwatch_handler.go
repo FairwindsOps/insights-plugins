@@ -9,7 +9,6 @@ import (
 
 	"log/slog"
 
-	"github.com/allegro/bigcache/v3"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
@@ -18,19 +17,6 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/utils"
 )
-
-var alreadyProcessedCloudWatchAuditIDs *bigcache.BigCache
-
-func init() {
-	var err error
-	config := bigcache.DefaultConfig(60 * time.Minute)
-	config.HardMaxCacheSize = 512 // 512MB
-	alreadyProcessedCloudWatchAuditIDs, err = bigcache.New(context.Background(), config)
-	if err != nil {
-		slog.Error("Failed to create bigcache", "error", err)
-	}
-	slog.Info("Bigcache created", "size", alreadyProcessedCloudWatchAuditIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
-}
 
 // CloudWatchHandler handles CloudWatch log processing for policy violations
 type CloudWatchHandler struct {
@@ -370,7 +356,7 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, message string)
 		// Skip non-JSON log entries
 		return nil
 	}
-	if value, err := alreadyProcessedCloudWatchAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
+	if utils.IsPolicyViolationAlreadyProcessed(auditEvent.AuditID) {
 		slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 		return nil
 	}
@@ -380,22 +366,12 @@ func (h *CloudWatchHandler) processLogEvent(ctx context.Context, message string)
 		utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
 		utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 
-		err := alreadyProcessedCloudWatchAuditIDs.Set(auditEvent.AuditID, []byte("true"))
-		if err != nil {
-			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
-			return nil
-		}
 		policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
 		if policyViolationEvent != nil {
 			slog.Debug("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
 			utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, h.eventChannel)
 		}
 	} else if utils.IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent.Annotations) {
-		err := alreadyProcessedCloudWatchAuditIDs.Set(auditEvent.AuditID, []byte("true"))
-		if err != nil {
-			slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", auditEvent.AuditID)
-			return nil
-		}
 		auditOnlyAllowEvent := utils.CreateValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent)
 		slog.Debug("Checking if validating admission policy violation audit only allow event is created", "validating_admission_policy_violation_audit_only_allow_event", auditOnlyAllowEvent)
 		if auditOnlyAllowEvent != nil {
