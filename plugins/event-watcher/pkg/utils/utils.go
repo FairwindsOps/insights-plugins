@@ -121,7 +121,7 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 		insightsConfig.Organization,
 		insightsConfig.Cluster)
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -371,7 +371,7 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 	// Send the event to the event channel
 	select {
 	case eventChannel <- watchedEvent:
-		slog.Info("Sent watched event",
+		slog.Debug("Sent watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.Name)
 		return nil

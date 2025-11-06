@@ -129,7 +129,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 		}
 
 		if value, err := alreadyProcessedAuditIDs.Get(auditEvent.AuditID); err == nil && value != nil {
-			slog.Info("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
+			slog.Debug("Audit ID already processed, skipping", "audit_id", auditEvent.AuditID)
 			continue
 		}
 
@@ -144,7 +144,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 			policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
 			slog.Debug("Checking if policy violation event is created", "policy_violation_event", policyViolationEvent)
 			if policyViolationEvent != nil {
-				slog.Info("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
+				slog.Debug("Creating watched event from policy violation event", "policy_violation_event", policyViolationEvent)
 				utils.CreateBlockedWatchedEventFromPolicyViolationEvent(policyViolationEvent, h.eventChannel)
 			}
 		} else if utils.IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(auditEvent.Annotations) {
