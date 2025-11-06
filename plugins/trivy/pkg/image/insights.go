@@ -13,7 +13,7 @@ import (
 // FetchLastReport returns the last report for Trivy from Fairwinds Insights
 func FetchLastReport(ctx context.Context, host, org, cluster, token string) (*models.MinimizedReport, error) {
 	url := fmt.Sprintf("%s/v0/organizations/%s/clusters/%s/data/trivy/latest.json", host, org, cluster)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
