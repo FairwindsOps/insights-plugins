@@ -26,7 +26,7 @@ var alreadyProcessedKyvernoPolicyViolationIDs *bigcache.BigCache
 func init() {
 	var err error
 	config := bigcache.DefaultConfig(60 * time.Minute)
-	config.HardMaxCacheSize = 256 // 512MB
+	config.HardMaxCacheSize = 512 // 512MB
 	alreadyProcessedKyvernoPolicyViolationIDs, err = bigcache.New(context.Background(), config)
 	if err != nil {
 		slog.Error("Failed to create bigcache", "error", err)
