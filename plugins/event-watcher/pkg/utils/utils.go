@@ -129,10 +129,6 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 		return nil
 	}
 
-	err := alreadyProcessedAuditIDs.Set(violationEvent.UID, []byte("true"))
-	if err != nil {
-		slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", violationEvent.UID)
-	}
 	// Apply rate limiting
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -172,6 +168,11 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("insights API returned status %d", resp.StatusCode)
+	}
+
+	err = alreadyProcessedAuditIDs.Set(violationEvent.UID, []byte("true"))
+	if err != nil {
+		slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", violationEvent.UID)
 	}
 
 	slog.Info("Successfully sent blocked policy violation to Insights API",
