@@ -216,6 +216,41 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 
 	policyMessage := auditEvent.ResponseStatus.Message
 
+	if objectRef.UID == "" {
+		// some responses do not have the referenced object properly set, so we need to extract it from the message
+		// example: "resource Pod/insights-agent/workloads-29372898-vt4pm was blocked due to the following policies"
+		index := strings.Index(policyMessage, "denied the request:")
+
+		if index != -1 {
+			subText := policyMessage[index+len("denied the request:"):]
+			if index != -1 {
+				index = strings.Index(subText, "resource ")
+				if index != -1 {
+					subText = subText[index+len("resource "):]
+					index = strings.Index(subText, "/")
+					if index != -1 {
+						resource = subText[:index]
+						index = strings.Index(subText, "/")
+						if index != -1 {
+							subText = subText[index+1:]
+							index = strings.Index(subText, "/")
+							if index != -1 {
+								namespace = subText[:index]
+								index = strings.Index(subText, "/")
+								if index != -1 {
+									finalIndex := strings.Index(subText, " was blocked")
+									if finalIndex != -1 {
+										name = subText[index+1 : finalIndex]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	reason := "Allowed"
 	if auditEvent.ResponseStatus.Code >= 400 {
 		reason = "Blocked"

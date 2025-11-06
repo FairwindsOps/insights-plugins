@@ -136,7 +136,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 		FieldSelector: fieldSelector.String(),
 	}
 	events, err := h.kubeClient.KubeInterface.CoreV1().Events("").List(ctx, options)
-	slog.Info("Processing Kyverno Kubernetes events", "events", len(events.Items))
+	slog.Debug("Processing Kyverno Kubernetes events", "events", len(events.Items))
 	if err != nil {
 		return fmt.Errorf("failed to list latest kubernetes events: %w", err)
 	}
@@ -191,7 +191,7 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			Success:     false,
 			Blocked:     false,
 		}
-		slog.Info("Sending audit only cluster policy violation event", "event", event)
+		slog.Debug("Sending audit only cluster policy violation event", "event", event)
 		h.eventChannel <- event
 	}
 	return nil

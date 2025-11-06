@@ -1,0 +1,45 @@
+{
+    "kind": "Event",
+    "apiVersion": "audit.k8s.io/v1",
+    "level": "Metadata",
+    "auditID": "cef08638-bd92-4d0f-b261-87863d98d271",
+    "stage": "ResponseComplete",
+    "requestURI": "/api/v1/namespaces/insights-agent/pods",
+    "verb": "create",
+    "user": {
+        "username": "system:serviceaccount:kube-system:job-controller",
+        "uid": "039a2509-4c9e-4a87-abde-1617df2da237",
+        "groups": [
+            "system:serviceaccounts",
+            "system:serviceaccounts:kube-system",
+            "system:authenticated"
+        ],
+        "extra": {
+            "authentication.kubernetes.io/credential-id": [
+                "JTI=6472f7ea-5525-452c-822f-f5c1aeb1c094"
+            ]
+        }
+    },
+    "sourceIPs": [
+        "172.18.0.2"
+    ],
+    "userAgent": "kube-controller-manager/v1.32.2 (linux/arm64) kubernetes/67a30c0/system:serviceaccount:kube-system:job-controller",
+    "objectRef": {
+        "resource": "pods",
+        "namespace": "insights-agent",
+        "apiVersion": "v1"
+    },
+    "responseStatus": {
+        "metadata": {},
+        "status": "Failure",
+        "message": "admission webhook \"validate.kyverno.svc-fail\" denied the request: \n\nresource Pod/insights-agent/workloads-29372898-vt4pm was blocked due to the following policies \n\njames-require-labels:\n  check-required-labels-james-2: 'validation error: Required labels (app, version,\n    environment) must be present. rule check-required-labels-james-2 failed at path\n    /metadata/labels/app/'\njames-require-resource-limits:\n  check-resource-limits-james-2: 'validation error: All containers must have resource\n    limits defined. rule check-resource-limits-james-2 failed at path /spec/containers/0/resources/limits/'\n",
+        "code": 400
+    },
+    "requestReceivedTimestamp": "2025-11-05T20:21:10.071544Z",
+    "stageTimestamp": "2025-11-05T20:21:10.078035Z",
+    "annotations": {
+        "authorization.k8s.io/decision": "allow",
+        "authorization.k8s.io/reason": "RBAC: allowed by ClusterRoleBinding \"system:controller:job-controller\" of ClusterRole \"system:controller:job-controller\" to ServiceAccount \"job-controller/kube-system\"",
+        "pod-security.kubernetes.io/enforce-policy": "privileged:latest"
+    }
+}
