@@ -129,14 +129,6 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 		return nil
 	}
 
-	// Apply rate limiting
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := rateLimiter.Wait(ctx); err != nil {
-		return fmt.Errorf("rate limit exceeded: %w", err)
-	}
-
 	// Convert to JSON
 	jsonData, err := json.Marshal(violationEvent)
 	if err != nil {
