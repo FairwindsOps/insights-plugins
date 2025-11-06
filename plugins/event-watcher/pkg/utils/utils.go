@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/allegro/bigcache/v3"
 	version "github.com/fairwindsops/insights-plugins/plugins/event-watcher"
 	"github.com/fairwindsops/insights-plugins/plugins/event-watcher/pkg/models"
 	"github.com/ghodss/yaml"
@@ -24,6 +25,27 @@ const (
 	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
 	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
 )
+
+var alreadyProcessedAuditIDs *bigcache.BigCache
+
+func init() {
+	var err error
+	config := bigcache.DefaultConfig(60 * time.Minute)
+	config.HardMaxCacheSize = 512 // 512MB
+	alreadyProcessedAuditIDs, err = bigcache.New(context.Background(), config)
+	if err != nil {
+		panic(err)
+	}
+	slog.Info("Bigcache created", "size", alreadyProcessedAuditIDs.Len(), "hard_max_cache_size", config.HardMaxCacheSize)
+}
+
+func IsPolicyViolationAlreadyProcessed(uid string) bool {
+	if value, err := alreadyProcessedAuditIDs.Get(uid); err == nil && value != nil {
+		slog.Debug("Policy violation already processed, skipping", "policy_violation_id", uid)
+		return true
+	}
+	return false
+}
 
 func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
 	policies := map[string]map[string]string{}
@@ -102,12 +124,9 @@ func ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations m
 
 // sendToInsights sends the policy violation to Insights API
 func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, rateLimiter *rate.Limiter, violationEvent *models.PolicyViolationEvent) error {
-	// Apply rate limiting
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := rateLimiter.Wait(ctx); err != nil {
-		return fmt.Errorf("rate limit exceeded: %w", err)
+	if value, err := alreadyProcessedAuditIDs.Get(violationEvent.UID); err == nil && value != nil {
+		slog.Debug("Policy violation already processed, skipping", "policy_violation_id", violationEvent.UID)
+		return nil
 	}
 
 	// Convert to JSON
@@ -141,6 +160,11 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("insights API returned status %d", resp.StatusCode)
+	}
+
+	err = alreadyProcessedAuditIDs.Set(violationEvent.UID, []byte("true"))
+	if err != nil {
+		slog.Warn("Failed to set audit ID in bigcache", "error", err, "audit_id", violationEvent.UID)
 	}
 
 	slog.Info("Successfully sent blocked policy violation to Insights API",
@@ -210,11 +234,8 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
 	objectRef := auditEvent.ObjectRef
-	namespace := objectRef.Namespace
-	name := objectRef.Name
-	resource := objectRef.Resource
-
 	policyMessage := auditEvent.ResponseStatus.Message
+	resource, namespace, name := extractObjectRefFromMessage(policyMessage, &objectRef)
 
 	reason := "Allowed"
 	if auditEvent.ResponseStatus.Code >= 400 {
@@ -336,7 +357,7 @@ func CreateBlockedWatchedEventFromPolicyViolationEvent(violation *models.PolicyV
 	// Send the event to the event channel
 	select {
 	case eventChannel <- watchedEvent:
-		slog.Info("Sent watched event",
+		slog.Debug("Sent watched event",
 			"policies", violation.Policies,
 			"resource_name", violation.Name)
 		return nil
@@ -446,30 +467,32 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 		return nil
 	}
 	policies := map[string]map[string]string{}
-	name := "unknown"
+	objectRef := auditEvent.ObjectRef
+	policyMessage := auditEvent.ResponseStatus.Message
+	resource, namespace, name := extractObjectRefFromMessage(policyMessage, &objectRef)
 	if IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Kyverno policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		name = fmt.Sprintf("%s-%s-%s-%s", KyvernoPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", KyvernoPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	} else if IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingAdmissionPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingAdmissionPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	}
 	return &models.PolicyViolationEventModel{
 		Timestamp:    auditEvent.RequestReceivedTimestamp,
 		Policies:     policies,
-		APIVersion:   auditEvent.ObjectRef.APIVersion,
-		APIGroup:     auditEvent.ObjectRef.APIGroup,
-		ResourceType: auditEvent.ObjectRef.Resource,
+		APIVersion:   objectRef.APIVersion,
+		APIGroup:     objectRef.APIGroup,
+		ResourceType: resource,
 		Name:         name,
-		Namespace:    auditEvent.ObjectRef.Namespace,
+		Namespace:    namespace,
 		User:         auditEvent.User.Username,
 		Action:       auditEvent.ResponseStatus.Status,
 		Message:      auditEvent.ResponseStatus.Message,
@@ -491,4 +514,45 @@ func ExtractAuditOnlyClusterPoliciesFromMessage(policyName, message string) map[
 		ruleName: message,
 	}
 	return policies
+}
+
+func extractObjectRefFromMessage(policyMessage string, objectRef *models.ObjectRef) (string, string, string) {
+	resource := objectRef.Resource
+	namespace := objectRef.Namespace
+	name := objectRef.Name
+	if objectRef.UID == "" {
+		// some responses do not have the referenced object properly set, so we need to extract it from the message
+		// example: "resource Pod/insights-agent/workloads-29372898-vt4pm was blocked due to the following policies"
+		index := strings.Index(policyMessage, "denied the request:")
+
+		if index != -1 {
+			subText := policyMessage[index+len("denied the request:"):]
+			if index != -1 {
+				index = strings.Index(subText, "resource ")
+				if index != -1 {
+					subText = subText[index+len("resource "):]
+					index = strings.Index(subText, "/")
+					if index != -1 {
+						resource = subText[:index]
+						index = strings.Index(subText, "/")
+						if index != -1 {
+							subText = subText[index+1:]
+							index = strings.Index(subText, "/")
+							if index != -1 {
+								namespace = subText[:index]
+								index = strings.Index(subText, "/")
+								if index != -1 {
+									finalIndex := strings.Index(subText, " was blocked")
+									if finalIndex != -1 {
+										name = subText[index+1 : finalIndex]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return resource, namespace, name
 }

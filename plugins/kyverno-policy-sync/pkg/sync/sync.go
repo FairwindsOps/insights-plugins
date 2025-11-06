@@ -11,6 +11,7 @@ import (
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -74,11 +75,11 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 	defer p.lock.Release()
 
 	// 1. Fetch expected policies from Insights API
-	expectedPoliciesYAML, err := p.insightsClient.GetClusterKyvernoPoliciesYAML()
+	managedPoliciesByInsights, err := p.insightsClient.GetClusterKyvernoPoliciesYAML()
 	if err != nil {
 		return result, fmt.Errorf("failed to fetch expected policies from Insights: %w", err)
 	}
-	slog.Info("Fetched expected policies from Insights API", "yamlLength", len(expectedPoliciesYAML))
+	slog.Info("Fetched expected policies from Insights API", "yamlLength", len(managedPoliciesByInsights))
 
 	// 2. Get currently deployed policies in cluster that are managed by Insights
 	currentDeployedPolicies, err := p.listInsightsManagedPolicies(ctx)
@@ -88,14 +89,14 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 	slog.Info("Found currently deployed Insights-managed policies", "count", len(currentDeployedPolicies))
 
 	// 3. Parse expected policies from YAML
-	expectedPolicies, err := p.parsePoliciesFromYAML(expectedPoliciesYAML)
+	parsedManagedPoliciesByInsights, err := p.parsePoliciesFromYAML(managedPoliciesByInsights)
 	if err != nil {
 		return result, fmt.Errorf("failed to parse expected policies from YAML: %w", err)
 	}
-	slog.Info("Parsed expected policies from YAML", "count", len(expectedPolicies))
+	slog.Info("Parsed managed policies by Insights from YAML", "count", len(parsedManagedPoliciesByInsights))
 
 	// 4. Compare policies and determine actions
-	actions := p.comparePolicies(expectedPolicies, currentDeployedPolicies)
+	actions := p.comparePolicies(parsedManagedPoliciesByInsights, currentDeployedPolicies)
 	result.Actions = actions
 
 	slog.Info("Policy sync plan determined",
@@ -105,7 +106,7 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 
 	// 5. Execute dry-run first to check everything is right
 	if !p.config.DryRun {
-		dryRunResult, err := p.executeDryRun(ctx, actions, expectedPolicies)
+		dryRunResult, err := p.executeDryRun(ctx, actions)
 		if err != nil {
 			return result, fmt.Errorf("dry-run failed: %w", err)
 		}
@@ -113,7 +114,7 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 	}
 
 	// 6. Execute sync actions
-	if err := p.executeSyncActions(ctx, actions, expectedPolicies, result); err != nil {
+	if err := p.executeSyncActions(ctx, actions, parsedManagedPoliciesByInsights, result); err != nil {
 		return result, fmt.Errorf("failed to execute sync actions: %w", err)
 	}
 
@@ -132,30 +133,41 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 
 // listInsightsManagedPolicies lists all currently deployed policies managed by Insights
 func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) ([]ClusterPolicy, error) {
-	// Get all ClusterPolicies from the cluster
-	policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    "kyverno.io",
-		Version:  "v1",
-		Resource: "clusterpolicies",
-	}).List(ctx, metav1.ListOptions{})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to list cluster policies: %w", err)
+	insightsManagedPoliciesByKind := map[string]*unstructured.UnstructuredList{}
+	for _, kind := range getPolicyKinds() {
+		policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
+			Resource: kind,
+		}).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			// the server could not find the requested resource - we should continue if no resource is found
+			if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "could not find the requested resource") {
+				continue
+			}
+			return nil, fmt.Errorf("failed to list %s policies: %w", kind, err)
+		}
+		insightsManagedPoliciesByKind[kind] = policies
 	}
 
 	var insightsManagedPolicies []ClusterPolicy
-	for _, item := range policies.Items {
-		// Check if policy has Insights ownership annotation
-		annotations := item.GetAnnotations()
-		if annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights" {
-			insightsManagedPolicies = append(insightsManagedPolicies, ClusterPolicy{
-				Name:        item.GetName(),
-				Annotations: annotations,
-				Spec:        item.Object["spec"].(map[string]interface{}),
-			})
+	for kind, list := range insightsManagedPoliciesByKind {
+		for _, item := range list.Items {
+			// Check if policy has Insights ownership annotation
+			annotations := item.GetAnnotations()
+			yaml, err := yaml.Marshal(item.Object)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal policy to YAML: %w", err)
+			}
+			if annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights" {
+				insightsManagedPolicies = append(insightsManagedPolicies, ClusterPolicy{
+					Kind:        kind,
+					Name:        item.GetName(),
+					Annotations: annotations,
+					Spec:        item.Object["spec"].(map[string]any),
+					YAML:        yaml,
+				})
+			}
 		}
 	}
-
 	return insightsManagedPolicies, nil
 }
 
@@ -176,14 +188,14 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 		}
 
 		// Parse YAML document
-		var policy map[string]interface{}
+		var policy map[string]any
 		if err := yaml.Unmarshal([]byte(doc), &policy); err != nil {
 			slog.Warn("Failed to parse YAML document", "error", err, "document", doc)
 			continue
 		}
 
 		// Extract policy name and metadata
-		metadata, ok := policy["metadata"].(map[string]interface{})
+		metadata, ok := policy["metadata"].(map[string]any)
 		if !ok {
 			slog.Warn("Policy missing metadata", "document", doc)
 			continue
@@ -197,7 +209,7 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 
 		// Extract annotations
 		annotations := make(map[string]string)
-		if ann, ok := metadata["annotations"].(map[string]interface{}); ok {
+		if ann, ok := metadata["annotations"].(map[string]any); ok {
 			for k, v := range ann {
 				if str, ok := v.(string); ok {
 					annotations[k] = str
@@ -207,8 +219,9 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 
 		policies = append(policies, ClusterPolicy{
 			Name:        name,
+			YAML:        []byte(doc),
 			Annotations: annotations,
-			Spec:        policy["spec"].(map[string]interface{}),
+			Spec:        policy["spec"].(map[string]any),
 		})
 	}
 

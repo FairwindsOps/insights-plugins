@@ -42,13 +42,13 @@ func (h *PolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error
 		"name", watchedEvent.Name,
 	}
 
-	slog.Info("Processing PolicyViolation event", logFields...)
+	slog.Debug("Processing PolicyViolation event", logFields...)
 	// Add Kubernetes eventTime to log if available
 	if watchedEvent.EventTime != "" {
 		logFields = append(logFields, "event_time", watchedEvent.EventTime)
 	}
 
-	slog.Info("Processing PolicyViolation event", logFields...)
+	slog.Debug("Processing PolicyViolation event", logFields...)
 
 	// Add detailed logging to see what data we're processing
 	if watchedEvent.Data != nil {

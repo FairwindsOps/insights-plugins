@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.15
+* Added ValidatingPolicy as kyverno kind
+
 ## 0.1.14
 * Add support to Blocked and Audit type Policy
 
