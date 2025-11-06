@@ -210,46 +210,8 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
 	objectRef := auditEvent.ObjectRef
-	namespace := objectRef.Namespace
-	name := objectRef.Name
-	resource := objectRef.Resource
-
 	policyMessage := auditEvent.ResponseStatus.Message
-
-	if objectRef.UID == "" {
-		// some responses do not have the referenced object properly set, so we need to extract it from the message
-		// example: "resource Pod/insights-agent/workloads-29372898-vt4pm was blocked due to the following policies"
-		index := strings.Index(policyMessage, "denied the request:")
-
-		if index != -1 {
-			subText := policyMessage[index+len("denied the request:"):]
-			if index != -1 {
-				index = strings.Index(subText, "resource ")
-				if index != -1 {
-					subText = subText[index+len("resource "):]
-					index = strings.Index(subText, "/")
-					if index != -1 {
-						resource = subText[:index]
-						index = strings.Index(subText, "/")
-						if index != -1 {
-							subText = subText[index+1:]
-							index = strings.Index(subText, "/")
-							if index != -1 {
-								namespace = subText[:index]
-								index = strings.Index(subText, "/")
-								if index != -1 {
-									finalIndex := strings.Index(subText, " was blocked")
-									if finalIndex != -1 {
-										name = subText[index+1 : finalIndex]
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	resource, namespace, name := extractObjectRefFromMessage(policyMessage, &objectRef)
 
 	reason := "Allowed"
 	if auditEvent.ResponseStatus.Code >= 400 {
@@ -481,30 +443,32 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 		return nil
 	}
 	policies := map[string]map[string]string{}
-	name := "unknown"
+	objectRef := auditEvent.ObjectRef
+	policyMessage := auditEvent.ResponseStatus.Message
+	resource, namespace, name := extractObjectRefFromMessage(policyMessage, &objectRef)
 	if IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Kyverno policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		name = fmt.Sprintf("%s-%s-%s-%s", KyvernoPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", KyvernoPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	} else if IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
-		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingAdmissionPolicyViolationPrefix, auditEvent.ObjectRef.Resource, auditEvent.ObjectRef.Name, auditEvent.AuditID)
+		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingAdmissionPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 	}
 	return &models.PolicyViolationEventModel{
 		Timestamp:    auditEvent.RequestReceivedTimestamp,
 		Policies:     policies,
-		APIVersion:   auditEvent.ObjectRef.APIVersion,
-		APIGroup:     auditEvent.ObjectRef.APIGroup,
-		ResourceType: auditEvent.ObjectRef.Resource,
+		APIVersion:   objectRef.APIVersion,
+		APIGroup:     objectRef.APIGroup,
+		ResourceType: resource,
 		Name:         name,
-		Namespace:    auditEvent.ObjectRef.Namespace,
+		Namespace:    namespace,
 		User:         auditEvent.User.Username,
 		Action:       auditEvent.ResponseStatus.Status,
 		Message:      auditEvent.ResponseStatus.Message,
@@ -526,4 +490,45 @@ func ExtractAuditOnlyClusterPoliciesFromMessage(policyName, message string) map[
 		ruleName: message,
 	}
 	return policies
+}
+
+func extractObjectRefFromMessage(policyMessage string, objectRef *models.ObjectRef) (string, string, string) {
+	resource := objectRef.Resource
+	namespace := objectRef.Namespace
+	name := objectRef.Name
+	if objectRef.UID == "" {
+		// some responses do not have the referenced object properly set, so we need to extract it from the message
+		// example: "resource Pod/insights-agent/workloads-29372898-vt4pm was blocked due to the following policies"
+		index := strings.Index(policyMessage, "denied the request:")
+
+		if index != -1 {
+			subText := policyMessage[index+len("denied the request:"):]
+			if index != -1 {
+				index = strings.Index(subText, "resource ")
+				if index != -1 {
+					subText = subText[index+len("resource "):]
+					index = strings.Index(subText, "/")
+					if index != -1 {
+						resource = subText[:index]
+						index = strings.Index(subText, "/")
+						if index != -1 {
+							subText = subText[index+1:]
+							index = strings.Index(subText, "/")
+							if index != -1 {
+								namespace = subText[:index]
+								index = strings.Index(subText, "/")
+								if index != -1 {
+									finalIndex := strings.Index(subText, " was blocked")
+									if finalIndex != -1 {
+										name = subText[index+1 : finalIndex]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return resource, namespace, name
 }
