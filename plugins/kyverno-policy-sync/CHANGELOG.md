@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.7
+* Fixing vulnerability
+
 ## 0.1.6
 * Fix policy sync bug
 
