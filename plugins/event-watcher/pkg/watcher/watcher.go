@@ -68,7 +68,14 @@ func NewWatcherWithBackpressure(insightsConfig models.InsightsConfig, logSource,
 	consumersFactory := consumers.NewEventHandlerFactory(insightsConfig, kubeClient.KubeInterface, kubeClient.DynamicInterface, httpTimeoutSeconds, rateLimitPerMinute, consoleMode)
 
 	// Create event channel
-	eventChannel := make(chan *models.WatchedEvent, eventBufferSize)
+	// If eventBufferSize is -1, create an unbuffered channel (no buffer size limitation)
+	var eventChannel chan *models.WatchedEvent
+	if eventBufferSize == -1 {
+		eventChannel = make(chan *models.WatchedEvent)
+		slog.Info("Event channel created with unbuffered mode (no size limitation)")
+	} else {
+		eventChannel = make(chan *models.WatchedEvent, eventBufferSize)
+	}
 
 	// Create metrics instance
 	metricsInstance := metrics.NewMetrics(eventBufferSize)

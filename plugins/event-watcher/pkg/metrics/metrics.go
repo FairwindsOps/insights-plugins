@@ -97,6 +97,10 @@ func (m *Metrics) GetChannelUtilization() float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
+	// If capacity is -1, channel is unbuffered (no size limitation)
+	if m.ChannelCapacity == -1 {
+		return 0 // Utilization not applicable for unbuffered channels
+	}
 	if m.ChannelCapacity == 0 {
 		return 0
 	}

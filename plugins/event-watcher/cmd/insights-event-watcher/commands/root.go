@@ -44,7 +44,7 @@ func Execute() {
 
 func init() {
 	// Global flags
-	RootCmd.PersistentFlags().IntVar(&eventBufferSize, "buffer-size", 1000, "Event buffer size")
+	RootCmd.PersistentFlags().IntVar(&eventBufferSize, "buffer-size", 10000, "Event buffer size (use -1 for unbuffered channel with no size limitation)")
 	RootCmd.PersistentFlags().IntVar(&httpTimeoutSeconds, "http-timeout", 30, "HTTP timeout in seconds")
 	RootCmd.PersistentFlags().IntVar(&rateLimitPerMinute, "rate-limit", 60, "Rate limit per minute")
 	RootCmd.PersistentFlags().BoolVar(&consoleMode, "console", false, "Enable console mode (print events to stdout)")

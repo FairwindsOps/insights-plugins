@@ -74,7 +74,7 @@ The watcher uses environment variables for sensitive configuration, following Fa
 - `--organization`: Fairwinds organization name (required if insights-host provided)
 - `--cluster`: Cluster name (required if insights-host provided)
 - `FAIRWINDS_TOKEN`: Fairwinds Insights API token environment variable (required if insights-host provided)
-- `--event-buffer-size`: Size of the event processing buffer (default: `1000`)
+- `--event-buffer-size`: Size of the event processing buffer (default: `10000`)
 - `--http-timeout-seconds`: HTTP client timeout in seconds (default: `30`)
 - `--rate-limit-per-minute`: Maximum API calls per minute (default: `60`)
 
