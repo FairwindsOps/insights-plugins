@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.20
+* Fix vulnerbility
+
 ## 0.5.19
 * Bumped go for fixing vulnerabilities
 
