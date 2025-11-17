@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.16
+* Added option to unlimited buffer size
+
 ## 0.1.15
 * Added ValidatingPolicy as kyverno kind
 
