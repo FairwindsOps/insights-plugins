@@ -64,7 +64,7 @@ func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, ou
 	slog.Debug("Updating Kyverno policy status", "organization", c.organization, "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/policies/apply-status", c.organization, c.cluster)
 	now := time.Now().Format(time.RFC3339)
-	payload := map[string]any{"cluster": c.cluster, "policyName": policyName, "reportType": "kyverno", "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
+	payload := map[string]any{"policyName": policyName, "reportType": "kyverno", "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
 	req := c.client.R().SetBody(payload).SetHeader("Authorization", "Bearer "+c.token).SetHeader("Content-Type", "application/json")
 	// print the request for debugging
 	slog.Info("Request", "url", url, "payload", payload, "headers", req.Headers)
