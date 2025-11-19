@@ -104,21 +104,12 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 		"toUpdate", len(actions.ToUpdate),
 		"toRemove", len(actions.ToRemove))
 
-	// 5. Execute dry-run first to check everything is right
-	if !p.config.DryRun {
-		dryRunResult, err := p.executeDryRun(ctx, actions)
-		if err != nil {
-			return result, fmt.Errorf("dry-run failed: %w", err)
-		}
-		slog.Info("Dry-run completed successfully", "summary", dryRunResult.Summary)
-	}
-
-	// 6. Execute sync actions
+	// 5. Execute sync actions
 	if err := p.executeSyncActions(ctx, actions, parsedManagedPoliciesByInsights, result); err != nil {
 		return result, fmt.Errorf("failed to execute sync actions: %w", err)
 	}
 
-	// 7. Generate summary
+	// 6. Generate summary
 	result.Duration = time.Since(startTime)
 	result.Summary = p.generateSummary(result)
 	result.Success = len(result.Errors) == 0

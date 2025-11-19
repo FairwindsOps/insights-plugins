@@ -1,5 +1,9 @@
 # Changelog
 
+
+## 0.1.8
+* Update policy apply status
+
 ## 0.1.7
 * Fix vulnerbility
 
