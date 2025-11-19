@@ -69,6 +69,8 @@ func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, ou
 	// print the request for debugging
 	slog.Info("Request", "url", url, "payload", payload, "headers", req.Headers)
 	resp, err := req.Put(url)
+	// print the response for debugging
+	slog.Info("Response", "status", resp.StatusCode, "body", resp.String())
 	if err != nil {
 		return fmt.Errorf("failed to update Kyverno policy status: %w", err)
 	}
