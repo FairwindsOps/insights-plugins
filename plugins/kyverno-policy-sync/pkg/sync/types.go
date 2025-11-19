@@ -11,6 +11,7 @@ type PolicySyncConfig struct {
 	DryRun           bool          `mapstructure:"dryRun"`
 	LockTimeout      time.Duration `mapstructure:"lockTimeout"`
 	ValidatePolicies bool          `mapstructure:"validatePolicies"`
+	Token            string        `mapstructure:"token"`
 }
 
 // PolicySyncActions represents the actions to be taken during policy sync

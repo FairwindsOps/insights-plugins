@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/config"
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
@@ -26,7 +27,7 @@ func main() {
 		"organization", cfg.Organization,
 		"cluster", cfg.Cluster,
 		"host", cfg.Host,
-		"token", maskToken(cfg.Token),
+		"token", strings.Repeat("*", len(cfg.Token)),
 		"dryRun", cfg.DryRun,
 		"lockTimeout", cfg.LockTimeout,
 		"validatePolicies", cfg.ValidatePolicies)
@@ -51,6 +52,7 @@ func main() {
 		DryRun:           cfg.DryRun,
 		LockTimeout:      cfg.LockTimeout,
 		ValidatePolicies: cfg.ValidatePolicies,
+		Token:            cfg.Token,
 	}
 
 	// Create policy sync processor
@@ -84,12 +86,4 @@ func syncKyvernoPolicies(processor *sync.PolicySyncProcessor) error {
 		return fmt.Errorf("sync failed: %v", result.Errors)
 	}
 	return nil
-}
-
-// maskToken masks the token for logging
-func maskToken(token string) string {
-	if len(token) <= 8 {
-		return "***"
-	}
-	return token[:4] + "***" + token[len(token)-4:]
 }

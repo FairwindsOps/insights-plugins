@@ -11,13 +11,13 @@ import (
 
 type Client interface {
 	GetClusterKyvernoPoliciesYAML() (string, error)
-	UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error
+	UpdateKyvernoPolicyStatus(token, policyName, status, policyBody, output string) error
 }
 
 func NewClient(host, token, organization, cluster string, devMode bool) Client {
 	if os.Getenv("MOCK_INSIGHTS_CLIENT") == "true" {
 		slog.Info("Using mock insights client")
-		return &MockClient{}
+		return &MockClient{token: token}
 	}
 
 	commonHeaders := map[string]string{
@@ -36,12 +36,13 @@ func NewClient(host, token, organization, cluster string, devMode bool) Client {
 		client.DevMode()
 	}
 
-	return HTTPClient{organization: organization, cluster: cluster, client: client}
+	return HTTPClient{organization: organization, cluster: cluster, client: client, token: token}
 }
 
 type HTTPClient struct {
 	organization, cluster string
 	client                *req.Client
+	token                 string
 }
 
 func (c HTTPClient) GetClusterKyvernoPoliciesYAML() (string, error) {
@@ -59,12 +60,12 @@ func (c HTTPClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 	return resp.String(), nil
 }
 
-func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error {
+func (c HTTPClient) UpdateKyvernoPolicyStatus(token, policyName, status, policyBody, output string) error {
 	slog.Debug("Updating Kyverno policy status", "organization", c.organization, "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
 	url := fmt.Sprintf("/v0/organizations/%s/policies/apply-status", c.organization)
 	now := time.Now().Format(time.RFC3339)
 	payload := map[string]any{"cluster": c.cluster, "policyName": policyName, "reportType": "kyverno", "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
-	resp, err := c.client.R().SetBody(payload).Put(url)
+	resp, err := c.client.R().SetBody(payload).SetHeader("Authorization", "Bearer "+token).SetHeader("Content-Type", "application/json").Put(url)
 	if err != nil {
 		return fmt.Errorf("failed to update Kyverno policy status: %w", err)
 	}
@@ -74,7 +75,9 @@ func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, ou
 	return nil
 }
 
-type MockClient struct{}
+type MockClient struct {
+	token string
+}
 
 func (m MockClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 	slog.Info("Mock: Getting cluster Kyverno policies YAML")
@@ -102,7 +105,7 @@ spec:
             image: "!*:latest"`, nil
 }
 
-func (m MockClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error {
+func (m MockClient) UpdateKyvernoPolicyStatus(_ string, policyName, status, policyBody, output string) error {
 	slog.Info("Mock: Updating Kyverno policy status", "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
 	return nil
 }
