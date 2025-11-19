@@ -61,9 +61,9 @@ func (c HTTPClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 
 func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error {
 	slog.Debug("Updating Kyverno policy status", "organization", c.organization, "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
-	url := fmt.Sprintf("/v0/organizations/%s/policies/apply-status/report-type/kyverno/policy-name/%s", c.organization, policyName)
+	url := fmt.Sprintf("/v0/organizations/%s/policies/apply-status", c.organization)
 	now := time.Now().Format(time.RFC3339)
-	payload := map[string]any{"cluster": c.cluster, "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
+	payload := map[string]any{"cluster": c.cluster, "policyName": policyName, "reportType": "kyverno", "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
 	resp, err := c.client.R().SetBody(payload).Put(url)
 	if err != nil {
 		return fmt.Errorf("failed to update Kyverno policy status: %w", err)
