@@ -184,8 +184,6 @@ func deriveKindFromResourceName(resourceName string) string {
 		return "ValidatingPolicy"
 	case "validatingadmissionpolicies":
 		return "ValidatingAdmissionPolicy"
-	case "mutatingadmissionpolicies":
-		return "MutatingAdmissionPolicy"
 	default:
 		return "ClusterPolicy" // default fallback
 	}
