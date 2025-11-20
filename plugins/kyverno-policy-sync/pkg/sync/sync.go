@@ -227,6 +227,13 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 			continue
 		}
 
+		// Extract kind
+		kind, _ := policy["kind"].(string)
+		if kind == "" {
+			slog.Warn("Policy missing kind", "name", name)
+			// Continue anyway, kind will be needed for deletion but not for application
+		}
+
 		// Extract annotations
 		annotations := make(map[string]string)
 		if ann, ok := metadata["annotations"].(map[string]any); ok {
@@ -238,6 +245,7 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 		}
 
 		policies = append(policies, ClusterPolicy{
+			Kind:        kind,
 			Name:        name,
 			YAML:        []byte(doc),
 			Annotations: annotations,
