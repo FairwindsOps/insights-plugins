@@ -36,13 +36,12 @@ func NewClient(host, token, organization, cluster string, devMode bool) Client {
 		client.DevMode()
 	}
 
-	return HTTPClient{organization: organization, cluster: cluster, client: client, token: token}
+	return HTTPClient{organization: organization, cluster: cluster, client: client}
 }
 
 type HTTPClient struct {
 	organization, cluster string
 	client                *req.Client
-	token                 string
 }
 
 func (c HTTPClient) GetClusterKyvernoPoliciesYAML() (string, error) {
@@ -65,12 +64,7 @@ func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, ou
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/policies/apply-status", c.organization, c.cluster)
 	now := time.Now().Format(time.RFC3339)
 	payload := map[string]any{"policyName": policyName, "reportType": "kyverno", "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
-	req := c.client.R().SetBody(payload).SetHeader("Authorization", "Bearer "+c.token).SetHeader("Content-Type", "application/json")
-	// print the request for debugging
-	slog.Info("Request", "url", url, "payload", payload, "headers", req.Headers)
-	resp, err := req.Put(url)
-	// print the response for debugging
-	slog.Info("Response", "status", resp.StatusCode, "body", resp.String())
+	resp, err := c.client.R().SetBody(payload).Put(url)
 	if err != nil {
 		return fmt.Errorf("failed to update Kyverno policy status: %w", err)
 	}
