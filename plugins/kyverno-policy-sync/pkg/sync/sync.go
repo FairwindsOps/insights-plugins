@@ -224,7 +224,7 @@ func (p *PolicySyncProcessor) comparePolicies(expected, current []ClusterPolicy)
 	actions := PolicySyncActions{
 		ToApply:  []string{},
 		ToUpdate: []string{},
-		ToRemove: []string{},
+		ToRemove: []ClusterPolicy{},
 	}
 
 	// Create maps for efficient lookup
@@ -257,8 +257,9 @@ func (p *PolicySyncProcessor) comparePolicies(expected, current []ClusterPolicy)
 	// Find policies to remove (deployed Insights-managed policies not in expected list)
 	for name := range currentMap {
 		if _, exists := expectedMap[name]; !exists {
-			actions.ToRemove = append(actions.ToRemove, name)
-			slog.Debug("Policy will be removed", "policy", name, "reason", "no longer managed by Insights")
+			// Store the full policy object so we have the kind information
+			actions.ToRemove = append(actions.ToRemove, currentMap[name])
+			slog.Debug("Policy will be removed", "policy", name, "kind", currentMap[name].Kind, "reason", "no longer managed by Insights")
 		}
 	}
 

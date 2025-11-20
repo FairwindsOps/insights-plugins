@@ -44,7 +44,9 @@ func TestPolicySyncActions(t *testing.T) {
 	actions := PolicySyncActions{
 		ToApply:  []string{"policy1", "policy2"},
 		ToUpdate: []string{"policy3"},
-		ToRemove: []string{"policy4"},
+		ToRemove: []ClusterPolicy{
+			{Name: "policy4", Kind: "ClusterPolicy"},
+		},
 	}
 
 	assert.Len(t, actions.ToApply, 2)
@@ -52,7 +54,7 @@ func TestPolicySyncActions(t *testing.T) {
 	assert.Len(t, actions.ToRemove, 1)
 	assert.Contains(t, actions.ToApply, "policy1")
 	assert.Contains(t, actions.ToUpdate, "policy3")
-	assert.Contains(t, actions.ToRemove, "policy4")
+	assert.Equal(t, "policy4", actions.ToRemove[0].Name)
 }
 
 func TestPolicySyncResult(t *testing.T) {

@@ -15,9 +15,9 @@ type PolicySyncConfig struct {
 
 // PolicySyncActions represents the actions to be taken during policy sync
 type PolicySyncActions struct {
-	ToApply  []string `json:"toApply"`
-	ToUpdate []string `json:"toUpdate"`
-	ToRemove []string `json:"toRemove"`
+	ToApply  []string       `json:"toApply"`
+	ToUpdate []string       `json:"toUpdate"`
+	ToRemove []ClusterPolicy `json:"toRemove"`
 }
 
 // PolicySyncResult represents the result of a policy sync operation
