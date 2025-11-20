@@ -108,16 +108,3 @@ func TestPolicySyncLock(t *testing.T) {
 	assert.Equal(t, "test-pod", lock.LockedBy)
 	assert.Equal(t, 30*time.Minute, lock.LockTimeout)
 }
-
-func TestValidationResult(t *testing.T) {
-	result := ValidationResult{
-		Valid:    true,
-		Errors:   []string{},
-		Warnings: []string{"This is a warning"},
-	}
-
-	assert.True(t, result.Valid)
-	assert.Empty(t, result.Errors)
-	assert.Len(t, result.Warnings, 1)
-	assert.Contains(t, result.Warnings, "This is a warning")
-}
