@@ -125,18 +125,19 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 // listInsightsManagedPolicies lists all currently deployed policies managed by Insights
 func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) ([]ClusterPolicy, error) {
 	insightsManagedPoliciesByKind := map[string]*unstructured.UnstructuredList{}
-	for _, kind := range getPolicyKinds() {
+	for _, resourceName := range getResourceNames() {
 		policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
-			Resource: kind,
+			Resource: resourceName,
 		}).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			// the server could not find the requested resource - we should continue if no resource is found
 			if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "could not find the requested resource") {
+				slog.Debug("Resource not found, skipping", "resource", resourceName)
 				continue
 			}
-			return nil, fmt.Errorf("failed to list %s policies: %w", kind, err)
+			return nil, fmt.Errorf("failed to list %s policies: %w", resourceName, err)
 		}
-		insightsManagedPoliciesByKind[kind] = policies
+		slog.Debug("Listed policies", "resource", resourceName, "count", len(policies.Items))
 	}
 
 	var insightsManagedPolicies []ClusterPolicy
@@ -148,14 +149,24 @@ func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) (
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal policy to YAML: %w", err)
 			}
-			if annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights" {
+			policyName := item.GetName()
+			hasAnnotation := annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights"
+			slog.Debug("Checking policy", "name", policyName, "kind", kind, "hasAnnotation", hasAnnotation)
+
+			if hasAnnotation {
+				// Get the actual Kind from the object, fallback to the loop variable if not set
+				actualKind := item.GetKind()
+				if actualKind == "" {
+					actualKind = kind
+				}
 				insightsManagedPolicies = append(insightsManagedPolicies, ClusterPolicy{
-					Kind:        kind,
-					Name:        item.GetName(),
+					Kind:        actualKind,
+					Name:        policyName,
 					Annotations: annotations,
 					Spec:        item.Object["spec"].(map[string]any),
 					YAML:        yaml,
 				})
+				slog.Debug("Added Insights-managed policy", "name", policyName, "kind", actualKind)
 			}
 		}
 	}

@@ -173,22 +173,12 @@ func (pm *PolicyManager) removePolicy(ctx context.Context, policy ClusterPolicy,
 	return nil
 }
 
-// validatePolicyKinds validates the kind of a policy
-func validatePolicyKinds(kind string) bool {
-	validKinds := getPolicyKinds()
-	for _, validKind := range validKinds {
-		if kind == validKind {
-			return true
-		}
-	}
-	return false
-}
-
-func getPolicyKinds() []string {
+func getResourceNames() []string {
 	return []string{
-		"ClusterPolicy",
-		"Policy",
-		"ValidatingPolicy",
-		"ValidatingAdmissionPolicy",
+		"clusterpolicies",
+		"policies",
+		"validatingpolicies",
+		"validatingadmissionpolicies",
+		"mutatingadmissionpolicies",
 	}
 }
