@@ -11,7 +11,6 @@ import (
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -124,9 +123,30 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 
 // listInsightsManagedPolicies lists all currently deployed policies managed by Insights
 func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) ([]ClusterPolicy, error) {
-	insightsManagedPoliciesByKind := map[string]*unstructured.UnstructuredList{}
+	var insightsManagedPolicies []ClusterPolicy
+
+	// Map resource names to their API groups and versions
+	resourceConfigs := map[string]struct {
+		group   string
+		version string
+	}{
+		"clusterpolicies":             {group: "kyverno.io", version: "v1"},
+		"policies":                    {group: "kyverno.io", version: "v1"},
+		"validatingpolicies":          {group: "kyverno.io", version: "v1"},
+		"validatingadmissionpolicies": {group: "admissionregistration.k8s.io", version: "v1"},
+		"mutatingadmissionpolicies":   {group: "admissionregistration.k8s.io", version: "v1"},
+	}
+
 	for _, resourceName := range getResourceNames() {
+		config, exists := resourceConfigs[resourceName]
+		if !exists {
+			slog.Warn("Unknown resource, skipping", "resource", resourceName)
+			continue
+		}
+
 		policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
+			Group:    config.group,
+			Version:  config.version,
 			Resource: resourceName,
 		}).List(ctx, metav1.ListOptions{})
 		if err != nil {
@@ -138,11 +158,9 @@ func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) (
 			return nil, fmt.Errorf("failed to list %s policies: %w", resourceName, err)
 		}
 		slog.Debug("Listed policies", "resource", resourceName, "count", len(policies.Items))
-	}
 
-	var insightsManagedPolicies []ClusterPolicy
-	for kind, list := range insightsManagedPoliciesByKind {
-		for _, item := range list.Items {
+		// Process each policy found
+		for _, item := range policies.Items {
 			// Check if policy has Insights ownership annotation
 			annotations := item.GetAnnotations()
 			yaml, err := yaml.Marshal(item.Object)
@@ -151,13 +169,14 @@ func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) (
 			}
 			policyName := item.GetName()
 			hasAnnotation := annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights"
-			slog.Debug("Checking policy", "name", policyName, "kind", kind, "hasAnnotation", hasAnnotation)
+			slog.Debug("Checking policy", "name", policyName, "resource", resourceName, "hasAnnotation", hasAnnotation)
 
 			if hasAnnotation {
-				// Get the actual Kind from the object, fallback to the loop variable if not set
+				// Get the actual Kind from the object
 				actualKind := item.GetKind()
 				if actualKind == "" {
-					actualKind = kind
+					// Fallback: derive kind from resource name
+					actualKind = deriveKindFromResourceName(resourceName)
 				}
 				insightsManagedPolicies = append(insightsManagedPolicies, ClusterPolicy{
 					Kind:        actualKind,
@@ -171,6 +190,24 @@ func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) (
 		}
 	}
 	return insightsManagedPolicies, nil
+}
+
+// deriveKindFromResourceName converts a resource name (plural) to its Kind (singular, capitalized)
+func deriveKindFromResourceName(resourceName string) string {
+	switch resourceName {
+	case "clusterpolicies":
+		return "ClusterPolicy"
+	case "policies":
+		return "Policy"
+	case "validatingpolicies":
+		return "ValidatingPolicy"
+	case "validatingadmissionpolicies":
+		return "ValidatingAdmissionPolicy"
+	case "mutatingadmissionpolicies":
+		return "MutatingAdmissionPolicy"
+	default:
+		return "ClusterPolicy" // default fallback
+	}
 }
 
 // parsePoliciesFromYAML parses policies from YAML content
