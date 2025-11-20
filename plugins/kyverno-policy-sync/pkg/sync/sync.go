@@ -124,26 +124,7 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 // listInsightsManagedPolicies lists all currently deployed policies managed by Insights
 func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) ([]ClusterPolicy, error) {
 	var insightsManagedPolicies []ClusterPolicy
-
-	// Map resource names to their API groups and versions
-	resourceConfigs := map[string]struct {
-		group   string
-		version string
-	}{
-		"clusterpolicies":             {group: "kyverno.io", version: "v1"},
-		"policies":                    {group: "kyverno.io", version: "v1"},
-		"validatingpolicies":          {group: "kyverno.io", version: "v1"},
-		"validatingadmissionpolicies": {group: "admissionregistration.k8s.io", version: "v1"},
-		"mutatingadmissionpolicies":   {group: "admissionregistration.k8s.io", version: "v1"},
-	}
-
-	for _, resourceName := range getResourceNames() {
-		config, exists := resourceConfigs[resourceName]
-		if !exists {
-			slog.Warn("Unknown resource, skipping", "resource", resourceName)
-			continue
-		}
-
+	for resourceName, config := range getResourceConfigs() {
 		policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
 			Group:    config.group,
 			Version:  config.version,
