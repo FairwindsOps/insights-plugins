@@ -11,7 +11,6 @@ import (
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -104,21 +103,12 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 		"toUpdate", len(actions.ToUpdate),
 		"toRemove", len(actions.ToRemove))
 
-	// 5. Execute dry-run first to check everything is right
-	if !p.config.DryRun {
-		dryRunResult, err := p.executeDryRun(ctx, actions)
-		if err != nil {
-			return result, fmt.Errorf("dry-run failed: %w", err)
-		}
-		slog.Info("Dry-run completed successfully", "summary", dryRunResult.Summary)
-	}
-
-	// 6. Execute sync actions
+	// 5. Execute sync actions
 	if err := p.executeSyncActions(ctx, actions, parsedManagedPoliciesByInsights, result); err != nil {
 		return result, fmt.Errorf("failed to execute sync actions: %w", err)
 	}
 
-	// 7. Generate summary
+	// 6. Generate summary
 	result.Duration = time.Since(startTime)
 	result.Summary = p.generateSummary(result)
 	result.Success = len(result.Errors) == 0
@@ -133,42 +123,70 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 
 // listInsightsManagedPolicies lists all currently deployed policies managed by Insights
 func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) ([]ClusterPolicy, error) {
-	insightsManagedPoliciesByKind := map[string]*unstructured.UnstructuredList{}
-	for _, kind := range getPolicyKinds() {
+	var insightsManagedPolicies []ClusterPolicy
+	for resourceName, config := range getResourceConfigs() {
 		policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
-			Resource: kind,
+			Group:    config.group,
+			Version:  config.version,
+			Resource: resourceName,
 		}).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			// the server could not find the requested resource - we should continue if no resource is found
 			if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "could not find the requested resource") {
+				slog.Debug("Resource not found, skipping", "resource", resourceName)
 				continue
 			}
-			return nil, fmt.Errorf("failed to list %s policies: %w", kind, err)
+			return nil, fmt.Errorf("failed to list %s policies: %w", resourceName, err)
 		}
-		insightsManagedPoliciesByKind[kind] = policies
-	}
+		slog.Debug("Listed policies", "resource", resourceName, "count", len(policies.Items))
 
-	var insightsManagedPolicies []ClusterPolicy
-	for kind, list := range insightsManagedPoliciesByKind {
-		for _, item := range list.Items {
+		// Process each policy found
+		for _, item := range policies.Items {
 			// Check if policy has Insights ownership annotation
 			annotations := item.GetAnnotations()
 			yaml, err := yaml.Marshal(item.Object)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal policy to YAML: %w", err)
 			}
-			if annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights" {
+			policyName := item.GetName()
+			hasAnnotation := annotations != nil && annotations["insights.fairwinds.com/owned-by"] == "Fairwinds Insights"
+			slog.Debug("Checking policy", "name", policyName, "resource", resourceName, "hasAnnotation", hasAnnotation)
+
+			if hasAnnotation {
+				// Get the actual Kind from the object
+				actualKind := item.GetKind()
+				if actualKind == "" {
+					// Fallback: derive kind from resource name
+					actualKind = deriveKindFromResourceName(resourceName)
+				}
 				insightsManagedPolicies = append(insightsManagedPolicies, ClusterPolicy{
-					Kind:        kind,
-					Name:        item.GetName(),
+					Kind:        actualKind,
+					Name:        policyName,
 					Annotations: annotations,
 					Spec:        item.Object["spec"].(map[string]any),
 					YAML:        yaml,
 				})
+				slog.Debug("Added Insights-managed policy", "name", policyName, "kind", actualKind)
 			}
 		}
 	}
 	return insightsManagedPolicies, nil
+}
+
+// deriveKindFromResourceName converts a resource name (plural) to its Kind (singular, capitalized)
+func deriveKindFromResourceName(resourceName string) string {
+	switch resourceName {
+	case "clusterpolicies":
+		return "ClusterPolicy"
+	case "policies":
+		return "Policy"
+	case "validatingpolicies":
+		return "ValidatingPolicy"
+	case "validatingadmissionpolicies":
+		return "ValidatingAdmissionPolicy"
+	default:
+		return "ClusterPolicy" // default fallback
+	}
 }
 
 // parsePoliciesFromYAML parses policies from YAML content
@@ -207,6 +225,13 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 			continue
 		}
 
+		// Extract kind
+		kind, _ := policy["kind"].(string)
+		if kind == "" {
+			slog.Warn("Policy missing kind", "name", name)
+			// Continue anyway, kind will be needed for deletion but not for application
+		}
+
 		// Extract annotations
 		annotations := make(map[string]string)
 		if ann, ok := metadata["annotations"].(map[string]any); ok {
@@ -218,6 +243,7 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 		}
 
 		policies = append(policies, ClusterPolicy{
+			Kind:        kind,
 			Name:        name,
 			YAML:        []byte(doc),
 			Annotations: annotations,
@@ -233,7 +259,7 @@ func (p *PolicySyncProcessor) comparePolicies(expected, current []ClusterPolicy)
 	actions := PolicySyncActions{
 		ToApply:  []string{},
 		ToUpdate: []string{},
-		ToRemove: []string{},
+		ToRemove: []ClusterPolicy{},
 	}
 
 	// Create maps for efficient lookup
@@ -266,8 +292,9 @@ func (p *PolicySyncProcessor) comparePolicies(expected, current []ClusterPolicy)
 	// Find policies to remove (deployed Insights-managed policies not in expected list)
 	for name := range currentMap {
 		if _, exists := expectedMap[name]; !exists {
-			actions.ToRemove = append(actions.ToRemove, name)
-			slog.Debug("Policy will be removed", "policy", name, "reason", "no longer managed by Insights")
+			// Store the full policy object so we have the kind information
+			actions.ToRemove = append(actions.ToRemove, currentMap[name])
+			slog.Debug("Policy will be removed", "policy", name, "kind", currentMap[name].Kind, "reason", "no longer managed by Insights")
 		}
 	}
 

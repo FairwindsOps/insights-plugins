@@ -15,9 +15,9 @@ type PolicySyncConfig struct {
 
 // PolicySyncActions represents the actions to be taken during policy sync
 type PolicySyncActions struct {
-	ToApply  []string `json:"toApply"`
-	ToUpdate []string `json:"toUpdate"`
-	ToRemove []string `json:"toRemove"`
+	ToApply  []string        `json:"toApply"`
+	ToUpdate []string        `json:"toUpdate"`
+	ToRemove []ClusterPolicy `json:"toRemove"`
 }
 
 // PolicySyncResult represents the result of a policy sync operation
@@ -50,11 +50,4 @@ type PolicySyncLock struct {
 	LockedBy      string
 	LockTimeout   time.Duration
 	K8sClient     kubernetes.Interface
-}
-
-// ValidationResult represents the result of policy validation
-type ValidationResult struct {
-	Valid    bool     `json:"valid"`
-	Errors   []string `json:"errors,omitempty"`
-	Warnings []string `json:"warnings,omitempty"`
 }

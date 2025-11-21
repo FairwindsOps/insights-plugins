@@ -44,7 +44,9 @@ func TestPolicySyncActions(t *testing.T) {
 	actions := PolicySyncActions{
 		ToApply:  []string{"policy1", "policy2"},
 		ToUpdate: []string{"policy3"},
-		ToRemove: []string{"policy4"},
+		ToRemove: []ClusterPolicy{
+			{Name: "policy4", Kind: "ClusterPolicy"},
+		},
 	}
 
 	assert.Len(t, actions.ToApply, 2)
@@ -52,7 +54,7 @@ func TestPolicySyncActions(t *testing.T) {
 	assert.Len(t, actions.ToRemove, 1)
 	assert.Contains(t, actions.ToApply, "policy1")
 	assert.Contains(t, actions.ToUpdate, "policy3")
-	assert.Contains(t, actions.ToRemove, "policy4")
+	assert.Equal(t, "policy4", actions.ToRemove[0].Name)
 }
 
 func TestPolicySyncResult(t *testing.T) {
@@ -105,17 +107,4 @@ func TestPolicySyncLock(t *testing.T) {
 	assert.Equal(t, "default", lock.Namespace)
 	assert.Equal(t, "test-pod", lock.LockedBy)
 	assert.Equal(t, 30*time.Minute, lock.LockTimeout)
-}
-
-func TestValidationResult(t *testing.T) {
-	result := ValidationResult{
-		Valid:    true,
-		Errors:   []string{},
-		Warnings: []string{"This is a warning"},
-	}
-
-	assert.True(t, result.Valid)
-	assert.Empty(t, result.Errors)
-	assert.Len(t, result.Warnings, 1)
-	assert.Contains(t, result.Warnings, "This is a warning")
 }

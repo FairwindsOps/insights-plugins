@@ -6,10 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -37,38 +35,6 @@ func ensureTempDir() error {
 	return nil
 }
 
-// executeDryRun performs a dry-run of the sync actions
-func (p *PolicySyncProcessor) executeDryRun(ctx context.Context, actions PolicySyncActions) (*PolicySyncResult, error) {
-	slog.Info("Executing dry-run to validate sync plan")
-
-	result := &PolicySyncResult{
-		DryRun:  true,
-		Actions: actions,
-		Applied: actions.ToApply,
-		Updated: actions.ToUpdate,
-		Removed: actions.ToRemove,
-		Failed:  []string{},
-		Errors:  []string{},
-		Success: true,
-	}
-
-	// Simulate policy operations
-	for _, policyName := range actions.ToApply {
-		slog.Info("[DRY-RUN] Would apply policy", "policy", policyName)
-	}
-
-	for _, policyName := range actions.ToUpdate {
-		slog.Info("[DRY-RUN] Would update policy", "policy", policyName)
-	}
-
-	for _, policyName := range actions.ToRemove {
-		slog.Info("[DRY-RUN] Would remove policy", "policy", policyName)
-	}
-
-	result.Summary = p.generateSummary(result)
-	return result, nil
-}
-
 // executeSyncActions executes the actual sync actions
 func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions PolicySyncActions, managedPoliciesByInsights []ClusterPolicy, result *PolicySyncResult) error {
 	policyManager := NewPolicyManager(p.k8sClient, p.dynamicClient)
@@ -85,8 +51,21 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 			if err := policyManager.applyPolicy(ctx, policy, p.config.DryRun); err != nil {
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, fmt.Sprintf("Failed to apply policy %s: %v", policyName, err))
+				output := strings.Join(result.Errors, "\n")
+				if !p.config.DryRun {
+					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), output)
+					if err != nil {
+						slog.Error("Failed to update policy status in Insights", "error", err)
+					}
+				}
 			} else {
 				result.Applied = append(result.Applied, policyName)
+				if !p.config.DryRun {
+					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
+					if err != nil {
+						slog.Error("Failed to update policy status in Insights", "error", err)
+					}
+				}
 			}
 		}
 	}
@@ -97,21 +76,45 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 			if err := policyManager.applyPolicy(ctx, policy, p.config.DryRun); err != nil {
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, fmt.Sprintf("Failed to update policy %s: %v", policyName, err))
+				output := strings.Join(result.Errors, "\n")
+				if !p.config.DryRun {
+					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), output)
+					if err != nil {
+						slog.Error("Failed to update policy status in Insights", "error", err)
+					}
+				}
 			} else {
-				result.Updated = append(result.Updated, policyName)
+				if !p.config.DryRun {
+					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
+					if err != nil {
+						slog.Error("Failed to update policy status in Insights", "error", err)
+					}
+				}
 			}
 		}
 	}
 
 	// Remove orphaned policies
-	for _, policyName := range actions.ToRemove {
-		if err := policyManager.removePolicy(ctx, policyName, p.config.DryRun); err != nil {
-			result.Failed = append(result.Failed, policyName)
-			result.Errors = append(result.Errors, fmt.Sprintf("Failed to remove policy %s: %v", policyName, err))
-			slog.Error("Failed to remove policy", "policy", policyName, "error", err)
+	for _, policy := range actions.ToRemove {
+		if err := policyManager.removePolicy(ctx, policy, p.config.DryRun); err != nil {
+			result.Failed = append(result.Failed, policy.Name)
+			result.Errors = append(result.Errors, fmt.Sprintf("Failed to remove policy %s: %v", policy.Name, err))
+			slog.Error("Failed to remove policy", "policy", policy.Name, "kind", policy.Kind, "error", err)
+			output := strings.Join(result.Errors, "\n")
+			if !p.config.DryRun {
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "failed", "Failed to remove policy from cluster", output)
+				if err != nil {
+					slog.Error("Failed to update policy status in Insights", "error", err)
+				}
+			}
 		} else {
-			result.Removed = append(result.Removed, policyName)
-			slog.Info("Successfully removed policy", "policy", policyName)
+			result.Removed = append(result.Removed, policy.Name)
+			if !p.config.DryRun {
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "success", "Successfully removed policy from cluster", "")
+				if err != nil {
+					slog.Error("Failed to update policy status in Insights", "error", err)
+				}
+			}
 		}
 	}
 
@@ -154,66 +157,33 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 }
 
 // removePolicy removes a policy from the cluster using Kyverno CLI
-func (pm *PolicyManager) removePolicy(ctx context.Context, policyName string, dryRun bool) error {
+func (pm *PolicyManager) removePolicy(ctx context.Context, policy ClusterPolicy, dryRun bool) error {
 	if dryRun {
-		slog.Info("[DRY-RUN] Would remove policy", "policy", policyName)
+		slog.Info("[DRY-RUN] Would remove policy", "policy", policy.Name, "kind", policy.Kind)
 		return nil
 	}
 
-	// Double-check the policy is still Insights-managed before deletion
-	policy, err := pm.getPolicy(ctx, policyName)
-	if err != nil {
-		return fmt.Errorf("failed to get policy %s for deletion: %w", policyName, err)
-	}
-
-	// Verify it's still Insights-managed
-	annotations := policy.GetAnnotations()
-	if annotations == nil || annotations["insights.fairwinds.com/owned-by"] != "Fairwinds Insights" {
-		slog.Warn("Policy is no longer Insights-managed, skipping deletion", "policy", policyName)
-		return nil
-	}
-
-	kind := policy.GetKind()
-	if !validatePolicyKinds(kind) {
-		slog.Warn("Invalid policy kind, skipping deletion", "policy", policyName, "kind", kind)
-		return nil
-	}
-
-	cmd := exec.CommandContext(ctx, "kubectl", "delete", kind, policyName)
+	cmd := exec.CommandContext(ctx, "kubectl", "delete", policy.Kind, policy.Name)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to delete policy %s with kubectl: %s: %s: %w", policyName, cmd.String(), string(output), err)
+		return fmt.Errorf("failed to delete policy %s with kubectl: %s: %s: %w", policy.Name, cmd.String(), string(output), err)
 	}
 
-	slog.Info("Successfully removed policy", "policy", policyName, "output", string(output))
+	slog.Info("Successfully removed policy", "policy", policy.Name, "kind", policy.Kind, "output", string(output))
 	return nil
 }
 
-// getPolicy retrieves a policy from the cluster
-func (pm *PolicyManager) getPolicy(ctx context.Context, policyName string) (*unstructured.Unstructured, error) {
-	return pm.dynamicClient.Resource(schema.GroupVersionResource{
-		Group:    "kyverno.io",
-		Version:  "v1",
-		Resource: "clusterpolicies",
-	}).Get(ctx, policyName, metav1.GetOptions{})
-}
-
-// validatePolicyKinds validates the kind of a policy
-func validatePolicyKinds(kind string) bool {
-	validKinds := getPolicyKinds()
-	for _, validKind := range validKinds {
-		if kind == validKind {
-			return true
-		}
-	}
-	return false
-}
-
-func getPolicyKinds() []string {
-	return []string{
-		"ClusterPolicy",
-		"Policy",
-		"ValidatingPolicy",
-		"ValidatingAdmissionPolicy",
+func getResourceConfigs() map[string]struct {
+	group   string
+	version string
+} {
+	return map[string]struct {
+		group   string
+		version string
+	}{
+		"clusterpolicies":             {group: "kyverno.io", version: "v1"},
+		"policies":                    {group: "kyverno.io", version: "v1"},
+		"validatingpolicies":          {group: "kyverno.io", version: "v1"},
+		"validatingadmissionpolicies": {group: "admissionregistration.k8s.io", version: "v1"},
 	}
 }
