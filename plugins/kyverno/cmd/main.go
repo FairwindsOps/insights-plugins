@@ -27,24 +27,29 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error getting kube client: ", err)
 	}
-	policiesTitleAndDDescription, err := createPoliciesTitleAndDescriptionMap(client)
+	ctx := context.Background()
+	clusterPoliciesTitleAndDescription, err := createPoliciesTitleAndDescriptionMap(ctx, "ClusterPolicy", client)
 	if err != nil {
 		logrus.Fatal("Error creating policies title and description map: ", err)
 	}
-	policyReports, err := client.ListResources(context.Background(), "PolicyReport", client.DynamicInterface, client.RestMapper)
+	policyReports, err := client.ListResources(ctx, "PolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		logrus.Fatal("Error listing policy reports: ", err)
+	}
+	policyReportsTitleAndDescription, err := createPoliciesTitleAndDescriptionMap(ctx, "PolicyReport", client)
+	if err != nil {
+		logrus.Fatal("Error creating policies title and description map: ", err)
 	}
 	clusterPolicyReports, err := client.ListResources(context.Background(), "ClusterPolicyReport", client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		logrus.Fatal("Error listing cluster policy reports: ", err)
 	}
-	policyReportsViolations, err := filterViolations(policyReports, policiesTitleAndDDescription)
+	policyReportsViolations, err := filterViolations(policyReports, policyReportsTitleAndDescription)
 	if err != nil {
 		logrus.Fatal("Error filtering violations: ", err)
 	}
 	logrus.Info("Policy reports violations found: ", len(policyReportsViolations))
-	clusterPolicyReportsViolations, err := filterViolations(clusterPolicyReports, policiesTitleAndDDescription)
+	clusterPolicyReportsViolations, err := filterViolations(clusterPolicyReports, clusterPoliciesTitleAndDescription)
 	if err != nil {
 		logrus.Fatal("Error filtering violations: ", err)
 	}
@@ -179,8 +184,8 @@ func removeManagedFields(policies []unstructured.Unstructured) ([]map[string]any
 	return result, nil
 }
 
-func createPoliciesTitleAndDescriptionMap(client *Client) (map[string]any, error) {
-	clusterPoliciesMetadata, err := client.ListResources(context.Background(), "ClusterPolicy", client.DynamicInterface, client.RestMapper)
+func createPoliciesTitleAndDescriptionMap(ctx context.Context, resourceType string, client *Client) (map[string]any, error) {
+	clusterPoliciesMetadata, err := client.ListResources(ctx, resourceType, client.DynamicInterface, client.RestMapper)
 	if err != nil {
 		return nil, err
 	}
