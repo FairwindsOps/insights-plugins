@@ -184,6 +184,16 @@ func deriveKindFromResourceName(resourceName string) string {
 		return "ValidatingPolicy"
 	case "validatingadmissionpolicies":
 		return "ValidatingAdmissionPolicy"
+	case "clustercleanuppolicies":
+		return "ClusterCleanupPolicy"
+	case "imagevalidatingPolicies":
+		return "ImageValidatingPolicy"
+	case "mutatingpolicies":
+		return "MutatingPolicy"
+	case "generatingpolicies":
+		return "GeneratingPolicy"
+	case "deletingpolicies":
+		return "DeletingPolicy"
 	default:
 		return "ClusterPolicy" // default fallback
 	}
