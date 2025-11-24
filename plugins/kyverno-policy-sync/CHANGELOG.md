@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.1.9
+* Fixed kyverno report descriptions
 
 ## 0.1.8
 * Update policy apply status
