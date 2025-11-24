@@ -28,7 +28,7 @@ func main() {
 		logrus.Fatal("Error getting kube client: ", err)
 	}
 	ctx := context.Background()
-	clusterPoliciesTitleAndDDescriptions, err := createPoliciesTitleAndDescriptionMap(ctx, "ClusterPolicy", client)
+	clusterPoliciesTitleAndDescription, err := createPoliciesTitleAndDescriptionMap(ctx, "ClusterPolicy", client)
 	if err != nil {
 		logrus.Fatal("Error creating policies title and description map: ", err)
 	}
@@ -36,7 +36,7 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error listing policy reports: ", err)
 	}
-	policyReportsTitleAndDDescriptions, err := createPoliciesTitleAndDescriptionMap(ctx, "PolicyReport", client)
+	policyReportsTitleAndDescription, err := createPoliciesTitleAndDescriptionMap(ctx, "PolicyReport", client)
 	if err != nil {
 		logrus.Fatal("Error creating policies title and description map: ", err)
 	}
@@ -44,12 +44,12 @@ func main() {
 	if err != nil {
 		logrus.Fatal("Error listing cluster policy reports: ", err)
 	}
-	policyReportsViolations, err := filterViolations(policyReports, policyReportsTitleAndDDescriptions)
+	policyReportsViolations, err := filterViolations(policyReports, policyReportsTitleAndDescription)
 	if err != nil {
 		logrus.Fatal("Error filtering violations: ", err)
 	}
 	logrus.Info("Policy reports violations found: ", len(policyReportsViolations))
-	clusterPolicyReportsViolations, err := filterViolations(clusterPolicyReports, clusterPoliciesTitleAndDDescriptions)
+	clusterPolicyReportsViolations, err := filterViolations(clusterPolicyReports, clusterPoliciesTitleAndDescription)
 	if err != nil {
 		logrus.Fatal("Error filtering violations: ", err)
 	}
