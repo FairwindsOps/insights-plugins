@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.6
+* Fix kyverno report descriptions
+
 ## 0.4.5
 * Code cleanup
 
