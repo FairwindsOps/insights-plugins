@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.18
+* Fix event poll interval
+
 ## 0.1.17
 * Fix nil when starting logs
 
