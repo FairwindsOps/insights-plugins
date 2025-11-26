@@ -82,7 +82,6 @@ func (f *EventSourceFactory) CreateEventSources(configs []EventSourceConfig) ([]
 
 	for _, config := range configs {
 		source, err := f.CreateEventSource(config)
-		slog.Info("Created event source", "type", config.Type, "enabled", source.IsEnabled())
 		if err != nil {
 			slog.Error("Failed to create event source", "type", config.Type, "error", err)
 			errors = append(errors, fmt.Errorf("failed to create %s event source: %w", config.Type, err))
