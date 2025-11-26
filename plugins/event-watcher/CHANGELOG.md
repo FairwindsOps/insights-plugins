@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.17
+* Fix nil when starting logs
+
 ## 0.1.16
 * Added option to unlimited buffer size
 
