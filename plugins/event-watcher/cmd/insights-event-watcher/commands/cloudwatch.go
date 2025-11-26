@@ -101,7 +101,7 @@ func runCloudWatch(cmd *cobra.Command, args []string) error {
 		httpTimeoutSeconds,
 		rateLimitPerMinute,
 		consoleMode,
-		"", // eventPollInterval not used for CloudWatch
+		eventPollInterval,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create watcher: %w", err)
