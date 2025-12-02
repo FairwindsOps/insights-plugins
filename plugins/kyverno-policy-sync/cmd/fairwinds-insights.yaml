@@ -1,0 +1,6 @@
+options:
+  organization: fairwinds-production
+  host: https://be-js-newcrd.k8s.insights.fairwinds.com
+  token: thisisanadmintoken
+
+

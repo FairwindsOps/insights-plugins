@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.33.8
-* Bump trivy to 0.68.0
-
 ## 0.33.7
 * Bumped go for fixing vulnerabilities
 
