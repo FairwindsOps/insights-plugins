@@ -10,6 +10,7 @@ import (
 
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -21,12 +22,13 @@ type PolicySyncProcessor struct {
 	insightsClient insights.Client
 	k8sClient      kubernetes.Interface
 	dynamicClient  dynamic.Interface
+	restMapper     meta.RESTMapper
 	config         PolicySyncConfig
 	lock           *PolicySyncLock
 }
 
 // NewPolicySyncProcessor creates a new policy sync processor
-func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes.Interface, dynamicClient dynamic.Interface, config PolicySyncConfig) *PolicySyncProcessor {
+func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes.Interface, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, config PolicySyncConfig) *PolicySyncProcessor {
 	// Get current namespace
 	namespace, err := GetCurrentNamespace()
 	if err != nil {
@@ -41,6 +43,7 @@ func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes
 		insightsClient: insightsClient,
 		k8sClient:      k8sClient,
 		dynamicClient:  dynamicClient,
+		restMapper:     restMapper,
 		config:         config,
 		lock: &PolicySyncLock{
 			ConfigMapName: "kyverno-policy-sync-lock",
@@ -124,12 +127,24 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 // listInsightsManagedPolicies lists all currently deployed policies managed by Insights
 func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) ([]ClusterPolicy, error) {
 	var insightsManagedPolicies []ClusterPolicy
-	for resourceName, config := range getResourceConfigs() {
-		policies, err := p.dynamicClient.Resource(schema.GroupVersionResource{
-			Group:    config.group,
-			Version:  config.version,
+	for _, resourceName := range getResourceNames() {
+		// Use RESTMapper to discover the correct group/version for the resource
+		gvr, err := p.restMapper.ResourceFor(schema.GroupVersionResource{
 			Resource: resourceName,
-		}).List(ctx, metav1.ListOptions{})
+		})
+		if err != nil {
+			// Resource not found in the cluster - skip it
+			errMsg := strings.ToLower(err.Error())
+			if strings.Contains(errMsg, "not found") ||
+				strings.Contains(errMsg, "could not find the requested resource") ||
+				strings.Contains(errMsg, "no matches for") {
+				slog.Debug("Resource not found in cluster, skipping", "resource", resourceName, "error", err.Error())
+				continue
+			}
+			return nil, fmt.Errorf("failed to discover resource %s: %w", resourceName, err)
+		}
+
+		policies, err := p.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			// the server could not find the requested resource - we should continue if no resource is found
 			if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "could not find the requested resource") {
