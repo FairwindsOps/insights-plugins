@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.10
+* Bump trivy to 0.68.0
+
 ## 6.1.9
 * Bumped go for fixing vulnerabilities
 
