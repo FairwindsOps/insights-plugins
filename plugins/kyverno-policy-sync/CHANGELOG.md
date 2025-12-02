@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.11
+* fixed some kyverno groups
+
 ## 0.1.10
 * added new kyverno CRDs
 
