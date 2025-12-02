@@ -135,9 +135,7 @@ func (p *PolicySyncProcessor) listInsightsManagedPolicies(ctx context.Context) (
 		if err != nil {
 			// Resource not found in the cluster - skip it
 			errMsg := strings.ToLower(err.Error())
-			if strings.Contains(errMsg, "not found") ||
-				strings.Contains(errMsg, "could not find the requested resource") ||
-				strings.Contains(errMsg, "no matches for") {
+			if strings.Contains(errMsg, "not found") {
 				slog.Debug("Resource not found in cluster, skipping", "resource", resourceName, "error", err.Error())
 				continue
 			}
