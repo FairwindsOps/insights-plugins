@@ -183,7 +183,7 @@ func getResourceConfigs() map[string]struct {
 	}{
 		"clusterpolicies":              {group: "kyverno.io", version: "v1"},
 		"policies":                     {group: "kyverno.io", version: "v1"},
-		"validatingpolicies":           {group: "policies.kyverno.io", version: "v1"},
+		"validatingpolicies":           {group: "kyverno.io", version: "v1"},
 		"validatingadmissionpolicies":  {group: "admissionregistration.k8s.io", version: "v1"},
 		"clustercleanuppolicies":       {group: "kyverno.io", version: "v2"},
 		"imagevalidatingpolicies":      {group: "policies.kyverno.io", version: "v1beta1"},
