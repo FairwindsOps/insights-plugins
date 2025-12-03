@@ -46,6 +46,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	restMapper, err := k8s.GetRESTMapper()
+	if err != nil {
+		slog.Error("Failed to create REST mapper", "error", err)
+		os.Exit(1)
+	}
+
 	// Create sync configuration
 	syncConfig := sync.PolicySyncConfig{
 		DryRun:           cfg.DryRun,
@@ -54,7 +60,7 @@ func main() {
 	}
 
 	// Create policy sync processor
-	processor := sync.NewPolicySyncProcessor(insightsClient, k8sClient, dynamicClient, syncConfig)
+	processor := sync.NewPolicySyncProcessor(insightsClient, k8sClient, dynamicClient, restMapper, syncConfig)
 
 	err = syncKyvernoPolicies(processor)
 	if err != nil {

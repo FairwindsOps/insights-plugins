@@ -173,24 +173,19 @@ func (pm *PolicyManager) removePolicy(ctx context.Context, policy ClusterPolicy,
 	return nil
 }
 
-func getResourceConfigs() map[string]struct {
-	group   string
-	version string
-} {
-	return map[string]struct {
-		group   string
-		version string
-	}{
-		"clusterpolicies":              {group: "kyverno.io", version: "v1"},
-		"policies":                     {group: "kyverno.io", version: "v1"},
-		"validatingpolicies":           {group: "kyverno.io", version: "v1"},
-		"validatingadmissionpolicies":  {group: "admissionregistration.k8s.io", version: "v1"},
-		"clustercleanuppolicies":       {group: "kyverno.io", version: "v2"},
-		"imagevalidatingPolicies":      {group: "kyverno.io", version: "v1beta1"},
-		"mutatingpolicies":             {group: "kyverno.io", version: "v1beta1"},
-		"generatingpolicies":           {group: "kyverno.io", version: "v1beta1"},
-		"deletingpolicies":             {group: "kyverno.io", version: "v1beta1"},
-		"namespacedvalidatingpolicies": {group: "kyverno.io", version: "v1beta1"},
-		"policyexceptions":             {group: "kyverno.io", version: "v1beta1"},
+// getResourceNames returns the list of resource names to discover
+func getResourceNames() []string {
+	return []string{
+		"clusterpolicies",
+		"policies",
+		"validatingpolicies",
+		"validatingadmissionpolicies",
+		"clustercleanuppolicies",
+		"imagevalidatingpolicies",
+		"mutatingpolicies",
+		"generatingpolicies",
+		"deletingpolicies",
+		"namespacedvalidatingpolicies",
+		"policyexceptions",
 	}
 }
