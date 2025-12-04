@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/prometheus
 
-go 1.24.9
+go 1.24.11
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc

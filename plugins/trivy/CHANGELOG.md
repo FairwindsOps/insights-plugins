@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.33.9
+* Bumped to go 1.24.11
+
 ## 0.33.8
 * Bumped trivy for fixing vulnerabilities
 

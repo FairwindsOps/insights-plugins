@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.5
+* Bumped to go 1.24.11
+
 ## 2.1.4
 * Bumped go for fixing vulnerabilities
 

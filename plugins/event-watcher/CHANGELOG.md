@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.19
+* Bumped to go 1.24.11
+
 ## 0.1.18
 * Fix event poll interval
 
