@@ -94,13 +94,14 @@ func (h *ValidatingPolicyViolationHandler) extractValidatingPolicyViolation(watc
 	policies := utils.ExtractValidatingPoliciesFromMessage(message)
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
-			EventType: string(watchedEvent.EventType),
-			Namespace: watchedEvent.Namespace,
-			Name:      watchedEvent.Name,
-			UID:       watchedEvent.UID,
-			Timestamp: watchedEvent.Timestamp,
-			Data:      watchedEvent.Data,
-			Metadata:  watchedEvent.Metadata,
+			EventType:    string(watchedEvent.EventType),
+			ResourceType: watchedEvent.Kind,
+			Namespace:    watchedEvent.Namespace,
+			Name:         watchedEvent.Name,
+			UID:          watchedEvent.UID,
+			Timestamp:    watchedEvent.Timestamp,
+			Data:         watchedEvent.Data,
+			Metadata:     watchedEvent.Metadata,
 		},
 		Policies:  policies,
 		Message:   message,
