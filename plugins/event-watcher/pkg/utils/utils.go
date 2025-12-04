@@ -21,6 +21,7 @@ import (
 const (
 	KyvernoPolicyViolationPrefix                    = "kyverno-policy-violation"
 	ValidatingPolicyViolationPrefix                 = "validating-policy-violation"
+	NamespacedValidatingPolicyViolationPrefix       = "nvpol-violation"
 	ValidatingAdmissionPolicyViolationPrefix        = "validating-admission-policy-violation"
 	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
 	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
@@ -69,6 +70,24 @@ func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
 func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]string {
 	policyName := "unknown"
 	if strings.Contains(message, "vpol") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
+		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
+		endIndex := strings.Index(message, " failed:")
+		if startIndex != -1 && endIndex != -1 {
+			policyName = message[startIndex:endIndex]
+			policyName = strings.TrimSpace(policyName)
+		}
+	}
+	return map[string]map[string]string{
+		policyName: {
+			policyName: message,
+		},
+	}
+}
+
+func ExtractNamespacedValidatingPoliciesFromMessage(message string) map[string]map[string]string {
+	policyName := "unknown"
+	// Example: admission webhook "nvpol.validate.kyverno.svc-fail" denied the request: Policy check-deployment-replicas failed: deployments must have at least 5 replicas for high availability
+	if strings.Contains(message, "nvpol.") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
 		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
 		endIndex := strings.Index(message, " failed:")
 		if startIndex != -1 && endIndex != -1 {
@@ -185,7 +204,15 @@ func IsKyvernoPolicyViolation(responseCode int, message string) bool {
 }
 
 func IsValidatingPolicyViolation(responseCode int, message string) bool {
-	if responseCode >= 400 && strings.Contains(message, "vpol") &&
+	if responseCode >= 400 && strings.Contains(message, "vpol.") &&
+		strings.Contains(message, "kyverno") {
+		return true
+	}
+	return false
+}
+
+func IsNamespacedValidatingPolicyViolation(responseCode int, message string) bool {
+	if responseCode >= 400 && strings.Contains(message, "nvpol.") &&
 		strings.Contains(message, "kyverno") {
 		return true
 	}
@@ -222,6 +249,7 @@ func IsAuditOnlyClusterPolicyViolation(event v1.Event) bool {
 func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *models.WatchedEvent {
 	if !IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
 		!IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
+		!IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
 		!IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		return nil
 	}
@@ -230,6 +258,8 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 		policies = ExtractPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	} else if IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		policies = ExtractNamespacedValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
@@ -245,6 +275,8 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 	name = fmt.Sprintf("%s-%s-%s-%s", KyvernoPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	if IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
+	} else if IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		name = fmt.Sprintf("%s-%s-%s-%s", NamespacedValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingAdmissionPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	}
@@ -478,7 +510,10 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
-		slog.Debug("Validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+	} else if IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		slog.Debug("Namespaced validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+		policies = ExtractNamespacedValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		name = fmt.Sprintf("%s-%s-%s-%s", NamespacedValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
