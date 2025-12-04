@@ -49,6 +49,7 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		// Console handler for printing events to console
 		f.Register(utils.KyvernoPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.ValidatingPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.NamespacedValidatingPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.AuditOnlyClusterPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
