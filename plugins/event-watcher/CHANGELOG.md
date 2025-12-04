@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.19
+* Support to NamespacedValidatingPolicy
+
 ## 0.1.18
 * Fix event poll interval
 
