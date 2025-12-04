@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.3.33
-* Bumped to go 1.24.11
+* Bumped to go 1.25.5
 
 ## 1.3.32
 * Bumped go for fixing vulnerabilities
