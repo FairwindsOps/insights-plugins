@@ -120,6 +120,7 @@ func (h *AuditLogHandler) processNewAuditLogEntries() {
 
 		if utils.IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
 			utils.IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
+			utils.IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) ||
 			utils.IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 
 			policyViolationEvent := utils.CreateBlockedPolicyViolationEvent(auditEvent)
