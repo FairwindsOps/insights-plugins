@@ -57,6 +57,7 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		// PolicyViolation handler for Kubernetes events (sends to Insights)
 		f.Register(utils.KyvernoPolicyViolationPrefix, NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingPolicyViolationPrefix, NewValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.NamespacedValidatingPolicyViolationPrefix, NewNamespacedValidatingPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewAuditOnlyAllowedValidatingAdmissionPolicyHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.AuditOnlyClusterPolicyViolationPrefix, NewClusterPolicyAuditHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
