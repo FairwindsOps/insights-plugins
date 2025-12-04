@@ -20,9 +20,9 @@ import (
 
 const (
 	KyvernoPolicyViolationPrefix                    = "kyverno-policy-violation"
-	ValidatingPolicyViolationPrefix                 = "validating-policy-violation"
+	ValidatingPolicyViolationPrefix                 = "vpol-violation"
 	NamespacedValidatingPolicyViolationPrefix       = "nvpol-violation"
-	ValidatingAdmissionPolicyViolationPrefix        = "validating-admission-policy-violation"
+	ValidatingAdmissionPolicyViolationPrefix        = "vap-violation"
 	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
 	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
 )
@@ -69,7 +69,7 @@ func ExtractPoliciesFromMessage(message string) map[string]map[string]string {
 
 func ExtractValidatingPoliciesFromMessage(message string) map[string]map[string]string {
 	policyName := "unknown"
-	if strings.Contains(message, "vpol") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
+	if strings.Contains(message, "vpol.") && !strings.Contains(message, "nvpol.") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
 		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
 		endIndex := strings.Index(message, " failed:")
 		if startIndex != -1 && endIndex != -1 {
