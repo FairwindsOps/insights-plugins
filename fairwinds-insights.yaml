@@ -8,23 +8,23 @@ images:
     - quay.io/fairwinds/nova:v3.11
     - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.22
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.14
-    - quay.io/fairwinds/insights-admission-controller:2.1.3
-    - quay.io/fairwinds/insights-ci:6.1.8
+    - quay.io/fairwinds/insights-admission-controller:2.1.4
+    - quay.io/fairwinds/insights-ci:6.1.10
     - quay.io/fairwinds/cloud-costs:0.3.18
-    - quay.io/fairwinds/insights-event-watcher:0.1.8
-    - quay.io/fairwinds/falco-agent:0.3.20
-    - quay.io/fairwinds/fw-kube-bench-aggregator:0.3.33
-    - quay.io/fairwinds/fw-kube-bench:0.5.18
+    - quay.io/fairwinds/insights-event-watcher:0.1.18
+    - quay.io/fairwinds/falco-agent:0.3.21
+    - quay.io/fairwinds/fw-kube-bench-aggregator:0.3.34
+    - quay.io/fairwinds/fw-kube-bench:0.5.20
     - quay.io/fairwinds/kubectl:0.20.11
-    - quay.io/fairwinds/kyverno-policy-sync:0.1.3
-    - quay.io/fairwinds/kyverno:0.4.3
-    - quay.io/fairwinds/on-demand-job-runner:0.1.5
-    - quay.io/fairwinds/fw-opa:3.0.3
+    - quay.io/fairwinds/kyverno-policy-sync:0.1.11
+    - quay.io/fairwinds/kyverno:0.4.6
+    - quay.io/fairwinds/on-demand-job-runner:0.1.6
+    - quay.io/fairwinds/fw-opa:3.0.4
     - quay.io/fairwinds/postgres-partman:17.0.0
-    - quay.io/fairwinds/prometheus-collector:1.5.17
-    - quay.io/fairwinds/rbac-reporter:1.3.31
-    - quay.io/fairwinds/right-sizer:0.5.17
-    - quay.io/fairwinds/fw-trivy:0.33.6
+    - quay.io/fairwinds/prometheus-collector:1.5.18
+    - quay.io/fairwinds/rbac-reporter:1.3.32
+    - quay.io/fairwinds/right-sizer:0.5.18
+    - quay.io/fairwinds/fw-trivy:0.33.8
     - quay.io/fairwinds/insights-uploader:0.5.11
     - quay.io/fairwinds/insights-utils:0.0.10
-    - quay.io/fairwinds/workloads:2.6.22
+    - quay.io/fairwinds/workloads:2.6.23

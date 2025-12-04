@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.10
+* Bumped trivy for fixing vulnerabilities
+
 ## 6.1.9
 * Bumped go for fixing vulnerabilities
 
