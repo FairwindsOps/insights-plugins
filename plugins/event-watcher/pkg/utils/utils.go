@@ -22,6 +22,7 @@ const (
 	KyvernoPolicyViolationPrefix                    = "kyverno-policy-violation"
 	ValidatingPolicyViolationPrefix                 = "vpol-violation"
 	NamespacedValidatingPolicyViolationPrefix       = "nvpol-violation"
+	ImageValidatingPolicyViolationPrefix            = "ivpol-violation"
 	ValidatingAdmissionPolicyViolationPrefix        = "vap-violation"
 	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
 	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
@@ -90,6 +91,24 @@ func ExtractNamespacedValidatingPoliciesFromMessage(message string) map[string]m
 	if strings.Contains(message, "nvpol.") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
 		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
 		endIndex := strings.Index(message, " failed:")
+		if startIndex != -1 && endIndex != -1 {
+			policyName = message[startIndex:endIndex]
+			policyName = strings.TrimSpace(policyName)
+		}
+	}
+	return map[string]map[string]string{
+		policyName: {
+			policyName: message,
+		},
+	}
+}
+
+func ExtractImageValidatingPoliciesFromMessage(message string) map[string]map[string]string {
+	policyName := "unknown"
+	// Example: admission webhook "ivpol.validate.kyverno.svc-fail" denied the request: Policy require-signed-images error: failed to evaluate policy: Get "https://untrusted.registry.io/v2/": dial tcp: lookup untrusted.registry.io on 10.96.0.10:53: no such host
+	if strings.Contains(message, "ivpol.") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
+		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
+		endIndex := strings.Index(message, " error:")
 		if startIndex != -1 && endIndex != -1 {
 			policyName = message[startIndex:endIndex]
 			policyName = strings.TrimSpace(policyName)
@@ -197,22 +216,33 @@ func SendToInsights(insightsConfig models.InsightsConfig, client *http.Client, r
 }
 
 func IsKyvernoPolicyViolation(responseCode int, message string) bool {
-	if responseCode >= 400 && strings.Contains(message, "kyverno") && strings.Contains(message, "blocked due to the following policies") {
+	if responseCode >= 400 && strings.Contains(message, "kyverno") &&
+		strings.Contains(message, "blocked due to the following policies") {
 		return true
 	}
 	return false
 }
 
 func IsValidatingPolicyViolation(responseCode int, message string) bool {
-	if responseCode >= 400 && strings.Contains(message, "vpol.") &&
-		strings.Contains(message, "kyverno") {
-		return true
+	if responseCode >= 400 && strings.Contains(message, "kyverno") {
+		// Check for vpol webhook but exclude nvpol and ivpol
+		if strings.Contains(message, "\"vpol.") && !strings.Contains(message, "\"nvpol.") && !strings.Contains(message, "\"ivpol.") {
+			return true
+		}
 	}
 	return false
 }
 
 func IsNamespacedValidatingPolicyViolation(responseCode int, message string) bool {
 	if responseCode >= 400 && strings.Contains(message, "nvpol.") &&
+		strings.Contains(message, "kyverno") {
+		return true
+	}
+	return false
+}
+
+func IsImageValidatingPolicyViolation(responseCode int, message string) bool {
+	if responseCode >= 400 && strings.Contains(message, "ivpol.") &&
 		strings.Contains(message, "kyverno") {
 		return true
 	}
@@ -250,6 +280,7 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 	if !IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
 		!IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
 		!IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
+		!IsImageValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) &&
 		!IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		return nil
 	}
@@ -260,6 +291,8 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 		policies = ExtractValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		policies = ExtractNamespacedValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+	} else if IsImageValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		policies = ExtractImageValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 	}
@@ -277,6 +310,8 @@ func CreateBlockedWatchedEventFromAuditEvent(auditEvent models.AuditEvent) *mode
 		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	} else if IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		name = fmt.Sprintf("%s-%s-%s-%s", NamespacedValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
+	} else if IsImageValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		name = fmt.Sprintf("%s-%s-%s-%s", ImageValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		name = fmt.Sprintf("%s-%s-%s-%s", ValidatingAdmissionPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	}
@@ -495,7 +530,7 @@ func CreateAuditOnlyAllowWatchedEventFromValidatingAdmissionPolicyViolation(poli
 
 // createPolicyViolation creates a policy violation event from an audit event
 func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.PolicyViolationEventModel {
-	if !IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+	if !IsKyvernoPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !IsValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !IsNamespacedValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !IsImageValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) && !IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		return nil
 	}
 	policies := map[string]map[string]string{}
@@ -514,6 +549,10 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 		slog.Debug("Namespaced validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractNamespacedValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
 		name = fmt.Sprintf("%s-%s-%s-%s", NamespacedValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
+	} else if IsImageValidatingPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
+		slog.Debug("Image validating policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
+		policies = ExtractImageValidatingPoliciesFromMessage(auditEvent.ResponseStatus.Message)
+		name = fmt.Sprintf("%s-%s-%s-%s", ImageValidatingPolicyViolationPrefix, resource, name, auditEvent.AuditID)
 	} else if IsValidatingAdmissionPolicyViolation(auditEvent.ResponseStatus.Code, auditEvent.ResponseStatus.Message) {
 		slog.Debug("Validating admission policy violation", "policies", policies, "audit_id", auditEvent.AuditID)
 		policies = ExtractValidatingAdmissionPoliciesFromMessage(auditEvent.ResponseStatus.Message)

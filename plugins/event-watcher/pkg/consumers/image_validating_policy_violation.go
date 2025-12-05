@@ -12,14 +12,14 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type NamespacedValidatingAdmissionPolicyViolationHandler struct {
+type ImageValidatingPolicyViolationHandler struct {
 	insightsConfig models.InsightsConfig
 	client         *http.Client
 	rateLimiter    *rate.Limiter
 }
 
-func NewNamespacedValidatingPolicyViolationHandler(insightsConfig models.InsightsConfig, httpTimeoutSeconds, rateLimitPerMinute int) *NamespacedValidatingAdmissionPolicyViolationHandler {
-	return &NamespacedValidatingAdmissionPolicyViolationHandler{
+func NewImageValidatingPolicyViolationHandler(insightsConfig models.InsightsConfig, httpTimeoutSeconds, rateLimitPerMinute int) *ImageValidatingPolicyViolationHandler {
+	return &ImageValidatingPolicyViolationHandler{
 		insightsConfig: insightsConfig,
 		client: &http.Client{
 			Timeout: time.Duration(httpTimeoutSeconds) * time.Second,
@@ -28,7 +28,7 @@ func NewNamespacedValidatingPolicyViolationHandler(insightsConfig models.Insight
 	}
 }
 
-func (h *NamespacedValidatingAdmissionPolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
+func (h *ImageValidatingPolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
 	if watchedEvent == nil {
 		return fmt.Errorf("watchedEvent is nil")
 	}
@@ -39,15 +39,15 @@ func (h *NamespacedValidatingAdmissionPolicyViolationHandler) Handle(watchedEven
 		"name", watchedEvent.Name,
 	}
 
-	slog.Info("Processing NamespacedValidatingAdmissionPolicyViolation event", logFields...)
-	policyViolationEvent, err := h.extractNamespacedValidatingAdmissionPolicyViolation(watchedEvent)
+	slog.Info("Processing ImageValidatingPolicyViolation event", logFields...)
+	policyViolationEvent, err := h.extractImageValidatingPolicyViolation(watchedEvent)
 	if err != nil {
-		return fmt.Errorf("failed to extract namespaced validating admission policy violation: %w", err)
+		return fmt.Errorf("failed to extract image validating policy violation: %w", err)
 	}
 	return h.sendToInsights(policyViolationEvent)
 }
 
-func (h *NamespacedValidatingAdmissionPolicyViolationHandler) extractNamespacedValidatingAdmissionPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
+func (h *ImageValidatingPolicyViolationHandler) extractImageValidatingPolicyViolation(watchedEvent *models.WatchedEvent) (*models.PolicyViolationEvent, error) {
 	if watchedEvent == nil {
 		return nil, fmt.Errorf("watchedEvent is nil")
 	}
@@ -60,7 +60,7 @@ func (h *NamespacedValidatingAdmissionPolicyViolationHandler) extractNamespacedV
 		return nil, fmt.Errorf("no message field in event or message is empty")
 	}
 
-	policies := utils.ExtractNamespacedValidatingPoliciesFromMessage(message)
+	policies := utils.ExtractImageValidatingPoliciesFromMessage(message)
 	return &models.PolicyViolationEvent{
 		EventReport: models.EventReport{
 			EventType:    string(watchedEvent.EventType),
@@ -81,6 +81,7 @@ func (h *NamespacedValidatingAdmissionPolicyViolationHandler) extractNamespacedV
 
 }
 
-func (h *NamespacedValidatingAdmissionPolicyViolationHandler) sendToInsights(policyViolationEvent *models.PolicyViolationEvent) error {
+func (h *ImageValidatingPolicyViolationHandler) sendToInsights(policyViolationEvent *models.PolicyViolationEvent) error {
 	return utils.SendToInsights(h.insightsConfig, h.client, h.rateLimiter, policyViolationEvent)
 }
+
