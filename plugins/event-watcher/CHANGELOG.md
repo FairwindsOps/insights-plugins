@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.20
+* Support to ImageValidatingPolicy
+
 ## 0.1.19
 * Support to NamespacedValidatingPolicy
 
