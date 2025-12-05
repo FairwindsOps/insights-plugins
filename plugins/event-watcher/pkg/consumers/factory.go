@@ -54,6 +54,9 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewConsoleHandler(f.insightsConfig))
 		f.Register(utils.AuditOnlyClusterPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.AuditOnlyValidatingPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.AuditOnlyNamespacedValidatingPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
+		f.Register(utils.AuditOnlyImageValidatingPolicyViolationPrefix, NewConsoleHandler(f.insightsConfig))
 	} else {
 		// PolicyViolation handler for Kubernetes events (sends to Insights)
 		f.Register(utils.KyvernoPolicyViolationPrefix, NewPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
@@ -63,6 +66,9 @@ func (f *EventHandlerFactory) registerDefaultHandlers(consoleMode bool) {
 		f.Register(utils.ValidatingAdmissionPolicyViolationPrefix, NewValidatingAdmissionPolicyViolationHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.AuditOnlyAllowedValidatingAdmissionPolicyPrefix, NewAuditOnlyAllowedValidatingAdmissionPolicyHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 		f.Register(utils.AuditOnlyClusterPolicyViolationPrefix, NewClusterPolicyAuditHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.AuditOnlyValidatingPolicyViolationPrefix, NewValidatingPolicyAuditHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.AuditOnlyNamespacedValidatingPolicyViolationPrefix, NewNamespacedValidatingPolicyAuditHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
+		f.Register(utils.AuditOnlyImageValidatingPolicyViolationPrefix, NewImageValidatingPolicyAuditHandler(f.insightsConfig, f.httpTimeoutSeconds, f.rateLimitPerMinute))
 	}
 }
 
