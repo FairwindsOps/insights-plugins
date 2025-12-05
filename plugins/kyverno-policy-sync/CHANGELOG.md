@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.12
+* Bumped to go 1.25.5
+
 ## 0.1.11
 * fixed some kyverno groups
 

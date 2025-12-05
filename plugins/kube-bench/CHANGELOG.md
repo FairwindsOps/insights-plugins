@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.21
+* Bumped to go 1.25.5
+
 ## 0.5.20
 * Fix vulnerbility
 

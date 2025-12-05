@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.20
+* Bumped to go 1.25.5
+
 ## 0.1.19
 * Support to NamespacedValidatingPolicy
 

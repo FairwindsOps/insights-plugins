@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.7
+* Bumped to go 1.25.5
+
 ## 0.4.6
 * Fix kyverno report descriptions
 
