@@ -26,6 +26,9 @@ const (
 	ValidatingAdmissionPolicyViolationPrefix        = "vap-violation"
 	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
 	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
+	AuditOnlyValidatingPolicyViolationPrefix        = "audit-only-vpol"
+	AuditOnlyNamespacedValidatingPolicyViolationPrefix = "audit-only-nvpol"
+	AuditOnlyImageValidatingPolicyViolationPrefix   = "audit-only-ivpol"
 )
 
 var alreadyProcessedAuditIDs *bigcache.BigCache
@@ -271,6 +274,24 @@ func IsValidatingAdmissionPolicyViolationAuditOnlyAllowEvent(annotations map[str
 
 func IsAuditOnlyClusterPolicyViolation(event v1.Event) bool {
 	return (event.InvolvedObject.Kind == "ClusterPolicy" || event.InvolvedObject.Kind == "Policy") &&
+		event.Reason == "PolicyViolation" &&
+		event.Action == "Resource Passed"
+}
+
+func IsAuditOnlyValidatingPolicyViolation(event v1.Event) bool {
+	return event.InvolvedObject.Kind == "ValidatingPolicy" &&
+		event.Reason == "PolicyViolation" &&
+		event.Action == "Resource Passed"
+}
+
+func IsAuditOnlyNamespacedValidatingPolicyViolation(event v1.Event) bool {
+	return event.InvolvedObject.Kind == "NamespacedValidatingPolicy" &&
+		event.Reason == "PolicyViolation" &&
+		event.Action == "Resource Passed"
+}
+
+func IsAuditOnlyImageValidatingPolicyViolation(event v1.Event) bool {
+	return event.InvolvedObject.Kind == "ImageValidatingPolicy" &&
 		event.Reason == "PolicyViolation" &&
 		event.Action == "Resource Passed"
 }
@@ -576,6 +597,57 @@ func CreateBlockedPolicyViolationEvent(auditEvent models.AuditEvent) *models.Pol
 
 func ExtractAuditOnlyClusterPoliciesFromMessage(policyName, message string) map[string]map[string]string {
 	// Deployment default/james1-deployment: [check-for-labels] fail; validation error: The label `abcapp.kubernetes.io/name` is required. rule check-for-labels failed at path /metadata/labels/abcapp.kubernetes.io/name/
+	policies := map[string]map[string]string{}
+	startIndex := strings.Index(message, "[")
+	endIndex := strings.Index(message, "]")
+	ruleName := policyName
+	if startIndex != -1 && endIndex != -1 {
+		ruleName = message[startIndex+1 : endIndex]
+		ruleName = strings.TrimSpace(ruleName)
+	}
+	policies[policyName] = map[string]string{
+		ruleName: message,
+	}
+	return policies
+}
+
+// ExtractAuditOnlyValidatingPoliciesFromMessage extracts policy name from audit-only ValidatingPolicy event message
+// Example message: "Pod default/test-pod-audit-only: [evaluation] error; failed to load context: no such key: labels"
+func ExtractAuditOnlyValidatingPoliciesFromMessage(policyName, message string) map[string]map[string]string {
+	policies := map[string]map[string]string{}
+	startIndex := strings.Index(message, "[")
+	endIndex := strings.Index(message, "]")
+	ruleName := policyName
+	if startIndex != -1 && endIndex != -1 {
+		ruleName = message[startIndex+1 : endIndex]
+		ruleName = strings.TrimSpace(ruleName)
+	}
+	policies[policyName] = map[string]string{
+		ruleName: message,
+	}
+	return policies
+}
+
+// ExtractAuditOnlyNamespacedValidatingPoliciesFromMessage extracts policy name from audit-only NamespacedValidatingPolicy event message
+// Example message: "Deployment default/test-deployment-audit-only: fail; Deployments must have at least 3 replicas for high availability (audit mode)"
+func ExtractAuditOnlyNamespacedValidatingPoliciesFromMessage(policyName, message string) map[string]map[string]string {
+	policies := map[string]map[string]string{}
+	startIndex := strings.Index(message, "[")
+	endIndex := strings.Index(message, "]")
+	ruleName := policyName
+	if startIndex != -1 && endIndex != -1 {
+		ruleName = message[startIndex+1 : endIndex]
+		ruleName = strings.TrimSpace(ruleName)
+	}
+	policies[policyName] = map[string]string{
+		ruleName: message,
+	}
+	return policies
+}
+
+// ExtractAuditOnlyImageValidatingPoliciesFromMessage extracts policy name from audit-only ImageValidatingPolicy event message
+// Example message: "Deployment default/test-deployment-audit-only: [require-signed-images] fail (blocked); policy not evaluated"
+func ExtractAuditOnlyImageValidatingPoliciesFromMessage(policyName, message string) map[string]map[string]string {
 	policies := map[string]map[string]string{}
 	startIndex := strings.Index(message, "[")
 	endIndex := strings.Index(message, "]")
