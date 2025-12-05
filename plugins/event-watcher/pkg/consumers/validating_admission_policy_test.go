@@ -30,6 +30,8 @@ func TestValidatingAdmissionPolicyHandlerHandle(t *testing.T) {
 		Token:        "test-token",
 	}
 	handler := NewValidatingAdmissionPolicyViolationHandler(config, 30, 60)
+	// Use a unique UID to avoid bigcache deduplication
+	uniqueUID := "test-uid-vap-" + time.Now().Format("20060102150405")
 	err := handler.Handle(&models.WatchedEvent{
 		EventVersion: 1,
 		Timestamp:    time.Now().Unix(),
@@ -37,7 +39,7 @@ func TestValidatingAdmissionPolicyHandlerHandle(t *testing.T) {
 		Kind:         "events",
 		Namespace:    "default",
 		Name:         "validating-admission-policy-violation-test",
-		UID:          "test-uid-123",
+		UID:          uniqueUID,
 		Data: map[string]any{
 			"message": "deployments.apps \"nginx-deployment\" is forbidden: ValidatingAdmissionPolicy 'check-deployment-replicas' with binding 'check-deployment-replicas-binding' denied request: failed expression: object.spec.replicas >= 5",
 		},

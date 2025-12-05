@@ -224,11 +224,11 @@ func IsKyvernoPolicyViolation(responseCode int, message string) bool {
 }
 
 func IsValidatingPolicyViolation(responseCode int, message string) bool {
-	if responseCode >= 400 && strings.Contains(message, "vpol.") &&
-		!strings.Contains(message, "ivpol.") &&
-		!strings.Contains(message, "nvpol.") &&
-		strings.Contains(message, "kyverno") {
-		return true
+	if responseCode >= 400 && strings.Contains(message, "kyverno") {
+		// Check for vpol webhook but exclude nvpol and ivpol
+		if strings.Contains(message, "\"vpol.") && !strings.Contains(message, "\"nvpol.") && !strings.Contains(message, "\"ivpol.") {
+			return true
+		}
 	}
 	return false
 }

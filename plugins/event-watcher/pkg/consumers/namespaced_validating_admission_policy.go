@@ -29,6 +29,9 @@ func NewNamespacedValidatingPolicyViolationHandler(insightsConfig models.Insight
 }
 
 func (h *NamespacedValidatingAdmissionPolicyViolationHandler) Handle(watchedEvent *models.WatchedEvent) error {
+	if watchedEvent == nil {
+		return fmt.Errorf("watchedEvent is nil")
+	}
 	logFields := []any{
 		"event_type", watchedEvent.EventType,
 		"kind", watchedEvent.Kind,
