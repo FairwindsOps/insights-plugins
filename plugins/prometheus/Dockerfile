@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM alpine:3.23
 
 RUN apk -U upgrade
 COPY prometheus-collector /usr/local/bin/
