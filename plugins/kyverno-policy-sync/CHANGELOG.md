@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.14
+* Fixed mixing errors from other policy applies
+
 ## 0.1.13
 * Bumped kubectl
 
