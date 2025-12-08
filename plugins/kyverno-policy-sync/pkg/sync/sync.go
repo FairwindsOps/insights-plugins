@@ -229,7 +229,6 @@ func parsePoliciesFromYAML(yamlContent string) ([]ClusterPolicy, error) {
 	var policies []ClusterPolicy
 
 	for {
-		// Parse YAML document
 		var policy map[string]any
 		if err := decoder.Decode(&policy); err != nil {
 			if err == io.EOF {
@@ -238,12 +237,10 @@ func parsePoliciesFromYAML(yamlContent string) ([]ClusterPolicy, error) {
 			return nil, fmt.Errorf("failed to parse YAML document: %w", err)
 		}
 
-		// Skip empty documents
 		if len(policy) == 0 {
 			continue
 		}
 
-		// Extract policy name and metadata
 		metadata, ok := policy["metadata"].(map[string]any)
 		if !ok {
 			slog.Warn("Policy missing metadata")
@@ -256,7 +253,6 @@ func parsePoliciesFromYAML(yamlContent string) ([]ClusterPolicy, error) {
 			continue
 		}
 
-		// Extract kind
 		kind, _ := policy["kind"].(string)
 		if kind == "" {
 			slog.Warn("Policy missing kind", "name", name)

@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+//go:embed testdata/single_policy.yaml
+var singlePoliciesYAML string
+
 //go:embed testdata/multiple_policies.yaml
 var multiplePoliciesYAML string
 
@@ -114,7 +117,11 @@ func TestPolicySyncLock(t *testing.T) {
 }
 
 func TestParseMultiplePoliciesFromYAML(t *testing.T) {
-	policies, err := parsePoliciesFromYAML(multiplePoliciesYAML)
+	policies, err := parsePoliciesFromYAML(singlePoliciesYAML)
+	assert.NoError(t, err)
+	assert.Len(t, policies, 1)
+
+	policies, err = parsePoliciesFromYAML(multiplePoliciesYAML)
 	assert.NoError(t, err)
 	assert.Len(t, policies, 2)
 }
