@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.12
+* Updated alpine to 3.23
+
 ## 0.20.11
 * Bumped go to 1.24.6 for fixing vulnerability
 
