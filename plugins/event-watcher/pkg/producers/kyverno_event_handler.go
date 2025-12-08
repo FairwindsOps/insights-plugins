@@ -127,23 +127,37 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 		return fmt.Errorf("failed to list latest kubernetes events: %w", err)
 	}
 	for _, event := range events.Items {
-		if !utils.IsAuditOnlyClusterPolicyViolation(event) {
-			slog.Debug("Skipping non-audit only cluster policy violation event", "event", event)
+		var watchedEvent *models.WatchedEvent
+		var prefix string
+
+		// Check for audit-only cluster policy violations
+		if utils.IsAuditOnlyClusterPolicyViolation(event) {
+			prefix = utils.AuditOnlyClusterPolicyViolationPrefix
+		} else if utils.IsAuditOnlyValidatingPolicyViolation(event) {
+			prefix = utils.AuditOnlyValidatingPolicyViolationPrefix
+		} else if utils.IsAuditOnlyNamespacedValidatingPolicyViolation(event) {
+			prefix = utils.AuditOnlyNamespacedValidatingPolicyViolationPrefix
+		} else if utils.IsAuditOnlyImageValidatingPolicyViolation(event) {
+			prefix = utils.AuditOnlyImageValidatingPolicyViolationPrefix
+		} else {
+			slog.Debug("Skipping non-audit only policy violation event", "event", event)
 			continue
 		}
+
 		key := fmt.Sprintf("%s-%s-%s-%s", event.InvolvedObject.Namespace, event.InvolvedObject.Name, event.InvolvedObject.Kind, event.ObjectMeta.UID)
 		if utils.IsPolicyViolationAlreadyProcessed(key) {
-			slog.Debug("Kyverno policy violation ID already processed, skipping", "kyverno_policy_violation_id", key)
+			slog.Debug("Policy violation ID already processed, skipping", "policy_violation_id", key)
 			continue
 		}
-		event := &models.WatchedEvent{
+
+		watchedEvent = &models.WatchedEvent{
 			EventVersion: EventVersion,
 			Timestamp:    event.EventTime.Unix(),
 			EventTime:    event.EventTime.UTC().Format(time.RFC3339),
 			EventType:    models.EventTypeAdded,
 			Kind:         event.Related.Kind,
 			Namespace:    event.Related.Namespace,
-			Name:         fmt.Sprintf("%s-%s-%s-%s", utils.AuditOnlyClusterPolicyViolationPrefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
+			Name:         fmt.Sprintf("%s-%s-%s-%s", prefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
 			UID:          string(event.Related.UID),
 			Data: map[string]any{
 				"message":           event.Message,
@@ -173,8 +187,8 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			Success:     false,
 			Blocked:     false,
 		}
-		slog.Debug("Sending audit only cluster policy violation event", "event", event)
-		h.eventChannel <- event
+		slog.Debug("Sending audit only policy violation event", "event", watchedEvent, "prefix", prefix)
+		h.eventChannel <- watchedEvent
 	}
 	return nil
 }
