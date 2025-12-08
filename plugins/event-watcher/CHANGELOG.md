@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.1.21
+## 0.1.22
 * Added support to more policies Audit
+
+## 0.1.21
+* Bumped to go 1.25.5
 
 ## 0.1.20
 * Support to ImageValidatingPolicy

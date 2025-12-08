@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM alpine:3.23
 WORKDIR /insights
 RUN apk -U upgrade
 COPY insights-admission /usr/local/bin/insights-admission
