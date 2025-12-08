@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.13
+* Bumped kubectl
+
 ## 0.1.12
 * Bumped to go 1.25.5
 

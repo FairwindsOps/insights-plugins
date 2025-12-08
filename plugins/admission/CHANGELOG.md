@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.1.6
+* Bumped polaris and pluto
+
 ## 2.1.5
 * Bumped to go 1.25.5
 
