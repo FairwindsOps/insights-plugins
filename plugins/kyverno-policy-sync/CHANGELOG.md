@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.15
+* Fixed mixing errors from other policy applies
+
 ## 0.1.14
 * Improve reliability of parsePoliciesFromYAML function
 * Fix typo in deriveKindFromResourceName function
