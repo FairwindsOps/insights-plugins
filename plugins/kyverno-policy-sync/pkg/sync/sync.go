@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -91,7 +92,7 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 	slog.Info("Found currently deployed Insights-managed policies", "count", len(currentDeployedPolicies))
 
 	// 3. Parse expected policies from YAML
-	parsedManagedPoliciesByInsights, err := p.parsePoliciesFromYAML(managedPoliciesByInsights)
+	parsedManagedPoliciesByInsights, err := parsePoliciesFromYAML(managedPoliciesByInsights)
 	if err != nil {
 		return result, fmt.Errorf("failed to parse expected policies from YAML: %w", err)
 	}
@@ -201,7 +202,7 @@ func deriveKindFromResourceName(resourceName string) string {
 		return "ValidatingAdmissionPolicy"
 	case "clustercleanuppolicies":
 		return "ClusterCleanupPolicy"
-	case "imagevalidatingPolicies":
+	case "imagevalidatingpolicies":
 		return "ImageValidatingPolicy"
 	case "mutatingpolicies":
 		return "MutatingPolicy"
@@ -219,38 +220,39 @@ func deriveKindFromResourceName(resourceName string) string {
 }
 
 // parsePoliciesFromYAML parses policies from YAML content
-func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]ClusterPolicy, error) {
+func parsePoliciesFromYAML(yamlContent string) ([]ClusterPolicy, error) {
 	if strings.TrimSpace(yamlContent) == "" {
 		return []ClusterPolicy{}, nil
 	}
 
-	// Split YAML documents
-	documents := strings.Split(yamlContent, "---")
+	decoder := yaml.NewDecoder(strings.NewReader(yamlContent))
 	var policies []ClusterPolicy
 
-	for _, doc := range documents {
-		doc = strings.TrimSpace(doc)
-		if doc == "" {
-			continue
-		}
-
+	for {
 		// Parse YAML document
 		var policy map[string]any
-		if err := yaml.Unmarshal([]byte(doc), &policy); err != nil {
-			slog.Warn("Failed to parse YAML document", "error", err, "document", doc)
+		if err := decoder.Decode(&policy); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, fmt.Errorf("failed to parse YAML document: %w", err)
+		}
+
+		// Skip empty documents
+		if len(policy) == 0 {
 			continue
 		}
 
 		// Extract policy name and metadata
 		metadata, ok := policy["metadata"].(map[string]any)
 		if !ok {
-			slog.Warn("Policy missing metadata", "document", doc)
+			slog.Warn("Policy missing metadata")
 			continue
 		}
 
 		name, ok := metadata["name"].(string)
 		if !ok {
-			slog.Warn("Policy missing name in metadata", "document", doc)
+			slog.Warn("Policy missing name in metadata")
 			continue
 		}
 
@@ -271,10 +273,15 @@ func (p *PolicySyncProcessor) parsePoliciesFromYAML(yamlContent string) ([]Clust
 			}
 		}
 
+		yamlBytes, err := yaml.Marshal(policy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal policy to YAML: %w", err)
+		}
+
 		policies = append(policies, ClusterPolicy{
 			Kind:        kind,
 			Name:        name,
-			YAML:        []byte(doc),
+			YAML:        yamlBytes,
 			Annotations: annotations,
 			Spec:        policy["spec"].(map[string]any),
 		})
