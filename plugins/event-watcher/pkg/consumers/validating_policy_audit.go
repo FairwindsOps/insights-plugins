@@ -68,9 +68,7 @@ func (h *ValidatingPolicyAuditHandler) Handle(watchedEvent *models.WatchedEvent)
 		EventTime: watchedEvent.EventTime,
 	})
 	if err != nil {
-		slog.Error("Failed to send validating policy audit to Insights", "error", err)
 		return fmt.Errorf("failed to send validating policy audit to Insights: %w", err)
 	}
 	return nil
 }
-

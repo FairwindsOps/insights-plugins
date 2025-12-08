@@ -68,9 +68,7 @@ func (h *NamespacedValidatingPolicyAuditHandler) Handle(watchedEvent *models.Wat
 		EventTime: watchedEvent.EventTime,
 	})
 	if err != nil {
-		slog.Error("Failed to send namespaced validating policy audit to Insights", "error", err)
 		return fmt.Errorf("failed to send namespaced validating policy audit to Insights: %w", err)
 	}
 	return nil
 }
-

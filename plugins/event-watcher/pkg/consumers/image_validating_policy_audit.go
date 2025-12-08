@@ -68,9 +68,7 @@ func (h *ImageValidatingPolicyAuditHandler) Handle(watchedEvent *models.WatchedE
 		EventTime: watchedEvent.EventTime,
 	})
 	if err != nil {
-		slog.Error("Failed to send image validating policy audit to Insights", "error", err)
 		return fmt.Errorf("failed to send image validating policy audit to Insights: %w", err)
 	}
 	return nil
 }
-
