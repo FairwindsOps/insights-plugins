@@ -1,12 +1,19 @@
 package sync
 
 import (
+	_ "embed"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+//go:embed testdata/single_policy.yaml
+var singlePoliciesYAML string
+
+//go:embed testdata/multiple_policies.yaml
+var multiplePoliciesYAML string
 
 // MockInsightsClient is a mock implementation of the insights client
 type MockInsightsClient struct {
@@ -107,4 +114,14 @@ func TestPolicySyncLock(t *testing.T) {
 	assert.Equal(t, "default", lock.Namespace)
 	assert.Equal(t, "test-pod", lock.LockedBy)
 	assert.Equal(t, 30*time.Minute, lock.LockTimeout)
+}
+
+func TestParseMultiplePoliciesFromYAML(t *testing.T) {
+	policies, err := parsePoliciesFromYAML(singlePoliciesYAML)
+	assert.NoError(t, err)
+	assert.Len(t, policies, 1)
+
+	policies, err = parsePoliciesFromYAML(multiplePoliciesYAML)
+	assert.NoError(t, err)
+	assert.Len(t, policies, 2)
 }
