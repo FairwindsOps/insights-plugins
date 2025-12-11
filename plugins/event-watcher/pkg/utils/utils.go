@@ -19,16 +19,16 @@ import (
 )
 
 const (
-	KyvernoPolicyViolationPrefix                    = "kyverno-policy-violation"
-	ValidatingPolicyViolationPrefix                 = "vpol-violation"
-	NamespacedValidatingPolicyViolationPrefix       = "nvpol-violation"
-	ImageValidatingPolicyViolationPrefix            = "ivpol-violation"
-	ValidatingAdmissionPolicyViolationPrefix        = "vap-violation"
-	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
-	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
-	AuditOnlyValidatingPolicyViolationPrefix        = "audit-only-vpol"
+	KyvernoPolicyViolationPrefix                       = "kyverno-policy-violation"
+	ValidatingPolicyViolationPrefix                    = "vpol-violation"
+	NamespacedValidatingPolicyViolationPrefix          = "nvpol-violation"
+	ImageValidatingPolicyViolationPrefix               = "ivpol-violation"
+	ValidatingAdmissionPolicyViolationPrefix           = "vap-violation"
+	AuditOnlyAllowedValidatingAdmissionPolicyPrefix    = "audit-only-vap"
+	AuditOnlyClusterPolicyViolationPrefix              = "audit-only-cp"
+	AuditOnlyValidatingPolicyViolationPrefix           = "audit-only-vpol"
 	AuditOnlyNamespacedValidatingPolicyViolationPrefix = "audit-only-nvpol"
-	AuditOnlyImageValidatingPolicyViolationPrefix   = "audit-only-ivpol"
+	AuditOnlyImageValidatingPolicyViolationPrefix      = "audit-only-ivpol"
 )
 
 var alreadyProcessedAuditIDs *bigcache.BigCache
@@ -135,22 +135,6 @@ func ExtractImageValidatingPoliciesFromMessage(message string) map[string]map[st
 		endIndex := strings.Index(message, " failed:")
 		if startIndex > 0 && endIndex > startIndex {
 			policyName = strings.TrimSpace(message[startIndex:endIndex])
-		}
-	}
-
-	// Pattern 3: Image verification failure - extract error type as policy identifier
-	// Example: admission webhook "ivpol.validate.kyverno.svc-fail" denied the request: annotations not present on object, image verification failed
-	if policyName == "unknown" {
-		if strings.Contains(message, "image verification failed") {
-			if strings.Contains(message, "annotations not present") {
-				policyName = "image-verification-annotations-missing"
-			} else if strings.Contains(message, "signature verification") {
-				policyName = "image-verification-signature-failed"
-			} else {
-				policyName = "image-verification-failed"
-			}
-		} else if strings.Contains(message, "attestation") {
-			policyName = "image-attestation-failed"
 		}
 	}
 
