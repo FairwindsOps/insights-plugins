@@ -295,7 +295,7 @@ func TestCreateBlockedWatchedEventFromAuditEventFromFileNamePlutoBlock(t *testin
 	assert.NotNil(t, watchedEvent)
 	assert.Equal(t, "Pod", watchedEvent.Kind)
 	assert.Equal(t, "insights-agent", watchedEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", watchedEvent.Name)
+	assert.Equal(t, "pol-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", watchedEvent.Name)
 	assert.Equal(t, "a8779987-0a41-482c-a28d-9fa27e8cb364", watchedEvent.UID)
 	assert.Equal(t, false, watchedEvent.Success)
 	assert.Equal(t, true, watchedEvent.Blocked)
@@ -324,7 +324,7 @@ func TestCreateBlockedPolicyViolationEventFromPlutoBlock(t *testing.T) {
 	assert.NotNil(t, policyViolationEvent)
 	assert.Equal(t, "Pod", policyViolationEvent.ResourceType)
 	assert.Equal(t, "insights-agent", policyViolationEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", policyViolationEvent.Name)
+	assert.Equal(t, "pol-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", policyViolationEvent.Name)
 	assert.Equal(t, "a8779987-0a41-482c-a28d-9fa27e8cb364", policyViolationEvent.AuditID)
 	assert.Equal(t, map[string]map[string]string{
 		"james-require-labels": {
