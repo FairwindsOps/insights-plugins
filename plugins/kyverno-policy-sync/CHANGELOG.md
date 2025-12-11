@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.17 
+* Fixed unkown policy name
+
 ## 0.1.16
 * Fixed log message
 
