@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.17
+* Refactor sync lock mechanism to use k8s lease locks
+
 ## 0.1.16
 * Fixed log message
 
