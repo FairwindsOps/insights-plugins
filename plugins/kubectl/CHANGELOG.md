@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.20.13
+* Bumped kubectlVersion to v1.34.3
+
 ## 0.20.12
 * Updated alpine to 3.23
 
