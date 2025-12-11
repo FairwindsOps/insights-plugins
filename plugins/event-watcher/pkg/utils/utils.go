@@ -118,21 +118,20 @@ func ExtractImageValidatingPoliciesFromMessage(message string) map[string]map[st
 		}
 	}
 
-	// Pattern 1: "denied the request: Policy <name> error: ..."
+	// Extract policy name from "denied the request: Policy <name> error/failed: ..."
 	// Example: admission webhook "ivpol.validate.kyverno.svc-fail" denied the request: Policy require-signed-images error: failed to evaluate policy...
-	if strings.Contains(message, "denied the request: Policy") && strings.Contains(message, " error:") {
-		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
-		endIndex := strings.Index(message, " error:")
-		if startIndex > 0 && endIndex > startIndex {
-			policyName = strings.TrimSpace(message[startIndex:endIndex])
-		}
-	}
-
-	// Pattern 2: "denied the request: Policy <name> failed: ..."
 	// Example: admission webhook "ivpol.validate.kyverno.svc-fail" denied the request: Policy my-policy failed: validation failed
-	if policyName == "unknown" && strings.Contains(message, "denied the request: Policy") && strings.Contains(message, " failed:") {
+	if strings.Contains(message, "denied the request: Policy") {
 		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
-		endIndex := strings.Index(message, " failed:")
+		// Try to find the end marker (" error:" or " failed:")
+		endIndex := -1
+		for _, marker := range []string{" error:", " failed:"} {
+			if idx := strings.Index(message, marker); idx > startIndex {
+				if endIndex == -1 || idx < endIndex {
+					endIndex = idx
+				}
+			}
+		}
 		if startIndex > 0 && endIndex > startIndex {
 			policyName = strings.TrimSpace(message[startIndex:endIndex])
 		}
