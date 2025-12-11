@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.16
+* Fixed log message
+
 ## 0.1.15
 * Fixed mixing errors from other policy applies
 
