@@ -114,8 +114,8 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 
 	// 6. Generate summary
 	result.Duration = time.Since(startTime)
-	result.Summary = p.generateSummary(result)
 	result.Success = len(result.Errors) == 0
+	result.Summary = p.generateSummary(result)
 
 	slog.Info("Kyverno policy sync completed",
 		"success", result.Success,
