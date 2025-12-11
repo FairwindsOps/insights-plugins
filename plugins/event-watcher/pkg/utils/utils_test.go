@@ -268,7 +268,7 @@ func TestCreateBlockedWatchedEventFromAuditEventFromFileName(t *testing.T) {
 	assert.NotNil(t, watchedEvent)
 	assert.Equal(t, "Pod", watchedEvent.Kind)
 	assert.Equal(t, "insights-agent", watchedEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Pod-workloads-29372898-vt4pm-cef08638-bd92-4d0f-b261-87863d98d271", watchedEvent.Name)
+	assert.Equal(t, "pol-violation-Pod-workloads-29372898-vt4pm-cef08638-bd92-4d0f-b261-87863d98d271", watchedEvent.Name)
 	assert.Equal(t, "cef08638-bd92-4d0f-b261-87863d98d271", watchedEvent.UID)
 	assert.Equal(t, false, watchedEvent.Success)
 	assert.Equal(t, true, watchedEvent.Blocked)
