@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 
 	"github.com/spf13/viper"
 )
@@ -19,9 +18,8 @@ type Config struct {
 	DevMode      bool   `mapstructure:"devMode"`
 
 	// Sync configuration
-	DryRun           bool          `mapstructure:"dryRun"`
-	LockTimeout      time.Duration `mapstructure:"lockTimeout"`
-	ValidatePolicies bool          `mapstructure:"validatePolicies"`
+	DryRun           bool `mapstructure:"dryRun"`
+	ValidatePolicies bool `mapstructure:"validatePolicies"`
 
 	// Logging
 	LogLevel string `mapstructure:"logLevel"`
@@ -37,7 +35,6 @@ func LoadConfig() (*Config, error) {
 	// Set default values
 	viper.SetDefault("devMode", false)
 	viper.SetDefault("dryRun", false)
-	viper.SetDefault("lockTimeout", "30m")
 	viper.SetDefault("validatePolicies", true)
 	viper.SetDefault("logLevel", "info")
 
@@ -60,7 +57,6 @@ func LoadConfig() (*Config, error) {
 	viper.BindEnv("cluster", "FAIRWINDS_CLUSTER")
 	viper.BindEnv("devMode", "FAIRWINDS_DEV_MODE")
 	viper.BindEnv("dryRun", "DRY_RUN")
-	viper.BindEnv("lockTimeout", "LOCK_TIMEOUT")
 	viper.BindEnv("validatePolicies", "VALIDATE_POLICIES")
 	viper.BindEnv("logLevel", "LOG_LEVEL")
 

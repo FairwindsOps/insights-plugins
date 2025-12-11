@@ -38,12 +38,9 @@ func (m *MockK8sClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 func TestPolicySyncConfig(t *testing.T) {
 	config := PolicySyncConfig{
 		DryRun:           true,
-		LockTimeout:      30 * time.Minute,
 		ValidatePolicies: true,
 	}
-
 	assert.True(t, config.DryRun)
-	assert.Equal(t, 30*time.Minute, config.LockTimeout)
 	assert.True(t, config.ValidatePolicies)
 }
 
@@ -99,21 +96,6 @@ func TestClusterPolicy(t *testing.T) {
 	assert.Equal(t, "test-policy", policy.Name)
 	assert.Equal(t, "Fairwinds Insights", policy.Annotations["insights.fairwinds.com/owned-by"])
 	assert.Equal(t, "enforce", policy.Spec["validationFailureAction"])
-}
-
-func TestPolicySyncLock(t *testing.T) {
-	lock := PolicySyncLock{
-		ConfigMapName: "kyverno-policy-sync-lock",
-		Namespace:     "default",
-		LockedBy:      "test-pod",
-		LockTimeout:   30 * time.Minute,
-		K8sClient:     nil, // Mock client would be used in real tests
-	}
-
-	assert.Equal(t, "kyverno-policy-sync-lock", lock.ConfigMapName)
-	assert.Equal(t, "default", lock.Namespace)
-	assert.Equal(t, "test-pod", lock.LockedBy)
-	assert.Equal(t, 30*time.Minute, lock.LockTimeout)
 }
 
 func TestParseMultiplePoliciesFromYAML(t *testing.T) {
