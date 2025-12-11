@@ -42,6 +42,104 @@ func TestExtractImageValidatingPoliciesFromMessage(t *testing.T) {
 	}, result)
 }
 
+func TestExtractImageValidatingPoliciesFromMessage_AllPatterns(t *testing.T) {
+	tests := []struct {
+		name           string
+		message        string
+		expectedPolicy string
+	}{
+		{
+			name:           "Pattern 1: Policy error format",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: Policy require-signed-images error: failed to evaluate policy",
+			expectedPolicy: "require-signed-images",
+		},
+		{
+			name:           "Pattern 2: Policy failed format",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: Policy my-test-ivpol-block-all failed: All images are blocked by policy",
+			expectedPolicy: "my-test-ivpol-block-all",
+		},
+		{
+			name:           "Image verification failed without policy name returns unknown",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: annotations not present on object, image verification failed",
+			expectedPolicy: "unknown",
+		},
+		{
+			name:           "Non-ivpol message returns unknown",
+			message:        "admission webhook \"vpol.validate.kyverno.svc-fail\" denied the request: Policy check-labels failed",
+			expectedPolicy: "unknown",
+		},
+		{
+			name:           "Non-kyverno message returns unknown",
+			message:        "some other webhook denied the request",
+			expectedPolicy: "unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ExtractImageValidatingPoliciesFromMessage(tt.message)
+			assert.Equal(t, 1, len(result), "Expected exactly one policy in result")
+
+			// Check that the expected policy key exists
+			_, exists := result[tt.expectedPolicy]
+			assert.True(t, exists, "Expected policy '%s' not found in result. Got: %v", tt.expectedPolicy, result)
+
+			// Verify the message is preserved in the inner map
+			if exists {
+				innerMap := result[tt.expectedPolicy]
+				assert.Equal(t, tt.message, innerMap[tt.expectedPolicy], "Message should be preserved in result")
+			}
+		})
+	}
+}
+
+func TestExtractImageValidatingPoliciesFromMessage_RealWorldExamples(t *testing.T) {
+	// These are real-world error messages from Kyverno ImageValidatingPolicy
+	tests := []struct {
+		name           string
+		message        string
+		expectedPolicy string
+	}{
+		{
+			name:           "Real: Policy evaluation with DNS error",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: Policy require-signed-images error: failed to evaluate policy: Get \"https://untrusted.registry.io/v2/\": dial tcp: lookup untrusted.registry.io on 10.96.0.10:53: no such host",
+			expectedPolicy: "require-signed-images",
+		},
+		{
+			name:           "Real: Custom validation expression failure",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: Policy my-test-ivpol-block-all failed: All images are blocked by my-test-ivpol-block-all policy",
+			expectedPolicy: "my-test-ivpol-block-all",
+		},
+		{
+			name:           "Real: Cosign signature check failure",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: Policy verify-images error: signature verification failed: no matching signatures found",
+			expectedPolicy: "verify-images",
+		},
+		{
+			name:           "Real: Image verification failed without policy name",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: annotations not present on object, image verification failed",
+			expectedPolicy: "unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ExtractImageValidatingPoliciesFromMessage(tt.message)
+			_, exists := result[tt.expectedPolicy]
+			assert.True(t, exists, "Expected policy '%s' not found. Got keys: %v", tt.expectedPolicy, getKeys(result))
+		})
+	}
+}
+
+// Helper function to get map keys for better error messages
+func getKeys(m map[string]map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func TestExtractPoliciesDoNotMix(t *testing.T) {
 	// Test that vpol message doesn't match nvpol or ivpol
 	vpolMessage := "admission webhook \"vpol.validate.kyverno.svc-fail\" denied the request: Policy check-labels failed: label 'environment' is required"
@@ -170,7 +268,7 @@ func TestCreateBlockedWatchedEventFromAuditEventFromFileName(t *testing.T) {
 	assert.NotNil(t, watchedEvent)
 	assert.Equal(t, "Pod", watchedEvent.Kind)
 	assert.Equal(t, "insights-agent", watchedEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Pod-workloads-29372898-vt4pm-cef08638-bd92-4d0f-b261-87863d98d271", watchedEvent.Name)
+	assert.Equal(t, "pol-violation-Pod-workloads-29372898-vt4pm-cef08638-bd92-4d0f-b261-87863d98d271", watchedEvent.Name)
 	assert.Equal(t, "cef08638-bd92-4d0f-b261-87863d98d271", watchedEvent.UID)
 	assert.Equal(t, false, watchedEvent.Success)
 	assert.Equal(t, true, watchedEvent.Blocked)
@@ -197,7 +295,7 @@ func TestCreateBlockedWatchedEventFromAuditEventFromFileNamePlutoBlock(t *testin
 	assert.NotNil(t, watchedEvent)
 	assert.Equal(t, "Pod", watchedEvent.Kind)
 	assert.Equal(t, "insights-agent", watchedEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", watchedEvent.Name)
+	assert.Equal(t, "pol-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", watchedEvent.Name)
 	assert.Equal(t, "a8779987-0a41-482c-a28d-9fa27e8cb364", watchedEvent.UID)
 	assert.Equal(t, false, watchedEvent.Success)
 	assert.Equal(t, true, watchedEvent.Blocked)
@@ -226,7 +324,7 @@ func TestCreateBlockedPolicyViolationEventFromPlutoBlock(t *testing.T) {
 	assert.NotNil(t, policyViolationEvent)
 	assert.Equal(t, "Pod", policyViolationEvent.ResourceType)
 	assert.Equal(t, "insights-agent", policyViolationEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", policyViolationEvent.Name)
+	assert.Equal(t, "pol-violation-Pod-pluto-29373967-cmtdc-a8779987-0a41-482c-a28d-9fa27e8cb364", policyViolationEvent.Name)
 	assert.Equal(t, "a8779987-0a41-482c-a28d-9fa27e8cb364", policyViolationEvent.AuditID)
 	assert.Equal(t, map[string]map[string]string{
 		"james-require-labels": {

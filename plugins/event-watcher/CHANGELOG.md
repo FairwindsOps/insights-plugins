@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.23
+* Fix parsing image validation policy name
+
 ## 0.1.22
 * Added support to more policies Audit
 

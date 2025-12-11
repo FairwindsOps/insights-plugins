@@ -19,16 +19,16 @@ import (
 )
 
 const (
-	KyvernoPolicyViolationPrefix                    = "kyverno-policy-violation"
-	ValidatingPolicyViolationPrefix                 = "vpol-violation"
-	NamespacedValidatingPolicyViolationPrefix       = "nvpol-violation"
-	ImageValidatingPolicyViolationPrefix            = "ivpol-violation"
-	ValidatingAdmissionPolicyViolationPrefix        = "vap-violation"
-	AuditOnlyAllowedValidatingAdmissionPolicyPrefix = "audit-only-vap"
-	AuditOnlyClusterPolicyViolationPrefix           = "audit-only-cp"
-	AuditOnlyValidatingPolicyViolationPrefix        = "audit-only-vpol"
+	KyvernoPolicyViolationPrefix                       = "pol-violation"
+	ValidatingPolicyViolationPrefix                    = "vpol-violation"
+	NamespacedValidatingPolicyViolationPrefix          = "nvpol-violation"
+	ImageValidatingPolicyViolationPrefix               = "ivpol-violation"
+	ValidatingAdmissionPolicyViolationPrefix           = "vap-violation"
+	AuditOnlyAllowedValidatingAdmissionPolicyPrefix    = "audit-only-vap"
+	AuditOnlyClusterPolicyViolationPrefix              = "audit-only-cp"
+	AuditOnlyValidatingPolicyViolationPrefix           = "audit-only-vpol"
 	AuditOnlyNamespacedValidatingPolicyViolationPrefix = "audit-only-nvpol"
-	AuditOnlyImageValidatingPolicyViolationPrefix   = "audit-only-ivpol"
+	AuditOnlyImageValidatingPolicyViolationPrefix      = "audit-only-ivpol"
 )
 
 var alreadyProcessedAuditIDs *bigcache.BigCache
@@ -108,15 +108,35 @@ func ExtractNamespacedValidatingPoliciesFromMessage(message string) map[string]m
 
 func ExtractImageValidatingPoliciesFromMessage(message string) map[string]map[string]string {
 	policyName := "unknown"
-	// Example: admission webhook "ivpol.validate.kyverno.svc-fail" denied the request: Policy require-signed-images error: failed to evaluate policy: Get "https://untrusted.registry.io/v2/": dial tcp: lookup untrusted.registry.io on 10.96.0.10:53: no such host
-	if strings.Contains(message, "ivpol.") && strings.Contains(message, "kyverno") && strings.Contains(message, "denied the request:") {
-		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
-		endIndex := strings.Index(message, " error:")
-		if startIndex != -1 && endIndex != -1 {
-			policyName = message[startIndex:endIndex]
-			policyName = strings.TrimSpace(policyName)
+
+	// Only process ImageValidatingPolicy messages
+	if !strings.Contains(message, "ivpol.") || !strings.Contains(message, "kyverno") || !strings.Contains(message, "denied the request:") {
+		return map[string]map[string]string{
+			policyName: {
+				policyName: message,
+			},
 		}
 	}
+
+	// Extract policy name from "denied the request: Policy <name> error/failed: ..."
+	// Example: admission webhook "ivpol.validate.kyverno.svc-fail" denied the request: Policy require-signed-images error: failed to evaluate policy...
+	// Example: admission webhook "ivpol.validate.kyverno.svc-fail" denied the request: Policy my-policy failed: validation failed
+	if strings.Contains(message, "denied the request: Policy") {
+		startIndex := strings.Index(message, "denied the request: Policy") + len("denied the request: Policy")
+		// Try to find the end marker (" error:" or " failed:")
+		endIndex := -1
+		for _, marker := range []string{" error:", " failed:"} {
+			if idx := strings.Index(message, marker); idx > startIndex {
+				if endIndex == -1 || idx < endIndex {
+					endIndex = idx
+				}
+			}
+		}
+		if startIndex > 0 && endIndex > startIndex {
+			policyName = strings.TrimSpace(message[startIndex:endIndex])
+		}
+	}
+
 	return map[string]map[string]string{
 		policyName: {
 			policyName: message,
