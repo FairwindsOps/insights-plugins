@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.13
+* Bumped helm version
+
 ## 6.1.12
 * Bumped polaris
 

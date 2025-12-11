@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.23
+* Bumped kubectlVersion to v1.34.3
+
 ## 0.5.22
 * Updated kubectlVersion to 1.34.2
 
