@@ -8,9 +8,8 @@ import (
 
 // PolicySyncConfig represents the configuration for Kyverno policy sync
 type PolicySyncConfig struct {
-	DryRun           bool          `mapstructure:"dryRun"`
-	LockTimeout      time.Duration `mapstructure:"lockTimeout"`
-	ValidatePolicies bool          `mapstructure:"validatePolicies"`
+	DryRun           bool `mapstructure:"dryRun"`
+	ValidatePolicies bool `mapstructure:"validatePolicies"`
 }
 
 // PolicySyncActions represents the actions to be taken during policy sync
@@ -43,11 +42,10 @@ type ClusterPolicy struct {
 	YAML        []byte                 `json:"yaml"`
 }
 
-// PolicySyncLock represents a distributed lock using Kubernetes ConfigMap for preventing concurrent sync operations
+// PolicySyncLock represents a distributed lock using Kubernetes Lease for preventing concurrent sync operations
 type PolicySyncLock struct {
-	ConfigMapName string
-	Namespace     string
-	LockedBy      string
-	LockTimeout   time.Duration
-	K8sClient     kubernetes.Interface
+	LeaseName string
+	Namespace string
+	LockedBy  string
+	K8sClient kubernetes.Interface
 }

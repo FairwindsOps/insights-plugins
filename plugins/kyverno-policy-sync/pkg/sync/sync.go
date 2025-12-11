@@ -47,17 +47,38 @@ func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes
 		restMapper:     restMapper,
 		config:         config,
 		lock: &PolicySyncLock{
-			ConfigMapName: "kyverno-policy-sync-lock",
-			Namespace:     namespace,
-			LockedBy:      lockedBy,
-			LockTimeout:   config.LockTimeout,
-			K8sClient:     k8sClient,
+			LeaseName: "kyverno-policy-sync-lock",
+			Namespace: namespace,
+			LockedBy:  lockedBy,
+			K8sClient: k8sClient,
 		},
 	}
 }
 
-// SyncPolicies performs the complete policy synchronization process
+// SyncPolicies performs the complete policy synchronization process with leader election
 func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResult, error) {
+	var result *PolicySyncResult
+	var syncErr error
+
+	// Run with leader election - the sync function will only execute when this instance becomes the leader
+	err := p.lock.RunWithLeaderElection(ctx, func(leaderCtx context.Context) error {
+		result, syncErr = p.syncPoliciesInternal(leaderCtx)
+		return syncErr
+	})
+
+	if err != nil {
+		return &PolicySyncResult{DryRun: p.config.DryRun, Success: false, Errors: []string{err.Error()}}, fmt.Errorf("leader election failed: %w", err)
+	}
+
+	if result == nil {
+		return &PolicySyncResult{DryRun: p.config.DryRun, Success: false, Errors: []string{"sync result is nil"}}, fmt.Errorf("sync result is nil")
+	}
+
+	return result, syncErr
+}
+
+// syncPoliciesInternal performs the actual policy synchronization (called only by the leader)
+func (p *PolicySyncProcessor) syncPoliciesInternal(ctx context.Context) (*PolicySyncResult, error) {
 	startTime := time.Now()
 	result := &PolicySyncResult{
 		DryRun:  p.config.DryRun,
@@ -70,12 +91,6 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 	}
 
 	slog.Info("Starting Kyverno policy sync", "dryRun", p.config.DryRun)
-
-	// Acquire lock to prevent concurrent sync operations
-	if err := p.lock.Acquire(); err != nil {
-		return result, fmt.Errorf("failed to acquire sync lock: %w", err)
-	}
-	defer p.lock.Release()
 
 	// 1. Fetch expected policies from Insights API
 	managedPoliciesByInsights, err := p.insightsClient.GetClusterKyvernoPoliciesYAML()
