@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	KyvernoPolicyViolationPrefix                       = "kyverno-policy-violation"
+	KyvernoPolicyViolationPrefix                       = "pol-violation"
 	ValidatingPolicyViolationPrefix                    = "vpol-violation"
 	NamespacedValidatingPolicyViolationPrefix          = "nvpol-violation"
 	ImageValidatingPolicyViolationPrefix               = "ivpol-violation"

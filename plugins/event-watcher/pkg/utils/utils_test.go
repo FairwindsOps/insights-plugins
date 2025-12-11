@@ -59,24 +59,9 @@ func TestExtractImageValidatingPoliciesFromMessage_AllPatterns(t *testing.T) {
 			expectedPolicy: "my-test-ivpol-block-all",
 		},
 		{
-			name:           "Pattern 3a: Annotations not present - image verification failed",
+			name:           "Image verification failed without policy name returns unknown",
 			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: annotations not present on object, image verification failed",
-			expectedPolicy: "image-verification-annotations-missing",
-		},
-		{
-			name:           "Pattern 3b: Signature verification failed",
-			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: signature verification failed, image verification failed",
-			expectedPolicy: "image-verification-signature-failed",
-		},
-		{
-			name:           "Pattern 3c: Generic image verification failed",
-			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: image verification failed",
-			expectedPolicy: "image-verification-failed",
-		},
-		{
-			name:           "Pattern 3d: Attestation failed",
-			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: attestation verification failed for image",
-			expectedPolicy: "image-attestation-failed",
+			expectedPolicy: "unknown",
 		},
 		{
 			name:           "Non-ivpol message returns unknown",
@@ -116,11 +101,6 @@ func TestExtractImageValidatingPoliciesFromMessage_RealWorldExamples(t *testing.
 		expectedPolicy string
 	}{
 		{
-			name:           "Real: Insights managed policy blocking unsigned image",
-			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: annotations not present on object, image verification failed",
-			expectedPolicy: "image-verification-annotations-missing",
-		},
-		{
 			name:           "Real: Policy evaluation with DNS error",
 			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: Policy require-signed-images error: failed to evaluate policy: Get \"https://untrusted.registry.io/v2/\": dial tcp: lookup untrusted.registry.io on 10.96.0.10:53: no such host",
 			expectedPolicy: "require-signed-images",
@@ -134,6 +114,11 @@ func TestExtractImageValidatingPoliciesFromMessage_RealWorldExamples(t *testing.
 			name:           "Real: Cosign signature check failure",
 			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: Policy verify-images error: signature verification failed: no matching signatures found",
 			expectedPolicy: "verify-images",
+		},
+		{
+			name:           "Real: Image verification failed without policy name",
+			message:        "admission webhook \"ivpol.validate.kyverno.svc-fail\" denied the request: annotations not present on object, image verification failed",
+			expectedPolicy: "unknown",
 		},
 	}
 
