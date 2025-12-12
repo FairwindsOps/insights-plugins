@@ -9,12 +9,14 @@ import (
 
 	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/insights"
 	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/k8s"
+	"github.com/samber/lo"
 	"k8s.io/client-go/kubernetes"
 )
 
 type JobConfig struct {
-	cronJobName string
-	timeout     time.Duration
+	cronJobName  string
+	timeout      time.Duration
+	backoffLimit *int32
 }
 
 var reportTypeJobConfigMap = map[string]JobConfig{
@@ -32,7 +34,7 @@ var reportTypeJobConfigMap = map[string]JobConfig{
 	"kube-hunter":         {cronJobName: "kube-hunter", timeout: 5 * time.Minute},
 	"kube-bench":          {cronJobName: "kube-bench", timeout: 5 * time.Minute},
 	"kyverno":             {cronJobName: "kyverno", timeout: 5 * time.Minute},
-	"kyverno-policy-sync": {cronJobName: "kyverno-policy-sync", timeout: 10 * time.Minute},
+	"kyverno-policy-sync": {cronJobName: "kyverno-policy-sync", timeout: 10 * time.Minute, backoffLimit: lo.ToPtr(int32(0))}, // no retries
 	"gonogo":              {cronJobName: "gonogo", timeout: 5 * time.Minute},
 }
 
@@ -95,7 +97,7 @@ func processOnDemandJob(clientset *kubernetes.Clientset, onDemandJob insights.On
 	}
 
 	jobName := k8s.GenerateJobName(jobConfig.cronJobName, onDemandJob.ID)
-	job, err := k8s.CreateJobFromCronJob(context.TODO(), clientset, namespace, jobConfig.cronJobName, jobName, onDemandJob.OptionsToEnvVars())
+	job, err := k8s.CreateJobFromCronJob(context.TODO(), clientset, namespace, jobConfig.cronJobName, jobName, onDemandJob.OptionsToEnvVars(), jobConfig.backoffLimit)
 	if err != nil {
 		return fmt.Errorf("failed to create job from cron job %s: %w", jobConfig.cronJobName, err)
 	}

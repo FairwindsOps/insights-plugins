@@ -37,7 +37,7 @@ func GetClientSet() (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-func CreateJobFromCronJob(ctx context.Context, clientset *kubernetes.Clientset, namespace, cronJobName, newJobName string, extraEnv []corev1.EnvVar) (*batchv1.Job, error) {
+func CreateJobFromCronJob(ctx context.Context, clientset *kubernetes.Clientset, namespace, cronJobName, newJobName string, extraEnv []corev1.EnvVar, backoffLimit *int32) (*batchv1.Job, error) {
 	cronJob, err := clientset.BatchV1().CronJobs(namespace).Get(ctx, cronJobName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get CronJob %s in namespace %s: %w", cronJobName, namespace, err)
@@ -46,6 +46,7 @@ func CreateJobFromCronJob(ctx context.Context, clientset *kubernetes.Clientset, 
 	// Construct Job from CronJob spec
 	jobSpec := cronJob.Spec.JobTemplate.Spec
 	jobSpec.TTLSecondsAfterFinished = lo.ToPtr(int32(10 * 60)) // Set TTL to 5 minutes
+	jobSpec.BackoffLimit = backoffLimit
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      newJobName,
