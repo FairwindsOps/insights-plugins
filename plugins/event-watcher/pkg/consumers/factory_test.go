@@ -136,7 +136,7 @@ func TestEventHandlerFactoryGetHandlerNames(t *testing.T) {
 
 	// Verify we have the expected default handlers
 	expectedHandlers := []string{
-		"kyverno-policy-violation",
+		"pol-violation",
 	}
 
 	for _, expected := range expectedHandlers {
@@ -181,7 +181,7 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 		{
 			name: "Kyverno PolicyViolation event",
 			event: &models.WatchedEvent{
-				Name:      "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2",
+				Name:      "pol-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2",
 				Kind:      "Deployment",
 				Namespace: "default",
 				UID:       "5c0888f1-bdd0-4681-9aba-5b734c267df2",
@@ -205,7 +205,7 @@ func TestEventHandlerFactoryGetHandlerName(t *testing.T) {
 					"event_time":    "2025-10-23T10:23:37.369146Z",
 				},
 			},
-			expectedName: "kyverno-policy-violation",
+			expectedName: "pol-violation",
 		},
 		{
 			name: "Kyverno ClusterPolicy resource",

@@ -49,7 +49,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 			EventType:    models.EventTypeAdded,
 			Kind:         "events",
 			Namespace:    "default",
-			Name:         "kyverno-policy-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
+			Name:         "pol-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
 			UID:          "test-uid-123",
 			Success:      false,
 			Blocked:      true,
@@ -65,7 +65,7 @@ func TestWatcherHandlerFactory(t *testing.T) {
 				},
 			},
 			Metadata: map[string]any{
-				"name":      "kyverno-policy-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
+				"name":      "pol-violation-ValidatingAdmissionPolicy-require-team-label-test-uid-123",
 				"namespace": "default",
 				"uid":       "test-uid-123",
 			},
