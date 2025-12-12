@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.8
+* Add support for `backoffLimit` and set no-retries for `kyverno-policy-sync`
+
 ## 0.1.7
 * Bumped to go 1.25.5
 
