@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.24
+* Bug fixes
+
 ## 0.1.23
 * Fix parsing image validation policy name
 
