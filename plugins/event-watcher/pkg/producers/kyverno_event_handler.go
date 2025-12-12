@@ -13,6 +13,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -150,15 +151,36 @@ func (h *KubernetesEventHandler) processKyvernoKubernetesEvents(ctx context.Cont
 			continue
 		}
 
+		// Extract resource info from Related if available, otherwise fall back to InvolvedObject
+		// Some Kyverno events may not have the Related field populated
+		var resourceKind, resourceNamespace, resourceName string
+		var resourceUID types.UID
+		if event.Related != nil {
+			resourceKind = event.Related.Kind
+			resourceNamespace = event.Related.Namespace
+			resourceName = event.Related.Name
+			resourceUID = event.Related.UID
+		} else {
+			// Fall back to InvolvedObject (which is the policy, not the resource)
+			// Log a warning since this is unexpected but shouldn't crash
+			slog.Warn("Event has no Related field, using InvolvedObject as fallback",
+				"eventName", event.ObjectMeta.Name,
+				"involvedObject", event.InvolvedObject.Name)
+			resourceKind = event.InvolvedObject.Kind
+			resourceNamespace = event.InvolvedObject.Namespace
+			resourceName = event.InvolvedObject.Name
+			resourceUID = event.InvolvedObject.UID
+		}
+
 		watchedEvent = &models.WatchedEvent{
 			EventVersion: EventVersion,
 			Timestamp:    event.EventTime.Unix(),
 			EventTime:    event.EventTime.UTC().Format(time.RFC3339),
 			EventType:    models.EventTypeAdded,
-			Kind:         event.Related.Kind,
-			Namespace:    event.Related.Namespace,
-			Name:         fmt.Sprintf("%s-%s-%s-%s", prefix, event.Related.Kind, event.Related.Name, event.ObjectMeta.UID),
-			UID:          string(event.Related.UID),
+			Kind:         resourceKind,
+			Namespace:    resourceNamespace,
+			Name:         fmt.Sprintf("%s-%s-%s-%s", prefix, resourceKind, resourceName, event.ObjectMeta.UID),
+			UID:          string(resourceUID),
 			Data: map[string]any{
 				"message":           event.Message,
 				"policyName":        event.InvolvedObject.Name,

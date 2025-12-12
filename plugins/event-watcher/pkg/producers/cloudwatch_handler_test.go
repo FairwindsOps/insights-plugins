@@ -86,7 +86,7 @@ func TestCloudWatchHandlerCreateBlockedWatchedEventFromPolicyViolationEvent(t *t
 
 	assert.Equal(t, "Deployment", policyViolationEvent.ResourceType)
 	assert.Equal(t, "default", policyViolationEvent.Namespace)
-	assert.Equal(t, "kyverno-policy-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2", policyViolationEvent.Name)
+	assert.Equal(t, "pol-violation-Deployment-nginx-deployment-5c0888f1-bdd0-4681-9aba-5b734c267df2", policyViolationEvent.Name)
 	assert.Equal(t, "Failure", policyViolationEvent.Action)
 	assert.Equal(t, "5c0888f1-bdd0-4681-9aba-5b734c267df2", policyViolationEvent.AuditID)
 
