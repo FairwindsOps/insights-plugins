@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.1.19
-* Bug fixes
-
 ## 0.1.18
 * Refactor sync lock mechanism to use k8s lease locks
 
