@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.25
+* Bump dependency libraries
+
 ## 0.1.24
 * Bug fixes
 

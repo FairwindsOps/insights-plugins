@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.33.11
+* Bump dependency libraries
+
 ## 0.33.10
 * Updated kubectlVersion to 1.34.2
 

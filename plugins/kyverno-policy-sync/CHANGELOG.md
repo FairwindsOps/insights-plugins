@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.19
+* Bump dependency libraries
+
 ## 0.1.18
 * Refactor sync lock mechanism to use k8s lease locks
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.9
+* Bump dependency libraries
+
 ## 0.1.8
 * Add support for `backoffLimit` and set no-retries for `kyverno-policy-sync`
 
