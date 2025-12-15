@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.1.14
+* Bump library dependencies
+
 ## 6.1.13
 * Bumped helm version
 
