@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.34
+* Bump library dependencies
+
 ## 1.3.33
 * Bumped to go 1.25.5
 
