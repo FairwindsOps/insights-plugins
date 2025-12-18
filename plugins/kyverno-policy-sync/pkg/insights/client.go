@@ -106,3 +106,19 @@ func (m MockClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, ou
 	slog.Info("Mock: Updating Kyverno policy status", "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
 	return nil
 }
+
+func NewDryRunClient() Client {
+	return &DryRunClient{}
+}
+
+type DryRunClient struct{}
+
+func (d DryRunClient) GetClusterKyvernoPoliciesYAML() (string, error) {
+	slog.Info("Dry run: Getting cluster Kyverno policies YAML")
+	return "", nil
+}
+
+func (d DryRunClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error {
+	slog.Info("Dry run: Updating Kyverno policy status", "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
+	return nil
+}

@@ -11,18 +11,18 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type PolicyManager interface {
+	applyPolicy(ctx context.Context, policy ClusterPolicy) error
+	removePolicy(ctx context.Context, policy ClusterPolicy) error
+}
+
 // PolicyManager handles the application and management of Kyverno policies
-type PolicyManager struct {
-	client        kubernetes.Interface
-	dynamicClient dynamic.Interface
+type DefaultPolicyManager struct {
 }
 
 // NewPolicyManager creates a new policy manager
-func NewPolicyManager(client kubernetes.Interface, dynamicClient dynamic.Interface) *PolicyManager {
-	return &PolicyManager{
-		client:        client,
-		dynamicClient: dynamicClient,
-	}
+func NewDefaultPolicyManager(client kubernetes.Interface, dynamicClient dynamic.Interface) PolicyManager {
+	return &DefaultPolicyManager{}
 }
 
 // ensureTempDir ensures the temporary directory exists
@@ -36,7 +36,6 @@ func ensureTempDir() error {
 
 // executeSyncActions executes the actual sync actions
 func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions PolicySyncActions, managedPoliciesByInsights []ClusterPolicy, result *PolicySyncResult) error {
-	policyManager := NewPolicyManager(p.k8sClient, p.dynamicClient)
 
 	// Create managed policies by Insights map for lookup
 	managedPoliciesByInsightsMap := make(map[string]ClusterPolicy)
@@ -47,23 +46,19 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 	// Apply new policies
 	for _, policyName := range actions.ToApply {
 		if policy, exists := managedPoliciesByInsightsMap[policyName]; exists {
-			if err := policyManager.applyPolicy(ctx, policy, p.config.DryRun); err != nil {
+			if err := p.policyManager.applyPolicy(ctx, policy); err != nil {
 				errorMsg := fmt.Sprintf("Failed to apply policy %s: %v", policyName, err)
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, errorMsg)
-				if !p.config.DryRun {
-					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), errorMsg)
-					if err != nil {
-						slog.Error("Failed to update policy status in Insights", "error", err)
-					}
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), errorMsg)
+				if err != nil {
+					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
 			} else {
 				result.Applied = append(result.Applied, policyName)
-				if !p.config.DryRun {
-					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
-					if err != nil {
-						slog.Error("Failed to update policy status in Insights", "error", err)
-					}
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
+				if err != nil {
+					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
 			}
 		}
@@ -72,22 +67,18 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 	// Update existing policies
 	for _, policyName := range actions.ToUpdate {
 		if policy, exists := managedPoliciesByInsightsMap[policyName]; exists {
-			if err := policyManager.applyPolicy(ctx, policy, p.config.DryRun); err != nil {
+			if err := p.policyManager.applyPolicy(ctx, policy); err != nil {
 				errorMsg := fmt.Sprintf("Failed to update policy %s: %v", policyName, err)
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, errorMsg)
-				if !p.config.DryRun {
-					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), errorMsg)
-					if err != nil {
-						slog.Error("Failed to update policy status in Insights", "error", err)
-					}
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), errorMsg)
+				if err != nil {
+					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
 			} else {
-				if !p.config.DryRun {
-					err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
-					if err != nil {
-						slog.Error("Failed to update policy status in Insights", "error", err)
-					}
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
+				if err != nil {
+					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
 			}
 		}
@@ -95,37 +86,28 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 
 	// Remove orphaned policies
 	for _, policy := range actions.ToRemove {
-		if err := policyManager.removePolicy(ctx, policy, p.config.DryRun); err != nil {
+		if err := p.policyManager.removePolicy(ctx, policy); err != nil {
 			errorMsg := fmt.Sprintf("Failed to remove policy %s: %v", policy.Name, err)
 			result.Failed = append(result.Failed, policy.Name)
 			result.Errors = append(result.Errors, errorMsg)
 			slog.Error("Failed to remove policy", "policy", policy.Name, "kind", policy.Kind, "error", err)
-			if !p.config.DryRun {
-				err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "failed", "Failed to remove policy from cluster", errorMsg)
-				if err != nil {
-					slog.Error("Failed to update policy status in Insights", "error", err)
-				}
+			err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "failed", "Failed to remove policy from cluster", errorMsg)
+			if err != nil {
+				slog.Error("Failed to update policy status in Insights", "error", err)
 			}
 		} else {
 			result.Removed = append(result.Removed, policy.Name)
-			if !p.config.DryRun {
-				err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "success", "Successfully removed policy from cluster", "")
-				if err != nil {
-					slog.Error("Failed to update policy status in Insights", "error", err)
-				}
+			err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "success", "Successfully removed policy from cluster", "")
+			if err != nil {
+				slog.Error("Failed to update policy status in Insights", "error", err)
 			}
 		}
 	}
-
 	return nil
 }
 
 // applyPolicy applies a new policy to the cluster using Kyverno CLI
-func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, dryRun bool) error {
-	if dryRun {
-		slog.Info("[DRY-RUN] Would apply policy", "policy", policy.Name)
-		return nil
-	}
+func (pm DefaultPolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy) error {
 	// Ensure temp directory exists
 	if err := ensureTempDir(); err != nil {
 		return err
@@ -156,12 +138,7 @@ func (pm *PolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy, 
 }
 
 // removePolicy removes a policy from the cluster using Kyverno CLI
-func (pm *PolicyManager) removePolicy(ctx context.Context, policy ClusterPolicy, dryRun bool) error {
-	if dryRun {
-		slog.Info("[DRY-RUN] Would remove policy", "policy", policy.Name, "kind", policy.Kind)
-		return nil
-	}
-
+func (pm DefaultPolicyManager) removePolicy(ctx context.Context, policy ClusterPolicy) error {
 	cmd := exec.CommandContext(ctx, "kubectl", "delete", policy.Kind, policy.Name)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
