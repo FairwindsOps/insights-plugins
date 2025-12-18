@@ -2,8 +2,6 @@ package sync
 
 import (
 	"time"
-
-	"k8s.io/client-go/kubernetes"
 )
 
 // PolicySyncConfig represents the configuration for Kyverno policy sync
@@ -29,7 +27,6 @@ type PolicySyncResult struct {
 	Failed   []string          `json:"failed"`
 	Errors   []string          `json:"errors"`
 	Duration time.Duration     `json:"duration"`
-	DryRun   bool              `json:"dryRun"`
 	Summary  string            `json:"summary"`
 }
 
@@ -40,12 +37,4 @@ type ClusterPolicy struct {
 	Annotations map[string]string      `json:"annotations,omitempty"`
 	Spec        map[string]interface{} `json:"spec,omitempty"`
 	YAML        []byte                 `json:"yaml"`
-}
-
-// PolicySyncLock represents a distributed lock using Kubernetes Lease for preventing concurrent sync operations
-type PolicySyncLock struct {
-	LeaseName string
-	Namespace string
-	LockedBy  string
-	K8sClient kubernetes.Interface
 }

@@ -71,7 +71,6 @@ func TestPolicySyncResult(t *testing.T) {
 		Failed:   []string{},
 		Errors:   []string{},
 		Duration: 5 * time.Second,
-		DryRun:   false,
 		Summary:  "Policy sync completed: Applied 1, Updated 0, Removed 0, Failed 0, Duration: 5s",
 	}
 
@@ -79,7 +78,6 @@ func TestPolicySyncResult(t *testing.T) {
 	assert.Len(t, result.Applied, 1)
 	assert.Empty(t, result.Errors)
 	assert.Equal(t, 5*time.Second, result.Duration)
-	assert.False(t, result.DryRun)
 }
 
 func TestClusterPolicy(t *testing.T) {

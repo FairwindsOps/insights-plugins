@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.20
+* add `action` field to policy sync results
+* refactor to use `dry-run` implementations instead of flow control
+* remove the necessity of a tmp folder/file to apply policies
+
 ## 0.1.19
 * Bump library dependencies
 

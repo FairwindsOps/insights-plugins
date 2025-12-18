@@ -9,6 +9,7 @@ import (
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/config"
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/k8s"
+	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/lock"
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/sync"
 )
 
@@ -30,9 +31,6 @@ func main() {
 		"dryRun", cfg.DryRun,
 		"validatePolicies", cfg.ValidatePolicies)
 
-	// Create clients
-	insightsClient := insights.NewClient(cfg.Host, cfg.Token, cfg.Organization, cfg.Cluster, cfg.DevMode)
-
 	k8sClient, err := k8s.GetClientSet()
 	if err != nil {
 		slog.Error("Failed to create Kubernetes client", "error", err)
@@ -51,14 +49,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create sync configuration
-	syncConfig := sync.PolicySyncConfig{
-		DryRun:           cfg.DryRun,
-		ValidatePolicies: cfg.ValidatePolicies,
+	lock := lock.NewPolicySyncLock(k8sClient)
+
+	policyManager := sync.NewDefaultPolicyManager(k8sClient, dynamicClient)
+
+	insightsClient := insights.NewClient(cfg.Host, cfg.Token, cfg.Organization, cfg.Cluster, cfg.DevMode)
+	if cfg.DryRun {
+		// override using dry run implementations
+		insightsClient = insights.NewDryRunClient(insightsClient)
+		policyManager = sync.NewDryRunPolicyManager()
 	}
 
-	// Create policy sync processor
-	processor := sync.NewPolicySyncProcessor(insightsClient, k8sClient, dynamicClient, restMapper, syncConfig)
+	processor := sync.NewPolicySyncProcessor(insightsClient, policyManager, lock, dynamicClient, restMapper, cfg)
 
 	err = syncKyvernoPolicies(processor)
 	if err != nil {
