@@ -31,8 +31,6 @@ func main() {
 		"dryRun", cfg.DryRun,
 		"validatePolicies", cfg.ValidatePolicies)
 
-	insightsClient := insights.NewClient(cfg.Host, cfg.Token, cfg.Organization, cfg.Cluster, cfg.DevMode)
-
 	k8sClient, err := k8s.GetClientSet()
 	if err != nil {
 		slog.Error("Failed to create Kubernetes client", "error", err)
@@ -55,10 +53,11 @@ func main() {
 
 	policyManager := sync.NewDefaultPolicyManager(k8sClient, dynamicClient)
 
+	insightsClient := insights.NewClient(cfg.Host, cfg.Token, cfg.Organization, cfg.Cluster, cfg.DevMode)
 	if cfg.DryRun {
 		// override using dry run implementations
+		insightsClient = insights.NewDryRunClient(insightsClient)
 		policyManager = sync.NewDryRunPolicyManager()
-		insightsClient = insights.NewDryRunClient()
 	}
 
 	processor := sync.NewPolicySyncProcessor(insightsClient, policyManager, lock, dynamicClient, restMapper, cfg)
