@@ -50,13 +50,13 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 				errorMsg := fmt.Sprintf("Failed to apply policy %s: %v", policyName, err)
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, errorMsg)
-				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), errorMsg)
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "apply", "failed", string(policy.YAML), errorMsg)
 				if err != nil {
 					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
 			} else {
 				result.Applied = append(result.Applied, policyName)
-				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "apply", "success", string(policy.YAML), "")
 				if err != nil {
 					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
@@ -71,12 +71,12 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 				errorMsg := fmt.Sprintf("Failed to update policy %s: %v", policyName, err)
 				result.Failed = append(result.Failed, policyName)
 				result.Errors = append(result.Errors, errorMsg)
-				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "failed", string(policy.YAML), errorMsg)
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "apply", "failed", string(policy.YAML), errorMsg)
 				if err != nil {
 					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
 			} else {
-				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "success", string(policy.YAML), "")
+				err := p.insightsClient.UpdateKyvernoPolicyStatus(policyName, "apply", "success", string(policy.YAML), "")
 				if err != nil {
 					slog.Error("Failed to update policy status in Insights", "error", err)
 				}
@@ -91,13 +91,13 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 			result.Failed = append(result.Failed, policy.Name)
 			result.Errors = append(result.Errors, errorMsg)
 			slog.Error("Failed to remove policy", "policy", policy.Name, "kind", policy.Kind, "error", err)
-			err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "failed", "Failed to remove policy from cluster", errorMsg)
+			err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "delete", "failed", "Failed to remove policy from cluster", errorMsg)
 			if err != nil {
 				slog.Error("Failed to update policy status in Insights", "error", err)
 			}
 		} else {
 			result.Removed = append(result.Removed, policy.Name)
-			err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "success", "Successfully removed policy from cluster", "")
+			err := p.insightsClient.UpdateKyvernoPolicyStatus(policy.Name, "delete", "success", "Successfully removed policy from cluster", "")
 			if err != nil {
 				slog.Error("Failed to update policy status in Insights", "error", err)
 			}

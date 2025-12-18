@@ -11,7 +11,7 @@ import (
 
 type Client interface {
 	GetClusterKyvernoPoliciesYAML() (string, error)
-	UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error
+	UpdateKyvernoPolicyStatus(policyName, action, status, policyBody, output string) error
 }
 
 func NewClient(host, token, organization, cluster string, devMode bool) Client {
@@ -59,7 +59,7 @@ func (c HTTPClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 	return resp.String(), nil
 }
 
-func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error {
+func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, action, status, policyBody, output string) error {
 	slog.Debug("Updating Kyverno policy status", "organization", c.organization, "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/policies/apply-status", c.organization, c.cluster)
 	now := time.Now().Format(time.RFC3339)
@@ -102,7 +102,7 @@ spec:
             image: "!*:latest"`, nil
 }
 
-func (m MockClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error {
+func (m MockClient) UpdateKyvernoPolicyStatus(policyName, action, status, policyBody, output string) error {
 	slog.Info("Mock: Updating Kyverno policy status", "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
 	return nil
 }
@@ -118,7 +118,7 @@ func (d DryRunClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 	return "", nil
 }
 
-func (d DryRunClient) UpdateKyvernoPolicyStatus(policyName, status, policyBody, output string) error {
+func (d DryRunClient) UpdateKyvernoPolicyStatus(policyName, action, status, policyBody, output string) error {
 	slog.Info("Dry run: Updating Kyverno policy status", "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
 	return nil
 }
