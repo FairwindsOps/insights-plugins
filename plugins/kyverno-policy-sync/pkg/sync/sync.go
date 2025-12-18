@@ -32,6 +32,7 @@ type PolicySyncProcessor struct {
 func NewPolicySyncProcessor(insightsClient insights.Client, policyManager PolicyManager, lock *lock.PolicySyncLock, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, config *config.Config) *PolicySyncProcessor {
 	return &PolicySyncProcessor{
 		insightsClient: insightsClient,
+		policyManager:  policyManager,
 		dynamicClient:  dynamicClient,
 		restMapper:     restMapper,
 		config:         config,

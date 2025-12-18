@@ -60,10 +60,10 @@ func (c HTTPClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 }
 
 func (c HTTPClient) UpdateKyvernoPolicyStatus(policyName, action, status, policyBody, output string) error {
-	slog.Debug("Updating Kyverno policy status", "organization", c.organization, "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
+	slog.Debug("Updating Kyverno policy status", "organization", c.organization, "policyName", policyName, "action", action, "status", status, "policyBody", policyBody, "output", output)
 	url := fmt.Sprintf("/v0/organizations/%s/clusters/%s/policies/apply-status", c.organization, c.cluster)
 	now := time.Now().Format(time.RFC3339)
-	payload := map[string]any{"policyName": policyName, "reportType": "kyverno", "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
+	payload := map[string]any{"policyName": policyName, "reportType": "kyverno", "action": action, "status": status, "lastAppliedAt": now, "policyBody": policyBody, "output": output}
 	resp, err := c.client.R().SetBody(payload).Put(url)
 	if err != nil {
 		return fmt.Errorf("failed to update Kyverno policy status: %w", err)
@@ -103,7 +103,7 @@ spec:
 }
 
 func (m MockClient) UpdateKyvernoPolicyStatus(policyName, action, status, policyBody, output string) error {
-	slog.Info("Mock: Updating Kyverno policy status", "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
+	slog.Info("Mock: Updating Kyverno policy status", "policyName", policyName, "action", action, "status", status, "policyBody", policyBody, "output", output)
 	return nil
 }
 
@@ -121,6 +121,6 @@ func (d DryRunClient) GetClusterKyvernoPoliciesYAML() (string, error) {
 }
 
 func (d DryRunClient) UpdateKyvernoPolicyStatus(policyName, action, status, policyBody, output string) error {
-	slog.Info("Dry run: Updating Kyverno policy status", "policyName", policyName, "status", status, "policyBody", policyBody, "output", output)
+	slog.Info("Dry run: Updating Kyverno policy status", "policyName", policyName, "action", action, "status", status, "policyBody", policyBody, "output", output)
 	return nil
 }

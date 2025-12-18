@@ -1,10 +1,10 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"os/exec"
 
 	"k8s.io/client-go/dynamic"
@@ -23,15 +23,6 @@ type DefaultPolicyManager struct {
 // NewPolicyManager creates a new policy manager
 func NewDefaultPolicyManager(client kubernetes.Interface, dynamicClient dynamic.Interface) PolicyManager {
 	return &DefaultPolicyManager{}
-}
-
-// ensureTempDir ensures the temporary directory exists
-func ensureTempDir() error {
-	tempDir := "/output/tmp"
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
-		return fmt.Errorf("failed to create temp directory %s: %w", tempDir, err)
-	}
-	return nil
 }
 
 // executeSyncActions executes the actual sync actions
@@ -108,26 +99,9 @@ func (p *PolicySyncProcessor) executeSyncActions(ctx context.Context, actions Po
 
 // applyPolicy applies a new policy to the cluster using Kyverno CLI
 func (pm DefaultPolicyManager) applyPolicy(ctx context.Context, policy ClusterPolicy) error {
-	// Ensure temp directory exists
-	if err := ensureTempDir(); err != nil {
-		return err
-	}
-
-	// Create temporary file for policy
-	tempFile, err := os.CreateTemp("/output/tmp", "kyverno-policy-*.yaml")
-	if err != nil {
-		return fmt.Errorf("failed to create temporary file: %w", err)
-	}
-	defer os.Remove(tempFile.Name())
-
-	// Write policy to temporary file
-	if _, err := tempFile.Write(policy.YAML); err != nil {
-		return fmt.Errorf("failed to write policy to temporary file: %w", err)
-	}
-	tempFile.Close()
-
-	// Apply policy using kubectl
-	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", tempFile.Name())
+	// Apply policy using kubectl with stdin
+	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", "-")
+	cmd.Stdin = bytes.NewReader(policy.YAML)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to apply policy %s with kubectl: %s: %s: %w", policy.Name, cmd.String(), string(output), err)
