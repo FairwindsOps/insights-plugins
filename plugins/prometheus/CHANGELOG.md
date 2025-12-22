@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.21
+* Bump library dependencies
+
 ## 1.5.20
 * Bump library dependencies
 
