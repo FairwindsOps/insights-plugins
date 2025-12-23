@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.26
+* Bump library dependencies
+
 ## 2.6.25
 * Bump library dependencies
 

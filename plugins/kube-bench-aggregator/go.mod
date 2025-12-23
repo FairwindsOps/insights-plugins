@@ -2,7 +2,7 @@ module github.com/fairwindsops/insights-plugins/plugins/kube-bench-aggregator
 
 go 1.25.5
 
-require github.com/aquasecurity/kube-bench v0.14.0
+require github.com/aquasecurity/kube-bench v0.14.1
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.0 // indirect
@@ -12,7 +12,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.36.3 // indirect
+	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
