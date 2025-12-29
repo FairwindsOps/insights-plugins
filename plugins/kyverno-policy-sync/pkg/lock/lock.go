@@ -112,21 +112,18 @@ func getCurrentNamespace() (string, error) {
 
 // getLockIdentifier generates a unique identifier for the lock
 func getLockIdentifier() string {
-	// Try to get pod name from environment
+	prefixIdentifier := "fw"
 	if podName := os.Getenv("POD_NAME"); podName != "" {
-		return fmt.Sprintf("pod-%s", podName)
+		return fmt.Sprintf("%s-pod-%s", prefixIdentifier, podName)
 	}
 
-	// Try to get job name from environment
 	if jobName := os.Getenv("JOB_NAME"); jobName != "" {
-		return fmt.Sprintf("job-%s", jobName)
+		return fmt.Sprintf("%s-job-%s", prefixIdentifier, jobName)
 	}
 
-	// Try to get hostname
 	if hostname, err := os.Hostname(); err == nil {
-		return fmt.Sprintf("host-%s", hostname)
+		return fmt.Sprintf("%s-host-%s", prefixIdentifier, hostname)
 	}
 
-	// Fallback to timestamp
-	return fmt.Sprintf("unknown-%d", time.Now().Unix())
+	return fmt.Sprintf("%s-unknown-%d", prefixIdentifier, time.Now().Unix())
 }
