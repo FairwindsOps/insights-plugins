@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+* Bump library github.com/imroc/req/v3 to v3.57.0
+
 ## 0.2.1
 * add `action` field to policy sync results
 * refactor to use `dry-run` implementations instead of flow control

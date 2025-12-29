@@ -55,7 +55,7 @@ Version number below are just for demonstration, not the latest used.
    - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
 
 4. For each updated sub-module
-  - Update `CHANGELOG.md` using the message `Bump library dependencies`
+  - Update `CHANGELOG.md`, for each updated lib append a bullet to the message `* Bump library X to version X.Y.Z`
   - Update `version.txt` by bumping a minor version
 
 5. Review changes

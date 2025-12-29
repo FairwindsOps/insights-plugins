@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.1
+* Bump library dependencies
+
 ## 0.34.0
 * Bump k8s api libraries to 0.35.0
 
