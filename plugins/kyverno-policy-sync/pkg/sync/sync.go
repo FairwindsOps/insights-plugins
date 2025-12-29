@@ -5,53 +5,38 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/config"
 	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/insights"
+	"github.com/FairwindsOps/insights-plugins/kyverno-policy-sync/pkg/lock"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 )
 
 // PolicySyncProcessor handles the synchronization of Kyverno policies
 type PolicySyncProcessor struct {
 	insightsClient insights.Client
-	k8sClient      kubernetes.Interface
+	policyManager  PolicyManager
 	dynamicClient  dynamic.Interface
 	restMapper     meta.RESTMapper
-	config         PolicySyncConfig
-	lock           *PolicySyncLock
+	config         *config.Config
+	lock           *lock.PolicySyncLock
 }
 
 // NewPolicySyncProcessor creates a new policy sync processor
-func NewPolicySyncProcessor(insightsClient insights.Client, k8sClient kubernetes.Interface, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, config PolicySyncConfig) *PolicySyncProcessor {
-	// Get current namespace
-	namespace, err := GetCurrentNamespace()
-	if err != nil {
-		slog.Error("Failed to get current namespace", "error", err)
-		namespace = "default"
-	}
-
-	// Generate unique lock identifier (pod name or job name)
-	lockedBy := getLockIdentifier()
-
+func NewPolicySyncProcessor(insightsClient insights.Client, policyManager PolicyManager, lock *lock.PolicySyncLock, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, config *config.Config) *PolicySyncProcessor {
 	return &PolicySyncProcessor{
 		insightsClient: insightsClient,
-		k8sClient:      k8sClient,
+		policyManager:  policyManager,
 		dynamicClient:  dynamicClient,
 		restMapper:     restMapper,
 		config:         config,
-		lock: &PolicySyncLock{
-			LeaseName: "kyverno-policy-sync-lock",
-			Namespace: namespace,
-			LockedBy:  lockedBy,
-			K8sClient: k8sClient,
-		},
+		lock:           lock,
 	}
 }
 
@@ -67,11 +52,11 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 	})
 
 	if err != nil {
-		return &PolicySyncResult{DryRun: p.config.DryRun, Success: false, Errors: []string{err.Error()}}, fmt.Errorf("leader election failed: %w", err)
+		return &PolicySyncResult{Success: false, Errors: []string{err.Error()}}, fmt.Errorf("leader election failed: %w", err)
 	}
 
 	if result == nil {
-		return &PolicySyncResult{DryRun: p.config.DryRun, Success: false, Errors: []string{"sync result is nil"}}, fmt.Errorf("sync result is nil")
+		return &PolicySyncResult{Success: false, Errors: []string{"sync result is nil"}}, fmt.Errorf("sync result is nil")
 	}
 
 	return result, syncErr
@@ -81,7 +66,6 @@ func (p *PolicySyncProcessor) SyncPolicies(ctx context.Context) (*PolicySyncResu
 func (p *PolicySyncProcessor) syncPoliciesInternal(ctx context.Context) (*PolicySyncResult, error) {
 	startTime := time.Now()
 	result := &PolicySyncResult{
-		DryRun:  p.config.DryRun,
 		Actions: PolicySyncActions{},
 		Applied: []string{},
 		Updated: []string{},
@@ -368,42 +352,4 @@ func (p *PolicySyncProcessor) generateSummary(result *PolicySyncResult) string {
 	summary += fmt.Sprintf("Duration: %v", result.Duration)
 
 	return strings.TrimSuffix(summary, ", ")
-}
-
-// getCurrentNamespace gets the current namespace from environment or service account
-func GetCurrentNamespace() (string, error) {
-	data, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		if os.IsNotExist(err) {
-			// fallback to env variable
-			namespace := os.Getenv("NAMESPACE")
-			if namespace != "" {
-				return namespace, nil
-			}
-			return "", fmt.Errorf("namespace file not found and NAMESPACE env variable is not set")
-		}
-		return "", fmt.Errorf("failed to read namespace file: %w", err)
-	}
-	return strings.TrimSpace(string(data)), nil
-}
-
-// getLockIdentifier generates a unique identifier for the lock
-func getLockIdentifier() string {
-	// Try to get pod name from environment
-	if podName := os.Getenv("POD_NAME"); podName != "" {
-		return fmt.Sprintf("pod-%s", podName)
-	}
-
-	// Try to get job name from environment
-	if jobName := os.Getenv("JOB_NAME"); jobName != "" {
-		return fmt.Sprintf("job-%s", jobName)
-	}
-
-	// Try to get hostname
-	if hostname, err := os.Hostname(); err == nil {
-		return fmt.Sprintf("host-%s", hostname)
-	}
-
-	// Fallback to timestamp
-	return fmt.Sprintf("unknown-%d", time.Now().Unix())
 }
