@@ -1,10 +1,10 @@
 FROM alpine:3.23 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.68.1
+ENV trivyVersion=0.68.2
 RUN apk update && apk add curl
 
-ENV kubectlVersion=1.34.3
+ENV kubectlVersion=1.35.0
 RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl
 RUN chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.0
+* Bump k8s api libraries to 0.35.0
+
+## 0.20.14
+* Bump library dependencies
+
 ## 0.20.13
 * Bumped kubectlVersion to v1.34.3
 

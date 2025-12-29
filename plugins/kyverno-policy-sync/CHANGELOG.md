@@ -1,9 +1,15 @@
 # Changelog
 
-## 0.1.20
+## 0.2.1
 * add `action` field to policy sync results
 * refactor to use `dry-run` implementations instead of flow control
 * remove the necessity of a tmp folder/file to apply policies
+
+## 0.2.0
+* Bump k8s api libraries to 0.35.0
+
+## 0.1.20
+* Bump library dependencies
 
 ## 0.1.19
 * Bump library dependencies
