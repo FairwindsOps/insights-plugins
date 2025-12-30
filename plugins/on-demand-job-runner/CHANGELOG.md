@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1
+* Bump library github.com/imroc/req/v3 to v3.57.0
+
 ## 0.2.0
 * Bump k8s api libraries to 0.35.0
 
