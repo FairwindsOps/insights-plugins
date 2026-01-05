@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.1
+* updated kubve-bench to 0.14.1
+
 ## 0.6.0
 * Bump k8s api libraries to 0.35.0
 
