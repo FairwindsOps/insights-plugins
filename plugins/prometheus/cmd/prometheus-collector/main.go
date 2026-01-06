@@ -46,7 +46,11 @@ func main() {
 	skipNonZeroMetricsValidation := strings.ToLower(os.Getenv("SKIP_NON_ZERO_METRICS_CHECK")) == "true"
 	skipKSMNonZeroMetricsValidation := strings.ToLower(os.Getenv("SKIP_KSM_NON_ZERO_METRICS_CHECK")) == "" || strings.ToLower(os.Getenv("SKIP_KSM_NON_ZERO_METRICS_CHECK")) == "true"
 
-	accessToken := ""
+	// Build client options based on environment configuration
+	var clientOpts []data.ClientOption
+
+	// Handle bearer token authentication (Google Cloud Monitoring or explicit token)
+	accessToken := os.Getenv("PROMETHEUS_BEARER_TOKEN")
 	if strings.Contains(address, monitoringGoogleApis) {
 		tokenSource, err := google.DefaultTokenSource(context.Background(), monitoringReadScope)
 		if err != nil {
@@ -58,9 +62,19 @@ func main() {
 		}
 		accessToken = token.AccessToken
 	}
+	if accessToken != "" {
+		clientOpts = append(clientOpts, data.WithBearerToken(accessToken))
+	}
+
+	// Handle multi-tenant Prometheus backends (e.g., Grafana Mimir)
+	tenantID := os.Getenv("PROMETHEUS_TENANT_ID")
+	if tenantID != "" {
+		logrus.Infof("Using tenant ID: %s", tenantID)
+		clientOpts = append(clientOpts, data.WithTenantID(tenantID))
+	}
 
 	logrus.Infof("Getting metrics from Prometheus at %s", address)
-	client, err := data.GetClient(address, accessToken)
+	client, err := data.GetClientWithOptions(address, clientOpts...)
 	if err != nil {
 		panic(err)
 	}
