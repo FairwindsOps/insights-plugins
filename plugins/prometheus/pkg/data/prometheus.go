@@ -243,3 +243,55 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	}
 	return values.(model.Matrix), nil
 }
+
+// getGPUUsage fetches GPU utilization from DCGM Exporter.
+// DCGM_FI_DEV_GPU_UTIL reports 0-100%, we normalize to 0-1 per GPU.
+// This is a pod-level metric (no container label from DCGM).
+func getGPUUsage(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	// DCGM exports GPU metrics with namespace and pod labels when running in Kubernetes
+	// We average across GPUs per pod and normalize from 0-100 to 0-1
+	query := fmt.Sprintf(`avg by (namespace, pod) (DCGM_FI_DEV_GPU_UTIL{namespace!="", pod!=""%s}) / 100`, clusterFilter)
+	values, err := queryPrometheus(ctx, api, r, query)
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values, nil
+}
+
+// getGPURequests fetches nvidia.com/gpu resource requests from kube-state-metrics.
+func getGPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", resource="nvidia_com_gpu"%s}`, clusterFilter)
+	values, warnings, err := api.QueryRange(ctx, query, r)
+	for _, warning := range warnings {
+		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values.(model.Matrix), err
+}
+
+// getGPULimits fetches nvidia.com/gpu resource limits from kube-state-metrics.
+func getGPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", resource="nvidia_com_gpu"%s}`, clusterFilter)
+	values, warnings, err := api.QueryRange(ctx, query, r)
+	for _, warning := range warnings {
+		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values.(model.Matrix), err
+}

@@ -50,6 +50,10 @@ type CombinedRequest struct {
 	networkTransmit []model.SamplePair
 	networkReceive  []model.SamplePair
 	storageCapacity []model.SamplePair
+	// GPU fields - utilization from DCGM Exporter, requests/limits from kube-state-metrics
+	gpu        []model.SamplePair // GPU utilization (0-1 per GPU)
+	gpuRequest model.SampleValue  // nvidia.com/gpu requests
+	gpuLimit   model.SampleValue  // nvidia.com/gpu limits
 }
 
 type NodesMetrics struct {

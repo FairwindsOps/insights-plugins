@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.0
+* Add GPU metrics collection support
+
 ## 1.6.1
 * Bump library dependencies
 

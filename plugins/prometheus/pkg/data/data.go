@@ -203,6 +203,28 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	}
 	logrus.Infof("Found %d metrics for network receive bytes", len(networkReceive))
 
+	// GPU metrics are optional - don't fail if DCGM Exporter is not installed
+	gpuUsage, err := getGPUUsage(ctx, api, r, clusterName)
+	if err != nil {
+		logrus.Warnf("GPU usage metrics not available (DCGM Exporter may not be installed): %v", err)
+		gpuUsage = model.Matrix{}
+	}
+	logrus.Infof("Found %d metrics for GPU usage", len(gpuUsage))
+
+	gpuRequests, err := getGPURequests(ctx, api, r, clusterName)
+	if err != nil {
+		logrus.Warnf("GPU request metrics not available: %v", err)
+		gpuRequests = model.Matrix{}
+	}
+	logrus.Infof("Found %d metrics for GPU requests", len(gpuRequests))
+
+	gpuLimits, err := getGPULimits(ctx, api, r, clusterName)
+	if err != nil {
+		logrus.Warnf("GPU limit metrics not available: %v", err)
+		gpuLimits = model.Matrix{}
+	}
+	logrus.Infof("Found %d metrics for GPU limits", len(gpuLimits))
+
 	combinedRequests := make(map[string]CombinedRequest)
 	for _, cpuVal := range cpu {
 		key := getKey(cpuVal)
@@ -244,6 +266,24 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request := combinedRequests[key]
 		request.Owner = getOwner(memVal)
 		request.memoryLimit = memVal.Values[0].Value
+		combinedRequests[key] = request
+	}
+	for _, gpuVal := range gpuRequests {
+		key := getKey(gpuVal)
+		request := combinedRequests[key]
+		request.Owner = getOwner(gpuVal)
+		if len(gpuVal.Values) > 0 {
+			request.gpuRequest = gpuVal.Values[0].Value
+		}
+		combinedRequests[key] = request
+	}
+	for _, gpuVal := range gpuLimits {
+		key := getKey(gpuVal)
+		request := combinedRequests[key]
+		request.Owner = getOwner(gpuVal)
+		if len(gpuVal.Values) > 0 {
+			request.gpuLimit = gpuVal.Values[0].Value
+		}
 		combinedRequests[key] = request
 	}
 
@@ -309,6 +349,16 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request := combinedRequests[key]
 		request.networkReceive = networkVal.Values
 		request.Owner = getOwner(networkVal)
+		combinedRequests[key] = request
+	}
+
+	// GPU usage from DCGM is pod-level, needs to be distributed across containers
+	gpuUsage = adjustMetricsForMultiContainerPods(gpuUsage, workloadMap)
+	for _, gpuVal := range gpuUsage {
+		key := getKey(gpuVal)
+		request := combinedRequests[key]
+		request.gpu = gpuVal.Values
+		request.Owner = getOwner(gpuVal)
 		combinedRequests[key] = request
 	}
 
