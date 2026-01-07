@@ -81,16 +81,18 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			})
 		}
 
-		// GPU metrics - scaled to milli-GPUs (×1000) for precision
+		// GPU metrics
+		// - Usage: 0-1 float from PromQL → 0-100 integer (percentage)
+		// - Request/Limit: GPU count → milli-GPUs (×1000) for fractional GPU support
 		for _, gpu := range value.gpu {
 			timestamp := time.Unix(int64(gpu.Timestamp)/1000, 0)
 			stats = append(stats, Statistics{
 				StartTime:  timestamp,
 				Owner:      value.Owner,
 				Metric:     "GPU",
-				Value:      int64(gpu.Value * 1000),        // GPU utilization 0-1 scaled to 0-1000
-				Request:    int64(value.gpuRequest * 1000), // GPU requests scaled to milli-GPUs
-				LimitValue: int64(value.gpuLimit * 1000),   // GPU limits scaled to milli-GPUs
+				Value:      int64(gpu.Value * 100),         // GPU utilization 0-1 → 0-100 (percentage)
+				Request:    int64(value.gpuRequest * 1000), // GPU count → milli-GPUs
+				LimitValue: int64(value.gpuLimit * 1000),   // GPU count → milli-GPUs
 			})
 		}
 
