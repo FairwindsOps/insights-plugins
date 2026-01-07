@@ -23,7 +23,7 @@ if ! hash unzip; then
 fi
 
 cd /tmp
-curl -LO https://releases.hashicorp.com/vault/1.9.2/vault_1.9.2_linux_amd64.zip
-unzip vault_1.9.2_linux_amd64.zip
+curl -LO https://releases.hashicorp.com/vault/1.21.1/vault_1.21.1_linux_amd64.zip
+unzip vault_1.21.1_linux_amd64.zip
 
 $SUDO mv vault /usr/local/bin/vault
