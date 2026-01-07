@@ -9,7 +9,7 @@ fi
 $SUDO apt-get update
 
 if ! hash yq; then
-  curl -L "https://github.com/mikefarah/yq/releases/download/v4.30.6/yq_linux_amd64" > yq
+  curl -L "https://github.com/mikefarah/yq/releases/download/v4.50.1/yq_linux_amd64" > yq
   chmod +x yq
   $SUDO mv yq /usr/local/bin/
 fi
