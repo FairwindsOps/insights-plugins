@@ -24,6 +24,6 @@ fi
 
 cd /tmp
 curl -LO https://releases.hashicorp.com/vault/1.21.1/vault_1.21.1_linux_amd64.zip
-unzip vault_1.21.1_linux_amd64.zip
+unzip -o vault_1.21.1_linux_amd64.zip
 
 $SUDO mv vault /usr/local/bin/vault
