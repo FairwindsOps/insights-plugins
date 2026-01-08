@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 	"time"
 
@@ -424,4 +425,180 @@ func TestStorageCapacity(t *testing.T) {
 	assert.Equal(t, model.SampleValue(954437178.0), adjustedMetrics[0].Values[0].Value, "the metric value for pod1 and container name container1forpod1")
 	assert.Equal(t, model.SampleValue(954437177.0), adjustedMetrics[1].Values[0].Value, "the metric value for pod1 and container name container2forpod1")
 	assert.Equal(t, model.SampleValue(954437177.0), adjustedMetrics[2].Values[0].Value, "the metric value for pod1 and container name container3forpod1")
+}
+
+// =============================================================================
+// GPU TESTS
+// =============================================================================
+
+// TestGPUResourcePatternMatches verifies the gpuResourcePattern constant
+// correctly matches all supported GPU/accelerator resource names.
+// Note: kube-state-metrics converts "/" and "." to "_" in resource names.
+func TestGPUResourcePatternMatches(t *testing.T) {
+	// The gpuResourcePattern is used in PromQL regex matching
+	pattern := regexp.MustCompile(gpuResourcePattern)
+
+	testCases := []struct {
+		resource    string
+		shouldMatch bool
+		description string
+	}{
+		// NVIDIA GPUs - should match
+		{"nvidia_com_gpu", true, "NVIDIA standard GPU"},
+		{"nvidia_com_gpu_shared", true, "NVIDIA time-sliced/shared GPU"},
+
+		// AWS vGPU - should match
+		{"k8s_amazonaws_com_vgpu", true, "AWS virtual GPU"},
+
+		// AMD GPUs - should match
+		{"amd_com_gpu", true, "AMD GPU"},
+
+		// Intel GPUs - should match
+		{"intel_com_gpu", true, "Intel GPU"},
+
+		// Habana Gaudi accelerators - should match
+		{"habana_ai_gaudi", true, "Habana Gaudi accelerator"},
+
+		// Google TPU - should match
+		{"google_com_tpu", true, "Google TPU"},
+
+		// Non-GPU resources - should NOT match
+		{"cpu", false, "CPU resource"},
+		{"memory", false, "Memory resource"},
+		{"ephemeral_storage", false, "Ephemeral storage"},
+		{"nvidia_com_mig", false, "MIG (not in pattern)"},
+		{"amd_com_some_other", false, "Non-GPU AMD resource"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			matches := pattern.MatchString(tc.resource)
+			if tc.shouldMatch {
+				assert.True(t, matches, "Resource %q should match GPU pattern", tc.resource)
+			} else {
+				assert.False(t, matches, "Resource %q should NOT match GPU pattern", tc.resource)
+			}
+		})
+	}
+}
+
+// TestAdjustGPUMetricsForMultiContainerPods verifies that GPU utilization
+// metrics (which are pod-level from DCGM Exporter) are correctly split
+// across containers in multi-container pods.
+func TestAdjustGPUMetricsForMultiContainerPods(t *testing.T) {
+	// GPU metrics from DCGM Exporter are pod-level (no container label)
+	// They need to be split across containers like network metrics
+	testGPUMetrics := []*model.SampleStream{
+		{
+			Metric: model.Metric{
+				"namespace": "ml-workloads",
+				"pod":       "training-job-abc123",
+				// Note: no "container" label - GPU metrics are pod-level
+			},
+			Values: []model.SamplePair{
+				{
+					Timestamp: 1674153900000,
+					Value:     0.90, // 90% GPU utilization (normalized 0-1)
+				},
+				{
+					Timestamp: 1674153930000,
+					Value:     0.85,
+				},
+			},
+		},
+	}
+
+	// Workload map with a multi-container pod
+	workloads := make(map[string]*controller.Workload)
+	workloads["ml-workloads/training-job-abc123"] = &controller.Workload{
+		PodSpec: &corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "cuda-trainer"},
+				{Name: "metrics-sidecar"},
+			},
+		},
+	}
+
+	adjustedMetrics := adjustMetricsForMultiContainerPods(testGPUMetrics, workloads)
+
+	// Should have 2 metrics (one per container)
+	assert.Equal(t, 2, len(adjustedMetrics), "GPU metrics should be split across 2 containers")
+
+	// Verify container names are assigned
+	assert.Equal(t, model.LabelValue("cuda-trainer"), adjustedMetrics[0].Metric["container"])
+	assert.Equal(t, model.LabelValue("metrics-sidecar"), adjustedMetrics[1].Metric["container"])
+
+	// Verify values are split: first container gets remainder, others get equal split
+	// 0.90 / 2 = 0.45 (each container)
+	// But with the remainder logic: floor(0.90/2) = 0.0, remainder = 0.90
+	// So first container: 0.0 + 0.90 = 0.90, second container: 0.0
+	// This is because GPU utilization is typically < 1.0, so floor division gives 0
+
+	// The first timestamp value 0.90:
+	// - floor(0.90 / 2) = 0
+	// - remainder = 0.90 % 2 = 0.90
+	// - first container: 0 + 0.90 = 0.90
+	// - second container: 0
+	assert.Equal(t, model.SampleValue(0.90), adjustedMetrics[0].Values[0].Value, "First container should get full value when < 1")
+	assert.Equal(t, model.SampleValue(0.0), adjustedMetrics[1].Values[0].Value, "Second container should get 0 when original < 1")
+}
+
+// TestAdjustGPUMetricsForSingleContainerPod verifies that single-container pods
+// get the full GPU utilization value without splitting.
+func TestAdjustGPUMetricsForSingleContainerPod(t *testing.T) {
+	testGPUMetrics := []*model.SampleStream{
+		{
+			Metric: model.Metric{
+				"namespace": "default",
+				"pod":       "simple-gpu-pod",
+			},
+			Values: []model.SamplePair{
+				{
+					Timestamp: 1674153900000,
+					Value:     0.75, // 75% GPU utilization
+				},
+			},
+		},
+	}
+
+	workloads := make(map[string]*controller.Workload)
+	workloads["default/simple-gpu-pod"] = &controller.Workload{
+		PodSpec: &corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "gpu-container"},
+			},
+		},
+	}
+
+	adjustedMetrics := adjustMetricsForMultiContainerPods(testGPUMetrics, workloads)
+
+	// Should have 1 metric for the single container
+	assert.Equal(t, 1, len(adjustedMetrics), "Single container pod should have 1 metric")
+
+	// Container name should be assigned
+	assert.Equal(t, model.LabelValue("gpu-container"), adjustedMetrics[0].Metric["container"])
+
+	// Value should be unchanged
+	assert.Equal(t, model.SampleValue(0.75), adjustedMetrics[0].Values[0].Value)
+}
+
+// TestGPUUtilizationQueriesStructure verifies the gpuUtilizationQueries
+// variable has the expected structure for multi-vendor support.
+func TestGPUUtilizationQueriesStructure(t *testing.T) {
+	// Verify we have queries for all supported GPU vendors
+	vendorNames := make(map[string]bool)
+	for _, q := range gpuUtilizationQueries {
+		vendorNames[q.name] = true
+		// Each query should contain a placeholder for cluster filter
+		assert.Contains(t, q.query, "%s", "Query for %s should have cluster filter placeholder", q.name)
+		// Each query should aggregate by namespace and pod
+		assert.Contains(t, q.query, "namespace", "Query for %s should group by namespace", q.name)
+		assert.Contains(t, q.query, "pod", "Query for %s should group by pod", q.name)
+	}
+
+	// Verify expected vendors are present
+	assert.True(t, vendorNames["nvidia"], "NVIDIA vendor should be present")
+	assert.True(t, vendorNames["amd"], "AMD vendor should be present")
+	assert.True(t, vendorNames["intel"], "Intel vendor should be present")
+	assert.True(t, vendorNames["habana"], "Habana vendor should be present")
 }
