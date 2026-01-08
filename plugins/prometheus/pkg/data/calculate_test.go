@@ -115,7 +115,7 @@ func TestCalculateStatistics_GPUMetrics(t *testing.T) {
 			// Find the GPU statistic
 			var gpuStat *Statistics
 			for i := range stats {
-				if stats[i].Metric == "GPU" {
+				if stats[i].Metric == MetricGPU {
 					gpuStat = &stats[i]
 					break
 				}
@@ -166,7 +166,7 @@ func TestCalculateStatistics_NoGPUMetrics(t *testing.T) {
 	// Should have CPU and Memory stats, but not GPU
 	var hasGPU bool
 	for _, stat := range stats {
-		if stat.Metric == "GPU" {
+		if stat.Metric == MetricGPU {
 			hasGPU = true
 			break
 		}

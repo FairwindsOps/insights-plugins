@@ -26,7 +26,7 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			stats = append(stats, Statistics{
 				StartTime:  timestamp,
 				Owner:      value.Owner,
-				Metric:     "Memory",
+				Metric:     MetricMemory,
 				Value:      int64(mem.Value),
 				Request:    int64(value.memoryRequest),
 				LimitValue: int64(value.memoryLimit),
@@ -44,7 +44,7 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			stats = append(stats, Statistics{
 				StartTime:  timestamp,
 				Owner:      value.Owner,
-				Metric:     "CPU",
+				Metric:     MetricCPU,
 				Value:      cpuValue,
 				Request:    int64(value.cpuRequest * 1000),
 				LimitValue: int64(value.cpuLimit * 1000),
@@ -56,7 +56,7 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			stats = append(stats, Statistics{
 				StartTime: timestamp,
 				Owner:     value.Owner,
-				Metric:    "NetworkTransmit",
+				Metric:    MetricNetworkTransmit,
 				Value:     int64(networkTransmit.Value),
 			})
 		}
@@ -66,7 +66,7 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			stats = append(stats, Statistics{
 				StartTime: timestamp,
 				Owner:     value.Owner,
-				Metric:    "NetworkReceive",
+				Metric:    MetricNetworkReceive,
 				Value:     int64(networkReceive.Value),
 			})
 		}
@@ -76,7 +76,7 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			stats = append(stats, Statistics{
 				StartTime: timestamp,
 				Owner:     value.Owner,
-				Metric:    "StorageCapacity",
+				Metric:    MetricStorageCapacity,
 				Value:     int64(storageCapacity.Value),
 			})
 		}
@@ -89,7 +89,7 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 			stats = append(stats, Statistics{
 				StartTime:  timestamp,
 				Owner:      value.Owner,
-				Metric:     "GPU",
+				Metric:     MetricGPU,
 				Value:      int64(gpu.Value * 100),         // GPU utilization 0-1 → 0-100 (percentage)
 				Request:    int64(value.gpuRequest * 1000), // GPU count → milli-GPUs
 				LimitValue: int64(value.gpuLimit * 1000),   // GPU count → milli-GPUs

@@ -487,7 +487,7 @@ func TestGPUResourcePatternMatches(t *testing.T) {
 // across containers in multi-container pods.
 func TestAdjustGPUMetricsForMultiContainerPods(t *testing.T) {
 	// GPU metrics from DCGM Exporter are pod-level (no container label)
-	// They need to be split across containers like network metrics
+	// They need to be split across containers like other metrics
 	testGPUMetrics := []*model.SampleStream{
 		{
 			Metric: model.Metric{
@@ -528,19 +528,13 @@ func TestAdjustGPUMetricsForMultiContainerPods(t *testing.T) {
 	assert.Equal(t, model.LabelValue("cuda-trainer"), adjustedMetrics[0].Metric["container"])
 	assert.Equal(t, model.LabelValue("metrics-sidecar"), adjustedMetrics[1].Metric["container"])
 
-	// Verify values are split: first container gets remainder, others get equal split
-	// 0.90 / 2 = 0.45 (each container)
-	// But with the remainder logic: floor(0.90/2) = 0.0, remainder = 0.90
-	// So first container: 0.0 + 0.90 = 0.90, second container: 0.0
-	// This is because GPU utilization is typically < 1.0, so floor division gives 0
-
-	// The first timestamp value 0.90:
-	// - floor(0.90 / 2) = 0
-	// - remainder = 0.90 % 2 = 0.90
-	// - first container: 0 + 0.90 = 0.90
-	// - second container: 0
-	assert.Equal(t, model.SampleValue(0.90), adjustedMetrics[0].Values[0].Value, "First container should get full value when < 1")
-	assert.Equal(t, model.SampleValue(0.0), adjustedMetrics[1].Values[0].Value, "Second container should get 0 when original < 1")
+	// For fractional GPU utilization (0-1), floor division means:
+	// - floor(0.90 / 2) = 0, remainder = 0.90
+	// - First container gets: 0 + 0.90 = 0.90
+	// - Second container gets: 0
+	// The total sum (0.90 + 0.0 = 0.90) is preserved for accurate reporting
+	assert.Equal(t, model.SampleValue(0.90), adjustedMetrics[0].Values[0].Value, "First container gets full value (remainder)")
+	assert.Equal(t, model.SampleValue(0.0), adjustedMetrics[1].Values[0].Value, "Second container gets floor split (0)")
 }
 
 // TestAdjustGPUMetricsForSingleContainerPod verifies that single-container pods
@@ -578,7 +572,7 @@ func TestAdjustGPUMetricsForSingleContainerPod(t *testing.T) {
 	// Container name should be assigned
 	assert.Equal(t, model.LabelValue("gpu-container"), adjustedMetrics[0].Metric["container"])
 
-	// Value should be unchanged
+	// Value should be unchanged for single-container pods
 	assert.Equal(t, model.SampleValue(0.75), adjustedMetrics[0].Values[0].Value)
 }
 

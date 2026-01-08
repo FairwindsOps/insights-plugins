@@ -343,7 +343,10 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 
-	// GPU usage from specific GPU utilization exporter is pod-level, needs to be distributed across containers
+	// GPU usage from vendor-specific exporters is pod-level (no container label).
+	// We split it across containers like network metrics to avoid double-counting in reports.
+	// Note: For fractional GPU utilization (0-1), floor division means the first container
+	// gets the full value and others get 0. The total sum is preserved for accurate reporting.
 	gpuUsage = adjustMetricsForMultiContainerPods(gpuUsage, workloadMap)
 	for _, gpuVal := range gpuUsage {
 		key := getKey(gpuVal)

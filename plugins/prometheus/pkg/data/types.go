@@ -19,6 +19,15 @@ import (
 	"github.com/prometheus/common/model"
 )
 
+const (
+	MetricCPU             = "CPU"
+	MetricMemory          = "Memory"
+	MetricGPU             = "GPU"
+	MetricNetworkReceive  = "NetworkReceive"
+	MetricNetworkTransmit = "NetworkTransmit"
+	MetricStorageCapacity = "StorageCapacity"
+)
+
 // Owner is the information about a pod that a set of metrics belongs to.
 type Owner struct {
 	Container           string
@@ -50,10 +59,11 @@ type CombinedRequest struct {
 	networkTransmit []model.SamplePair
 	networkReceive  []model.SamplePair
 	storageCapacity []model.SamplePair
-	// GPU fields - utilization from DCGM Exporter, requests/limits from kube-state-metrics
-	gpu        []model.SamplePair // GPU utilization (0-1 per GPU)
-	gpuRequest model.SampleValue  // nvidia.com/gpu requests
-	gpuLimit   model.SampleValue  // nvidia.com/gpu limits
+	// GPU fields - utilization from vendor-specific exporters (DCGM, AMD SMI, Intel, Habana),
+	// requests/limits from kube-state-metrics for all GPU vendors
+	gpu        []model.SamplePair // GPU utilization (0-1 normalized, pod-level from GPU exporters)
+	gpuRequest model.SampleValue  // GPU resource requests (all vendors via kube-state-metrics)
+	gpuLimit   model.SampleValue  // GPU resource limits (all vendors via kube-state-metrics)
 }
 
 type NodesMetrics struct {
