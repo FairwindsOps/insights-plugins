@@ -194,10 +194,10 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	}
 	logrus.Infof("Found %d metrics for network receive bytes", len(networkReceive))
 
-	// GPU metrics are optional - don't fail if DCGM Exporter is not installed
+	// GPU metrics are optional - don't fail if specific GPU utilization exporter is not installed
 	gpuUsage, err := getGPUUsage(ctx, api, r, clusterName)
 	if err != nil {
-		logrus.Warnf("GPU usage metrics not available (DCGM Exporter may not be installed): %v", err)
+		logrus.Warnf("GPU usage metrics not available (Specific GPU utilization exporter may not be installed): %v", err)
 		gpuUsage = model.Matrix{}
 	}
 	logrus.Infof("Found %d metrics for GPU usage", len(gpuUsage))
@@ -343,7 +343,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 
-	// GPU usage from DCGM is pod-level, needs to be distributed across containers
+	// GPU usage from specific GPU utilization exporter is pod-level, needs to be distributed across containers
 	gpuUsage = adjustMetricsForMultiContainerPods(gpuUsage, workloadMap)
 	for _, gpuVal := range gpuUsage {
 		key := getKey(gpuVal)
