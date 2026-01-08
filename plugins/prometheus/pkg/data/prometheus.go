@@ -243,3 +243,102 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	}
 	return values.(model.Matrix), nil
 }
+
+// =============================================================================
+// GPU METRICS - Multi-vendor support
+// =============================================================================
+// Supported GPU/accelerator types:
+// - NVIDIA: nvidia.com/gpu, nvidia.com/gpu.shared (time-sliced)
+// - AMD: amd.com/gpu
+// - Intel: intel.com/gpu
+// - Habana Gaudi: habana.ai/gaudi
+// - Google TPU: google.com/tpu
+// - AWS vGPU: k8s.amazonaws.com/vgpu
+
+// gpuResourcePattern matches all supported GPU/accelerator resource names in kube-state-metrics.
+// Note: kube-state-metrics converts "/" and "." to "_" in resource names.
+const gpuResourcePattern = `nvidia_com_gpu|nvidia_com_gpu_shared|k8s_amazonaws_com_vgpu|amd_com_gpu|intel_com_gpu|habana_ai_gaudi|google_com_tpu`
+
+// gpuUtilizationQuery contains vendor-specific GPU utilization queries.
+// Each vendor has a different exporter with different metric names.
+// Queries normalize utilization to 0-1 range per GPU.
+type gpuUtilizationQuery struct {
+	name  string // Vendor name for logging
+	query string // PromQL query template (use %s for cluster filter)
+}
+
+// gpuUtilizationQueries lists all vendor-specific GPU utilization queries.
+// Missing exporters will return empty results (not errors).
+var gpuUtilizationQueries = []gpuUtilizationQuery{
+	// NVIDIA DCGM Exporter - reports 0-100%
+	{"nvidia", `avg by (namespace, pod) (DCGM_FI_DEV_GPU_UTIL{namespace!="", pod!=""%s}) / 100`},
+	// AMD SMI Exporter - reports 0-100%
+	{"amd", `avg by (namespace, pod) (amd_smi_utilization_percentage{namespace!="", pod!=""%s}) / 100`},
+	// Intel GPU Plugin - reports 0-1
+	{"intel", `avg by (namespace, pod) (intel_gpu_engine_render_active{namespace!="", pod!=""%s})`},
+	// Habana HL-SMI Exporter - reports 0-100%
+	{"habana", `avg by (namespace, pod) (hl_utilization{namespace!="", pod!=""%s}) / 100`},
+}
+
+// getGPUUsage fetches GPU utilization from all vendor-specific exporters.
+// It queries each exporter and merges results. Missing exporters are ignored.
+// Returns pod-level utilization (no container label from GPU exporters).
+func getGPUUsage(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+
+	var allResults model.Matrix
+	for _, q := range gpuUtilizationQueries {
+		query := fmt.Sprintf(q.query, clusterFilter)
+		values, err := queryPrometheus(ctx, api, r, query)
+		if err != nil {
+			// Exporter not installed for this vendor - this is expected
+			logrus.Debugf("%s GPU utilization not available: %v", q.name, err)
+			continue
+		}
+		if len(values) > 0 {
+			logrus.Debugf("Found %d metrics for %s GPU utilization", len(values), q.name)
+			allResults = append(allResults, values...)
+		}
+	}
+
+	return allResults, nil
+}
+
+// getGPURequests fetches GPU resource requests from kube-state-metrics for ALL vendors.
+// Uses regex matching to support all GPU resource types.
+func getGPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", resource=~"%s"%s}`, gpuResourcePattern, clusterFilter)
+	values, warnings, err := api.QueryRange(ctx, query, r)
+	for _, warning := range warnings {
+		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values.(model.Matrix), err
+}
+
+// getGPULimits fetches GPU resource limits from kube-state-metrics for ALL vendors.
+// Uses regex matching to support all GPU resource types.
+func getGPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", resource=~"%s"%s}`, gpuResourcePattern, clusterFilter)
+	values, warnings, err := api.QueryRange(ctx, query, r)
+	for _, warning := range warnings {
+		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values.(model.Matrix), err
+}

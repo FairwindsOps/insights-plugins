@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.0
+* Suport to collect GPU metrics
+
 ## 1.7.0
 * Add Grafana Mimir and multi-tenant Prometheus backend support via `X-Scope-OrgID` header
 * Add `PROMETHEUS_TENANT_ID` environment variable for tenant configuration
