@@ -53,8 +53,8 @@ func TestGetNodeAllocatedResources_SingleGPUType(t *testing.T) {
 	node := v1.Node{
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:              resource.MustParse("8"),
-				v1.ResourceMemory:           resource.MustParse("32Gi"),
+				v1.ResourceCPU:                    resource.MustParse("8"),
+				v1.ResourceMemory:                 resource.MustParse("32Gi"),
 				v1.ResourceName("nvidia.com/gpu"): resource.MustParse("4"),
 			},
 		},
@@ -100,8 +100,8 @@ func TestGetNodeAllocatedResources_MultipleGPUTypes(t *testing.T) {
 	node := v1.Node{
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:                        resource.MustParse("8"),
-				v1.ResourceMemory:                     resource.MustParse("32Gi"),
+				v1.ResourceCPU:                           resource.MustParse("8"),
+				v1.ResourceMemory:                        resource.MustParse("32Gi"),
 				v1.ResourceName("nvidia.com/gpu"):        resource.MustParse("4"),
 				v1.ResourceName("nvidia.com/gpu.shared"): resource.MustParse("8"),
 			},
@@ -159,8 +159,8 @@ func TestGetNodeAllocatedResources_GPUOvercommitted(t *testing.T) {
 	node := v1.Node{
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:              resource.MustParse("8"),
-				v1.ResourceMemory:           resource.MustParse("32Gi"),
+				v1.ResourceCPU:                    resource.MustParse("8"),
+				v1.ResourceMemory:                 resource.MustParse("32Gi"),
 				v1.ResourceName("nvidia.com/gpu"): resource.MustParse("2"),
 			},
 		},
@@ -201,8 +201,8 @@ func TestGetNodeAllocatedResources_AMDAndIntelGPU(t *testing.T) {
 	node := v1.Node{
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:              resource.MustParse("8"),
-				v1.ResourceMemory:           resource.MustParse("32Gi"),
+				v1.ResourceCPU:                   resource.MustParse("8"),
+				v1.ResourceMemory:                resource.MustParse("32Gi"),
 				v1.ResourceName("amd.com/gpu"):   resource.MustParse("2"),
 				v1.ResourceName("intel.com/gpu"): resource.MustParse("2"),
 			},
@@ -265,8 +265,8 @@ func TestGetNodeAllocatedResources_GPUWithNoPodsScheduled(t *testing.T) {
 	node := v1.Node{
 		Status: v1.NodeStatus{
 			Capacity: v1.ResourceList{
-				v1.ResourceCPU:              resource.MustParse("8"),
-				v1.ResourceMemory:           resource.MustParse("32Gi"),
+				v1.ResourceCPU:                    resource.MustParse("8"),
+				v1.ResourceMemory:                 resource.MustParse("32Gi"),
 				v1.ResourceName("nvidia.com/gpu"): resource.MustParse("4"),
 			},
 		},
