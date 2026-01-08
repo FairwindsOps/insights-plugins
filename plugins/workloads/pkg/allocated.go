@@ -120,7 +120,7 @@ func getNodeAllocatedResources(node v1.Node, podList *v1.PodList) (NodeAllocated
 		memoryLimitsFraction = float64(memoryLimits.MilliValue()) / capacity
 	}
 
-	// GPU utilization calculation - aggregate across all GPU resource types
+	// GPU allocation fraction calculation - aggregate across all GPU resource types
 	// A node may have multiple GPU types (e.g., nvidia.com/gpu + nvidia.com/gpu.shared)
 	var totalGPUCapacity, totalGPURequests, totalGPULimits float64 = 0, 0, 0
 	for _, gpuResource := range gpuResourceNames {
