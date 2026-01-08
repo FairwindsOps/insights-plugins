@@ -1,14 +1,7 @@
 # Changelog
 
 ## 1.8.0
-* Add GPU metrics collection support for multiple vendors:
-  - GPU requests/limits from kube-state-metrics (all vendors)
-  - NVIDIA utilization from DCGM Exporter (`DCGM_FI_DEV_GPU_UTIL`)
-  - AMD utilization from AMD SMI Exporter (`amd_smi_utilization_percentage`)
-  - Intel utilization from Intel GPU Plugin (`intel_gpu_engine_render_active`)
-  - Habana Gaudi utilization from HL-SMI Exporter (`hl_utilization`)
-* Supported GPU resource types: `nvidia.com/gpu`, `nvidia.com/gpu.shared`, `amd.com/gpu`, `intel.com/gpu`, `habana.ai/gaudi`, `google.com/tpu`, `k8s.amazonaws.com/vgpu`
-* GPU metrics are optional - collector won't fail if exporters aren't installed
+* Suport to collect GPU metrics
 
 ## 1.7.0
 * Add Grafana Mimir and multi-tenant Prometheus backend support via `X-Scope-OrgID` header
