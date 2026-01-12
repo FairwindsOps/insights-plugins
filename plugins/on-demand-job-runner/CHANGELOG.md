@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.2
+* Bump indirect library dependencies
+
 ## 0.2.1
 * Bump library github.com/imroc/req/v3 to v3.57.0
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.1
+* Bump github.com/prometheus/common to v0.67.5
+
 ## 1.8.0
 * Suport to collect GPU metrics
 
