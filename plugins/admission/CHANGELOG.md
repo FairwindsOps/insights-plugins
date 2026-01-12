@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.2
+* Bump github.com/fairwindsops/insights-plugins/plugins/opa
+* Bump golang.org/x/mod to v0.32.0
+
 ## 2.2.1
 * Bump library dependencies
 
