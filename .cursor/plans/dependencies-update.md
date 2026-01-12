@@ -20,7 +20,7 @@ Steps:
 
 3. Update dependencies (per module)
    For each module:
-   - Run: go get -u ./...
+   - Run: go get -u
    - Run: go mod tidy
 
 4. Update docker dependencies - some modules relies on binaries being installed in their docker images, update then as well, here are the modules and dependency list
