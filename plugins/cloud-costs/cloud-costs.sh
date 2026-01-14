@@ -117,14 +117,14 @@ if  [[ "$provider" = "aws" ]]; then
       "SELECT \
         line_item_product_code, identity_time_interval, sum("line_item_unblended_cost") AS cost, \
         line_item_usage_type, product_memory, product_instance_type, product_vcpu, product_clock_speed, sum(1) AS count, \
-        sum(line_item_usage_amount) AS line_item_usage_amount, line_item_operation, product_product_family \
+        sum(line_item_usage_amount) AS line_item_usage_amount, line_item_operation, product_product_family, product_gpu \
       FROM \
         "$database"."$table" \
       WHERE \
         $tagprefix$tagkey='$tagvalue' \
         AND line_item_usage_end_date > timestamp '$initial_date_time' \
         AND line_item_usage_end_date <= timestamp '$final_date_time' \
-      GROUP BY  1,2,4,5,6,7,8,11,12
+      GROUP BY  1,2,4,5,6,7,8,11,12,13
       Order by 1, 2" \
   --work-group "$workgroup" \
   --query-execution-context Database=$database,Catalog=$catalog)

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.0
+* Added ProductGpu to aws cloud costs
+
 ## 0.3.18
 * Build issue
 
