@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+* Added GPU for GCP cloud costs
+
 ## 0.4.0
 * Added ProductGpu to aws cloud costs
 
