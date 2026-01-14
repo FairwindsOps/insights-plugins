@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.8.0
+* Add support to GPU metrics
+
 ## 2.7.2
 * Bump indirect library dependencies
 

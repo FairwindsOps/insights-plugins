@@ -35,6 +35,24 @@ type NodeUtilization struct {
 	// MemoryLimitsFraction is a fraction of defined memory limit, can be over 100%, i.e.
 	// overcommitted.
 	MemoryLimitsFraction float64 `json:"memoryLimitsFraction"`
+
+	// GPURequestsFraction is a fraction of GPU, that is allocated.
+	GPURequestsFraction float64 `json:"gpuRequestsFraction"`
+
+	// GPULimitsFraction is a fraction of defined GPU limit, can be over 100%, i.e.
+	// overcommitted.
+	GPULimitsFraction float64 `json:"gpuLimitsFraction"`
+}
+
+// gpuResourceNames lists all supported GPU resource types across vendors
+var gpuResourceNames = []v1.ResourceName{
+	"nvidia.com/gpu",
+	"nvidia.com/gpu.shared",
+	"amd.com/gpu",
+	"intel.com/gpu",
+	"habana.ai/gaudi",
+	"google.com/tpu",
+	"k8s.amazonaws.com/vgpu",
 }
 
 func GetNodeAllocatedResource(ctx context.Context, client k8sClient.Interface, node v1.Node) (NodeAllocatedResources, NodeUtilization, error) {
@@ -102,6 +120,26 @@ func getNodeAllocatedResources(node v1.Node, podList *v1.PodList) (NodeAllocated
 		memoryLimitsFraction = float64(memoryLimits.MilliValue()) / capacity
 	}
 
+	// GPU allocation fraction calculation - aggregate across all GPU resource types
+	// A node may have multiple GPU types (e.g., nvidia.com/gpu + nvidia.com/gpu.shared)
+	var totalGPUCapacity, totalGPURequests, totalGPULimits float64 = 0, 0, 0
+	for _, gpuResource := range gpuResourceNames {
+		if capacity := node.Status.Capacity[gpuResource]; !capacity.IsZero() {
+			totalGPUCapacity += float64(capacity.Value())
+			if gpuReqs, ok := reqs[gpuResource]; ok {
+				totalGPURequests += float64(gpuReqs.Value())
+			}
+			if gpuLimits, ok := limits[gpuResource]; ok {
+				totalGPULimits += float64(gpuLimits.Value())
+			}
+		}
+	}
+	var gpuRequestsFraction, gpuLimitsFraction float64 = 0, 0
+	if totalGPUCapacity > 0 {
+		gpuRequestsFraction = totalGPURequests / totalGPUCapacity
+		gpuLimitsFraction = totalGPULimits / totalGPUCapacity
+	}
+
 	return NodeAllocatedResources{
 			Requests: reqs,
 			Limits:   limits,
@@ -110,6 +148,8 @@ func getNodeAllocatedResources(node v1.Node, podList *v1.PodList) (NodeAllocated
 			CPULimitsFraction:      cpuLimitsFraction,
 			MemoryRequestsFraction: memoryRequestsFraction,
 			MemoryLimitsFraction:   memoryLimitsFraction,
+			GPURequestsFraction:    gpuRequestsFraction,
+			GPULimitsFraction:      gpuLimitsFraction,
 		}, nil
 }
 
