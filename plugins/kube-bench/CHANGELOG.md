@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.2
+* Bump indirect library dependencies
+
 ## 0.6.1
 * updated kubve-bench to 0.14.1
 
