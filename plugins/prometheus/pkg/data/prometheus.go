@@ -272,8 +272,9 @@ type gpuUtilizationQuery struct {
 var gpuUtilizationQueries = []gpuUtilizationQuery{
 	// NVIDIA DCGM Exporter - reports 0-100%
 	{"nvidia", `avg by (namespace, pod) (DCGM_FI_DEV_GPU_UTIL{namespace!="", pod!=""%s}) / 100`},
-	// AMD SMI Exporter - reports 0-100%
-	{"amd", `avg by (namespace, pod) (amd_smi_utilization_percentage{namespace!="", pod!=""%s}) / 100`},
+	// AMD Device Metrics Exporter (ROCm) - reports 0-100%
+	// GPU_GFX_ACTIVITY measures graphics engine usage percentage
+	{"amd", `avg by (namespace, pod) (GPU_GFX_ACTIVITY{namespace!="", pod!=""%s}) / 100`},
 	// Intel GPU Plugin - reports 0-1
 	{"intel", `avg by (namespace, pod) (intel_gpu_engine_render_active{namespace!="", pod!=""%s})`},
 	// Habana HL-SMI Exporter - reports 0-100%

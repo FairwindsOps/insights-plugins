@@ -1,10 +1,13 @@
 # Changelog
 
+## 1.8.2
+* Fix AMD GPU utilization metric name to use `GPU_GFX_ACTIVITY` from AMD Device Metrics Exporter (ROCm)
+
 ## 1.8.1
 * Bump github.com/prometheus/common to v0.67.5
 
 ## 1.8.0
-* Suport to collect GPU metrics
+* Support to collect GPU metrics
 
 ## 1.7.0
 * Add Grafana Mimir and multi-tenant Prometheus backend support via `X-Scope-OrgID` header
