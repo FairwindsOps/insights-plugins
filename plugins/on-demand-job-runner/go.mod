@@ -1,6 +1,14 @@
 module github.com/FairwindsOps/insights-plugins/on-demand-job-runner
 
-go 1.25.6
+go 1.25.5
+
+// imroc/req v3.57.0+ is incompatible with quic-go v0.59.0+
+// (quic.ConnectionTracingID was removed in quic-go v0.59.0)
+exclude (
+	github.com/imroc/req/v3 v3.57.0
+	github.com/quic-go/qpack v0.6.0
+	github.com/quic-go/quic-go v0.59.0
+)
 
 require (
 	github.com/google/uuid v1.6.0

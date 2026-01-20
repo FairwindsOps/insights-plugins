@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/kyverno
 
-go 1.25.6
+go 1.25.5
 
 require (
 	github.com/sirupsen/logrus v1.9.4
