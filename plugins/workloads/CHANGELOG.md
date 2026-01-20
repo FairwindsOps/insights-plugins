@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.1
+1
+* Bumped all libs
+
 ## 2.8.0
 * Add support to GPU metrics
 

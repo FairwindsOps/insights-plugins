@@ -12,7 +12,7 @@ RUN apk add moreutils
 RUN apk add coreutils
 RUN apk add unzip
 
-ENV CLOUD_SDK_VERSION=526.0.1
+ENV CLOUD_SDK_VERSION=552.0.0
 
 RUN apk add --no-cache aws-cli
 

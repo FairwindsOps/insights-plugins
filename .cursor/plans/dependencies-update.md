@@ -35,7 +35,7 @@ Version number below are just for demonstration, not the latest used.
   - helmVersion=4.0.2 (source: https://github.com/helm/helm/tags)
 
 - cloud-costs:
-  - CLOUD_SDK_VERSION=526.0.1 (source: https://docs.cloud.google.com/sdk/gcloud)
+  - CLOUD_SDK_VERSION=552.0.0 (source: https://docs.cloud.google.com/sdk/gcloud)
 
 - kube-bench:
   - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
@@ -49,7 +49,7 @@ Version number below are just for demonstration, not the latest used.
 - trivy:
   - trivyVersion=0.68.1 (source: https://github.com/aquasecurity/trivy/tags)
   - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
-  - ENV CLOUD_SDK_VERSION=526.0.1 (source: https://docs.cloud.google.com/sdk/gcloud)
+  - ENV CLOUD_SDK_VERSION=552.0.0 (source: https://docs.cloud.google.com/sdk/gcloud)
 
 - downloader:
   - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
