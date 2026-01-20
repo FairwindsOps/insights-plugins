@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.3
+* Bumped all libs
+
 ## 3.1.2
 * Bump github.com/open-policy-agent/opa to v1.12.2
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.3
+* Bumped all libs
+
 ## 6.2.2
 * Bump github.com/fairwindsops/insights-plugins/plugins/opa
 * Bump github.com/fairwindsops/insights-plugins/plugins/trivy

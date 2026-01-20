@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.3
+* Bumped all libs
+
 ## 0.2.2
 * Bump github.com/aws/aws-sdk-go-v2 to v1.41.1
 

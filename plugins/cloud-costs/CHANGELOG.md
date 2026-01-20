@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+* Bumped all libs
+
 ## 0.5.0
 * Added GPU for GCP cloud costs
 
