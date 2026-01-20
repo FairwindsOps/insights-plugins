@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.2.3
-* Bumped all libs
-
 ## 0.2.2
 * Bump indirect library dependencies
 
