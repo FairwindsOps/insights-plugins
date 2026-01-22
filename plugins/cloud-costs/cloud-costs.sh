@@ -22,7 +22,7 @@ usage: cloud-costs \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
   --subscription <subscription ID - required for Azure> \
-  [--format <data format - 'focus' for FOCUS format, default is standard format (GCP only)>] \
+  [--format <data format - 'focus' for FOCUS format, default is standard format>] \
   [--focusview <FOCUS view name - required for GCP when format is focus>] \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
@@ -124,28 +124,66 @@ initial_date=$(date -u -d  $days+' day ago' +"%Y-%m-%d")
 final_date=$(date -u +"%Y-%m-%d")
 
 if  [[ "$provider" = "aws" ]]; then
-   echo "AWS CUR Integration......"
+  echo "AWS CUR Integration......"
   if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
     usage
     exit 1
   fi
 
-  queryResults=$(aws athena start-query-execution \
-  --query-string \
-      "SELECT \
-        line_item_product_code, identity_time_interval, sum("line_item_unblended_cost") AS cost, \
-        line_item_usage_type, product_memory, product_instance_type, product_vcpu, product_clock_speed, sum(1) AS count, \
-        sum(line_item_usage_amount) AS line_item_usage_amount, line_item_operation, product_product_family, product_gpu \
-      FROM \
-        "$database"."$table" \
-      WHERE \
-        $tagprefix$tagkey='$tagvalue' \
-        AND line_item_usage_end_date > timestamp '$initial_date_time' \
-        AND line_item_usage_end_date <= timestamp '$final_date_time' \
-      GROUP BY  1,2,4,5,6,7,8,11,12,13
-      Order by 1, 2" \
-  --work-group "$workgroup" \
-  --query-execution-context Database=$database,Catalog=$catalog)
+  if [[ "$format" == "focus" ]]; then
+    echo "Using FOCUS format..."
+    # FOCUS-compliant query for AWS CUR
+    queryResults=$(aws athena start-query-execution \
+    --query-string \
+        "SELECT \
+          line_item_product_code AS service_name, \
+          product_product_family AS service_category, \
+          line_item_usage_type AS charge_sub_category, \
+          line_item_line_item_type AS charge_category, \
+          product_region AS region_id, \
+          line_item_resource_id AS resource_id, \
+          line_item_usage_start_date AS charge_period_start, \
+          line_item_usage_end_date AS charge_period_end, \
+          SUM(line_item_unblended_cost) AS billed_cost, \
+          SUM(line_item_blended_cost) AS effective_cost, \
+          SUM(line_item_usage_amount) AS consumed_quantity, \
+          pricing_unit AS consumed_unit, \
+          line_item_currency_code AS billing_currency, \
+          bill_payer_account_id AS billing_account_id, \
+          line_item_usage_account_id AS sub_account_id, \
+          product_instance_type AS x_instance_type, \
+          product_vcpu AS x_vcpu, \
+          product_memory AS x_memory, \
+          product_gpu AS x_gpu \
+        FROM \
+          "$database"."$table" \
+        WHERE \
+          $tagprefix$tagkey='$tagvalue' \
+          AND line_item_usage_end_date > timestamp '$initial_date_time' \
+          AND line_item_usage_end_date <= timestamp '$final_date_time' \
+        GROUP BY 1,2,3,4,5,6,7,8,12,13,14,15,16,17,18,19
+        ORDER BY charge_period_start, service_name" \
+    --work-group "$workgroup" \
+    --query-execution-context Database=$database,Catalog=$catalog)
+  else
+    # Standard query (original format)
+    queryResults=$(aws athena start-query-execution \
+    --query-string \
+        "SELECT \
+          line_item_product_code, identity_time_interval, sum(line_item_unblended_cost) AS cost, \
+          line_item_usage_type, product_memory, product_instance_type, product_vcpu, product_clock_speed, sum(1) AS count, \
+          sum(line_item_usage_amount) AS line_item_usage_amount, line_item_operation, product_product_family, product_gpu \
+        FROM \
+          "$database"."$table" \
+        WHERE \
+          $tagprefix$tagkey='$tagvalue' \
+          AND line_item_usage_end_date > timestamp '$initial_date_time' \
+          AND line_item_usage_end_date <= timestamp '$final_date_time' \
+        GROUP BY  1,2,4,5,6,7,8,11,12,13
+        Order by 1, 2" \
+    --work-group "$workgroup" \
+    --query-execution-context Database=$database,Catalog=$catalog)
+  fi
 
   executionId=$(echo $queryResults | jq .QueryExecutionId | sed 's/"//g')
 
@@ -172,9 +210,50 @@ if  [[ "$provider" = "aws" ]]; then
   done
 
   aws athena get-query-results --query-execution-id $executionId > /output/cloudcosts-tmp.json
-  mv /output/cloudcosts-tmp.json /output/cloudcosts.json
 
-  echo "Saved aws costs file in /output/cloudcosts.json"
+  if [[ "$format" == "focus" ]]; then
+    echo "Transforming to FOCUS format..."
+    # Transform Athena results to FOCUS-compliant JSON array
+    jq '[
+      .ResultSet.Rows[1:][] |
+      .Data |
+      {
+        ServiceName: .[0].VarCharValue,
+        ServiceCategory: .[1].VarCharValue,
+        ChargeSubCategory: .[2].VarCharValue,
+        ChargeCategory: (.[3].VarCharValue // "Usage"),
+        RegionId: .[4].VarCharValue,
+        ResourceId: .[5].VarCharValue,
+        ChargePeriodStart: .[6].VarCharValue,
+        ChargePeriodEnd: .[7].VarCharValue,
+        BilledCost: (.[8].VarCharValue | if . then tonumber else 0 end),
+        EffectiveCost: (.[9].VarCharValue | if . then tonumber else 0 end),
+        ConsumedQuantity: (.[10].VarCharValue | if . then tonumber else 0 end),
+        ConsumedUnit: .[11].VarCharValue,
+        BillingCurrency: .[12].VarCharValue,
+        BillingAccountId: .[13].VarCharValue,
+        SubAccountId: .[14].VarCharValue,
+        x_InstanceType: .[15].VarCharValue,
+        x_vCPU: .[16].VarCharValue,
+        x_Memory: .[17].VarCharValue,
+        x_GPU: .[18].VarCharValue,
+        ProviderName: "Amazon Web Services"
+      }
+    ]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
+
+    if [[ $? -ne 0 ]]; then
+      echo "Error transforming to FOCUS format"
+      cat /output/cloudcosts-tmp.json
+      exit 1
+    fi
+
+    mv /output/cloudcosts-focus.json /output/cloudcosts.json
+    rm -f /output/cloudcosts-tmp.json
+    echo "Saved AWS costs file in FOCUS format to /output/cloudcosts.json"
+  else
+    mv /output/cloudcosts-tmp.json /output/cloudcosts.json
+    echo "Saved AWS costs file in /output/cloudcosts.json"
+  fi
   exit 0
 fi
 if [[ "$provider" == "gcp" ]]; then
@@ -237,7 +316,7 @@ if [[ "$provider" == "gcp" ]]; then
   exit 0
 fi
 if [[ "$provider" == "azure" ]]; then
-  echo "Azure Cost Management integration (FOCUS format)......"
+  echo "Azure Cost Management integration......"
 
   if [[ "$tagvalue" = "" ]]; then
     echo "Error: --tagvalue is required for Azure"
@@ -257,8 +336,10 @@ if [[ "$provider" == "azure" ]]; then
   echo "Azure Cost Management query is running......"
   echo "Querying costs from $initial_date to $final_date for tag $tagkey=$tagvalue"
 
-  # Build the request body for Azure Cost Management API
-  request_body=$(cat <<EOF
+  if [[ "$format" == "focus" ]]; then
+    echo "Using FOCUS format..."
+    # FOCUS format request body with additional dimensions
+    request_body=$(cat <<EOF
 {
   "type": "ActualCost",
   "timeframe": "Custom",
@@ -279,38 +360,14 @@ if [[ "$provider" == "azure" ]]; then
       }
     },
     "grouping": [
-      {
-        "type": "Dimension",
-        "name": "ServiceName"
-      },
-      {
-        "type": "Dimension",
-        "name": "MeterCategory"
-      },
-      {
-        "type": "Dimension",
-        "name": "MeterSubCategory"
-      },
-      {
-        "type": "Dimension",
-        "name": "ResourceLocation"
-      },
-      {
-        "type": "Dimension",
-        "name": "ResourceId"
-      },
-      {
-        "type": "Dimension",
-        "name": "ResourceGroupName"
-      },
-      {
-        "type": "Dimension",
-        "name": "ChargeType"
-      },
-      {
-        "type": "Dimension",
-        "name": "PublisherType"
-      }
+      {"type": "Dimension", "name": "ServiceName"},
+      {"type": "Dimension", "name": "MeterCategory"},
+      {"type": "Dimension", "name": "MeterSubCategory"},
+      {"type": "Dimension", "name": "ResourceLocation"},
+      {"type": "Dimension", "name": "ResourceId"},
+      {"type": "Dimension", "name": "ResourceGroupName"},
+      {"type": "Dimension", "name": "ChargeType"},
+      {"type": "Dimension", "name": "PublisherType"}
     ],
     "filter": {
       "tags": {
@@ -323,6 +380,47 @@ if [[ "$provider" == "azure" ]]; then
 }
 EOF
 )
+  else
+    # Standard format request body
+    request_body=$(cat <<EOF
+{
+  "type": "ActualCost",
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "$initial_date",
+    "to": "$final_date"
+  },
+  "dataset": {
+    "granularity": "Daily",
+    "aggregation": {
+      "totalCost": {
+        "name": "Cost",
+        "function": "Sum"
+      },
+      "totalQuantity": {
+        "name": "UsageQuantity",
+        "function": "Sum"
+      }
+    },
+    "grouping": [
+      {"type": "Dimension", "name": "ServiceName"},
+      {"type": "Dimension", "name": "MeterCategory"},
+      {"type": "Dimension", "name": "MeterSubCategory"},
+      {"type": "Dimension", "name": "ResourceLocation"},
+      {"type": "Dimension", "name": "ResourceId"}
+    ],
+    "filter": {
+      "tags": {
+        "name": "$tagkey",
+        "operator": "In",
+        "values": ["$tagvalue"]
+      }
+    }
+  }
+}
+EOF
+)
+  fi
 
   # Query Azure Cost Management API
   az rest --method post \
@@ -343,52 +441,43 @@ EOF
     exit 1
   fi
 
-  echo "Transforming to FOCUS format..."
+  if [[ "$format" == "focus" ]]; then
+    echo "Transforming to FOCUS format..."
+    # Transform Azure response to FOCUS-compliant format
+    jq '[.properties.rows[] | {
+      BilledCost: .[0],
+      EffectiveCost: .[0],
+      ConsumedQuantity: .[1],
+      ChargePeriodStart: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T00:00:00Z"),
+      ChargePeriodEnd: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T23:59:59Z"),
+      ServiceName: .[3],
+      ServiceCategory: .[4],
+      ChargeSubCategory: .[5],
+      RegionId: .[6],
+      ResourceId: .[7],
+      x_ResourceGroupName: .[8],
+      ChargeCategory: (.[9] // "Usage"),
+      PublisherName: (if .[10] == "Azure" then "Microsoft Azure" else .[10] end),
+      BillingCurrency: .[11],
+      ProviderName: "Microsoft Azure",
+      BillingAccountId: "'"$subscription"'"
+    }]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
 
-  # Transform Azure response to FOCUS-compliant format
-  # FOCUS column mapping:
-  # Cost -> BilledCost, EffectiveCost
-  # UsageQuantity -> ConsumedQuantity
-  # UsageDate -> ChargePeriodStart, ChargePeriodEnd
-  # ServiceName -> ServiceName
-  # MeterCategory -> ServiceCategory
-  # MeterSubCategory -> ChargeSubCategory
-  # ResourceLocation -> RegionId
-  # ResourceId -> ResourceId
-  # ResourceGroupName -> x_ResourceGroupName
-  # ChargeType -> ChargeCategory
-  # PublisherType -> PublisherName
-  # Currency -> BillingCurrency
-  jq '[.properties.rows[] | {
-    BilledCost: .[0],
-    EffectiveCost: .[0],
-    ConsumedQuantity: .[1],
-    ChargePeriodStart: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T00:00:00Z"),
-    ChargePeriodEnd: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T23:59:59Z"),
-    ServiceName: .[3],
-    ServiceCategory: .[4],
-    ChargeSubCategory: .[5],
-    RegionId: .[6],
-    ResourceId: .[7],
-    x_ResourceGroupName: .[8],
-    ChargeCategory: (.[9] // "Usage"),
-    PublisherName: (if .[10] == "Azure" then "Microsoft Azure" else .[10] end),
-    BillingCurrency: .[11],
-    ProviderName: "Microsoft Azure",
-    BillingAccountId: "'"$subscription"'"
-  }]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
+    if [[ $? -ne 0 ]]; then
+      echo "Error transforming to FOCUS format"
+      cat /output/cloudcosts-tmp.json
+      exit 1
+    fi
 
-  if [[ $? -ne 0 ]]; then
-    echo "Error transforming to FOCUS format"
-    cat /output/cloudcosts-tmp.json
-    exit 1
+    mv /output/cloudcosts-focus.json /output/cloudcosts.json
+    rm -f /output/cloudcosts-tmp.json
+    echo "Saved Azure costs file in FOCUS format to /output/cloudcosts.json"
+  else
+    mv /output/cloudcosts-tmp.json /output/cloudcosts.json
+    echo "Saved Azure costs file in /output/cloudcosts.json"
   fi
 
-  mv /output/cloudcosts-focus.json /output/cloudcosts.json
-  rm -f /output/cloudcosts-tmp.json
   echo "Azure Cost Management query finished..."
-  echo "Saved Azure costs file in FOCUS format to /output/cloudcosts.json"
-
   exit 0
 fi
 echo "--provider is required and should be aws, gcp, or azure"
