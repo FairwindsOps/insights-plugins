@@ -10,10 +10,10 @@ usage()
 {
 cat << EOF
 usage: cloud-costs \
-  --provider <cloud provider - aws is default>
-  --tagprefix <tag prefix - optional for aws, not used for GCP> \
-  --tagkey <tag key - required for AWS, optional for GCP> \
-  --tagvalue <tag value - required for AWS and GCP> \
+  --provider <cloud provider - aws, gcp, or azure>
+  --tagprefix <tag prefix - optional for aws, not used for GCP/Azure> \
+  --tagkey <tag key - required for AWS, optional for GCP/Azure> \
+  --tagvalue <tag value - required for AWS, GCP, and Azure> \
   --database <database name - required for AWS> \
   --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
@@ -21,6 +21,7 @@ usage: cloud-costs \
   --projectname <project name - required for GCP> \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
+  --subscription <subscription ID - required for Azure> \
   [--format <data format - 'focus' for FOCUS format, default is standard format (GCP only)>] \
   [--focusview <FOCUS view name - required for GCP when format is focus>] \
   [--timeout <time in seconds>] \
@@ -41,6 +42,7 @@ workgroup=''
 projectname=''
 dataset=''
 billingaccount=''
+subscription=''
 days=''
 format=''
 focusview=''
@@ -91,6 +93,9 @@ while [ ! $# -eq 0 ]; do
         billingaccount)
             billingaccount=${2}
             ;;
+        subscription)
+            subscription=${2}
+            ;;
         format)
             format=${2}
             ;;
@@ -114,6 +119,9 @@ fi
 
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
+# Azure uses YYYY-MM-DD format
+initial_date=$(date -u -d  $days+' day ago' +"%Y-%m-%d")
+final_date=$(date -u +"%Y-%m-%d")
 
 if  [[ "$provider" = "aws" ]]; then
    echo "AWS CUR Integration......"
@@ -228,5 +236,106 @@ if [[ "$provider" == "gcp" ]]; then
 
   exit 0
 fi
-echo "--provider - is required and should be either aws or gcp"
+if [[ "$provider" == "azure" ]]; then
+  echo "Azure Cost Management integration......"
+
+  if [[ "$tagvalue" = "" ]]; then
+    echo "Error: --tagvalue is required for Azure"
+    usage
+    exit 1
+  fi
+  if [[ "$subscription" = "" ]]; then
+    echo "Error: --subscription is required for Azure"
+    usage
+    exit 1
+  fi
+
+  if [[ "$tagkey" = "" ]]; then
+    tagkey="kubernetes-cluster"
+  fi
+
+  echo "Azure Cost Management query is running......"
+  echo "Querying costs from $initial_date to $final_date for tag $tagkey=$tagvalue"
+
+  # Build the request body for Azure Cost Management API
+  request_body=$(cat <<EOF
+{
+  "type": "ActualCost",
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "$initial_date",
+    "to": "$final_date"
+  },
+  "dataset": {
+    "granularity": "Daily",
+    "aggregation": {
+      "totalCost": {
+        "name": "Cost",
+        "function": "Sum"
+      },
+      "totalQuantity": {
+        "name": "UsageQuantity",
+        "function": "Sum"
+      }
+    },
+    "grouping": [
+      {
+        "type": "Dimension",
+        "name": "ServiceName"
+      },
+      {
+        "type": "Dimension",
+        "name": "MeterCategory"
+      },
+      {
+        "type": "Dimension",
+        "name": "MeterSubCategory"
+      },
+      {
+        "type": "Dimension",
+        "name": "ResourceLocation"
+      },
+      {
+        "type": "Dimension",
+        "name": "ResourceId"
+      }
+    ],
+    "filter": {
+      "tags": {
+        "name": "$tagkey",
+        "operator": "In",
+        "values": ["$tagvalue"]
+      }
+    }
+  }
+}
+EOF
+)
+
+  # Query Azure Cost Management API
+  az rest --method post \
+    --url "https://management.azure.com/subscriptions/$subscription/providers/Microsoft.CostManagement/query?api-version=2023-11-01" \
+    --body "$request_body" \
+    --output json > /output/cloudcosts-tmp.json
+
+  if [[ $? -ne 0 ]]; then
+    echo "Error executing Azure Cost Management query"
+    cat /output/cloudcosts-tmp.json
+    exit 1
+  fi
+
+  # Check for errors in response
+  if grep -q '"error"' /output/cloudcosts-tmp.json; then
+    echo "Azure Cost Management API returned an error"
+    cat /output/cloudcosts-tmp.json
+    exit 1
+  fi
+
+  echo "Azure Cost Management query finished..."
+  mv /output/cloudcosts-tmp.json /output/cloudcosts.json
+  echo "Saved Azure costs file in /output/cloudcosts.json"
+
+  exit 0
+fi
+echo "--provider is required and should be aws, gcp, or azure"
 exit 1
