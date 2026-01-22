@@ -237,7 +237,7 @@ if [[ "$provider" == "gcp" ]]; then
   exit 0
 fi
 if [[ "$provider" == "azure" ]]; then
-  echo "Azure Cost Management integration......"
+  echo "Azure Cost Management integration (FOCUS format)......"
 
   if [[ "$tagvalue" = "" ]]; then
     echo "Error: --tagvalue is required for Azure"
@@ -298,6 +298,18 @@ if [[ "$provider" == "azure" ]]; then
       {
         "type": "Dimension",
         "name": "ResourceId"
+      },
+      {
+        "type": "Dimension",
+        "name": "ResourceGroupName"
+      },
+      {
+        "type": "Dimension",
+        "name": "ChargeType"
+      },
+      {
+        "type": "Dimension",
+        "name": "PublisherType"
       }
     ],
     "filter": {
@@ -331,9 +343,51 @@ EOF
     exit 1
   fi
 
+  echo "Transforming to FOCUS format..."
+
+  # Transform Azure response to FOCUS-compliant format
+  # FOCUS column mapping:
+  # Cost -> BilledCost, EffectiveCost
+  # UsageQuantity -> ConsumedQuantity
+  # UsageDate -> ChargePeriodStart, ChargePeriodEnd
+  # ServiceName -> ServiceName
+  # MeterCategory -> ServiceCategory
+  # MeterSubCategory -> ChargeSubCategory
+  # ResourceLocation -> RegionId
+  # ResourceId -> ResourceId
+  # ResourceGroupName -> x_ResourceGroupName
+  # ChargeType -> ChargeCategory
+  # PublisherType -> PublisherName
+  # Currency -> BillingCurrency
+  jq '[.properties.rows[] | {
+    BilledCost: .[0],
+    EffectiveCost: .[0],
+    ConsumedQuantity: .[1],
+    ChargePeriodStart: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T00:00:00Z"),
+    ChargePeriodEnd: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T23:59:59Z"),
+    ServiceName: .[3],
+    ServiceCategory: .[4],
+    ChargeSubCategory: .[5],
+    RegionId: .[6],
+    ResourceId: .[7],
+    x_ResourceGroupName: .[8],
+    ChargeCategory: (.[9] // "Usage"),
+    PublisherName: (if .[10] == "Azure" then "Microsoft Azure" else .[10] end),
+    BillingCurrency: .[11],
+    ProviderName: "Microsoft Azure",
+    BillingAccountId: "'"$subscription"'"
+  }]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
+
+  if [[ $? -ne 0 ]]; then
+    echo "Error transforming to FOCUS format"
+    cat /output/cloudcosts-tmp.json
+    exit 1
+  fi
+
+  mv /output/cloudcosts-focus.json /output/cloudcosts.json
+  rm -f /output/cloudcosts-tmp.json
   echo "Azure Cost Management query finished..."
-  mv /output/cloudcosts-tmp.json /output/cloudcosts.json
-  echo "Saved Azure costs file in /output/cloudcosts.json"
+  echo "Saved Azure costs file in FOCUS format to /output/cloudcosts.json"
 
   exit 0
 fi
