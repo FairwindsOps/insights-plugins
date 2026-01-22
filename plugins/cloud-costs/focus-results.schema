@@ -1,0 +1,133 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "array",
+    "description": "FOCUS (FinOps Open Cost and Usage Specification) compliant output schema",
+    "items": {
+        "type": "object",
+        "properties": {
+            "BilledCost": {
+                "type": "number",
+                "description": "The amount billed for the charge"
+            },
+            "EffectiveCost": {
+                "type": "number",
+                "description": "The effective cost after discounts and credits"
+            },
+            "ConsumedQuantity": {
+                "type": ["number", "null"],
+                "description": "The amount of usage consumed"
+            },
+            "ConsumedUnit": {
+                "type": ["string", "null"],
+                "description": "The unit of measure for consumed quantity"
+            },
+            "ChargePeriodStart": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The start of the charge period (ISO8601)"
+            },
+            "ChargePeriodEnd": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The end of the charge period (ISO8601)"
+            },
+            "ServiceName": {
+                "type": ["string", "null"],
+                "description": "The name of the cloud service"
+            },
+            "ServiceCategory": {
+                "type": ["string", "null"],
+                "description": "The category of the cloud service"
+            },
+            "ChargeCategory": {
+                "type": ["string", "null"],
+                "description": "The type of charge (Usage, Tax, Adjustment, etc.)"
+            },
+            "ChargeSubCategory": {
+                "type": ["string", "null"],
+                "description": "The sub-category of the charge"
+            },
+            "RegionId": {
+                "type": ["string", "null"],
+                "description": "The region identifier where the resource is located"
+            },
+            "RegionName": {
+                "type": ["string", "null"],
+                "description": "The human-readable name of the region"
+            },
+            "AvailabilityZone": {
+                "type": ["string", "null"],
+                "description": "The availability zone where the resource is located"
+            },
+            "ResourceId": {
+                "type": ["string", "null"],
+                "description": "The unique identifier of the resource"
+            },
+            "ResourceName": {
+                "type": ["string", "null"],
+                "description": "The name of the resource"
+            },
+            "ResourceType": {
+                "type": ["string", "null"],
+                "description": "The type of resource"
+            },
+            "BillingCurrency": {
+                "type": "string",
+                "description": "The currency used for billing"
+            },
+            "BillingAccountId": {
+                "type": ["string", "null"],
+                "description": "The billing account identifier"
+            },
+            "SubAccountId": {
+                "type": ["string", "null"],
+                "description": "The sub-account or linked account identifier"
+            },
+            "ProviderName": {
+                "type": "string",
+                "description": "The cloud provider name",
+                "enum": ["Amazon Web Services", "Google Cloud", "Microsoft Azure"]
+            },
+            "PublisherName": {
+                "type": ["string", "null"],
+                "description": "The publisher of the service"
+            },
+            "Tags": {
+                "type": ["array", "null"],
+                "description": "Resource tags",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "key": {"type": "string"},
+                        "value": {"type": "string"}
+                    }
+                }
+            },
+            "x_InstanceType": {
+                "type": ["string", "null"],
+                "description": "Extension: Instance type (AWS/Azure)"
+            },
+            "x_vCPU": {
+                "type": ["string", "null"],
+                "description": "Extension: Number of vCPUs"
+            },
+            "x_Memory": {
+                "type": ["string", "null"],
+                "description": "Extension: Memory size"
+            },
+            "x_GPU": {
+                "type": ["string", "null"],
+                "description": "Extension: GPU information"
+            },
+            "x_ResourceGroupName": {
+                "type": ["string", "null"],
+                "description": "Extension: Azure resource group name"
+            },
+            "x_Project": {
+                "type": ["object", "null"],
+                "description": "Extension: GCP project information"
+            }
+        },
+        "required": ["BilledCost", "EffectiveCost", "ChargePeriodStart", "ChargePeriodEnd", "ProviderName", "BillingCurrency"]
+    }
+}

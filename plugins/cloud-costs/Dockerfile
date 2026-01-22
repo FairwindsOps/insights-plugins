@@ -14,7 +14,11 @@ RUN apk add unzip
 
 ENV CLOUD_SDK_VERSION=552.0.0
 
+# Install AWS CLI
 RUN apk add --no-cache aws-cli
+
+# Install Azure CLI
+RUN apk add --no-cache azure-cli
 
 # Install Google Cloud SDK
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
@@ -32,5 +36,6 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
 COPY cloud-costs.sh cloud-costs.sh
+COPY gcp-FOCUS-query.sql gcp-FOCUS-query.sql
 
 CMD ["cloud-costs.sh"]

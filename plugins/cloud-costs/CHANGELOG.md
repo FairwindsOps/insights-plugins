@@ -1,7 +1,14 @@
 # Changelog
 
 ## 1.0.0
-* Added FOCUS and Azure support
+* Added Azure provider support via Cost Management API
+* Added FOCUS (FinOps Open Cost and Usage Specification) format output for all providers
+* New `--format focus` option to output standardized cost data
+* New `--subscription` option for Azure subscription ID
+* New `--focusview` option for GCP FOCUS view name
+* Added Azure CLI to Docker image
+* Added JSON schema files for Azure and FOCUS output formats
+* Updated README with comprehensive documentation
 
 ## 0.5.1
 * Bumped all libs

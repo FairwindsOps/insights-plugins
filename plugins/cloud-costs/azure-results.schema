@@ -1,0 +1,58 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "description": "Azure Cost Management API response schema (standard format)",
+    "properties": {
+        "eTag": {
+            "type": ["string", "null"]
+        },
+        "id": {
+            "type": "string"
+        },
+        "location": {
+            "type": ["string", "null"]
+        },
+        "name": {
+            "type": "string"
+        },
+        "properties": {
+            "type": "object",
+            "properties": {
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": ["Number", "String"]
+                            }
+                        },
+                        "required": ["name", "type"]
+                    }
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "description": "Row data matching column order: Cost, UsageQuantity, UsageDate, ServiceName, MeterCategory, MeterSubCategory, ResourceLocation, ResourceId, Currency"
+                    }
+                },
+                "nextLink": {
+                    "type": ["string", "null"]
+                }
+            },
+            "required": ["columns", "rows"]
+        },
+        "sku": {
+            "type": ["object", "null"]
+        },
+        "type": {
+            "type": "string"
+        }
+    },
+    "required": ["properties"]
+}
