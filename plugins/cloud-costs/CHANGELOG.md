@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.0
+* Added FOCUS and Azure support
+
 ## 0.5.1
 * Bumped all libs
 
