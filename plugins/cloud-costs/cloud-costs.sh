@@ -22,7 +22,7 @@ usage: cloud-costs \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
   --subscription <subscription ID - required for Azure> \
-  [--format <data format - 'focus' for FOCUS format, default is standard format>] \
+  [--format <data format - 'standard' or 'focus' (AWS/GCP only, Azure always uses FOCUS)>] \
   [--focusview <FOCUS view name - required for GCP when format is focus>] \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
@@ -316,7 +316,7 @@ if [[ "$provider" == "gcp" ]]; then
   exit 0
 fi
 if [[ "$provider" == "azure" ]]; then
-  echo "Azure Cost Management integration......"
+  echo "Azure Cost Management integration (FOCUS format)......"
 
   if [[ "$tagvalue" = "" ]]; then
     echo "Error: --tagvalue is required for Azure"
@@ -333,13 +333,18 @@ if [[ "$provider" == "azure" ]]; then
     tagkey="kubernetes-cluster"
   fi
 
+  # Azure cost data takes 24-72 hours to finalize
+  # Apply 2-day lag to ensure complete data (ignore today and yesterday)
+  lag_days=2
+  initial_date=$(date -u -d "$((days + lag_days)) day ago" +"%Y-%m-%d")
+  final_date=$(date -u -d "$lag_days day ago" +"%Y-%m-%d")
+
   echo "Azure Cost Management query is running......"
   echo "Querying costs from $initial_date to $final_date for tag $tagkey=$tagvalue"
+  echo "(2-day lag applied to ensure cost data is finalized)"
 
-  if [[ "$format" == "focus" ]]; then
-    echo "Using FOCUS format..."
-    # FOCUS format request body with additional dimensions
-    request_body=$(cat <<EOF
+  # FOCUS format request body
+  request_body=$(cat <<EOF
 {
   "type": "ActualCost",
   "timeframe": "Custom",
@@ -380,47 +385,6 @@ if [[ "$provider" == "azure" ]]; then
 }
 EOF
 )
-  else
-    # Standard format request body
-    request_body=$(cat <<EOF
-{
-  "type": "ActualCost",
-  "timeframe": "Custom",
-  "timePeriod": {
-    "from": "$initial_date",
-    "to": "$final_date"
-  },
-  "dataset": {
-    "granularity": "Daily",
-    "aggregation": {
-      "totalCost": {
-        "name": "Cost",
-        "function": "Sum"
-      },
-      "totalQuantity": {
-        "name": "UsageQuantity",
-        "function": "Sum"
-      }
-    },
-    "grouping": [
-      {"type": "Dimension", "name": "ServiceName"},
-      {"type": "Dimension", "name": "MeterCategory"},
-      {"type": "Dimension", "name": "MeterSubCategory"},
-      {"type": "Dimension", "name": "ResourceLocation"},
-      {"type": "Dimension", "name": "ResourceId"}
-    ],
-    "filter": {
-      "tags": {
-        "name": "$tagkey",
-        "operator": "In",
-        "values": ["$tagvalue"]
-      }
-    }
-  }
-}
-EOF
-)
-  fi
 
   # Query Azure Cost Management API
   az rest --method post \
@@ -441,43 +405,38 @@ EOF
     exit 1
   fi
 
-  if [[ "$format" == "focus" ]]; then
-    echo "Transforming to FOCUS format..."
-    # Transform Azure response to FOCUS-compliant format
-    jq '[.properties.rows[] | {
-      BilledCost: .[0],
-      EffectiveCost: .[0],
-      ConsumedQuantity: .[1],
-      ChargePeriodStart: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T00:00:00Z"),
-      ChargePeriodEnd: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T23:59:59Z"),
-      ServiceName: .[3],
-      ServiceCategory: .[4],
-      ChargeSubCategory: .[5],
-      RegionId: .[6],
-      ResourceId: .[7],
-      x_ResourceGroupName: .[8],
-      ChargeCategory: (.[9] // "Usage"),
-      PublisherName: (if .[10] == "Azure" then "Microsoft Azure" else .[10] end),
-      BillingCurrency: .[11],
-      ProviderName: "Microsoft Azure",
-      BillingAccountId: "'"$subscription"'"
-    }]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
+  echo "Transforming to FOCUS format..."
+  # Transform Azure response to FOCUS-compliant format
+  jq '[.properties.rows[] | {
+    BilledCost: .[0],
+    EffectiveCost: .[0],
+    ConsumedQuantity: .[1],
+    ChargePeriodStart: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T00:00:00Z"),
+    ChargePeriodEnd: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T23:59:59Z"),
+    ServiceName: .[3],
+    ServiceCategory: .[4],
+    ChargeSubCategory: .[5],
+    RegionId: .[6],
+    ResourceId: .[7],
+    x_ResourceGroupName: .[8],
+    ChargeCategory: (.[9] // "Usage"),
+    PublisherName: (if .[10] == "Azure" then "Microsoft Azure" else .[10] end),
+    BillingCurrency: .[11],
+    ProviderName: "Microsoft Azure",
+    BillingAccountId: "'"$subscription"'"
+  }]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
 
-    if [[ $? -ne 0 ]]; then
-      echo "Error transforming to FOCUS format"
-      cat /output/cloudcosts-tmp.json
-      exit 1
-    fi
-
-    mv /output/cloudcosts-focus.json /output/cloudcosts.json
-    rm -f /output/cloudcosts-tmp.json
-    echo "Saved Azure costs file in FOCUS format to /output/cloudcosts.json"
-  else
-    mv /output/cloudcosts-tmp.json /output/cloudcosts.json
-    echo "Saved Azure costs file in /output/cloudcosts.json"
+  if [[ $? -ne 0 ]]; then
+    echo "Error transforming to FOCUS format"
+    cat /output/cloudcosts-tmp.json
+    exit 1
   fi
 
+  mv /output/cloudcosts-focus.json /output/cloudcosts.json
+  rm -f /output/cloudcosts-tmp.json
   echo "Azure Cost Management query finished..."
+  echo "Saved Azure costs file in FOCUS format to /output/cloudcosts.json"
+
   exit 0
 fi
 echo "--provider is required and should be aws, gcp, or azure"

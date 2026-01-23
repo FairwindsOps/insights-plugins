@@ -29,7 +29,7 @@ cloud-costs.sh \
 | `--provider` | Cloud provider: `aws`, `gcp`, or `azure` | Required |
 | `--tagkey` | Tag key to filter resources | Required for AWS, optional for GCP/Azure |
 | `--tagvalue` | Tag value to filter resources | Required |
-| `--format` | Output format: `standard` or `focus` | `standard` |
+| `--format` | Output format: `standard` or `focus` (AWS/GCP only) | `standard` |
 | `--days` | Number of days to query | `5` |
 | `--timeout` | Query timeout in seconds | `60` |
 
@@ -114,7 +114,7 @@ cloud-costs.sh \
   --tagvalue "my-cluster"
 ```
 
-### Azure - Standard Format
+### Azure (FOCUS format only)
 
 ```bash
 cloud-costs.sh \
@@ -125,16 +125,9 @@ cloud-costs.sh \
   --days 7
 ```
 
-### Azure - FOCUS Format
-
-```bash
-cloud-costs.sh \
-  --provider azure \
-  --format focus \
-  --subscription "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
-  --tagkey "kubernetes-cluster" \
-  --tagvalue "my-cluster"
-```
+> **Note:** Azure always outputs FOCUS format. The `--format` option is not applicable for Azure.
+> 
+> **Data Lag:** Azure applies a 2-day lag automatically (ignores today and yesterday) to ensure cost data is fully finalized.
 
 ## Output Formats
 
@@ -143,7 +136,6 @@ cloud-costs.sh \
 Each provider returns its native format:
 - **AWS**: Athena `ResultSet` with rows and column metadata
 - **GCP**: BigQuery JSON array
-- **Azure**: Cost Management API response with `properties.columns` and `properties.rows`
 
 ### FOCUS Format
 
