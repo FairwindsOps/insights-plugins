@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.4
+* Bump indirect library dependencies
+
 ## 1.8.3
 * Bumped all libs
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 6.2.4
+* Bump indirect library dependencies
+* Bump helm to version 4.1.0
+
 ## 6.2.3
 * Bumped all libs
 
