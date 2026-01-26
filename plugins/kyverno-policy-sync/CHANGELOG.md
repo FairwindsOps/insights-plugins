@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+* Bump indirect library dependencies
+* Fix Dockerfile kubectl version variable syntax
+
 ## 0.2.3
 * Bump indirect library dependencies
 

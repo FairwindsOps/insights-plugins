@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.4
+* Bump indirect library dependencies
+
 ## 3.1.3
 * Bumped all libs
 
