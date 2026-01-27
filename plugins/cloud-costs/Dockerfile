@@ -18,7 +18,7 @@ ENV CLOUD_SDK_VERSION=552.0.0
 RUN apk add --no-cache aws-cli
 
 # Install Azure CLI
-RUN apk add --no-cache azure-cli
+RUN pip install --no-cache-dir azure-cli
 
 # Install Google Cloud SDK
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
