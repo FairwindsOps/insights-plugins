@@ -36,6 +36,5 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
 COPY cloud-costs.sh cloud-costs.sh
-COPY gcp-FOCUS-query.sql gcp-FOCUS-query.sql
 
 CMD ["cloud-costs.sh"]
