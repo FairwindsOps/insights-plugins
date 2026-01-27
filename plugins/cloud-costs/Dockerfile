@@ -1,36 +1,39 @@
-FROM python:3-alpine3.23
+FROM mcr.microsoft.com/azure-cli:2.82.0-azurelinux3.0
 
 ARG TARGETARCH
 ARG TARGETOS
 
-RUN apk -U upgrade
-RUN apk update && apk upgrade
-RUN apk add jq 
-RUN apk add curl
-RUN apk add bash
-RUN apk add moreutils
-RUN apk add coreutils
-RUN apk add unzip
-
 ENV CLOUD_SDK_VERSION=552.0.0
 
-# Install AWS CLI
-RUN apk add --no-cache aws-cli
+# Install base dependencies
+RUN tdnf -y update && \
+    tdnf -y install jq curl bash coreutils unzip tar ca-certificates && \
+    tdnf clean all
 
-# Install Azure CLI
-RUN pip install --no-cache-dir azure-cli
+# Install AWS CLI v2
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+      amd64) awsArch="x86_64" ;; \
+      arm64) awsArch="aarch64" ;; \
+      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${awsArch}.zip" -o awscliv2.zip; \
+    unzip -q awscliv2.zip; \
+    ./aws/install -i /usr/local/aws-cli -b /usr/local/bin; \
+    rm -rf aws awscliv2.zip
 
 # Install Google Cloud SDK
-RUN if [ "${TARGETARCH}" = "arm64" ]; then \
+RUN set -eux; \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
         googleArch="arm"; \
     else \
         googleArch="x86_64"; \
-    fi && \
-    curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz && \
-    tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz && \
-    rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz && \
-    google-cloud-sdk/install.sh --quiet --path-update=false && \
-    rm -rf /google-cloud-sdk/platform/gsutil/third_party && \
+    fi; \
+    curl -fsSLO "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
+    tar -xvf "google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
+    rm "google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
+    /google-cloud-sdk/install.sh --quiet --path-update=false; \
+    rm -rf /google-cloud-sdk/platform/gsutil/third_party; \
     rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/jaraco*
 
 ENV PATH=$PATH:/google-cloud-sdk/bin
