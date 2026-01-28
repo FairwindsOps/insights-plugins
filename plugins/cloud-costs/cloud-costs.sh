@@ -18,7 +18,6 @@ usage: cloud-costs \
   --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
   --workgroup <workgroup - required for AWS> \
-  [--athenaoutputlocation <s3 uri for Athena query results (optional, required if workgroup has no output location)>] \
   --projectname <project name - required for GCP> \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
@@ -44,7 +43,6 @@ projectname=''
 dataset=''
 billingaccount=''
 subscription=''
-athenaoutputlocation=''
 days=''
 format=''
 focusview=''
@@ -98,9 +96,6 @@ while [ ! $# -eq 0 ]; do
         subscription)
             subscription=${2}
             ;;
-        athenaoutputlocation)
-            athenaoutputlocation=${2}
-            ;;
         format)
             format=${2}
             ;;
@@ -140,12 +135,6 @@ if  [[ "$provider" = "aws" ]]; then
     exit 1
   fi
 
-  # Athena requires an output location unless the workgroup has one configured.
-  # If you see "No output location provided", pass --athenaoutputlocation "s3://bucket/prefix/".
-  athena_result_config_arg=()
-  if [[ "$athenaoutputlocation" != "" ]]; then
-    athena_result_config_arg=(--result-configuration "OutputLocation=$athenaoutputlocation")
-  fi
 
   # Tag filter:
   # - If tagprefix is provided, use legacy CUR flattened columns (e.g. resource_tags_user_kubernetes_cluster)
@@ -171,7 +160,7 @@ if  [[ "$provider" = "aws" ]]; then
       --query-string "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = '$database' AND table_name = '$table' ORDER BY ordinal_position" \
       --work-group "$workgroup" \
       --query-execution-context Database=$database,Catalog=$catalog \
-      "${athena_result_config_arg[@]}")
+)
     describeExecutionId=$(echo "$describeQueryResults" | jq .QueryExecutionId | sed 's/\"//g')
 
     describeAttempts=0
@@ -289,7 +278,7 @@ if  [[ "$provider" = "aws" ]]; then
       --query-string "$sql" \
       --work-group "$workgroup" \
       --query-execution-context Database=$database,Catalog=$catalog \
-      "${athena_result_config_arg[@]}")
+)
   else
     # Standard query (original format)
     queryResults=$(aws athena start-query-execution \
@@ -308,7 +297,7 @@ if  [[ "$provider" = "aws" ]]; then
         Order by 1, 2" \
     --work-group "$workgroup" \
     --query-execution-context Database=$database,Catalog=$catalog \
-    "${athena_result_config_arg[@]}")
+)
   fi
 
   executionId=$(echo $queryResults | jq .QueryExecutionId | sed 's/"//g')
