@@ -144,17 +144,13 @@ if  [[ "$provider" = "aws" ]]; then
 
   # Tag filter:
   # - If tagprefix is provided, use legacy CUR flattened columns (e.g. resource_tags_user_kubernetes_cluster)
-  # - Otherwise, assume a "tags" MAP/array column is available (common in newer Athena exports)
+  # - Otherwise, assume a "tags" MAP column is available (common in newer Athena exports)
   if [[ "$tagprefix" != "" ]]; then
     tag_filter="$tagprefix$tagkey='$tagvalue'"
   else
-    # Support either:
-    # - tags MAP(varchar,varchar): element_at(tags,'k') or tags['k']
-    # - tags ARRAY(ROW(key,value)): contains(transform(tags, ...), 'k=v')
-    tag_filter="(
-      try(coalesce(element_at(tags, '$tagkey'), tags['$tagkey'])) = '$tagvalue'
-      OR try(contains(transform(tags, t -> concat(t.key, '=', t.value)), '$tagkey=$tagvalue'))
-    )"
+    # tags is a MAP(varchar,varchar), so use element_at() or bracket notation
+    # try() handles cases where tags might be null or the key doesn't exist
+    tag_filter="try(coalesce(element_at(tags, '$tagkey'), tags['$tagkey'])) = '$tagvalue'"
   fi
 
   if [[ "$format" == "focus" ]]; then
@@ -241,12 +237,12 @@ if  [[ "$provider" = "aws" ]]; then
     x_mem_col=$(pick_col "x_memory" "product_memory") || x_mem_col="''"
     x_gpu_col=$(pick_col "x_gpu" "product_gpu") || x_gpu_col="''"
 
-    # Timestamp filtering supports timestamp OR ISO8601 string columns.
-    end_ts_expr="coalesce(try(cast($end_col as timestamp)), try(from_iso8601_timestamp($end_col)))"
+    # Timestamp filtering: columns are timestamp(3), so cast directly (no from_iso8601_timestamp needed).
+    end_ts_expr="cast($end_col as timestamp)"
 
-    # Emit ISO8601 strings for the output file.
-    start_str_expr="coalesce(try(date_format(cast($start_col as timestamp), '%Y-%m-%dT%H:%i:%sZ')), try(date_format(from_iso8601_timestamp($start_col), '%Y-%m-%dT%H:%i:%sZ')), cast($start_col as varchar))"
-    end_str_expr="coalesce(try(date_format(cast($end_col as timestamp), '%Y-%m-%dT%H:%i:%sZ')), try(date_format(from_iso8601_timestamp($end_col), '%Y-%m-%dT%H:%i:%sZ')), cast($end_col as varchar))"
+    # Emit ISO8601 strings for the output file: columns are timestamp(3), so format directly.
+    start_str_expr="date_format(cast($start_col as timestamp), '%Y-%m-%dT%H:%i:%sZ')"
+    end_str_expr="date_format(cast($end_col as timestamp), '%Y-%m-%dT%H:%i:%sZ')"
 
     if [[ "$charge_description_col" != "" ]]; then
       charge_description_expr="arbitrary($charge_description_col)"
@@ -339,6 +335,7 @@ if  [[ "$provider" = "aws" ]]; then
   if [[ "$format" == "focus" ]]; then
     echo "Transforming to FOCUS format..."
     # Transform Athena results to FOCUS-compliant JSON array
+    # Write directly to final filename to avoid mv issues
     jq '[
       .ResultSet.Rows[1:][] |
       .Data |
@@ -365,7 +362,7 @@ if  [[ "$provider" = "aws" ]]; then
         ChargeDescription: .[19].VarCharValue,
         ProviderName: "Amazon Web Services"
       }
-    ]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
+    ]' /output/cloudcosts-tmp.json > /output/cloudcosts.json
 
     if [[ $? -ne 0 ]]; then
       echo "Error transforming to FOCUS format"
@@ -373,7 +370,16 @@ if  [[ "$provider" = "aws" ]]; then
       exit 1
     fi
 
-    mv /output/cloudcosts-focus.json /output/cloudcosts.json
+    if [[ ! -f /output/cloudcosts.json ]]; then
+      echo "Error: Output file was not created"
+      exit 1
+    fi
+
+    # Debug: Show file was created
+    file_size=$(stat -f%z /output/cloudcosts.json 2>/dev/null || stat -c%s /output/cloudcosts.json 2>/dev/null || echo "unknown")
+    echo "File created: /output/cloudcosts.json (size: $file_size bytes)"
+    ls -lh /output/cloudcosts.json || true
+
     rm -f /output/cloudcosts-tmp.json
     echo "Saved AWS costs file in FOCUS format to /output/cloudcosts.json"
   else
