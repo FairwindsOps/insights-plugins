@@ -122,6 +122,11 @@ if [[ "$days" = "" ]]; then
   days='5'
 fi
 
+# Output directory - default to /output for Docker, but allow override for local runs
+OUTPUT_DIR="${OUTPUT_DIR:-/output}"
+# Create output directory if it doesn't exist (for local runs)
+mkdir -p "$OUTPUT_DIR"
+
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 # Azure uses YYYY-MM-DD format
@@ -190,7 +195,7 @@ if  [[ "$provider" = "aws" ]]; then
       fi
     done
 
-    aws athena get-query-results --query-execution-id $describeExecutionId > /output/aws-describe.json
+    aws athena get-query-results --query-execution-id $describeExecutionId > "$OUTPUT_DIR/aws-describe.json"
 
     # 2) Build a lookup map of column names -> raw identifier
     declare -A COL_RAW
@@ -200,7 +205,7 @@ if  [[ "$provider" = "aws" ]]; then
       fi
       lower=$(echo "$cname" | tr '[:upper:]' '[:lower:]')
       COL_RAW["$lower"]="$cname"
-    done < <(jq -r '.ResultSet.Rows[1:][] | [.Data[0].VarCharValue, .Data[1].VarCharValue] | @tsv' /output/aws-describe.json)
+    done < <(jq -r '.ResultSet.Rows[1:][] | [.Data[0].VarCharValue, .Data[1].VarCharValue] | @tsv' "$OUTPUT_DIR/aws-describe.json")
 
     quote_ident() { printf '\"%s\"' "$1"; }
     pick_col() {
@@ -330,7 +335,7 @@ if  [[ "$provider" = "aws" ]]; then
   fi
   done
 
-  aws athena get-query-results --query-execution-id $executionId > /output/cloudcosts-tmp.json
+  aws athena get-query-results --query-execution-id $executionId > "$OUTPUT_DIR/cloudcosts-tmp.json"
 
   if [[ "$format" == "focus" ]]; then
     echo "Transforming to FOCUS format..."
@@ -362,29 +367,29 @@ if  [[ "$provider" = "aws" ]]; then
         ChargeDescription: .[19].VarCharValue,
         ProviderName: "Amazon Web Services"
       }
-    ]' /output/cloudcosts-tmp.json > /output/cloudcosts.json
+    ]' "$OUTPUT_DIR/cloudcosts-tmp.json" > "$OUTPUT_DIR/cloudcosts.json"
 
     if [[ $? -ne 0 ]]; then
       echo "Error transforming to FOCUS format"
-      cat /output/cloudcosts-tmp.json
+      cat "$OUTPUT_DIR/cloudcosts-tmp.json"
       exit 1
     fi
 
-    if [[ ! -f /output/cloudcosts.json ]]; then
+    if [[ ! -f "$OUTPUT_DIR/cloudcosts.json" ]]; then
       echo "Error: Output file was not created"
       exit 1
     fi
 
     # Debug: Show file was created
-    file_size=$(stat -f%z /output/cloudcosts.json 2>/dev/null || stat -c%s /output/cloudcosts.json 2>/dev/null || echo "unknown")
-    echo "File created: /output/cloudcosts.json (size: $file_size bytes)"
-    ls -lh /output/cloudcosts.json || true
+    file_size=$(stat -f%z "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || stat -c%s "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || echo "unknown")
+    echo "File created: $OUTPUT_DIR/cloudcosts.json (size: $file_size bytes)"
+    ls -lh "$OUTPUT_DIR/cloudcosts.json" || true
 
-    rm -f /output/cloudcosts-tmp.json
-    echo "Saved AWS costs file in FOCUS format to /output/cloudcosts.json"
+    rm -f "$OUTPUT_DIR/cloudcosts-tmp.json"
+    echo "Saved AWS costs file in FOCUS format to $OUTPUT_DIR/cloudcosts.json"
   else
-    mv /output/cloudcosts-tmp.json /output/cloudcosts.json
-    echo "Saved AWS costs file in /output/cloudcosts.json"
+    mv "$OUTPUT_DIR/cloudcosts-tmp.json" "$OUTPUT_DIR/cloudcosts.json"
+    echo "Saved AWS costs file in $OUTPUT_DIR/cloudcosts.json"
   fi
   exit 0
 fi
