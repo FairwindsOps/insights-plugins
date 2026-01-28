@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.5
+* Bug fix on collecting results from libs
+
 ## 3.1.4
 * Bump indirect library dependencies
 

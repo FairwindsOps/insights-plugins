@@ -164,11 +164,30 @@ func getOutputArray(results rego.ResultSet) []interface{} {
 	returnSet := make([]interface{}, 0)
 
 	for _, result := range results {
-		for _, pack := range result.Bindings["results"].(map[string]interface{}) {
-			for _, outputArray := range pack.(map[string]interface{}) {
-				if _, ok := outputArray.([]interface{}); ok {
-					returnSet = append(returnSet, outputArray.([]interface{})...)
+		bindings, ok := result.Bindings["results"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Iterate the data tree: data.<package>.<rule> ...
+		// Only collect results from the check's own package ("fairwinds"), not from library packages
+		for pkgName, pack := range bindings {
+			// Skip library packages - only collect from the check's package
+			if pkgName != "fairwinds" {
+				continue
+			}
+
+			packMap, ok := pack.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			for _, outputValue := range packMap {
+				outputArray, ok := outputValue.([]interface{})
+				if !ok {
+					continue
 				}
+				returnSet = append(returnSet, outputArray...)
 			}
 		}
 	}
