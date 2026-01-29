@@ -129,6 +129,30 @@ cloud-costs.sh \
 > 
 > **Data Lag:** Azure applies a 2-day lag automatically (ignores today and yesterday) to ensure cost data is fully finalized.
 
+### Filter Azure costs to one cluster (server-side only)
+
+All Azure filtering is done **on the server** via the [Cost Management Query API](https://learn.microsoft.com/en-us/rest/api/cost-management/query/usage). The script never filters rows locally.
+
+Pass the cluster tag so the API returns only that cluster’s costs. If omitted, `--tagkey` defaults to `kubernetes-cluster`.
+
+```bash
+cloud-costs.sh \
+  --provider azure \
+  --subscription "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
+  --tagkey "kubernetes-cluster" \
+  --tagvalue "james-azure-cluster" \
+  --days 7
+```
+
+Resources must be tagged with that key/value in Azure for the tag filter to apply. If the tag filter returns no rows, the script tries server-side fallbacks in order:
+
+1. **Tag filter** – `dataset.filter.tags` (tag key/value).
+2. **ResourceId dimension** – `dataset.filter.dimensions` with AKS cluster resource IDs.
+3. **ResourceGroup dimension** – one API call with `filter.dimensions.name=ResourceGroup`, `operator=In`, values = resource groups whose name contains the cluster.
+4. **Resource group scope** – one API call per matching resource group (scope = `/subscriptions/.../resourceGroups/{name}`).
+
+Output is only what the API returns; no client-side filtering is applied.
+
 ## Output Formats
 
 ### Standard Format
@@ -179,6 +203,15 @@ All providers return a unified JSON array following the [FOCUS specification](ht
 | `BillingCurrency` | The billing currency |
 | `ProviderName` | The cloud provider name |
 | `BillingAccountId` | The billing account identifier |
+
+### Azure FOCUS: vCPU and memory
+
+The Azure **Cost Management Query API** used by this plugin returns cost and usage by dimensions (service, meter category, resource ID, etc.) but **does not return vCPU count, memory size, or instance type** (VM size). Those fields are output as `null` in FOCUS so the schema matches AWS.
+
+To get vCPU/memory/instance size for Azure costs you would need one of:
+
+- **Cost Details (usage details) export** – Azure’s FOCUS cost and usage details files (e.g. from the portal or Cost Details API) include SKU/meter info; instance size can sometimes be inferred from meter names (e.g. "D4s v3").
+- **Resource Manager (ARM)** – For a given `ResourceId`, call the compute/VMs API to read the VM’s `hardwareProfile.vmSize`, then map that to vCPUs and memory using [Azure VM sizes](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes).
 
 ## GCP FOCUS View Setup
 

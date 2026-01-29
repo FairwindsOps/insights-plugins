@@ -116,6 +116,7 @@ fi
 if [[ "$days" = "" ]]; then
   days='5'
 fi
+OUTPUT_DIR=${OUTPUT_DIR:-/output}
 
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
@@ -381,19 +382,10 @@ fi
 if [[ "$provider" == "azure" ]]; then
   echo "Azure Cost Management integration (FOCUS format)......"
 
-  if [[ "$tagvalue" = "" ]]; then
-    echo "Error: --tagvalue is required for Azure"
-    usage
-    exit 1
-  fi
   if [[ "$subscription" = "" ]]; then
     echo "Error: --subscription is required for Azure"
     usage
     exit 1
-  fi
-
-  if [[ "$tagkey" = "" ]]; then
-    tagkey="kubernetes-cluster"
   fi
 
   # Azure cost data takes 24-72 hours to finalize
@@ -402,12 +394,14 @@ if [[ "$provider" == "azure" ]]; then
   initial_date=$(date -u -d "$((days + lag_days)) day ago" +"%Y-%m-%d")
   final_date=$(date -u -d "$lag_days day ago" +"%Y-%m-%d")
 
-  echo "Azure Cost Management query is running......"
-  echo "Querying costs from $initial_date to $final_date for tag $tagkey=$tagvalue"
-  echo "(2-day lag applied to ensure cost data is finalized)"
-
-  # FOCUS format request body
-  request_body=$(cat <<EOF
+  if [[ "$tagvalue" != "" ]]; then
+    if [[ "$tagkey" = "" ]]; then
+      tagkey="kubernetes-cluster"
+    fi
+    echo "Azure Cost Management query is running......"
+    echo "Querying costs from $initial_date to $final_date for tag $tagkey=$tagvalue"
+    # FOCUS format request body with tag filter
+    request_body=$(cat <<EOF
 {
   "type": "ActualCost",
   "timeframe": "Custom",
@@ -448,57 +442,209 @@ if [[ "$provider" == "azure" ]]; then
 }
 EOF
 )
+  else
+    echo "Azure Cost Management query is running......"
+    echo "Querying costs from $initial_date to $final_date (no tag filter)"
+    # FOCUS format request body without tag filter
+    request_body=$(cat <<EOF
+{
+  "type": "ActualCost",
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "$initial_date",
+    "to": "$final_date"
+  },
+  "dataset": {
+    "granularity": "Daily",
+    "aggregation": {
+      "totalCost": {
+        "name": "Cost",
+        "function": "Sum"
+      },
+      "totalQuantity": {
+        "name": "UsageQuantity",
+        "function": "Sum"
+      }
+    },
+    "grouping": [
+      {"type": "Dimension", "name": "ServiceName"},
+      {"type": "Dimension", "name": "MeterCategory"},
+      {"type": "Dimension", "name": "MeterSubCategory"},
+      {"type": "Dimension", "name": "ResourceLocation"},
+      {"type": "Dimension", "name": "ResourceId"},
+      {"type": "Dimension", "name": "ResourceGroupName"},
+      {"type": "Dimension", "name": "ChargeType"},
+      {"type": "Dimension", "name": "PublisherType"}
+    ]
+  }
+}
+EOF
+)
+  fi
+
+  echo "(2-day lag applied to ensure cost data is finalized)"
 
   # Query Azure Cost Management API
   az rest --method post \
     --url "https://management.azure.com/subscriptions/$subscription/providers/Microsoft.CostManagement/query?api-version=2023-11-01" \
     --body "$request_body" \
-    --output json > /output/cloudcosts-tmp.json
+    --output json > "$OUTPUT_DIR/cloudcosts-tmp.json"
 
   if [[ $? -ne 0 ]]; then
     echo "Error executing Azure Cost Management query"
-    cat /output/cloudcosts-tmp.json
+    cat "$OUTPUT_DIR/cloudcosts-tmp.json"
     exit 1
   fi
 
   # Check for errors in response
-  if grep -q '"error"' /output/cloudcosts-tmp.json; then
+  if grep -q '"error"' "$OUTPUT_DIR/cloudcosts-tmp.json"; then
     echo "Azure Cost Management API returned an error"
-    cat /output/cloudcosts-tmp.json
+    cat "$OUTPUT_DIR/cloudcosts-tmp.json"
     exit 1
+  fi
+
+  row_count=$(jq '.properties.rows | length' "$OUTPUT_DIR/cloudcosts-tmp.json")
+  if [[ "$row_count" -eq 0 && "$tagvalue" != "" ]]; then
+    request_body_no_tag=$(echo "$request_body" | jq 'del(.dataset.filter)')
+    # Fallback 1: dimension filter on ResourceId with AKS managed cluster resource ID(s)
+    # Filter: dimensions.name=ResourceId, operator=In, values=[/subscriptions/.../resourceGroups/.../providers/Microsoft.ContainerService/managedClusters/...]
+    echo "Tag filter (kubernetes-cluster=$tagvalue) returned no rows. Trying dimension filter on cluster ResourceId..."
+    cluster_ids=$(az aks list --subscription "$subscription" --query "[?contains(name, '$tagvalue')].id" -o tsv 2>/dev/null || true)
+    if [[ -n "$cluster_ids" ]]; then
+      cluster_ids_json=$(echo "$cluster_ids" | tr '\t' '\n' | jq -R . | jq -s .)
+      request_body_dim=$(echo "$request_body_no_tag" | jq --argjson ids "$cluster_ids_json" '.dataset.filter = { "dimensions": { "name": "ResourceId", "operator": "In", "values": $ids } }')
+      az rest --method post \
+        --url "https://management.azure.com/subscriptions/$subscription/providers/Microsoft.CostManagement/query?api-version=2023-11-01" \
+        --body "$request_body_dim" \
+        --output json > "$OUTPUT_DIR/cloudcosts-tmp.json" 2>/dev/null || true
+      if ! grep -q '"error"' "$OUTPUT_DIR/cloudcosts-tmp.json" 2>/dev/null; then
+        row_count=$(jq '.properties.rows | length' "$OUTPUT_DIR/cloudcosts-tmp.json")
+        [[ "$row_count" -gt 0 ]] && echo "  Got $row_count rows from ResourceId dimension filter."
+      fi
+    fi
+    # Fallback 2: server-side dimension filter on ResourceGroup (single API call)
+    # https://learn.microsoft.com/en-us/rest/api/cost-management/query/usage - filter.dimensions.name=ResourceGroup, operator=In
+    if [[ "$row_count" -eq 0 ]]; then
+      echo "  Trying server-side ResourceGroup dimension filter..."
+      rg_list=$(az group list --subscription "$subscription" --query "[?contains(name, '$tagvalue')].name" -o tsv 2>/dev/null || true)
+      if [[ -n "$rg_list" ]]; then
+        rg_json=$(echo "$rg_list" | tr '\t' '\n' | jq -R . | jq -s .)
+        request_body_rg=$(echo "$request_body_no_tag" | jq --argjson rgs "$rg_json" '.dataset.filter = { "dimensions": { "name": "ResourceGroup", "operator": "In", "values": $rgs } }')
+        az rest --method post \
+          --url "https://management.azure.com/subscriptions/$subscription/providers/Microsoft.CostManagement/query?api-version=2023-11-01" \
+          --body "$request_body_rg" \
+          --output json > "$OUTPUT_DIR/cloudcosts-tmp.json" 2>/dev/null || true
+        if ! grep -q '"error"' "$OUTPUT_DIR/cloudcosts-tmp.json" 2>/dev/null; then
+          row_count=$(jq '.properties.rows | length' "$OUTPUT_DIR/cloudcosts-tmp.json")
+          [[ "$row_count" -gt 0 ]] && echo "  Got $row_count rows from ResourceGroup dimension filter (server-side)."
+        fi
+      fi
+    fi
+    # Fallback 3: resource group scope (one API call per RG; all filtering still server-side)
+    if [[ "$row_count" -eq 0 ]]; then
+      echo "  Trying resource group scope (one query per RG, server-side)..."
+      rg_list=$(az group list --subscription "$subscription" --query "[?contains(name, '$tagvalue')].name" -o tsv 2>/dev/null || true)
+      if [[ -n "$rg_list" ]]; then
+        all_rows="[]"
+        columns_json=""
+        while IFS= read -r rg; do
+          [[ -z "$rg" ]] && continue
+          echo "  Querying resource group: $rg"
+          az rest --method post \
+            --url "https://management.azure.com/subscriptions/$subscription/resourceGroups/$(echo "$rg" | sed 's/ /%20/g')/providers/Microsoft.CostManagement/query?api-version=2023-11-01" \
+            --body "$request_body_no_tag" \
+            --output json > "$OUTPUT_DIR/cloudcosts-rg-tmp.json" 2>/dev/null || true
+          if [[ -f "$OUTPUT_DIR/cloudcosts-rg-tmp.json" ]] && ! grep -q '"error"' "$OUTPUT_DIR/cloudcosts-rg-tmp.json"; then
+            rg_rows=$(jq -c '.properties.rows' "$OUTPUT_DIR/cloudcosts-rg-tmp.json")
+            if [[ "$rg_rows" != "[]" && "$rg_rows" != "null" ]]; then
+              [[ -z "$columns_json" ]] && columns_json=$(jq -c '.properties.columns' "$OUTPUT_DIR/cloudcosts-rg-tmp.json")
+              all_rows=$(jq -n --argjson a "$all_rows" --argjson b "$rg_rows" '$a + $b')
+            fi
+          fi
+        done <<< "$rg_list"
+        if [[ -n "$columns_json" && "$all_rows" != "[]" ]]; then
+          jq -n --argjson cols "$columns_json" --argjson rows "$all_rows" '{properties: {columns: $cols, rows: $rows}}' > "$OUTPUT_DIR/cloudcosts-tmp.json"
+          row_count=$(jq '.properties.rows | length' "$OUTPUT_DIR/cloudcosts-tmp.json")
+          echo "  Combined $row_count rows from resource group scope (server-side)."
+        fi
+        rm -f "$OUTPUT_DIR/cloudcosts-rg-tmp.json"
+      fi
+    fi
+    # All filtering is server-side (tag, ResourceId dimension, ResourceGroup dimension, or RG scope). No local filtering of rows.
+  fi
+  if [[ "$row_count" -eq 0 ]]; then
+    echo "Azure Cost Management API returned no rows. Check: date range (2-day lag), tag filter (e.g. kubernetes-cluster=$tagvalue), and that the subscription has usage in that range."
+    echo "Response columns: $(jq -c '.properties.columns' "$OUTPUT_DIR/cloudcosts-tmp.json")"
   fi
 
   echo "Transforming to FOCUS format..."
-  # Transform Azure response to FOCUS-compliant format
-  jq '[.properties.rows[] | {
-    BilledCost: .[0],
-    EffectiveCost: .[0],
-    ConsumedQuantity: .[1],
-    ChargePeriodStart: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T00:00:00Z"),
-    ChargePeriodEnd: (.[2] | tostring | "\(.[0:4])-\(.[4:6])-\(.[6:8])T23:59:59Z"),
-    ServiceName: .[3],
-    ServiceCategory: .[4],
-    ChargeSubCategory: .[5],
-    RegionId: .[6],
-    ResourceId: .[7],
-    x_ResourceGroupName: .[8],
-    ChargeCategory: (.[9] // "Usage"),
-    PublisherName: (if .[10] == "Azure" then "Microsoft Azure" else .[10] end),
-    BillingCurrency: .[11],
-    ProviderName: "Microsoft Azure",
-    BillingAccountId: "'"$subscription"'"
-  }]' /output/cloudcosts-tmp.json > /output/cloudcosts-focus.json
+  # Cost Management Query API does not return vCPU/memory/instance size; those appear in Cost Details (usage details) export or ARM resource properties.
+  # Output FOCUS columns; Azure API does not return instance type/vCPU/memory so those are omitted (not null).
+    jq --arg sub "$subscription" '
+    .properties | (.columns | map(.name)) as $names |
+    [.rows[] | ($names | to_entries | map({(.[1]): .[0]}) | add) as $idx |
+      [.[$idx["Cost"] // $idx["PreTaxCost"]], .[$idx["UsageQuantity"]], (.[$idx["UsageDate"]] // .[$idx["PreTaxCost"]]), .[$idx["ServiceName"]], .[$idx["MeterCategory"]], .[$idx["MeterSubCategory"]], .[$idx["ResourceLocation"]], .[$idx["ResourceId"]], .[$idx["ResourceGroupName"]], .[$idx["ChargeType"]], .[$idx["PublisherType"]], .[$idx["Currency"]]] as $r |
+    {
+      ServiceName: $r[3],
+      ServiceCategory: $r[4],
+      ChargeSubCategory: $r[5],
+      ChargeCategory: ($r[9] // "Usage"),
+      RegionId: $r[6],
+      ResourceId: $r[7],
+      ChargePeriodStart: (($r[2] // $r[0] | tostring) | if length >= 8 then "\(.[0:4])-\(.[4:6])-\(.[6:8])T00:00:00Z" else empty end),
+      ChargePeriodEnd: (($r[2] // $r[0] | tostring) | if length >= 8 then "\(.[0:4])-\(.[4:6])-\(.[6:8])T23:59:59Z" else empty end),
+      BilledCost: $r[0],
+      EffectiveCost: $r[0],
+      ConsumedQuantity: $r[1],
+      ConsumedUnit: null,
+      BillingCurrency: $r[11],
+      BillingAccountId: $sub,
+      SubAccountId: $sub,
+      ChargeDescription: ([$r[3], $r[4], $r[5]] | map(select(. != null and . != "")) | join(" - ")),
+      ProviderName: "Microsoft Azure",
+      PublisherName: (if $r[10] == "Azure" then "Microsoft Azure" else $r[10] end),
+      x_ResourceGroupName: $r[8]
+    }]' "$OUTPUT_DIR/cloudcosts-tmp.json" > "$OUTPUT_DIR/cloudcosts-focus.json" 2>/dev/null || {
+    # Fallback: build row by column name. Azure returns rows as arrays; column order: Cost, UsageQuantity, UsageDate, ServiceName, MeterCategory, MeterSubCategory, ResourceLocation, ResourceId, ResourceGroupName, ChargeType, PublisherType, Currency (indices 0-11).
+    jq --arg sub "$subscription" '[.properties.rows[] | select(type == "array") | (
+      (.[0] // 0) as $cost |
+      (.[1] // 0) as $qty |
+      (.[2] | tostring) as $date |
+      {
+        ServiceName: .[3],
+        ServiceCategory: .[4],
+        ChargeSubCategory: .[5],
+        ChargeCategory: (.[9] // "Usage"),
+        RegionId: .[6],
+        ResourceId: .[7],
+        ChargePeriodStart: (if ($date | length) >= 8 then "\($date[0:4])-\($date[4:6])-\($date[6:8])T00:00:00Z" else empty end),
+        ChargePeriodEnd: (if ($date | length) >= 8 then "\($date[0:4])-\($date[4:6])-\($date[6:8])T23:59:59Z" else empty end),
+        BilledCost: $cost,
+        EffectiveCost: $cost,
+        ConsumedQuantity: $qty,
+        ConsumedUnit: null,
+        BillingCurrency: .[11],
+        BillingAccountId: $sub,
+        SubAccountId: $sub,
+        ChargeDescription: ([.[3], .[4], .[5]] | map(select(. != null and . != "")) | join(" - ")),
+        ProviderName: "Microsoft Azure",
+        PublisherName: (if .[10] == "Azure" then "Microsoft Azure" else .[10] end),
+        x_ResourceGroupName: .[8]  # index 8=ResourceGroupName, 9=ChargeType, 10=PublisherType, 11=Currency
+      }
+    )]' "$OUTPUT_DIR/cloudcosts-tmp.json" > "$OUTPUT_DIR/cloudcosts-focus.json"
+  }
 
   if [[ $? -ne 0 ]]; then
     echo "Error transforming to FOCUS format"
-    cat /output/cloudcosts-tmp.json
+    cat "$OUTPUT_DIR/cloudcosts-tmp.json"
     exit 1
   fi
 
-  mv /output/cloudcosts-focus.json /output/cloudcosts.json
-  rm -f /output/cloudcosts-tmp.json
+  mv "$OUTPUT_DIR/cloudcosts-focus.json" "$OUTPUT_DIR/cloudcosts.json"
+  rm -f "$OUTPUT_DIR/cloudcosts-tmp.json"
+
   echo "Azure Cost Management query finished..."
-  echo "Saved Azure costs file in FOCUS format to /output/cloudcosts.json"
+  echo "Saved Azure costs file in FOCUS format to $OUTPUT_DIR/cloudcosts.json"
 
   exit 0
 fi
