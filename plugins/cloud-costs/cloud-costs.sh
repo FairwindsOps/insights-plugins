@@ -117,11 +117,6 @@ if [[ "$days" = "" ]]; then
   days='5'
 fi
 
-# Output directory - default to /output for Docker, but allow override for local runs
-OUTPUT_DIR="${OUTPUT_DIR:-/output}"
-# Create output directory if it doesn't exist (for local runs)
-mkdir -p "$OUTPUT_DIR"
-
 initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 # Azure uses YYYY-MM-DD format
