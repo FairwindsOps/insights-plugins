@@ -181,91 +181,33 @@ if  [[ "$provider" = "aws" ]]; then
 
     aws athena get-query-results --query-execution-id $describeExecutionId > "$OUTPUT_DIR/aws-describe.json"
 
-    # 2) Build a lookup map of column names -> raw identifier
-    declare -A COL_RAW
-    while IFS=$'\t' read -r cname ctype; do
-      if [[ "$cname" == "" || "$cname" == "#"* ]]; then
-        continue
-      fi
-      lower=$(echo "$cname" | tr '[:upper:]' '[:lower:]')
-      COL_RAW["$lower"]="$cname"
-    done < <(jq -r '.ResultSet.Rows[1:][] | [.Data[0].VarCharValue, .Data[1].VarCharValue] | @tsv' "$OUTPUT_DIR/aws-describe.json")
-
-    quote_ident() { printf '\"%s\"' "$1"; }
-    pick_col() {
-      for cand in "$@"; do
-        if [[ "${COL_RAW[$cand]+x}" != "" ]]; then
-          quote_ident "${COL_RAW[$cand]}"
-          return 0
-        fi
-      done
-      return 1
-    }
-
-    # Prefer FOCUS names, fall back to CUR names if needed.
-    service_col=$(pick_col "servicename" "service_name" "line_item_product_code") || { echo "Missing ServiceName column in $database.$table"; exit 1; }
-    service_category_col=$(pick_col "servicecategory" "service_category" "product_product_family") || service_category_col="''"
-    # ChargeSubCategory isn't always present as a dedicated column in AWS exports.
-    # Prefer SKU-ish fields first, then fall back to charge description.
-    charge_subcategory_col=$(pick_col "chargesubcategory" "charge_sub_category" "skumeter" "servicesubcategory" "line_item_usage_type" "chargedescription") || charge_subcategory_col="''"
-    charge_description_col=$(pick_col "chargedescription" "charge_description") || charge_description_col=""
-    charge_category_col=$(pick_col "chargecategory" "charge_category" "line_item_line_item_type") || charge_category_col="''"
-    region_col=$(pick_col "regionid" "region_id" "product_region") || region_col="''"
-    resource_col=$(pick_col "resourceid" "resource_id" "line_item_resource_id") || resource_col="''"
-    start_col=$(pick_col "chargeperiodstart" "charge_period_start" "line_item_usage_start_date") || start_col="''"
-    end_col=$(pick_col "chargeperiodend" "charge_period_end" "line_item_usage_end_date") || { echo "Missing ChargePeriodEnd/line_item_usage_end_date column in $database.$table"; exit 1; }
-    billed_cost_col=$(pick_col "billedcost" "billed_cost" "line_item_unblended_cost") || billed_cost_col="0"
-    effective_cost_col=$(pick_col "effectivecost" "effective_cost" "line_item_blended_cost") || effective_cost_col="0"
-    qty_col=$(pick_col "consumedquantity" "consumed_quantity" "line_item_usage_amount") || qty_col="0"
-    unit_col=$(pick_col "consumedunit" "consumed_unit" "pricing_unit") || unit_col="''"
-    currency_col=$(pick_col "billingcurrency" "billing_currency" "line_item_currency_code") || currency_col="''"
-    billing_acct_col=$(pick_col "billingaccountid" "billing_account_id" "bill_payer_account_id") || billing_acct_col="''"
-    sub_acct_col=$(pick_col "subaccountid" "sub_account_id" "line_item_usage_account_id") || sub_acct_col="''"
-    x_instance_col=$(pick_col "x_instancetype" "x_instance_type" "product_instance_type") || x_instance_col="''"
-    x_vcpu_col=$(pick_col "x_vcpu" "product_vcpu") || x_vcpu_col="''"
-    x_mem_col=$(pick_col "x_memory" "product_memory") || x_mem_col="''"
-    x_gpu_col=$(pick_col "x_gpu" "product_gpu") || x_gpu_col="''"
-
-    # Timestamp filtering: columns are timestamp(3), so cast directly (no from_iso8601_timestamp needed).
-    end_ts_expr="cast($end_col as timestamp)"
-
-    # Emit ISO8601 strings for the output file: columns are timestamp(3), so format directly.
-    start_str_expr="date_format(cast($start_col as timestamp), '%Y-%m-%dT%H:%i:%sZ')"
-    end_str_expr="date_format(cast($end_col as timestamp), '%Y-%m-%dT%H:%i:%sZ')"
-
-    if [[ "$charge_description_col" != "" ]]; then
-      charge_description_expr="arbitrary($charge_description_col)"
-    else
-      charge_description_expr="''"
-    fi
-
     sql="SELECT
-      $service_col AS service_name,
-      $service_category_col AS service_category,
-      $charge_subcategory_col AS charge_sub_category,
-      $charge_category_col AS charge_category,
-      $region_col AS region_id,
-      $resource_col AS resource_id,
-      $start_str_expr AS charge_period_start,
-      $end_str_expr AS charge_period_end,
-      SUM(cast($billed_cost_col as double)) AS billed_cost,
-      SUM(cast($effective_cost_col as double)) AS effective_cost,
-      SUM(cast($qty_col as double)) AS consumed_quantity,
-      $unit_col AS consumed_unit,
-      $currency_col AS billing_currency,
-      $billing_acct_col AS billing_account_id,
-      $sub_acct_col AS sub_account_id,
-      $x_instance_col AS x_instance_type,
-      $x_vcpu_col AS x_vcpu,
-      $x_mem_col AS x_memory,
-      $x_gpu_col AS x_gpu,
-      $charge_description_expr AS charge_description
+      \"servicename\" AS service_name,
+      \"servicecategory\" AS service_category,
+      \"chargesubcategory\" AS charge_sub_category,
+      \"chargecategory\" AS charge_category,
+      \"regionid\" AS region_id,
+      \"resourceid\" AS resource_id,
+      date_format(cast(\"chargeperiodstart\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_start,
+      date_format(cast(\"chargeperiodend\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_end,
+      SUM(cast(\"billedcost\" as double)) AS billed_cost,
+      SUM(cast(\"effectivecost\" as double)) AS effective_cost,
+      SUM(cast(\"consumedquantity\" as double)) AS consumed_quantity,
+      \"consumedunit\" AS consumed_unit,
+      \"billingcurrency\" AS billing_currency,
+      \"billingaccountid\" AS billing_account_id,
+      \"subaccountid\" AS sub_account_id,
+      \"x_instancetype\" AS x_instance_type,
+      \"x_vcpu\" AS x_vcpu,
+      \"x_memory\" AS x_memory,
+      \"x_gpu\" AS x_gpu,
+      arbitrary(\"chargedescription\") AS charge_description
     FROM
       \"$database\".\"$table\"
     WHERE
       $tag_filter
-      AND $end_ts_expr > timestamp '$initial_date_time'
-      AND $end_ts_expr <= timestamp '$final_date_time'
+      AND cast(\"chargeperiodend\" as timestamp) > timestamp '$initial_date_time'
+      AND cast(\"chargeperiodend\" as timestamp) <= timestamp '$final_date_time'
     GROUP BY 1,2,3,4,5,6,7,8,12,13,14,15,16,17,18,19
     ORDER BY charge_period_start, service_name"
 
