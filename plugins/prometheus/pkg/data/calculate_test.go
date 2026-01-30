@@ -176,6 +176,49 @@ func TestCalculateStatistics_NoGPUMetrics(t *testing.T) {
 	assert.True(t, len(stats) >= 2, "Should have at least CPU and Memory statistics")
 }
 
+func TestCalculateStatistics_GPURequestLimitWithoutUsage(t *testing.T) {
+	// Pod has GPU request/limit from kube-state-metrics but no GPU utilization exporter (value.gpu empty).
+	// We should still emit one GPU stat so request/limit appear in output.
+	input := []CombinedRequest{
+		{
+			Owner: Owner{
+				Container:           "cuda-container",
+				PodName:             "ml-pod-abc",
+				ControllerNamespace: "default",
+				ControllerName:      "ml-job",
+				ControllerKind:      "Job",
+			},
+			cpu: []model.SamplePair{
+				{Timestamp: model.Time(1674153900000), Value: 0.5},
+			},
+			cpuRequest:  2.0,
+			cpuLimit:    4.0,
+			memory:      []model.SamplePair{{Timestamp: model.Time(1674153900000), Value: 1e9}},
+			memoryRequest: 2e9,
+			memoryLimit:   4e9,
+			gpu:         nil, // no utilization exporter
+			gpuRequest:  2.0, // from kube-state-metrics
+			gpuLimit:    2.0,
+		},
+	}
+
+	stats := CalculateStatistics(input)
+
+	var gpuStat *Statistics
+	for i := range stats {
+		if stats[i].Metric == MetricGPU {
+			gpuStat = &stats[i]
+			break
+		}
+	}
+	assert.NotNil(t, gpuStat, "Should emit GPU stat when request/limit present even without usage")
+	assert.Equal(t, int64(0), gpuStat.Value, "Value should be 0 when no utilization data")
+	assert.Equal(t, int64(2000), gpuStat.Request, "Request should be 2 GPUs → 2000 milli-GPUs")
+	assert.Equal(t, int64(2000), gpuStat.LimitValue, "LimitValue should be 2 GPUs → 2000 milli-GPUs")
+	assert.Equal(t, "cuda-container", gpuStat.Container)
+	assert.Equal(t, "ml-pod-abc", gpuStat.PodName)
+}
+
 func TestCalculateStatistics_MultipleTimestamps(t *testing.T) {
 	// Test GPU metrics with multiple time samples (typical scrape pattern)
 	timestamps := []model.Time{
