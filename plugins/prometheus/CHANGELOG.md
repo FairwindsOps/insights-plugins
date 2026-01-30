@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.5
+* Collecting GPU limits/requests even without usage metrics
+
 ## 1.8.4
 * Bump indirect library dependencies
 
