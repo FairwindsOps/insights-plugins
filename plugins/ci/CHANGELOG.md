@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.5
+* Bumped polaris
+
 ## 6.2.4
 * Bump indirect library dependencies
 * Bump helm to version 4.1.0
