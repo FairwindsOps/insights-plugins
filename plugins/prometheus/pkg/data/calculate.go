@@ -84,6 +84,9 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 		// GPU metrics
 		// - Usage: 0-1 float from PromQL → 0-100 integer (percentage)
 		// - Request/Limit: GPU count → milli-GPUs (×1000) for fractional GPU support
+		// Emit GPU stats when we have usage samples and/or when we have request/limit from kube-state-metrics
+		// (so GPU request/limit appear in output even when no GPU utilization exporter is installed).
+		hasGPURequestOrLimit := value.gpuRequest > 0 || value.gpuLimit > 0
 		for _, gpu := range value.gpu {
 			timestamp := time.Unix(int64(gpu.Timestamp)/1000, 0)
 			stats = append(stats, Statistics{
@@ -91,8 +94,27 @@ func CalculateStatistics(values []CombinedRequest) []Statistics {
 				Owner:      value.Owner,
 				Metric:     MetricGPU,
 				Value:      int64(gpu.Value * 100),         // GPU utilization 0-1 → 0-100 (percentage)
-				Request:    int64(value.gpuRequest * 1000), // GPU count → milli-GPUs
+				Request:    int64(value.gpuRequest * 1000),  // GPU count → milli-GPUs
 				LimitValue: int64(value.gpuLimit * 1000),   // GPU count → milli-GPUs
+			})
+		}
+		if len(value.gpu) == 0 && hasGPURequestOrLimit {
+			// No utilization exporter; still emit one GPU stat so request/limit appear in output.
+			var timestamp time.Time
+			if len(value.cpu) > 0 {
+				timestamp = time.Unix(int64(value.cpu[0].Timestamp)/1000, 0)
+			} else if len(value.memory) > 0 {
+				timestamp = time.Unix(int64(value.memory[0].Timestamp)/1000, 0)
+			} else {
+				timestamp = time.Now().Truncate(time.Minute)
+			}
+			stats = append(stats, Statistics{
+				StartTime:  timestamp,
+				Owner:      value.Owner,
+				Metric:     MetricGPU,
+				Value:      0,                               // no utilization data
+				Request:    int64(value.gpuRequest * 1000),  // GPU count → milli-GPUs
+				LimitValue: int64(value.gpuLimit * 1000),    // GPU count → milli-GPUs
 			})
 		}
 
