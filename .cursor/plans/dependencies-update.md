@@ -30,7 +30,7 @@ Version number below are just for demonstration, not the latest used.
 
 - ci:
   - trivyVersion=0.68.1 (source: https://github.com/aquasecurity/trivy/tags)
-  - polarisVersion=10.1.3 (source: https://github.com/FairwindsOps/polaris/tags)
+  - polarisVersion=10.1.4 (source: https://github.com/FairwindsOps/polaris/tags)
   - plutoVersion=5.22.7 (source: https://github.com/FairwindsOps/pluto/tags)
   - helmVersion=4.0.2 (source: https://github.com/helm/helm/tags)
 
