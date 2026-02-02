@@ -38,6 +38,9 @@ RUN set -eux; \
 
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
-COPY cloud-costs.sh cloud-costs.sh
+# Chart runs container with command ./cloud-costs.sh, so script must be in working dir
+WORKDIR /app
+COPY cloud-costs.sh .
+RUN chmod +x cloud-costs.sh
 
-CMD ["cloud-costs.sh"]
+CMD ["./cloud-costs.sh"]
