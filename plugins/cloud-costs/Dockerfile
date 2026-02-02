@@ -38,6 +38,9 @@ RUN set -eux; \
 
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
+# Azure CLI writes config to AZURE_CONFIG_DIR; use writable path (root fs is read-only in K8s)
+ENV AZURE_CONFIG_DIR=/tmp/.azure
+
 # Chart runs container with command ./cloud-costs.sh, so script must be in working dir
 WORKDIR /app
 COPY cloud-costs.sh .
