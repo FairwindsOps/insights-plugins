@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.2.5
+* Bump trivy to 0.69.0
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa
+* Bump library github.com/fairwindsops/insights-plugins/plugins/trivy
+* Bump library github.com/open-policy-agent/opa to v1.13.1
+* Bump indirect library dependencies
+
 ## 6.2.4
 * Bump indirect library dependencies
 * Bump helm to version 4.1.0

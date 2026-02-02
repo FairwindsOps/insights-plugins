@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.6
+* Bump library github.com/golang-jwt/jwt/v5 to v5.3.1
+* Bump indirect library dependencies
+
 ## 1.8.5
 * Collecting GPU limits/requests even without usage metrics
 

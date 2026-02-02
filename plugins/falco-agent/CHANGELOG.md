@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5
+* Bump library github.com/falcosecurity/falcosidekick
+* Bump indirect library dependencies
+
 ## 0.4.4
 * Bump indirect library dependencies
 
