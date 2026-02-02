@@ -38,8 +38,6 @@ RUN set -eux; \
 
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
-# Install script on PATH and use as entrypoint
-COPY cloud-costs.sh /usr/local/bin/cloud-costs.sh
-RUN chmod +x /usr/local/bin/cloud-costs.sh
+COPY cloud-costs.sh cloud-costs.sh
 
-ENTRYPOINT ["cloud-costs.sh"]
+CMD ["cloud-costs.sh"]
