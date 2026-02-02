@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0
+* Bump library sigs.k8s.io/controller-runtime to v0.23.1
+* Bump indirect library dependencies
+
 ## 1.8.5
 * Collecting GPU limits/requests even without usage metrics
 

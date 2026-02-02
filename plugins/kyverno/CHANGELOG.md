@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.0
+* Bump indirect library dependencies
+
 ## 0.5.4
 * Bump indirect library dependencies
 

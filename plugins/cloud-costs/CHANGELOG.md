@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.2
+* Bump CLOUD_SDK_VERSION to 554.0.0
+
 ## 0.5.1
 * Bumped all libs
 

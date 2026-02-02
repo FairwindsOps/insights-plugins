@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.3.0
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa
+* Bump library github.com/fairwindsops/insights-plugins/plugins/trivy
+* Bump indirect library dependencies
+
 ## 6.2.4
 * Bump indirect library dependencies
 * Bump helm to version 4.1.0
