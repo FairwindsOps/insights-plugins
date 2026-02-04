@@ -382,6 +382,10 @@ fi
 if [[ "$provider" == "azure" ]]; then
   echo "Azure Cost Management integration (FOCUS format)......"
 
+  # Azure CLI needs a writable config dir; use OUTPUT_DIR to avoid permission errors in K8s
+  export AZURE_CONFIG_DIR="${OUTPUT_DIR}/.azure"
+  mkdir -p "$AZURE_CONFIG_DIR"
+
   if [[ "$subscription" = "" ]]; then
     echo "Error: --subscription is required for Azure"
     usage

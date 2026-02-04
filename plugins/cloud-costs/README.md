@@ -236,5 +236,8 @@ For GCP FOCUS format, you need to create a view in BigQuery using the provided S
 - Requires BigQuery read permissions on the billing export dataset
 
 ### Azure
-- Uses Azure CLI authentication (`az login`)
-- Requires `Cost Management Reader` role on the subscription
+- Uses Azure CLI authentication. In Kubernetes the container cannot run interactive `az login`; use one of:
+  - **Service principal** (recommended for CronJobs): Set env vars `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `AZURE_TENANT_ID`. The script will run `az login --service-principal` automatically.
+  - **Managed identity** (e.g. AKS with workload identity): Set `AZURE_USE_MANAGED_IDENTITY=true` (and `AZURE_CLIENT_ID` if needed); the script runs `az login --identity`.
+  - **Local use**: Run `az login` on your machine before running the script.
+- The service principal or identity must have **Cost Management Reader** (or broader) role on the subscription.
