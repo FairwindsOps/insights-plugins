@@ -382,8 +382,10 @@ fi
 if [[ "$provider" == "azure" ]]; then
   echo "Azure Cost Management integration (FOCUS format)......"
 
-  # Azure CLI needs a writable config dir; use OUTPUT_DIR to avoid permission errors in K8s
-  export AZURE_CONFIG_DIR="${OUTPUT_DIR}/.azure"
+  # Azure CLI config dir: use chart-provided path when set (shared with az-login init container), else writable OUTPUT_DIR
+  if [[ -z "${AZURE_CONFIG_DIR:-}" ]]; then
+    export AZURE_CONFIG_DIR="${OUTPUT_DIR}/.azure"
+  fi
   mkdir -p "$AZURE_CONFIG_DIR"
 
   if [[ "$subscription" = "" ]]; then
