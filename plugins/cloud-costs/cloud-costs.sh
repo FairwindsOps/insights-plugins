@@ -377,8 +377,8 @@ if [[ "$provider" == "gcp" ]]; then
     exit 1
   fi
 
-  echo "Google BigQuey finished..."
-  awk '$0 == "[" {p=1} p' < /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clean.json
+  echo "Google BigQuery finished..."
+  sed -n '/^\[$/,$ p' /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clean.json
 
   mv /output/cloudcosts-tmp-clean.json /output/cloudcosts.json
   echo "Saved GCP costs file in /output/cloudcosts.json"
