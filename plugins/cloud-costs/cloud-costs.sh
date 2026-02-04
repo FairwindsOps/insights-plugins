@@ -18,7 +18,7 @@ usage: cloud-costs \
   --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
   --workgroup <workgroup - required for AWS> \
-  --projectname <project name - required for GCP> \
+  --projectname <project name - required for GCP, or derived from focusview when format is focus> \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
   --subscription <subscription ID - required for Azure> \
@@ -323,6 +323,11 @@ fi
 if [[ "$provider" == "gcp" ]]; then
   echo "Google Cloud integration......"
 
+  # When using FOCUS format, derive project from focusview (project.dataset.view_name) if not set
+  if [[ "$format" == "focus" && "$focusview" != "" && "$projectname" = "" ]]; then
+    projectname="${focusview%%.*}"
+  fi
+
   if [[ "$tagvalue" = "" ]]; then
     usage
     exit 1
@@ -335,7 +340,8 @@ if [[ "$provider" == "gcp" ]]; then
   if [[ "$tagkey" = "" ]]; then
     tagkey="goog-k8s-cluster-name"
   fi
-  if [[ "$table" = "" ]]; then
+  # When format is focus we use focusview, not table; only require dataset/billingaccount for standard format
+  if [[ "$table" = "" && "$format" != "focus" ]]; then
     if [[ "$projectname" = "" || "$dataset" = "" || "$billingaccount" = "" ]]; then
       usage
       exit 1
