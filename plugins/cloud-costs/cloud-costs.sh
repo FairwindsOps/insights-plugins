@@ -81,9 +81,6 @@ while [ ! $# -eq 0 ]; do
         workgroup)
             workgroup=${2}
             ;;
-        workgroup)
-            workgroup=${2}
-            ;;
         projectname)
             projectname=${2}
             ;;
@@ -104,7 +101,7 @@ while [ ! $# -eq 0 ]; do
             ;;
         *)
             usage
-            exit
+            exit 1
             ;;
     esac
     shift
@@ -118,10 +115,10 @@ if [[ "$days" = "" ]]; then
 fi
 OUTPUT_DIR=${OUTPUT_DIR:-/output}
 
-initial_date_time=$(date -u -d  $days+' day ago' +"%Y-%m-%d %H:00:00.000")
+initial_date_time=$(date -u -d "${days} days ago" +"%Y-%m-%d %H:00:00.000")
 final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
 # Azure uses YYYY-MM-DD format
-initial_date=$(date -u -d  $days+' day ago' +"%Y-%m-%d")
+initial_date=$(date -u -d "${days} days ago" +"%Y-%m-%d")
 final_date=$(date -u +"%Y-%m-%d")
 
 if  [[ "$provider" = "aws" ]]; then
@@ -364,24 +361,24 @@ if [[ "$provider" == "gcp" ]]; then
     sql="SELECT cost, 0.0 AS cost_at_list, '' AS cost_type, service, sku, usage, usage_start_time, usage_end_time, CASE WHEN machine_spec IS NOT NULL OR accelerator_type IS NOT NULL THEN [ STRUCT('compute.googleapis.com/machine_spec' AS key, machine_spec AS value), STRUCT('compute.googleapis.com/cores' AS key, total_cores AS value), STRUCT('compute.googleapis.com/memory' AS key, total_memory AS value), STRUCT('compute.googleapis.com/accelerator_type' AS key, accelerator_type AS value), STRUCT('compute.googleapis.com/accelerator_count' AS key, accelerator_count AS value) ] ELSE NULL END AS system_labels, resource_type FROM ( SELECT SUM(main.cost) AS cost, STRUCT(main.service.description) AS service, STRUCT(main.sku.description AS description) AS sku, main.usage_start_time, main.usage_end_time, STRUCT(SUM(main.usage.amount) AS amount, SUM(main.usage.amount_in_pricing_units) AS amount_in_pricing_units, '' AS pricing_unit, '' AS unit) AS usage, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/machine_spec') AS machine_spec, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/cores') AS total_cores, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/memory') AS total_memory, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/accelerator_type') AS accelerator_type, (SELECT value FROM UNNEST(system_labels) WHERE key = 'compute.googleapis.com/accelerator_count') AS accelerator_count, CASE WHEN LOWER(main.sku.description) LIKE '%gpu%' OR LOWER(main.sku.description) LIKE '%nvidia%' OR LOWER(main.sku.description) LIKE '%tesla%' OR LOWER(main.sku.description) LIKE '%tpu%' OR LOWER(main.sku.description) LIKE '%accelerator%' THEN 'GPU' ELSE 'Compute' END AS resource_type FROM \`$table\` AS main LEFT JOIN UNNEST(labels) AS labels WHERE labels.key = '$tagkey' AND labels.value = '$tagvalue' AND usage_start_time >= '$initial_date_time' AND usage_start_time < '$final_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) >= '$initial_date_time' AND TIMESTAMP_TRUNC(_PARTITIONTIME, DAY) <= '$final_date_time' GROUP BY main.service.description, usage_start_time, usage_end_time, main.sku.description, machine_spec, total_memory, total_cores, accelerator_type, accelerator_count) ORDER BY usage_start_time DESC"
   fi
 
-  /google-cloud-sdk/bin/bq --format=prettyjson --project_id $projectname  query --max_rows=10000000 --nouse_legacy_sql "$sql" > /output/cloudcosts-tmp.json  && echo "Executing..."
-  if grep -q "BigQuery error" /output/cloudcosts-tmp.json; then
+  /google-cloud-sdk/bin/bq --format=prettyjson --project_id "$projectname" query --max_rows=10000000 --nouse_legacy_sql "$sql" > "$OUTPUT_DIR/cloudcosts-tmp.json" && echo "Executing..."
+  if grep -q "BigQuery error" "$OUTPUT_DIR/cloudcosts-tmp.json"; then
     echo "Error executing the query"
-    cat /output/cloudcosts-tmp.json
+    cat "$OUTPUT_DIR/cloudcosts-tmp.json"
     exit 1
   fi
 
-  if ! grep -q "\[" /output/cloudcosts-tmp.json; then
+  if ! grep -q "\[" "$OUTPUT_DIR/cloudcosts-tmp.json"; then
     echo "No data found for the given tag value"
-    cat /output/cloudcosts-tmp.json
+    cat "$OUTPUT_DIR/cloudcosts-tmp.json"
     exit 1
   fi
 
   echo "Google BigQuery finished..."
-  sed -n '/^\[$/,$ p' /output/cloudcosts-tmp.json > /output/cloudcosts-tmp-clean.json
+  sed -n '/^\[$/,$ p' "$OUTPUT_DIR/cloudcosts-tmp.json" > "$OUTPUT_DIR/cloudcosts-tmp-clean.json"
 
-  mv /output/cloudcosts-tmp-clean.json /output/cloudcosts.json
-  echo "Saved GCP costs file in /output/cloudcosts.json"
+  mv "$OUTPUT_DIR/cloudcosts-tmp-clean.json" "$OUTPUT_DIR/cloudcosts.json"
+  echo "Saved GCP costs file in $OUTPUT_DIR/cloudcosts.json"
 
   exit 0
 fi
