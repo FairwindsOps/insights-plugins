@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.34.5
+* Bump trivy to 0.69.0
+* Bump CLOUD_SDK to 554.0.0
+* Bump library github.com/docker/cli to v29.2.0
+* Bump indirect library dependencies
+
 ## 0.34.4
 * Bump indirect library dependencies
 

@@ -10,6 +10,9 @@
 * Added JSON schema files for Azure and FOCUS output formats
 * Updated README with comprehensive documentation
 
+## 0.5.2
+* Bump CLOUD_SDK to 554.0.0
+
 ## 0.5.1
 * Bumped all libs
 
