@@ -1,0 +1,655 @@
+{
+    "ResultSet": {
+        "Rows": [
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "column_name"
+                    },
+                    {
+                        "VarCharValue": "data_type"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "availabilityzone"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billedcost"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billingaccountid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billingaccountname"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billingaccounttype"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billingcurrency"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billingperiodend"
+                    },
+                    {
+                        "VarCharValue": "timestamp(3)"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billingperiodstart"
+                    },
+                    {
+                        "VarCharValue": "timestamp(3)"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "capacityreservationid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "capacityreservationstatus"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "chargecategory"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "chargeclass"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "chargedescription"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "chargefrequency"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "chargeperiodend"
+                    },
+                    {
+                        "VarCharValue": "timestamp(3)"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "chargeperiodstart"
+                    },
+                    {
+                        "VarCharValue": "timestamp(3)"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "commitmentdiscountcategory"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "commitmentdiscountid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "commitmentdiscountname"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "commitmentdiscountquantity"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "commitmentdiscountstatus"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "commitmentdiscounttype"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "commitmentdiscountunit"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "consumedquantity"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "consumedunit"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "contractedcost"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "contractedunitprice"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "effectivecost"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "invoiceid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "invoiceissuername"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "listcost"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "listunitprice"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "pricingcategory"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "pricingcurrency"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "pricingcurrencycontractedunitprice"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "pricingcurrencyeffectivecost"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "pricingcurrencylistunitprice"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "pricingquantity"
+                    },
+                    {
+                        "VarCharValue": "double"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "pricingunit"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "providername"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "publishername"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "regionid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "regionname"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "resourceid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "resourcename"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "resourcetype"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "servicecategory"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "servicename"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "servicesubcategory"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "skuid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "skumeter"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "skupricedetails"
+                    },
+                    {
+                        "VarCharValue": "map(varchar, varchar)"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "skupriceid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "subaccountid"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "subaccountname"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "subaccounttype"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "tags"
+                    },
+                    {
+                        "VarCharValue": "map(varchar, varchar)"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "x_discounts"
+                    },
+                    {
+                        "VarCharValue": "map(varchar, double)"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "x_operation"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "x_servicecode"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            },
+            {
+                "Data": [
+                    {
+                        "VarCharValue": "billing_period"
+                    },
+                    {
+                        "VarCharValue": "varchar"
+                    }
+                ]
+            }
+        ],
+        "ResultSetMetadata": {
+            "ColumnInfo": [
+                {
+                    "CatalogName": "hive",
+                    "SchemaName": "",
+                    "TableName": "",
+                    "Name": "column_name",
+                    "Label": "column_name",
+                    "Type": "varchar",
+                    "Precision": 2147483647,
+                    "Scale": 0,
+                    "Nullable": "UNKNOWN",
+                    "CaseSensitive": true
+                },
+                {
+                    "CatalogName": "hive",
+                    "SchemaName": "",
+                    "TableName": "",
+                    "Name": "data_type",
+                    "Label": "data_type",
+                    "Type": "varchar",
+                    "Precision": 2147483647,
+                    "Scale": 0,
+                    "Nullable": "UNKNOWN",
+                    "CaseSensitive": true
+                }
+            ]
+        }
+    },
+    "UpdateCount": 0
+}

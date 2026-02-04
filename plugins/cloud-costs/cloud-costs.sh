@@ -12,7 +12,7 @@ cat << EOF
 usage: cloud-costs \
   --provider <cloud provider - aws, gcp, or azure>
   --tagprefix <tag prefix - optional for aws, not used for GCP/Azure> \
-  --tagkey <tag key - required for AWS, optional for GCP/Azure> \
+  --tagkey <tag key - required for AWS standard, optional for AWS FOCUS (uses aws:eks:cluster-name)> \
   --tagvalue <tag value - required for AWS, GCP, and Azure> \
   --database <database name - required for AWS> \
   --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
@@ -113,17 +113,30 @@ fi
 if [[ "$days" = "" ]]; then
   days='5'
 fi
-OUTPUT_DIR=${OUTPUT_DIR:-/output}
+OUTPUT_DIR=${OUTPUT_DIR:-.}
 
-initial_date_time=$(date -u -d "${days} days ago" +"%Y-%m-%d %H:00:00.000")
-final_date_time=$(date -u +"%Y-%m-%d %H:00:00.000")
+# Portable date: macOS uses -v-Nd, GNU date uses -d "N days ago"
+if date -u -v-1d +"%Y-%m-%d" &>/dev/null; then
+  date_ago() { date -u -v-${1}d +"$2"; }
+else
+  date_ago() { date -u -d "${1} days ago" +"$2"; }
+fi
+
+# Use full calendar days: start of day N days ago through end of today (so midnight timestamps are included)
+initial_date_time=$(date_ago "$days" "%Y-%m-%d 00:00:00.000")
+final_date_time=$(date -u +"%Y-%m-%d 23:59:59.999")
 # Azure uses YYYY-MM-DD format
-initial_date=$(date -u -d "${days} days ago" +"%Y-%m-%d")
+initial_date=$(date_ago "$days" "%Y-%m-%d")
 final_date=$(date -u +"%Y-%m-%d")
 
 if  [[ "$provider" = "aws" ]]; then
   echo "AWS CUR Integration......"
-  if [[ "$tagkey" = "" || "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
+  if [[ "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
+    usage
+    exit 1
+  fi
+  # For AWS standard format, tagkey is required; for FOCUS we use fixed key aws:eks:cluster-name
+  if [[ "$format" != "focus" && "$tagkey" = "" ]]; then
     usage
     exit 1
   fi
@@ -179,33 +192,44 @@ if  [[ "$provider" = "aws" ]]; then
 
     aws athena get-query-results --query-execution-id $describeExecutionId > "$OUTPUT_DIR/aws-describe.json"
 
+    # AWS FOCUS data export table "data" uses lowercase column names (servicename, tags, chargeperiodend, etc.)
+    # tags is map<string,string> in Athena; default tag name for EKS cluster is aws:eks:cluster-name (--tagkey optional)
+    # Schema has no chargesubcategory, x_instancetype, x_vcpu, x_memory, x_gpu; use NULL for output shape
+    # FOCUS date filter: use start of current year (matches DATE 'YYYY-01-01') so export lag doesn't exclude data
+    focus_initial_date=$(date -u +"%Y-01-01")
+    if [[ "$tagprefix" == "" ]]; then
+      focus_tag_key="${tagkey:-aws:eks:cluster-name}"
+      focus_tag_filter="element_at(tags, '$focus_tag_key') = '$tagvalue'"
+    else
+      focus_tag_filter="$tag_filter"
+    fi
     sql="SELECT
-      \"servicename\" AS service_name,
-      \"servicecategory\" AS service_category,
-      \"chargesubcategory\" AS charge_sub_category,
-      \"chargecategory\" AS charge_category,
-      \"regionid\" AS region_id,
-      \"resourceid\" AS resource_id,
-      date_format(cast(\"chargeperiodstart\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_start,
-      date_format(cast(\"chargeperiodend\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_end,
-      SUM(cast(\"billedcost\" as double)) AS billed_cost,
-      SUM(cast(\"effectivecost\" as double)) AS effective_cost,
-      SUM(cast(\"consumedquantity\" as double)) AS consumed_quantity,
-      \"consumedunit\" AS consumed_unit,
-      \"billingcurrency\" AS billing_currency,
-      \"billingaccountid\" AS billing_account_id,
-      \"subaccountid\" AS sub_account_id,
-      \"x_instancetype\" AS x_instance_type,
-      \"x_vcpu\" AS x_vcpu,
-      \"x_memory\" AS x_memory,
-      \"x_gpu\" AS x_gpu,
-      arbitrary(\"chargedescription\") AS charge_description
+      \"ServiceName\" AS service_name,
+      \"ServiceCategory\" AS service_category,
+      CAST(NULL AS VARCHAR) AS charge_sub_category,
+      \"ChargeCategory\" AS charge_category,
+      \"RegionId\" AS region_id,
+      \"ResourceId\" AS resource_id,
+      date_format(cast(\"ChargePeriodStart\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_start,
+      date_format(cast(\"ChargePeriodEnd\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_end,
+      SUM(cast(\"BilledCost\" as double)) AS billed_cost,
+      SUM(cast(\"EffectiveCost\" as double)) AS effective_cost,
+      SUM(cast(\"ConsumedQuantity\" as double)) AS consumed_quantity,
+      \"ConsumedUnit\" AS consumed_unit,
+      \"BillingCurrency\" AS billing_currency,
+      \"BillingAccountId\" AS billing_account_id,
+      \"SubAccountId\" AS sub_account_id,
+      try(element_at(skupricedetails, 'InstanceType')) AS x_instance_type,
+      try(element_at(skupricedetails, 'CoreCount')) AS x_vcpu,
+      try(element_at(skupricedetails, 'MemorySize')) AS x_memory,
+      CAST(NULL AS VARCHAR) AS x_gpu,
+      arbitrary(\"ChargeDescription\") AS charge_description
     FROM
       \"$database\".\"$table\"
     WHERE
-      $tag_filter
-      AND cast(\"chargeperiodend\" as timestamp) > timestamp '$initial_date_time'
-      AND cast(\"chargeperiodend\" as timestamp) <= timestamp '$final_date_time'
+      $focus_tag_filter
+      AND \"ChargePeriodStart\" >= DATE '$focus_initial_date'
+      AND \"ChargePeriodStart\" <= DATE '$final_date'
     GROUP BY 1,2,3,4,5,6,7,8,12,13,14,15,16,17,18,19
     ORDER BY charge_period_start, service_name"
 
@@ -251,6 +275,10 @@ if  [[ "$provider" = "aws" ]]; then
       echo "Athena query Finished"
       if [ $status != "SUCCEEDED" ]; then
       echo "Athena failed to execute query with status=$status"
+      reason=$(aws athena get-query-execution --query-execution-id $executionId --query 'QueryExecution.Status.StateChangeReason' --output text 2>/dev/null || true)
+      if [ -n "$reason" ] && [ "$reason" != "None" ]; then
+        echo "Failure reason: $reason"
+      fi
       echo "Displaying full query-execution output:"
       aws athena get-query-execution --query-execution-id $executionId --output json
       exit 3
@@ -307,6 +335,11 @@ if  [[ "$provider" = "aws" ]]; then
     # Debug: Show file was created
     file_size=$(stat -f%z "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || stat -c%s "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || echo "unknown")
     echo "File created: $OUTPUT_DIR/cloudcosts.json (size: $file_size bytes)"
+    row_count=$(jq 'length' "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || echo "0")
+    if [ "$row_count" = "0" ]; then
+      tag_display="${tagkey:-aws:eks:cluster-name}=$tagvalue"
+      echo "Note: No cost rows matched (tag $tag_display in date range). Try --days to widen the range or confirm the tag exists in the FOCUS export."
+    fi
     ls -lh "$OUTPUT_DIR/cloudcosts.json" || true
 
     rm -f "$OUTPUT_DIR/cloudcosts-tmp.json"
@@ -400,8 +433,8 @@ if [[ "$provider" == "azure" ]]; then
   # Azure cost data takes 24-72 hours to finalize
   # Apply 2-day lag to ensure complete data (ignore today and yesterday)
   lag_days=2
-  initial_date=$(date -u -d "$((days + lag_days)) day ago" +"%Y-%m-%d")
-  final_date=$(date -u -d "$lag_days day ago" +"%Y-%m-%d")
+  initial_date=$(date_ago "$((days + lag_days))" "%Y-%m-%d")
+  final_date=$(date_ago "$lag_days" "%Y-%m-%d")
 
   if [[ "$tagvalue" != "" ]]; then
     if [[ "$tagkey" = "" ]]; then
