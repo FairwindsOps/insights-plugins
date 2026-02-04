@@ -47,7 +47,7 @@ cloud-costs.sh \
 
 | Option | Description | Required |
 |--------|-------------|----------|
-| `--projectname` | GCP project name | Yes |
+| `--projectname` | GCP project name | Yes (or derived from `--focusview` when format is focus) |
 | `--dataset` | BigQuery dataset name | If `--table` not provided |
 | `--billingaccount` | GCP billing account ID | If `--table` not provided |
 | `--table` | Full BigQuery table path | No (auto-generated if not provided) |
