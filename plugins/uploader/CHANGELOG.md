@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.6.1
-* Bug fix
-
 ## 0.6.0
 * Bump k8s api libraries to 0.35.0
 
