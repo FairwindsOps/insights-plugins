@@ -78,14 +78,14 @@ do
 
   if [ $(( $attempts % 10 )) -eq 0 ]; then
     # Check if any container inside this pod failed.
-    if kubectl get pod $POD_NAME -o go-template="{{range .status.containerStatuses}}{{.state.terminated.reason}}{{end}}" | grep Error; then
+    if kubectl get pod "$POD_NAME" -o go-template="{{range .status.containerStatuses}}{{.state.terminated.reason}}{{end}}" | grep Error; then
         url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype/failure
 
         # Get logs for container that's not insights-uploader and upload
         # data-binary to preserve newline characters.
         if [ "$SEND_FAILURES" = "true" ]; then
             set +x
-            kubectl logs $POD_NAME -c $(kubectl get pod $POD_NAME -o jsonpath="{.spec.containers[?(@.name != 'insights-uploader')].name}") | \
+            kubectl logs "$POD_NAME" -c $(kubectl get pod "$POD_NAME" -o jsonpath="{.spec.containers[?(@.name != 'insights-uploader')].name}") | \
             curl -X POST $url \
                 -L \
                 --data-binary @- \
@@ -104,12 +104,12 @@ do
         exit 1
     fi
   fi
-  if [ -f $file ]; then
+  if [ -f "$file" ]; then
     url=$host/v0/organizations/$organization/clusters/$cluster/data/$datatype
     set +x
-    curl -X POST $url \
+    curl -X POST "$url" \
       -L \
-      --data-binary @$file \
+      --data-binary @"$file" \
       -H "Authorization: Bearer ${FAIRWINDS_TOKEN//[$'\t\r\n']}" \
       -H "Content-Type: application/json" \
       -H "X-Fairwinds-Agent-Version: `cat version.txt`" \
