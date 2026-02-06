@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.1
+* Permissions bug fix
+
 ## 1.0.0
 * Added Azure provider support via Cost Management API
 * Added FOCUS (FinOps Open Cost and Usage Specification) format output for all providers

@@ -113,7 +113,8 @@ fi
 if [[ "$days" = "" ]]; then
   days='5'
 fi
-OUTPUT_DIR=${OUTPUT_DIR:-.}
+# Default to /tmp when unset so container runs work (K8s often has read-only root; see Dockerfile AZURE_CONFIG_DIR)
+OUTPUT_DIR=${OUTPUT_DIR:-/output}
 
 # Portable date: macOS uses -v-Nd, GNU date uses -d "N days ago"
 if date -u -v-1d +"%Y-%m-%d" &>/dev/null; then
