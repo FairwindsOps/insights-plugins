@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4
+* Bump library golang.org/x/sys to v0.41.0
+* Bump indirect library dependencies
+
 ## 0.4.3
 * Bump indirect library dependencies
 

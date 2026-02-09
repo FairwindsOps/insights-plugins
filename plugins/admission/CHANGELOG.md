@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.6
+* Bump library github.com/clipperhouse/displaywidth to v0.10.0
+* Bump library github.com/clipperhouse/uax29/v2 to v2.6.0
+* Bump library github.com/lestrrat-go/httprc/v3 to v3.0.4
+* Bump library go.opentelemetry.io/otel to v1.40.0
+* Bump library golang.org/x/oauth2 to v0.35.0
+* Bump library golang.org/x/sys to v0.41.0
+* Bump library sigs.k8s.io/structured-merge-diff/v6 to v6.3.2
+* Bump indirect library dependencies
+
 ## 2.2.5
 * Bump library github.com/fairwindsops/insights-plugins/plugins/opa
 * Bump library github.com/fairwindsops/polaris

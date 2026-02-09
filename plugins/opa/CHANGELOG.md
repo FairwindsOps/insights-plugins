@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.7
+* Bump library github.com/lestrrat-go/httprc/v3 to v3.0.4
+* Bump library go.opentelemetry.io/otel to v1.40.0
+* Bump library golang.org/x/oauth2 to v0.35.0
+* Bump library golang.org/x/sys to v0.41.0
+* Bump library sigs.k8s.io/structured-merge-diff/v6 to v6.3.2
+* Bump indirect library dependencies
+
 ## 3.1.6
 * Bump library github.com/open-policy-agent/opa to v1.13.1
 * Bump indirect library dependencies

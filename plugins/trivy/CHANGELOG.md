@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.34.6
+* Bump trivy to 0.69.1
+* Bump library github.com/docker/cli to v29.2.1
+* Bump library github.com/klauspost/compress to v1.18.4
+* Bump library golang.org/x/oauth2 to v0.35.0
+* Bump library golang.org/x/sys to v0.41.0
+* Bump library sigs.k8s.io/structured-merge-diff/v6 to v6.3.2
+* Bump indirect library dependencies
+
 ## 0.34.5
 * Bump trivy to 0.69.0
 * Bump CLOUD_SDK to 554.0.0
