@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5
+* Bump library github.com/klauspost/compress to v1.18.4
+* Bump library golang.org/x/oauth2 to v0.35.0
+* Bump library golang.org/x/sys to v0.41.0
+* Bump library sigs.k8s.io/structured-merge-diff/v6 to v6.3.2
+* Bump indirect library dependencies
+
 ## 0.2.4
 * Bump library dependencies
 * Bump indirect library dependencies

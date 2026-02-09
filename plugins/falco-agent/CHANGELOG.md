@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.6
+* Bump library go.opentelemetry.io/otel to v1.40.0
+* Bump library golang.org/x/oauth2 to v0.35.0
+* Bump library golang.org/x/sys to v0.41.0
+* Bump library sigs.k8s.io/structured-merge-diff/v6 to v6.3.2
+* Bump indirect library dependencies
+
 ## 0.4.5
 * Bump library github.com/falcosecurity/falcosidekick
 * Bump indirect library dependencies
