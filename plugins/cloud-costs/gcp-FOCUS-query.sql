@@ -116,10 +116,7 @@ prices AS (
 
 SELECT
   usage_cost_data.location.zone AS AvailabilityZone,
-  CAST(usage_cost_data.cost AS NUMERIC) + IFNULL((
-    SELECT SUM(CAST(c.amount AS NUMERIC))
-    FROM UNNEST(usage_cost_data.credits) AS c
-  ), 0) AS BilledCost,
+  CAST(usage_cost_data.cost AS NUMERIC) AS BilledCost,
   "${BILLING_ACCOUNT_ID}" AS BillingAccountId,
   usage_cost_data.currency AS BillingCurrency,
   PARSE_TIMESTAMP("%Y%m", invoice.month, "America/Los_Angeles") AS BillingPeriodStart,
@@ -160,10 +157,7 @@ SELECT
   IF(usage_cost_data.cost_type = "regular", usage_cost_data.usage.unit, NULL) AS ConsumedUnit,
   CAST(usage_cost_data.cost AS NUMERIC) AS ContractedCost,
   CAST(usage_cost_data.price.effective_price AS NUMERIC) AS ContractedUnitPrice,
-  CAST(usage_cost_data.cost AS NUMERIC) + IFNULL((
-    SELECT SUM(CAST(c.amount AS NUMERIC))
-    FROM UNNEST(usage_cost_data.credits) AS c
-  ), 0) AS EffectiveCost,
+  CAST(usage_cost_data.cost AS NUMERIC) AS EffectiveCost,
   CAST(usage_cost_data.cost_at_list AS NUMERIC) AS ListCost,
   IF(
     usage_cost_data.cost_type = "regular",
