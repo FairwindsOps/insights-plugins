@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.1
+* Fix the URL structure to download kubectl
+
 ## 0.6.0
 * Bump k8s api libraries to 0.35.0
 
@@ -25,7 +28,7 @@
 * bumped alpine to 3.21
 
 ## 0.5.7
-* fixing vulberabilities
+* fixing vulnerabilities
 
 ## 0.5.6
 * upgraded goreleaser to v2
