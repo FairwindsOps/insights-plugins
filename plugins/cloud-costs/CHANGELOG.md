@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.2
+* Additional clause for filtering GCP Focus view
+
 ## 1.0.1
 * Permissions bug fix
 
