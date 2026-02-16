@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.6
+* Bump kubectlVersion to v1.35.1
+* Bump library k8s.io/client-go to v0.35.1
+* Bump library golang.org/x/text to v0.34.0
+* Bump indirect library dependencies
+
 ## 0.6.5
 * Bump library golang.org/x/sys to v0.41.0
 * Bump indirect library dependencies

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.2.7
+* Bump library k8s.io/api, k8s.io/apimachinery, k8s.io/client-go to v0.35.1
+* Bump library github.com/olekukonko/ll to v0.1.6
+* Bump library golang.org/x/crypto to v0.48.0
+* Bump library golang.org/x/mod to v0.33.0
+* Bump library golang.org/x/net to v0.50.0
+* Bump library golang.org/x/term to v0.40.0
+* Bump library golang.org/x/text to v0.34.0
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa
+* Bump indirect library dependencies
+
 ## 2.2.6
 * Bump library github.com/clipperhouse/displaywidth to v0.10.0
 * Bump library github.com/clipperhouse/uax29/v2 to v2.6.0

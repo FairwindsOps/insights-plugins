@@ -4,7 +4,7 @@ ARG TARGETOS
 ENV trivyVersion=0.69.1
 ENV polarisVersion=10.1.4
 ENV plutoVersion=5.22.7
-ENV helmVersion=4.1.0
+ENV helmVersion=4.1.1
 
 # Bash and openssl are  required by the Helm script.
 RUN apk update && apk --no-cache add curl bash openssl ca-certificates

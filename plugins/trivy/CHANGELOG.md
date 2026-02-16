@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.34.7
+* Bump kubectlVersion to v1.35.1
+* Bump CLOUD_SDK_VERSION to 556.0.0
+* Bump library k8s.io/api, k8s.io/apimachinery, k8s.io/client-go to v0.35.1
+* Bump library golang.org/x/net to v0.50.0
+* Bump library golang.org/x/term to v0.40.0
+* Bump library golang.org/x/text to v0.34.0
+* Bump indirect library dependencies
+
 ## 0.34.6
 * Bump trivy to 0.69.1
 * Bump library github.com/docker/cli to v29.2.1
