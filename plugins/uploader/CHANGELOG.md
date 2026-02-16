@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.2
+* Bump kubectlVersion to v1.35.1
+
 ## 0.6.1
 * Fix the URL structure to download kubectl
 

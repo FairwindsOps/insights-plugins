@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.3
+* Bump CLOUD_SDK_VERSION to 556.0.0
+
 ## 1.0.2
 * Additional clause for filtering GCP Focus view
 

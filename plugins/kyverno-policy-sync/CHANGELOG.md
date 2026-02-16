@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.7
+* Bump kubectlVersion to v1.35.1
+* Bump library k8s.io/api, k8s.io/apimachinery, k8s.io/client-go to v0.35.1
+* Bump library golang.org/x/crypto to v0.48.0
+* Bump library golang.org/x/net to v0.50.0
+* Bump library golang.org/x/term to v0.40.0
+* Bump library golang.org/x/text to v0.34.0
+* Bump indirect library dependencies
+
 ## 0.2.6
 * Bump library github.com/klauspost/compress to v1.18.4
 * Bump library golang.org/x/oauth2 to v0.35.0

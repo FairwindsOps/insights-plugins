@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.7
+* Bump library k8s.io/api, k8s.io/apimachinery, k8s.io/client-go to v0.35.1
+* Bump library github.com/grpc-ecosystem/grpc-gateway/v2 to v2.27.8
+* Bump library google.golang.org/grpc to v1.79.1
+* Bump library golang.org/x/net to v0.50.0
+* Bump library golang.org/x/term to v0.40.0
+* Bump library golang.org/x/text to v0.34.0
+* Bump indirect library dependencies
+
 ## 0.4.6
 * Bump library go.opentelemetry.io/otel to v1.40.0
 * Bump library golang.org/x/oauth2 to v0.35.0

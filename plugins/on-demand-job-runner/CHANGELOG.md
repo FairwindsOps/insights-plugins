@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.6
+* Bump indirect library dependencies
+
 ## 0.2.5
 * Bump library github.com/klauspost/compress to v1.18.4
 * Bump library golang.org/x/oauth2 to v0.35.0
