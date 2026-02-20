@@ -225,6 +225,17 @@ For GCP FOCUS format, you need to create a view in BigQuery using the provided S
 3. Create the view in BigQuery
 4. Use `--focusview` to reference the created view
 
+### GCP cluster filtering and FOCUS output
+
+Both **standard** and **FOCUS** GCP formats use the same cluster filter so totals are comparable. Rows are included if either:
+
+- The resource has the cluster tag (e.g. `goog-k8s-cluster-name` = `my-cluster`), or
+- The GKE resource ID contains the cluster name (e.g. `.../clusters/my-cluster`), so control plane and clusters without cost-allocation tags are included.
+
+If `--tagkey` is omitted for GCP, it defaults to `goog-k8s-cluster-name`.
+
+**FOCUS format** aggregates rows by charge period, service, SKU description, and resource, so the output has fewer rows than the raw view while preserving the same FOCUS column shape and total costs.
+
 ## Authentication
 
 ### AWS
