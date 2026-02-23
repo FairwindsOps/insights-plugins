@@ -39,10 +39,10 @@ func TestWatcherChecker_CheckHealth(t *testing.T) {
 			name: "healthy watcher with low drop rate",
 			setupMetrics: func(m *metrics.Metrics) {
 				// Simulate some processed events with low drop rate
-				for i := 0; i < 100; i++ {
+				for range 100 {
 					m.RecordEventProcessed()
 				}
-				for i := 0; i < 5; i++ {
+				for range 5 {
 					m.RecordEventDropped()
 				}
 			},
@@ -59,10 +59,10 @@ func TestWatcherChecker_CheckHealth(t *testing.T) {
 			name: "unhealthy watcher with high drop rate",
 			setupMetrics: func(m *metrics.Metrics) {
 				// Simulate high drop rate (>50%)
-				for i := 0; i < 10; i++ {
+				for range 10 {
 					m.RecordEventProcessed()
 				}
-				for i := 0; i < 60; i++ {
+				for range 60 {
 					m.RecordEventDropped()
 				}
 			},
@@ -73,7 +73,7 @@ func TestWatcherChecker_CheckHealth(t *testing.T) {
 			name: "unhealthy watcher with high channel utilization",
 			setupMetrics: func(m *metrics.Metrics) {
 				// Simulate high channel utilization (>90%)
-				for i := 0; i < 950; i++ {
+				for range 950 {
 					m.RecordEventInChannel()
 				}
 			},
@@ -151,10 +151,10 @@ func TestWatcherChecker_CheckHealth_EdgeCases(t *testing.T) {
 		{
 			name: "exactly 50% drop rate should be healthy",
 			setupMetrics: func(m *metrics.Metrics) {
-				for i := 0; i < 50; i++ {
+				for range 50 {
 					m.RecordEventProcessed()
 				}
-				for i := 0; i < 50; i++ {
+				for range 50 {
 					m.RecordEventDropped()
 				}
 			},
@@ -163,7 +163,7 @@ func TestWatcherChecker_CheckHealth_EdgeCases(t *testing.T) {
 		{
 			name: "exactly 90% channel utilization should be healthy",
 			setupMetrics: func(m *metrics.Metrics) {
-				for i := 0; i < 900; i++ {
+				for range 900 {
 					m.RecordEventInChannel()
 				}
 			},

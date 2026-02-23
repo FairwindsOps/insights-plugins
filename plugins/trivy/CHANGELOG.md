@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.34.8
+* Bumped to Go 1.26
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 0.34.7
 * Bump kubectlVersion to v1.35.1
 * Bump CLOUD_SDK_VERSION to 556.0.0

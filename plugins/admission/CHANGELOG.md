@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.8
+* Bumped to Go 1.26
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 2.2.7
 * Bump library k8s.io/api, k8s.io/apimachinery, k8s.io/client-go to v0.35.1
 * Bump library github.com/olekukonko/ll to v0.1.6

@@ -13,7 +13,7 @@ import (
 
 // ParseArgs needs a struct compatible to jeddevdk/go-flags and will fill it
 // based on CLI parameters.
-func ParseArgs(options interface{}) {
+func ParseArgs(options any) {
 	_, err := flags.ParseArgs(options, os.Args)
 	if err != nil {
 		if err.(*flags.Error).Type == flags.ErrHelp {
@@ -38,7 +38,7 @@ func InstallSignalHandler(stop chan struct{}) {
 }
 
 // configure glog, not used for flag parsing
-func fixGlog(options interface{}) {
+func fixGlog(options any) {
 	flag.Set("logtostderr", "true")
 
 	verbose := reflect.ValueOf(options).Elem().FieldByName("Verbose")

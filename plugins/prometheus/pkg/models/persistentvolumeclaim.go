@@ -83,11 +83,12 @@ func NewStorageInfoFromUnstructuredPVCs(unstructuredPVCs []unstructured.Unstruct
 // PVCsAsString facilitates printing a slice of persistentVolumeClaim
 // types for debugging.
 func (s StorageInfo) PVCsAsString() string {
-	output := fmt.Sprintf("%d PVCS:\n", len(s.pvcs))
+	var output strings.Builder
+	output.WriteString(fmt.Sprintf("%d PVCS:\n", len(s.pvcs)))
 	for i, v := range s.pvcs {
-		output += fmt.Sprintf("PVC %d: %#v\n", i, *v)
+		output.WriteString(fmt.Sprintf("PVC %d: %#v\n", i, *v))
 	}
-	return output
+	return output.String()
 }
 
 // NumPVCs returns the number of PersistentVolumeClains fetched from

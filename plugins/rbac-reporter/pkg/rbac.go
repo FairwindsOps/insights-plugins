@@ -12,7 +12,7 @@ import (
 // RBACReport report
 type RBACReport struct {
 	ServerVersion       string                  `json:"service_version,omitempty"`
-	CreationTime        time.Time               `json:"creation_time,omitempty"`
+	CreationTime        time.Time               `json:"creation_time"`
 	Roles               []v1.Role               `json:"roles,omitempty"`
 	RoleBindings        []v1.RoleBinding        `json:"role_bindings,omitempty"`
 	ClusterRoles        []v1.ClusterRole        `json:"cluster_roles,omitempty"`

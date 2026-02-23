@@ -2,7 +2,8 @@ package opa
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
+
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,8 +19,8 @@ import (
 )
 
 var fakeObj = unstructured.Unstructured{
-	Object: map[string]interface{}{
-		"metadata": map[string]interface{}{
+	Object: map[string]any{
+		"metadata": map[string]any{
 			"labels": map[string]string{
 				"foo": "bar",
 			},
@@ -186,7 +187,7 @@ func TestExampleFiles(t *testing.T) {
 			panic(err)
 		}
 		defer file.Close()
-		bytes, err := ioutil.ReadAll(file)
+		bytes, err := io.ReadAll(file)
 		if err != nil {
 			panic(err)
 		}

@@ -57,7 +57,7 @@ func (h *ConsoleHandler) Handle(watchedEvent *models.WatchedEvent) error {
 		}
 
 		// Show involved object if available
-		if involvedObject, ok := watchedEvent.Data["involvedObject"].(map[string]interface{}); ok {
+		if involvedObject, ok := watchedEvent.Data["involvedObject"].(map[string]any); ok {
 			fmt.Println("\n🎯 Involved Object:")
 			if kind, ok := involvedObject["kind"].(string); ok {
 				fmt.Printf("   Kind: %s\n", kind)

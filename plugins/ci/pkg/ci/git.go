@@ -103,7 +103,7 @@ func getGitInfo(cmdExecutor cmdInDirExecutor, ciRunner models.CIRunnerVal, baseR
 		gitCommandFail = true
 	}
 
-	for _, mf := range strings.Split(filesModifiedStr, "\n") {
+	for mf := range strings.SplitSeq(filesModifiedStr, "\n") {
 		mf = strings.TrimSpace(mf)
 		if len(mf) > 0 {
 			filesModified = append(filesModified, mf)

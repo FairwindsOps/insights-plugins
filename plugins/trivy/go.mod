@@ -1,11 +1,11 @@
 module github.com/fairwindsops/insights-plugins/plugins/trivy
 
-go 1.25.5
+go 1.26
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/fairwindsops/controller-utils v0.3.4
-	github.com/google/go-containerregistry v0.20.7
+	github.com/google/go-containerregistry v0.21.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.52.0
 	github.com/sirupsen/logrus v1.9.4
@@ -58,7 +58,6 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect

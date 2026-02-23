@@ -129,7 +129,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 				}
 				break // EOF
 			}
-			yamlNode := map[string]interface{}{}
+			yamlNode := map[string]any{}
 			err = yamlNodeOriginal.Decode(&yamlNode)
 			if err != nil {
 				errors = multierror.Append(errors, fmt.Errorf("error decoding document %s: %v", path, err))
@@ -140,9 +140,9 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 				continue
 			}
 			if kind == "list" {
-				nodes := yamlNode["items"].([]interface{})
+				nodes := yamlNode["items"].([]any)
 				for _, node := range nodes {
-					obj, ok := node.(map[string]interface{})
+					obj, ok := node.(map[string]any)
 					if !ok {
 						logrus.Warningf("Found a malformed YAML list item at %s", path+info.Name())
 					}
@@ -155,7 +155,7 @@ func (ci *CIScan) getAllResources() ([]trivymodels.Image, []models.Resource, err
 						logrus.Warningf("Found a YAML list item without metadata.name at %s", path+info.Name())
 						continue
 					}
-					newImages, containers := processYamlNode(node.(map[string]interface{}))
+					newImages, containers := processYamlNode(node.(map[string]any))
 					images = append(images, newImages...)
 					resources = append(resources, models.Resource{
 						Kind:        kind,
@@ -258,13 +258,13 @@ func (ci *CIScan) getDisplayFilenameAndHelmName(path string) (string, string, er
 	return displayFilename, helmName, err
 }
 
-func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []models.Container) {
+func processYamlNode(yamlNode map[string]any) ([]trivymodels.Image, []models.Container) {
 	_, kind, name, namespace, _, _ := util.ExtractMetadata(yamlNode)
 	if kind == "" || name == "" {
 		return nil, nil
 	}
 	podSpec := getPodSpec(yamlNode)
-	images := getImages(podSpec.(map[string]interface{}))
+	images := getImages(podSpec.(map[string]any))
 	return lo.Map(images, func(c models.Container, _ int) trivymodels.Image {
 		return trivymodels.Image{
 			Name: c.Image,
@@ -281,29 +281,29 @@ func processYamlNode(yamlNode map[string]interface{}) ([]trivymodels.Image, []mo
 }
 
 // getPodSpec looks inside arbitrary YAML for a PodSpec
-func getPodSpec(yaml map[string]interface{}) interface{} {
+func getPodSpec(yaml map[string]any) any {
 	for _, child := range podSpecFields {
 		if childYaml, ok := yaml[child]; ok {
-			return getPodSpec(childYaml.(map[string]interface{}))
+			return getPodSpec(childYaml.(map[string]any))
 		}
 	}
 	return yaml
 }
 
-func getImages(podSpec map[string]interface{}) []models.Container {
+func getImages(podSpec map[string]any) []models.Container {
 	images := make([]models.Container, 0)
 	for _, field := range containerSpecFields {
 		containerField, ok := podSpec[field]
 		if !ok {
 			continue
 		}
-		containers, ok := containerField.([]interface{})
+		containers, ok := containerField.([]any)
 		if !ok {
 			logrus.Warningf("Found a podSpec with no containers: %v", podSpec)
 			continue
 		}
 		for _, container := range containers {
-			containerMap := container.(map[string]interface{})
+			containerMap := container.(map[string]any)
 			image, _ := containerMap["image"].(string)
 			name, _ := containerMap["name"].(string)
 			newContainer := models.Container{

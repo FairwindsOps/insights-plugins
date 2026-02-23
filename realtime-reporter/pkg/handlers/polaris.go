@@ -23,7 +23,7 @@ import (
 func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 
 	var handler cache.ResourceEventHandlerFuncs
-	handler.AddFunc = func(obj interface{}) {
+	handler.AddFunc = func(obj any) {
 		timestamp := getTimestampUnixNanos()
 		logrus.WithField("resourceType", resourceType).Debug("add event")
 		ctx := context.Background()
@@ -71,7 +71,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 			return
 		}
 	}
-	handler.UpdateFunc = func(old, new interface{}) {
+	handler.UpdateFunc = func(old, new any) {
 		timestamp := getTimestampUnixNanos()
 		logrus.WithField("resourceType", resourceType).Debug("update event")
 		ctx := context.Background()
@@ -111,7 +111,7 @@ func PolarisHandler(resourceType string) cache.ResourceEventHandlerFuncs {
 			}
 		}
 	}
-	handler.DeleteFunc = func(obj interface{}) {
+	handler.DeleteFunc = func(obj any) {
 		timestamp := getTimestampUnixNanos()
 		logrus.WithField("resourceType", resourceType).Debug("delete event")
 
@@ -140,7 +140,7 @@ type PolarisReport struct {
 	Contents []byte
 }
 
-func polarisReportInfoToMap(report models.ReportInfo) (map[string]interface{}, error) {
+func polarisReportInfoToMap(report models.ReportInfo) (map[string]any, error) {
 	m := PolarisReport{
 		Report:   report.Report,
 		Version:  report.Version,
@@ -164,7 +164,7 @@ func polarisReportInfoToMap(report models.ReportInfo) (map[string]interface{}, e
 		return nil, err
 	}
 
-	var reportMap map[string]interface{}
+	var reportMap map[string]any
 	err = json.Unmarshal(reportJson, &reportMap)
 	if err != nil {
 		return nil, err

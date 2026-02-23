@@ -37,7 +37,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	var files []map[string]interface{}
+	var files []map[string]any
 	var fileNames []string // matches files by index
 
 	actionItems := make([]opa.ActionItem, 0)
@@ -52,7 +52,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 		}
 		decoder := yaml.NewDecoder(file)
 		for {
-			yamlNode := map[string]interface{}{}
+			yamlNode := map[string]any{}
 			err = decoder.Decode(&yamlNode)
 			if err != nil {
 				if err != io.EOF {
@@ -64,9 +64,9 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 			if yamlKind, ok := yamlNode["kind"]; ok {
 				resourceKind := yamlKind.(string)
 				if resourceKind == "list" {
-					nodes := yamlNode["items"].([]interface{})
+					nodes := yamlNode["items"].([]any)
 					for _, node := range nodes {
-						nodeMap := node.(map[string]interface{})
+						nodeMap := node.(map[string]any)
 						files = append(files, nodeMap)
 					}
 				} else {
@@ -99,7 +99,7 @@ func (ci CIScan) ProcessOPA(ctx context.Context) (*models.ReportInfo, error) {
 		actionItems = append(actionItems, newActionItems...) // There may be AIs despite errors
 	}
 	logrus.Debugf("OPA action items are: %#v", actionItems)
-	results := map[string]interface{}{
+	results := map[string]any{
 		"ActionItems": actionItems,
 	}
 	bytes, err := json.Marshal(results)
@@ -177,7 +177,7 @@ func refreshChecks(configurationObject models.Configuration) ([]opa.CheckSetting
 	return checkBody.Instances, checks, libsV0, libsV1, nil
 }
 
-func processObject(ctx context.Context, obj map[string]interface{}, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck, libsV0, libsV1 []opa.OPACustomLibrary) ([]opa.ActionItem, error) {
+func processObject(ctx context.Context, obj map[string]any, resourceName, resourceKind, apiGroup, resourceNamespace string, instances []opa.CheckSetting, checks []opa.OPACustomCheck, libsV0, libsV1 []opa.OPACustomLibrary) ([]opa.ActionItem, error) {
 	actionItems := make([]opa.ActionItem, 0)
 	var allErrs error = nil
 	for _, check := range checks {

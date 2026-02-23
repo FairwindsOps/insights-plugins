@@ -1,16 +1,16 @@
 module github.com/fairwindsops/insights-plugins/plugins/kube-bench
 
-go 1.25.5
+go 1.26
 
 require (
-	github.com/aquasecurity/kube-bench v0.14.1
+	github.com/aquasecurity/kube-bench v0.15.0
 	github.com/sirupsen/logrus v1.9.4
 )
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/securityhub v1.67.3 // indirect
-	github.com/aws/smithy-go v1.24.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/securityhub v1.67.4 // indirect
+	github.com/aws/smithy-go v1.24.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/golang/glog v1.2.5 // indirect

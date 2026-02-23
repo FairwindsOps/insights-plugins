@@ -62,7 +62,7 @@ func getKubeClient() (*Client, error) {
 	return &client, nil
 }
 
-func (client Client) GetData(ctx context.Context, group, kind string) ([]interface{}, error) {
+func (client Client) GetData(ctx context.Context, group, kind string) ([]any, error) {
 	mapping, err := client.RestMapper.RESTMapping(schema.GroupKind{Group: group, Kind: kind})
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (client Client) GetData(ctx context.Context, group, kind string) ([]interfa
 	if err != nil {
 		return nil, err
 	}
-	items := make([]interface{}, 0)
+	items := make([]any, 0)
 	for _, item := range list.Items {
 		items = append(items, item.Object)
 	}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.9
+* Bumped to Go 1.26
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 3.1.8
 * Bump library k8s.io/api, k8s.io/apimachinery, k8s.io/client-go to v0.35.1
 * Bump library golang.org/x/crypto to v0.48.0

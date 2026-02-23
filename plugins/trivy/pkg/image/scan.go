@@ -57,7 +57,7 @@ func ScanImages(imgScanner ImageScannerFunc, images []models.Image, maxConcurren
 			defer func() {
 				<-semaphore
 			}()
-			for i := 0; i < retryCount; i++ { // Retry logic
+			for i := range retryCount { // Retry logic
 				var err error
 				r, err := imgScanner(extraFlags, pullRef, trivyServerURL, registryOAuth2AccessTokenMap)
 				reportByRefLock.Lock()
@@ -171,8 +171,8 @@ func ScanImage(extraFlags, pullRef string, trivyServerURL string, registryOAuth2
 
 	if trivyServerURL == "" {
 		if refReplacements := os.Getenv("PULL_REF_REPLACEMENTS"); refReplacements != "" {
-			replacements := strings.Split(refReplacements, ";")
-			for _, replacement := range replacements {
+			replacements := strings.SplitSeq(refReplacements, ";")
+			for replacement := range replacements {
 				parts := strings.Split(replacement, ",")
 				if len(parts) != 2 {
 					logrus.Errorf("PULL_REF_REPLACEMENTS is badly formatted, can't interpret %s", replacement)

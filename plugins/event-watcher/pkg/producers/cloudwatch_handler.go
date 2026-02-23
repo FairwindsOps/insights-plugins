@@ -45,11 +45,11 @@ type CloudWatchObjectRef struct {
 }
 
 type CloudWatchResponseStatus struct {
-	Metadata map[string]interface{} `json:"metadata"`
-	Code     int                    `json:"code"`
-	Status   string                 `json:"status"`
-	Message  string                 `json:"message"`
-	Reason   string                 `json:"reason"`
+	Metadata map[string]any `json:"metadata"`
+	Code     int            `json:"code"`
+	Status   string         `json:"status"`
+	Message  string         `json:"message"`
+	Reason   string         `json:"reason"`
 }
 
 // NewCloudWatchHandler creates a new CloudWatch log handler

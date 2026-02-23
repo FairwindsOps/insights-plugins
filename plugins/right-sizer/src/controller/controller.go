@@ -161,10 +161,10 @@ func NewController(stop chan struct{}, kubeClientResources util.KubeClientResour
 
 	eventsInformer := informers.SharedInformerFactory(k8sFactory).Core().V1().Events().Informer()
 	eventsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			controller.eventAddedCh <- obj.(*core.Event)
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
+		UpdateFunc: func(oldObj, newObj any) {
 			controller.eventUpdatedCh <- &eventUpdateGroup{
 				oldEvent: oldObj.(*core.Event),
 				newEvent: newObj.(*core.Event),
