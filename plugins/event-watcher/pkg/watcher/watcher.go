@@ -138,19 +138,15 @@ func (w *Watcher) Start(ctx context.Context) error {
 	}
 
 	// Start event processor
-	w.wg.Add(1)
-	go func() {
-		defer w.wg.Done()
+	w.wg.Go(func() {
 		w.processEvents()
-	}()
+	})
 
 	// Start metrics logging if enabled
 	if w.backpressureConfig.EnableMetricsLogging {
-		w.wg.Add(1)
-		go func() {
-			defer w.wg.Done()
+		w.wg.Go(func() {
 			w.logMetricsPeriodically()
-		}()
+		})
 	}
 
 	slog.Info("Generic watcher started successfully",

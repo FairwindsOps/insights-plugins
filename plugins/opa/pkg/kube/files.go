@@ -15,7 +15,7 @@ import (
 )
 
 // SetFileClient sets the singletonClient to be a static client based on the values passed in.
-func SetFileClient(objects []map[string]interface{}) *Client {
+func SetFileClient(objects []map[string]any) *Client {
 	groupVersionsFound := map[string]bool{}
 	var groupVersions []schema.GroupVersion
 	for _, obj := range objects {
@@ -52,27 +52,27 @@ func SetFileClient(objects []map[string]interface{}) *Client {
 		gvk := gv.WithKind(obj["kind"].(string))
 		gvks = append(gvks, gvk)
 	}
-	
+
 	scheme := k8sruntime.NewScheme()
-	
+
 	for _, gvk := range gvks {
 		gvkList := schema.GroupVersionKind{
-			Group: gvk.Group,
+			Group:   gvk.Group,
 			Version: gvk.Version,
-			Kind: gvk.Kind + "List",
+			Kind:    gvk.Kind + "List",
 		}
 		scheme.AddKnownTypeWithName(gvkList, &unstructured.UnstructuredList{})
 	}
 	dynamic := dynamicFake.NewSimpleDynamicClient(scheme)
 	restMapper := meta.NewDefaultRESTMapper(groupVersions)
-	
+
 	for idx, gvk := range gvks {
 		obj := objects[idx]
 		restMapper.Add(gvk, meta.RESTScopeNamespace)
 
 		gk := schema.GroupKind{
 			Group: gvk.Group,
-			Kind: gvk.Kind,
+			Kind:  gvk.Kind,
 		}
 		mapping, err := restMapper.RESTMapping(gk)
 		if err != nil {

@@ -22,6 +22,7 @@ Steps:
    For each module:
    - Run: go get -u
    - Run: go mod tidy
+   - Run: go fix ./...
 
 4. Update docker dependencies - some modules relies on binaries being installed in their docker images, update then as well, here are the modules and dependency list
 
@@ -71,3 +72,7 @@ Output:
   - Summary of updated dependencies
   - Test results
   - Any risk notes
+
+---
+
+**Go 1.26 note:** Go 1.26 formalizes the removal of the **windows/arm** port (dropped from the tree and supported platforms). That’s when “we no longer support windows/arm” is official—not when it first became unusable. Keep this in mind for build matrices, CI, or docs that mention supported OS/arch.

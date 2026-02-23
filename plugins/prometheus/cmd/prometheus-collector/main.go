@@ -94,7 +94,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	data, err := json.Marshal(map[string]interface{}{
+	data, err := json.Marshal(map[string]any{
 		"Values": stats,
 		"Nodes":  nodesMetrics,
 	})

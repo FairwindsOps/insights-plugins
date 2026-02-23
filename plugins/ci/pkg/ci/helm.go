@@ -72,8 +72,8 @@ func handleFluxHelmChart(helm models.HelmConfig, baseRepoFolder, tempFolder stri
 					Version string `yaml:"version"`
 				} `yaml:"spec"`
 			} `yaml:"chart"`
-			Values     map[string]interface{} `yaml:"values"`
-			ValuesFrom []interface{}          `yaml:"valuesFrom"`
+			Values     map[string]any `yaml:"values"`
+			ValuesFrom []any          `yaml:"valuesFrom"`
 		} `yaml:"spec"`
 	}
 
@@ -101,7 +101,7 @@ func handleRemoteHelmChart(helm models.HelmConfig, tempFolder string, configFold
 	return doHandleRemoteHelmChart(helm, helm.Chart, helm.Version, nil, tempFolder, configFolder)
 }
 
-func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion string, fluxValues map[string]interface{}, tempFolder, configFolder string) error {
+func doHandleRemoteHelmChart(helm models.HelmConfig, chartName, chartVersion string, fluxValues map[string]any, tempFolder, configFolder string) error {
 	repoName := fmt.Sprintf("%s-%s-repo", helm.Name, chartName)
 	output, err := commands.ExecWithMessage(exec.Command("helm", "repo", "add", repoName, helm.Repo), "Adding chart repository: "+repoName)
 	if err != nil {
@@ -217,7 +217,7 @@ type helmValuesFile struct {
 
 // processHelmValues returns a slice of HElm values files after processing values and values-files from a models.HelmConfig and the
 // fluxValues parameter. Any Helm values are written to a file.
-func processHelmValues(helm models.HelmConfig, fluxValues map[string]interface{}, tempFolder string) (valuesFiles []helmValuesFile, err error) {
+func processHelmValues(helm models.HelmConfig, fluxValues map[string]any, tempFolder string) (valuesFiles []helmValuesFile, err error) {
 	hasValuesFile := helm.ValuesFile != ""
 	hasValuesFiles := len(helm.ValuesFiles) > 0
 	hasValues := len(helm.Values) > 0

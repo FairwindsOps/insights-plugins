@@ -426,7 +426,7 @@ func (b *RightSizerReportBuilder) GetNumItems() int {
 // HealthHandler handles HTTP requests for Kubernetes health checks.
 func (b *RightSizerReportBuilder) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	numItems := b.GetNumItems() // Make sure there isn't a mutex deadlock.
-	data := []byte(fmt.Sprintf("I am healthy and have %d items in my report.\n", numItems))
+	data := fmt.Appendf(nil, "I am healthy and have %d items in my report.\n", numItems)
 	_, err := w.Write(data)
 	if err != nil {
 		glog.Errorf("error sending health-check data over HTTP: %v", err)

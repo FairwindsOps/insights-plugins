@@ -24,12 +24,12 @@ type InsightsInfo struct {
 }
 
 type KubeDataFunction interface {
-	GetData(context.Context, string, string) ([]interface{}, error)
+	GetData(context.Context, string, string) ([]any, error)
 }
 
 type NilDataFunction struct{}
 
-func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]interface{}, error) {
+func (n NilDataFunction) GetData(ctx context.Context, group, kind string) ([]any, error) {
 	return nil, nil
 }
 
@@ -63,14 +63,14 @@ func GetRegoQuery(body string, regoVersion *string, dataFn KubeDataFunction, opa
 	return rego.New(opts...)
 }
 
-func RunRegoForItem(ctx context.Context, regoStr string, regoVersion *string, params map[string]interface{}, obj map[string]interface{}, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]interface{}, error) {
+func RunRegoForItem(ctx context.Context, regoStr string, regoVersion *string, params map[string]any, obj map[string]any, dataFn KubeDataFunction, insightsInfo *InsightsInfo) ([]any, error) {
 	r := GetRegoQuery(regoStr, regoVersion, dataFn, nil, insightsInfo)
 	query, err := r.PrepareForEval(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if params == nil {
-		params = map[string]interface{}{}
+		params = map[string]any{}
 	}
 
 	// TODO Find another way to get parameters in - Should they be a function or input?
@@ -86,7 +86,7 @@ func RunRegoForItem(ctx context.Context, regoStr string, regoVersion *string, pa
 
 // func RunRegoForItemV2 evaluates rego against a Kube object. IT replaces
 // RunRegoForItemV() and supports v2 of Insights OPACustomChecks.
-func RunRegoForItemV2(ctx context.Context, regoStr string, regoVersion *string, obj map[string]interface{}, dataFn KubeDataFunction, opaCustomLibsV0, opaCustomLibsV1 map[string]string, insightsInfo *InsightsInfo) ([]interface{}, error) {
+func RunRegoForItemV2(ctx context.Context, regoStr string, regoVersion *string, obj map[string]any, dataFn KubeDataFunction, opaCustomLibsV0, opaCustomLibsV1 map[string]string, insightsInfo *InsightsInfo) ([]any, error) {
 	var r *rego.Rego
 	if regoVersion != nil && *regoVersion == "v1" {
 		r = GetRegoQuery(regoStr, regoVersion, dataFn, opaCustomLibsV1, insightsInfo)
@@ -106,7 +106,7 @@ func RunRegoForItemV2(ctx context.Context, regoStr string, regoVersion *string, 
 	return getOutputArray(rs), nil
 }
 
-func getDataFunction(fn func(context.Context, string, string) ([]interface{}, error)) func(rego.BuiltinContext, *ast.Term, *ast.Term) (*ast.Term, error) {
+func getDataFunction(fn func(context.Context, string, string) ([]any, error)) func(rego.BuiltinContext, *ast.Term, *ast.Term) (*ast.Term, error) {
 	return func(rctx rego.BuiltinContext, groupAST, kindAST *ast.Term) (*ast.Term, error) {
 		group, err1 := getStringFromAST(groupAST)
 		kind, err2 := getStringFromAST(kindAST)
@@ -160,11 +160,11 @@ func GetInsightsInfoFunction(insightsInfo *InsightsInfo) func(rego.BuiltinContex
 	}
 }
 
-func getOutputArray(results rego.ResultSet) []interface{} {
-	returnSet := make([]interface{}, 0)
+func getOutputArray(results rego.ResultSet) []any {
+	returnSet := make([]any, 0)
 
 	for _, result := range results {
-		bindings, ok := result.Bindings["results"].(map[string]interface{})
+		bindings, ok := result.Bindings["results"].(map[string]any)
 		if !ok {
 			continue
 		}
@@ -177,13 +177,13 @@ func getOutputArray(results rego.ResultSet) []interface{} {
 				continue
 			}
 
-			packMap, ok := pack.(map[string]interface{})
+			packMap, ok := pack.(map[string]any)
 			if !ok {
 				continue
 			}
 
 			for _, outputValue := range packMap {
-				outputArray, ok := outputValue.([]interface{})
+				outputArray, ok := outputValue.([]any)
 				if !ok {
 					continue
 				}

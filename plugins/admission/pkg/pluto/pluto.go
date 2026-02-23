@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -31,9 +32,7 @@ func ProcessPluto(input []byte, userTargetVersions map[string]string) (models.Re
 	}
 	if userTargetVersions != nil {
 		logrus.Debugf("Updating pluto target versions with user-specified ones: %#v", userTargetVersions)
-		for k, v := range userTargetVersions {
-			targetVersions[k] = v
-		}
+		maps.Copy(targetVersions, userTargetVersions)
 	}
 	logrus.Debugf("Using pluto target versions: %#v", targetVersions)
 	var componentList []string

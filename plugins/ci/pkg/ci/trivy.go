@@ -377,7 +377,7 @@ func getShaAndRepoTags(path string) (string, []string, error) {
 		if err != nil {
 			return "", nil, err
 		}
-		jsonBody := make([]interface{}, 0)
+		jsonBody := make([]any, 0)
 		err = json.Unmarshal(bytes, &jsonBody)
 		if err != nil {
 			return "", nil, err
@@ -386,12 +386,12 @@ func getShaAndRepoTags(path string) (string, []string, error) {
 		var configFileName string
 		for _, imageDef := range jsonBody {
 			var ok bool
-			configFileName, ok = imageDef.(map[string]interface{})["Config"].(string)
+			configFileName, ok = imageDef.(map[string]any)["Config"].(string)
 			if !ok {
 				logrus.Warningf("Found manifest with no Config at %s", path)
 				continue
 			}
-			repoTags, ok := imageDef.(map[string]interface{})["RepoTags"].([]interface{})
+			repoTags, ok := imageDef.(map[string]any)["RepoTags"].([]any)
 			if !ok {
 				logrus.Warningf("Found manifest with no RepoTags at %s", path)
 				continue
@@ -434,12 +434,12 @@ func getImageSha(path string, configFileName string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		var jsonBody interface{}
+		var jsonBody any
 		err = json.Unmarshal(bytes, &jsonBody)
 		if err != nil {
 			return "", err
 		}
-		imageSha := jsonBody.(map[string]interface{})["config"].(map[string]interface{})["Image"]
+		imageSha := jsonBody.(map[string]any)["config"].(map[string]any)["Image"]
 
 		if imageSha != nil {
 			sha, ok := imageSha.(string)

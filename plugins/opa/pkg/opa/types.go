@@ -22,13 +22,13 @@ type ActionItem struct {
 
 // CustomCheckInstance is an instance of a custom check
 type CustomCheckInstance struct {
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 	Spec              CustomCheckInstanceSpec
 }
 
 // CustomCheckInstanceSpec is the body of an instance of a custom check
 type CustomCheckInstanceSpec struct {
-	Parameters      map[string]interface{}
+	Parameters      map[string]any
 	Targets         []KubeTarget
 	Output          OutputFormat
 	CustomCheckName string
@@ -101,7 +101,7 @@ type CheckSetting struct {
 	AdditionalData struct {
 		Name       string
 		Output     OutputFormat
-		Parameters map[string]interface{}
+		Parameters map[string]any
 	}
 }
 

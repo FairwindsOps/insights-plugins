@@ -147,9 +147,9 @@ func TestConcurrentAccess(t *testing.T) {
 	done := make(chan bool, 10)
 
 	// Start multiple goroutines
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
-			for j := 0; j < 100; j++ {
+			for range 100 {
 				metrics.RecordEventProcessed()
 				metrics.RecordEventInChannel()
 				metrics.RecordEventOutChannel()
@@ -159,7 +159,7 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 
 	// Wait for all goroutines to complete
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 

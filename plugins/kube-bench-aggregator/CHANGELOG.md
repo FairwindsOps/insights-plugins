@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.6
+* Bumped to Go 1.26
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 0.4.5
 * Bump library k8s.io/client-go to v0.35.1
 * Bump library golang.org/x/text to v0.34.0

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,7 +67,7 @@ func TestUnmarshalAndOverrideConfig(t *testing.T) {
 	err = unmarshalAndOverrideConfig(&cfg)
 	assert.NoError(t, err)
 	expected := models.Configuration{}
-	expected.Reports.Polaris.Enabled = lo.ToPtr(true)
+	expected.Reports.Polaris.Enabled = new(true)
 	assert.Equal(t, expected, cfg)
 }
 

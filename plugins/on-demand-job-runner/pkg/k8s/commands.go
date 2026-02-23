@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/samber/lo"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,7 +44,7 @@ func CreateJobFromCronJob(ctx context.Context, clientset *kubernetes.Clientset, 
 
 	// Construct Job from CronJob spec
 	jobSpec := cronJob.Spec.JobTemplate.Spec
-	jobSpec.TTLSecondsAfterFinished = lo.ToPtr(int32(10 * 60)) // Set TTL to 5 minutes
+	jobSpec.TTLSecondsAfterFinished = new(int32(10 * 60)) // Set TTL to 5 minutes
 	jobSpec.BackoffLimit = backoffLimit
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{

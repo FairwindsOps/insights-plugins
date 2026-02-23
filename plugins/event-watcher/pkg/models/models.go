@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"log/slog"
+	"slices"
 	"time"
 )
 
@@ -43,8 +44,8 @@ type AuditEvent struct {
 	UserAgent                string            `json:"userAgent"`
 	ObjectRef                ObjectRef         `json:"objectRef"`
 	ResponseStatus           ResponseStatus    `json:"responseStatus"`
-	RequestObject            interface{}       `json:"requestObject"`
-	ResponseObject           interface{}       `json:"responseObject"`
+	RequestObject            any               `json:"requestObject"`
+	ResponseObject           any               `json:"responseObject"`
 	Annotations              map[string]string `json:"annotations"`
 	RequestReceivedTimestamp time.Time         `json:"requestReceivedTimestamp"`
 	StageTimestamp           time.Time         `json:"stageTimestamp"`
@@ -68,11 +69,11 @@ type ObjectRef struct {
 }
 
 type ResponseStatus struct {
-	Metadata map[string]interface{} `json:"metadata"`
-	Code     int                    `json:"code"`
-	Status   string                 `json:"status"`
-	Message  string                 `json:"message"`
-	Reason   string                 `json:"reason"`
+	Metadata map[string]any `json:"metadata"`
+	Code     int            `json:"code"`
+	Status   string         `json:"status"`
+	Message  string         `json:"message"`
+	Reason   string         `json:"reason"`
 }
 
 type CloudWatchConfig struct {
@@ -84,14 +85,14 @@ type CloudWatchConfig struct {
 	MaxMemoryMB   int
 }
 type EventReport struct {
-	EventType    string                 `json:"eventType"`
-	ResourceType string                 `json:"resourceType"`
-	Namespace    string                 `json:"namespace"`
-	Name         string                 `json:"name"`
-	UID          string                 `json:"uid"`
-	Timestamp    int64                  `json:"timestamp"`
-	Data         map[string]interface{} `json:"data"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	EventType    string         `json:"eventType"`
+	ResourceType string         `json:"resourceType"`
+	Namespace    string         `json:"namespace"`
+	Name         string         `json:"name"`
+	UID          string         `json:"uid"`
+	Timestamp    int64          `json:"timestamp"`
+	Data         map[string]any `json:"data"`
+	Metadata     map[string]any `json:"metadata"`
 }
 
 type PolicyViolationEvent struct {
@@ -129,19 +130,19 @@ const (
 
 // WatchedEvent represents a Kubernetes event that we're watching
 type WatchedEvent struct {
-	EventVersion int                    `json:"event_version"`
-	Timestamp    int64                  `json:"timestamp"`            // Processing timestamp
-	EventTime    string                 `json:"event_time,omitempty"` // Kubernetes eventTime
-	EventType    EventType              `json:"event_type"`
-	Kind         string                 `json:"kind"`
-	Namespace    string                 `json:"namespace"`
-	Name         string                 `json:"name"`
-	UID          string                 `json:"uid"`
-	Data         map[string]interface{} `json:"data"`
-	Metadata     map[string]interface{} `json:"metadata"`
-	EventSource  string                 `json:"event_source"`
-	Success      bool                   `json:"success"`
-	Blocked      bool                   `json:"blocked"`
+	EventVersion int            `json:"event_version"`
+	Timestamp    int64          `json:"timestamp"`            // Processing timestamp
+	EventTime    string         `json:"event_time,omitempty"` // Kubernetes eventTime
+	EventType    EventType      `json:"event_type"`
+	Kind         string         `json:"kind"`
+	Namespace    string         `json:"namespace"`
+	Name         string         `json:"name"`
+	UID          string         `json:"uid"`
+	Data         map[string]any `json:"data"`
+	Metadata     map[string]any `json:"metadata"`
+	EventSource  string         `json:"event_source"`
+	Success      bool           `json:"success"`
+	Blocked      bool           `json:"blocked"`
 }
 
 // ToJSON converts the event to JSON bytes
@@ -190,12 +191,7 @@ func (e *WatchedEvent) IsKyvernoResource() bool {
 		"ValidatingPolicy",
 	}
 
-	for _, resource := range kyvernoResources {
-		if e.Kind == resource {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(kyvernoResources, e.Kind)
 }
 
 // GetPolicyName extracts policy name from Kyverno events
@@ -206,9 +202,9 @@ func (e *WatchedEvent) GetPolicyName() string {
 
 	// For PolicyReport and ClusterPolicyReport, look in the results
 	if e.Kind == "PolicyReport" || e.Kind == "ClusterPolicyReport" {
-		if results, ok := e.Data["results"].([]interface{}); ok {
+		if results, ok := e.Data["results"].([]any); ok {
 			for _, result := range results {
-				if resultMap, ok := result.(map[string]interface{}); ok {
+				if resultMap, ok := result.(map[string]any); ok {
 					if policy, ok := resultMap["policy"].(string); ok {
 						return policy
 					}

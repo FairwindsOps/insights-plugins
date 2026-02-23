@@ -67,7 +67,7 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 		err = fmt.Errorf("invalid status code: %d - %s", resp.StatusCode, string(body))
 		return
 	}
-	var resultMap map[string]interface{}
+	var resultMap map[string]any
 	err = json.Unmarshal(body, &resultMap)
 	if err != nil {
 		return
@@ -75,16 +75,16 @@ func sendResults(iConfig models.InsightsConfig, reports []models.ReportInfo) (pa
 	passed = resultMap["Success"].(bool)
 	actionItems := resultMap["ActionItems"]
 	if actionItems != nil {
-		actionItemToString := func(ai interface{}, _ int) string {
-			aiMap := ai.(map[string]interface{})
+		actionItemToString := func(ai any, _ int) string {
+			aiMap := ai.(map[string]any)
 			return fmt.Sprintf("%s", aiMap["Title"].(string))
 		}
-		warnings = lo.Map(lo.Filter(actionItems.([]interface{}), func(ai interface{}, _ int) bool {
-			return !ai.(map[string]interface{})["Failure"].(bool)
+		warnings = lo.Map(lo.Filter(actionItems.([]any), func(ai any, _ int) bool {
+			return !ai.(map[string]any)["Failure"].(bool)
 		}), actionItemToString)
 
-		errors = lo.Map(lo.Filter(actionItems.([]interface{}), func(ai interface{}, _ int) bool {
-			return ai.(map[string]interface{})["Failure"].(bool)
+		errors = lo.Map(lo.Filter(actionItems.([]any), func(ai any, _ int) bool {
+			return ai.(map[string]any)["Failure"].(bool)
 		}), actionItemToString)
 	}
 	if message, ok := resultMap["Message"]; ok {

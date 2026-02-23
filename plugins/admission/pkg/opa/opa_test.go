@@ -27,13 +27,13 @@ func TestProcessOPA(t *testing.T) {
 	report, err := ProcessOPA(context.TODO(), nil, admission.Request{}, config, iConfig)
 	assert.Equal(t, "opa", report.Report)
 	assert.NoError(t, err)
-	var reportObject map[string]interface{}
+	var reportObject map[string]any
 	err = json.Unmarshal(report.Contents, &reportObject)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(reportObject["ActionItems"].([]interface{})))
+	assert.Equal(t, 0, len(reportObject["ActionItems"].([]any)))
 
-	object := map[string]interface{}{
-		"metadata": map[string]interface{}{
+	object := map[string]any{
+		"metadata": map[string]any{
 			"labelS": map[string]string{},
 		},
 	}
@@ -73,5 +73,5 @@ labelrequired[results] {
 	assert.Equal(t, "opa", report.Report)
 	err = json.Unmarshal(report.Contents, &reportObject)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(reportObject["ActionItems"].([]interface{})))
+	assert.Equal(t, 1, len(reportObject["ActionItems"].([]any)))
 }

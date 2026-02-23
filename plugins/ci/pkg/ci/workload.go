@@ -16,7 +16,7 @@ func (ci *CIScan) GetWorkloadReport(resources []models.Resource) (*models.Report
 		Filename: "scan-workloads.json",
 		Version:  workloadsReportVersion,
 	}
-	resourceBytes, err := json.Marshal(map[string]interface{}{"Resources": resources})
+	resourceBytes, err := json.Marshal(map[string]any{"Resources": resources})
 	if err != nil {
 		return nil, err
 	}

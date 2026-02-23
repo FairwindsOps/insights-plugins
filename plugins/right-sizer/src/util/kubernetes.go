@@ -170,8 +170,8 @@ func PatchContainerMemoryLimits(kubeClientResources KubeClientResources, resourc
 	if !foundContainer {
 		return nil, fmt.Errorf("no container %q found in resource %v", containerName, resource)
 	}
-	patch := []interface{}{
-		map[string]interface{}{
+	patch := []any{
+		map[string]any{
 			"op":    "replace",
 			"path":  "/" + podSpecPath + "/containers/" + strconv.Itoa(containerNumber) + "/resources/limits/memory",
 			"value": newContainerMemoryLimits.String(),
@@ -237,7 +237,7 @@ func GetControllerFromPod(kubeClientResources KubeClientResources, pod *core.Pod
 	if err != nil {
 		return nil, err
 	}
-	objectAsMap := make(map[string]interface{})
+	objectAsMap := make(map[string]any)
 	err = json.Unmarshal(podJSON, &objectAsMap)
 	if err != nil {
 		return nil, err
@@ -247,8 +247,8 @@ func GetControllerFromPod(kubeClientResources KubeClientResources, pod *core.Pod
 	}
 
 	client := fwControllerUtils.Client{
-		Context: context.TODO(),
-		Dynamic: kubeClientResources.DynamicClient,
+		Context:    context.TODO(),
+		Dynamic:    kubeClientResources.DynamicClient,
 		RESTMapper: kubeClientResources.RESTMapper,
 	}
 	topController, err := client.GetTopController(unstructuredPod, nil)

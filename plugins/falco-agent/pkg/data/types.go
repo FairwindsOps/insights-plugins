@@ -17,10 +17,10 @@ type FalcoOutput struct {
 	ControllerNamespace string
 	ControllerName      string
 	ControllerKind      string
-	UUID                string                 `json:"uuid,omitempty"`
-	Output              string                 `json:"output"`
-	Priority            types.PriorityType     `json:"priority"`
-	Rule                string                 `json:"rule"`
-	Time                time.Time              `json:"time"`
-	OutputFields        map[string]interface{} `json:"output_fields"`
+	UUID                string             `json:"uuid,omitempty"`
+	Output              string             `json:"output"`
+	Priority            types.PriorityType `json:"priority"`
+	Rule                string             `json:"rule"`
+	Time                time.Time          `json:"time"`
+	OutputFields        map[string]any     `json:"output_fields"`
 }

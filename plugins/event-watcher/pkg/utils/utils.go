@@ -170,9 +170,9 @@ func ExtractAuditOnlyAllowedValidatingAdmissionPoliciesFromMessage(annotations m
 	startIndex := strings.Index(validationFailure, "\"policy\":") + len("\"policy\":")
 	if startIndex != -1 {
 		substring := string(validationFailure[startIndex:])
-		endIndex := strings.Index(substring, ",")
-		if endIndex != -1 {
-			policyName = substring[:endIndex]
+		before, _, ok := strings.Cut(substring, ",")
+		if ok {
+			policyName = before
 			policyName = strings.ReplaceAll(policyName, "\"", "")
 		}
 	}

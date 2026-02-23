@@ -9,7 +9,6 @@ import (
 
 	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/insights"
 	"github.com/FairwindsOps/insights-plugins/on-demand-job-runner/pkg/k8s"
-	"github.com/samber/lo"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -34,7 +33,7 @@ var reportTypeJobConfigMap = map[string]JobConfig{
 	"kube-hunter":         {cronJobName: "kube-hunter", timeout: 5 * time.Minute},
 	"kube-bench":          {cronJobName: "kube-bench", timeout: 5 * time.Minute},
 	"kyverno":             {cronJobName: "kyverno", timeout: 5 * time.Minute},
-	"kyverno-policy-sync": {cronJobName: "kyverno-policy-sync", timeout: 10 * time.Minute, backoffLimit: lo.ToPtr(int32(0))}, // no retries
+	"kyverno-policy-sync": {cronJobName: "kyverno-policy-sync", timeout: 10 * time.Minute, backoffLimit: new(int32(0))}, // no retries
 	"gonogo":              {cronJobName: "gonogo", timeout: 5 * time.Minute},
 }
 

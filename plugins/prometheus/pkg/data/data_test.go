@@ -46,50 +46,50 @@ func TestGetController(t *testing.T) {
 	workloads := []controller.Workload{
 		{
 			TopController: unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"kind": "Deployment",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "asdf",
 						"namespace": "default",
 					},
-					"spec": map[string]interface{}{},
+					"spec": map[string]any{},
 				},
 			},
 			Pods: []unstructured.Unstructured{
 				{
-					Object: map[string]interface{}{
+					Object: map[string]any{
 						"kind": "Pod",
-						"metadata": map[string]interface{}{
+						"metadata": map[string]any{
 							"name":      "asdf-1234567-abcde",
 							"namespace": "default",
 						},
-						"spec": map[string]interface{}{},
+						"spec": map[string]any{},
 					},
 				},
 			},
 		},
 		{
 			TopController: unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"kind": "Job",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "asdf",
 						"namespace": "default",
 					},
-					"spec": map[string]interface{}{},
+					"spec": map[string]any{},
 				},
 			},
 			Pods: []unstructured.Unstructured{},
 		},
 		{
 			TopController: unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"kind": "ReplicaSet",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "asdf2-12a3468",
 						"namespace": "default",
 					},
-					"spec": map[string]interface{}{},
+					"spec": map[string]any{},
 				},
 			},
 			Pods: []unstructured.Unstructured{},
@@ -285,14 +285,14 @@ func TestStorageCapacity(t *testing.T) {
 	// TODO: This test is failing
 	unstructuredPVCs := []unstructured.Unstructured{ // Minimal required fields for a test PersistentVolumeClaim.
 		{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"kind": "PersistentVolumeClaim",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name": "pvc1",
 				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"capacity": map[string]interface{}{
+				"spec": map[string]any{},
+				"status": map[string]any{
+					"capacity": map[string]any{
 						"storage": "8Gi",
 					},
 				},

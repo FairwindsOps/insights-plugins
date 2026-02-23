@@ -163,7 +163,7 @@ func toHelmConfigs(baseFolder string, helmPaths []string) []models.HelmConfig {
 			hc.ValuesFile = valuesFilePath
 		} else {
 			// if default values file does not exists, use a empty map as values
-			hc.Values = map[string]interface{}{}
+			hc.Values = map[string]any{}
 		}
 		result = append(result, hc)
 	}
@@ -198,7 +198,7 @@ func tryFetchNameFromChartFile(baseFolder, chart string) string {
 			continue
 		}
 
-		var s map[string]interface{}
+		var s map[string]any
 		err = yaml.Unmarshal(content, &s)
 		if err != nil {
 			logrus.Warnf("Could not unmarshal %s: %v", string(content), err)

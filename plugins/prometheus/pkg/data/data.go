@@ -16,6 +16,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
 	"strings"
 	"time"
@@ -449,9 +450,8 @@ func adjustMetricsForMultiContainerPods(metrics model.Matrix, workloadMap map[st
 			for containerIndex := 1; containerIndex <= len(podContainers)-1; containerIndex++ {
 				newSample := &model.SampleStream{}
 				newSample.Metric = make(model.Metric)
-				for k, v := range sample.Metric { // Copy key=values from the first container
-					newSample.Metric[k] = v
-				}
+				// Copy key=values from the first container
+				maps.Copy(newSample.Metric, sample.Metric)
 				newSample.Metric["container"] = model.LabelValue(podContainers[containerIndex].Name)
 				newSample.Values = make([]model.SamplePair, len(splitValues))
 				for i, v := range sample.Values {
