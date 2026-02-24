@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/azure-cli:2.82.0-azurelinux3.0
 ARG TARGETARCH
 ARG TARGETOS
 
-ENV CLOUD_SDK_VERSION=556.0.0
+ENV CLOUD_SDK_VERSION=558.0.0
 
 # Install base dependencies
 RUN tdnf -y update && \
@@ -34,11 +34,7 @@ RUN set -eux; \
     rm "google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
     /google-cloud-sdk/install.sh --quiet --path-update=false; \
     rm -rf /google-cloud-sdk/platform/gsutil/third_party; \
-    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/jaraco*; \
-    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/wheel*; \
-    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/wheel-0.45.1.dist-info; \
-    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography*; \
-    rm -f /google-cloud-sdk/bin/gcloud-crc32c
+    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/jaraco*
 
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
