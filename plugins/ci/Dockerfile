@@ -28,4 +28,7 @@ COPY --from=downloader /usr/local/bin/polaris /usr/local/bin/polaris
 COPY --from=downloader /usr/local/bin/helm /usr/local/bin/helm
 COPY --from=downloader /usr/local/bin/pluto /usr/local/bin/pluto
 
+# Final upgrade to pick up security fixes (e.g. gnutls CVE-2026-1584)
+RUN apk update && apk -U upgrade
+
 CMD ["insights-ci"]
