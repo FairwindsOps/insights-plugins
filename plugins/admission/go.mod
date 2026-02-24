@@ -1,14 +1,14 @@
 module github.com/fairwindsops/insights-plugins/plugins/admission
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20260220141501-7c61d5bad8c0
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.22.7
-	github.com/fairwindsops/polaris v0.0.0-20260223112323-893e5de589ba
+	github.com/fairwindsops/pluto/v5 v5.22.8
+	github.com/fairwindsops/polaris v0.0.0-20260224152214-a5af7bb34ea1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.52.0
 	github.com/sirupsen/logrus v1.9.4
@@ -57,8 +57,10 @@ require (
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
 	github.com/lestrrat-go/dsig v1.0.0 // indirect
@@ -88,6 +90,7 @@ require (
 	github.com/qri-io/jsonschema v0.2.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
+	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/thoas/go-funk v0.9.3 // indirect

@@ -6,7 +6,7 @@ declare -a changed_plugins=($2)
 
 branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
-novaVersion=v3.11
+novaVersion=v3.11.11
 plutoVersion=v5.22
 goldilocksVersion=v4.14
 polarisVersion=10.1
