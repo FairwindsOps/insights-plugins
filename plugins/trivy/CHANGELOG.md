@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.34.9
-* Fixing vulnerabilities
+* Remove kubectl from image to fix CVE-2025-68121 (Go crypto/tls in kubectl binary). Plugin uses in-cluster Kubernetes client, not kubectl.
 
 ## 0.34.8
 * Bumped to Go 1.26
