@@ -25,7 +25,11 @@ RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-c
   rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   google-cloud-sdk/install.sh --quiet --path-update=false && \ 
   rm -rf /trivy/google-cloud-sdk/platform/gsutil/third_party && \
-  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/jaraco*
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/jaraco* && \
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/wheel* && \
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/wheel-0.45.1.dist-info && \
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography* && \
+  rm -f /trivy/google-cloud-sdk/bin/gcloud-crc32c
 
 ENV PATH=$PATH:/trivy/google-cloud-sdk/bin
 

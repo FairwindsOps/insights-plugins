@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.9
+* Fixing vulnerabilities
+
 ## 0.34.8
 * Bumped to Go 1.26
 * Bump library dependencies

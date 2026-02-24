@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.5
+* Fixing vulnerabilities
+
 ## 1.0.4
 * Added aggregation to GPC FOCUS view
 
