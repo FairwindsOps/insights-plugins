@@ -34,7 +34,8 @@ RUN set -eux; \
     rm "google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
     /google-cloud-sdk/install.sh --quiet --path-update=false; \
     rm -rf /google-cloud-sdk/platform/gsutil/third_party; \
-    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/jaraco*
+    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/setuptools/_vendor/jaraco*; \
+    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography*
 
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
