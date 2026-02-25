@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+* Removed FOCUS format support for AWS and GCP. AWS and GCP now only support standard (native) output format. Azure continues to output FOCUS format only. Removed `--format` and `--focusview` options. Removed `gcp-FOCUS-query.sql` template.
+
 ## 1.0.5
 * Fixing vulnerabilities
 

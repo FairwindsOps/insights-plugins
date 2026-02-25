@@ -1,6 +1,6 @@
 # cloud-costs
 
-Queries and saves cloud cost data for Fairwinds Insights. Supports AWS, GCP, and Azure with optional FOCUS (FinOps Open Cost and Usage Specification) format output.
+Queries and saves cloud cost data for Fairwinds Insights. Supports AWS and GCP in standard format, and Azure in FOCUS (FinOps Open Cost and Usage Specification) format.
 
 ## Supported Providers
 
@@ -17,7 +17,6 @@ cloud-costs.sh \
   --provider <aws|gcp|azure> \
   --tagkey <tag-key> \
   --tagvalue <tag-value> \
-  [--format <standard|focus>] \
   [--days <number>] \
   [provider-specific options...]
 ```
@@ -29,7 +28,6 @@ cloud-costs.sh \
 | `--provider` | Cloud provider: `aws`, `gcp`, or `azure` | Required |
 | `--tagkey` | Tag key to filter resources | Required for AWS, optional for GCP/Azure |
 | `--tagvalue` | Tag value to filter resources | Required |
-| `--format` | Output format: `standard` or `focus` (AWS/GCP only) | `standard` |
 | `--days` | Number of days to query | `5` |
 | `--timeout` | Query timeout in seconds | `60` |
 
@@ -47,11 +45,10 @@ cloud-costs.sh \
 
 | Option | Description | Required |
 |--------|-------------|----------|
-| `--projectname` | GCP project name | Yes (or derived from `--focusview` when format is focus) |
+| `--projectname` | GCP project name | Yes |
 | `--dataset` | BigQuery dataset name | If `--table` not provided |
 | `--billingaccount` | GCP billing account ID | If `--table` not provided |
 | `--table` | Full BigQuery table path | No (auto-generated if not provided) |
-| `--focusview` | FOCUS view name | Required if `--format focus` |
 
 ### Azure Options
 
@@ -76,21 +73,6 @@ cloud-costs.sh \
   --days 7
 ```
 
-### AWS - FOCUS Format
-
-```bash
-cloud-costs.sh \
-  --provider aws \
-  --format focus \
-  --tagprefix "resource_tags_user_" \
-  --tagkey "kubernetes-cluster" \
-  --tagvalue "my-cluster" \
-  --database "cur_database" \
-  --table "cost_and_usage_report" \
-  --catalog "AwsDataCatalog" \
-  --workgroup "primary"
-```
-
 ### GCP - Standard Format
 
 ```bash
@@ -101,17 +83,6 @@ cloud-costs.sh \
   --billingaccount "XXXXXX-XXXXXX-XXXXXX" \
   --tagvalue "my-cluster" \
   --days 7
-```
-
-### GCP - FOCUS Format
-
-```bash
-cloud-costs.sh \
-  --provider gcp \
-  --format focus \
-  --projectname "my-project" \
-  --focusview "my-project.billing_export.focus_view" \
-  --tagvalue "my-cluster"
 ```
 
 ### Azure (FOCUS format only)
@@ -125,8 +96,8 @@ cloud-costs.sh \
   --days 7
 ```
 
-> **Note:** Azure always outputs FOCUS format. The `--format` option is not applicable for Azure.
-> 
+> **Note:** Azure always outputs FOCUS format.
+>
 > **Data Lag:** Azure applies a 2-day lag automatically (ignores today and yesterday) to ensure cost data is fully finalized.
 
 ### Filter Azure costs to one cluster (server-side only)
@@ -155,15 +126,14 @@ Output is only what the API returns; no client-side filtering is applied.
 
 ## Output Formats
 
-### Standard Format
+### AWS and GCP (standard format)
 
-Each provider returns its native format:
 - **AWS**: Athena `ResultSet` with rows and column metadata
 - **GCP**: BigQuery JSON array
 
-### FOCUS Format
+### Azure (FOCUS format)
 
-All providers return a unified JSON array following the [FOCUS specification](https://focus.finops.org/):
+Azure returns a unified JSON array following the [FOCUS specification](https://focus.finops.org/):
 
 ```json
 [
@@ -185,7 +155,7 @@ All providers return a unified JSON array following the [FOCUS specification](ht
 ]
 ```
 
-## FOCUS Columns
+### Azure FOCUS columns
 
 | Column | Description |
 |--------|-------------|
@@ -213,28 +183,14 @@ To get vCPU/memory/instance size for Azure costs you would need one of:
 - **Cost Details (usage details) export** – Azure’s FOCUS cost and usage details files (e.g. from the portal or Cost Details API) include SKU/meter info; instance size can sometimes be inferred from meter names (e.g. "D4s v3").
 - **Resource Manager (ARM)** – For a given `ResourceId`, call the compute/VMs API to read the VM’s `hardwareProfile.vmSize`, then map that to vCPUs and memory using [Azure VM sizes](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes).
 
-## GCP FOCUS View Setup
+### GCP cluster filtering
 
-For GCP FOCUS format, you need to create a view in BigQuery using the provided SQL template:
-
-1. Copy `gcp-FOCUS-query.sql` to your BigQuery console
-2. Replace the placeholders:
-   - `${BILLING_EXPORT_TABLE}` - Your billing export table path
-   - `${PRICING_EXPORT_TABLE}` - Your pricing export table path
-   - `${PRICING_EXPORT_DATE}` - Date for pricing data
-3. Create the view in BigQuery
-4. Use `--focusview` to reference the created view
-
-### GCP cluster filtering and FOCUS output
-
-Both **standard** and **FOCUS** GCP formats use the same cluster filter so totals are comparable. Rows are included if either:
+GCP rows are included if either:
 
 - The resource has the cluster tag (e.g. `goog-k8s-cluster-name` = `my-cluster`), or
 - The GKE resource ID contains the cluster name (e.g. `.../clusters/my-cluster`), so control plane and clusters without cost-allocation tags are included.
 
 If `--tagkey` is omitted for GCP, it defaults to `goog-k8s-cluster-name`.
-
-**FOCUS format** aggregates rows by charge period, service, SKU description, and resource, so the output has fewer rows than the raw view while preserving the same FOCUS column shape and total costs.
 
 ## Authentication
 
