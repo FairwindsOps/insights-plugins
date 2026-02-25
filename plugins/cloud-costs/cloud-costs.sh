@@ -12,18 +12,16 @@ cat << EOF
 usage: cloud-costs \
   --provider <cloud provider - aws, gcp, or azure>
   --tagprefix <tag prefix - optional for aws, not used for GCP/Azure> \
-  --tagkey <tag key - required for AWS standard, optional for AWS FOCUS (uses aws:eks:cluster-name)> \
+  --tagkey <tag key - required for AWS, optional for GCP/Azure> \
   --tagvalue <tag value - required for AWS, GCP, and Azure> \
   --database <database name - required for AWS> \
   --table <table name for - required for AWS, optional for GCP if projectname, dataset and billingaccount are provided> \
   --catalog <catalog for - required for AWS> \
   --workgroup <workgroup - required for AWS> \
-  --projectname <project name - required for GCP, or derived from focusview when format is focus> \
+  --projectname <project name - required for GCP> \
   --dataset <dataset name - required for GCP if table is not provided> \
   --billingaccount <billing account - required for GCP if table is not provided> \
   --subscription <subscription ID - required for Azure> \
-  [--format <data format - 'standard' or 'focus' (AWS/GCP only, Azure always uses FOCUS)>] \
-  [--focusview <FOCUS view name - required for GCP when format is focus>] \
   [--timeout <time in seconds>] \
   [--days <number of days to query, default is 5>]
 
@@ -44,8 +42,6 @@ dataset=''
 billingaccount=''
 subscription=''
 days=''
-format=''
-focusview=''
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
     flag=${flag##-}
@@ -93,12 +89,6 @@ while [ ! $# -eq 0 ]; do
         subscription)
             subscription=${2}
             ;;
-        format)
-            format=${2}
-            ;;
-        focusview)
-            focusview=${2}
-            ;;
         *)
             usage
             exit 1
@@ -136,12 +126,10 @@ if  [[ "$provider" = "aws" ]]; then
     usage
     exit 1
   fi
-  # For AWS standard format, tagkey is required; for FOCUS we use fixed key aws:eks:cluster-name
-  if [[ "$format" != "focus" && "$tagkey" = "" ]]; then
+  if [[ "$tagkey" = "" ]]; then
     usage
     exit 1
   fi
-
 
   # Tag filter:
   # - If tagprefix is provided, use legacy CUR flattened columns (e.g. resource_tags_user_kubernetes_cluster)
@@ -154,94 +142,7 @@ if  [[ "$provider" = "aws" ]]; then
     tag_filter="try(coalesce(element_at(tags, '$tagkey'), tags['$tagkey'])) = '$tagvalue'"
   fi
 
-  if [[ "$format" == "focus" ]]; then
-    echo "Using FOCUS format..."
-    # The athena_data_exports_database.data table is already in FOCUS shape.
-    # So we MUST query FOCUS columns (e.g. ChargePeriodEnd), not CUR columns (e.g. line_item_usage_end_date).
-    #
-    # To avoid guessing exact column names/casing, we DESCRIBE the table and map to known FOCUS fields.
-
-    # 1) Query information_schema.columns to get column names/types
-    # (Athena can be picky about quoting in DESCRIBE, but information_schema is stable.)
-    describeQueryResults=$(aws athena start-query-execution \
-      --query-string "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = '$database' AND table_name = '$table' ORDER BY ordinal_position" \
-      --work-group "$workgroup" \
-      --query-execution-context Database=$database,Catalog=$catalog \
-)
-    describeExecutionId=$(echo "$describeQueryResults" | jq .QueryExecutionId | sed 's/\"//g')
-
-    describeAttempts=0
-    while [ $describeAttempts -lt $timeout ]
-    do
-      echo "Athena DESCRIBE is running......"
-      describeAttempts=$(( $describeAttempts + 1 ))
-      sleep 1s;
-
-      describeStatus=$(aws athena get-query-execution --query-execution-id $describeExecutionId --query 'QueryExecution.Status.State' --output text);
-      echo "Athena DESCRIBE status=$describeStatus";
-
-      if [ $describeStatus != "RUNNING" ]; then
-        echo "Athena DESCRIBE Finished"
-        if [ $describeStatus != "SUCCEEDED" ]; then
-          echo "Athena DESCRIBE failed with status=$describeStatus"
-          aws athena get-query-execution --query-execution-id $describeExecutionId --output json
-          exit 3
-        fi
-        break
-      fi
-    done
-
-    aws athena get-query-results --query-execution-id $describeExecutionId > "$OUTPUT_DIR/aws-describe.json"
-
-    # AWS FOCUS data export table "data" uses lowercase column names (servicename, tags, chargeperiodend, etc.)
-    # tags is map<string,string> in Athena; default tag name for EKS cluster is aws:eks:cluster-name (--tagkey optional)
-    # Schema has no chargesubcategory, x_instancetype, x_vcpu, x_memory, x_gpu; use NULL for output shape
-    # FOCUS date filter: use start of current year (matches DATE 'YYYY-01-01') so export lag doesn't exclude data
-    focus_initial_date=$(date -u +"%Y-01-01")
-    if [[ "$tagprefix" == "" ]]; then
-      focus_tag_key="${tagkey:-aws:eks:cluster-name}"
-      focus_tag_filter="element_at(tags, '$focus_tag_key') = '$tagvalue'"
-    else
-      focus_tag_filter="$tag_filter"
-    fi
-    sql="SELECT
-      \"ServiceName\" AS service_name,
-      \"ServiceCategory\" AS service_category,
-      CAST(NULL AS VARCHAR) AS charge_sub_category,
-      \"ChargeCategory\" AS charge_category,
-      \"RegionId\" AS region_id,
-      \"ResourceId\" AS resource_id,
-      date_format(cast(\"ChargePeriodStart\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_start,
-      date_format(cast(\"ChargePeriodEnd\" as timestamp), '%Y-%m-%dT%H:%i:%sZ') AS charge_period_end,
-      SUM(cast(\"BilledCost\" as double)) AS billed_cost,
-      SUM(cast(\"EffectiveCost\" as double)) AS effective_cost,
-      SUM(cast(\"ConsumedQuantity\" as double)) AS consumed_quantity,
-      \"ConsumedUnit\" AS consumed_unit,
-      \"BillingCurrency\" AS billing_currency,
-      \"BillingAccountId\" AS billing_account_id,
-      \"SubAccountId\" AS sub_account_id,
-      try(element_at(skupricedetails, 'InstanceType')) AS x_instance_type,
-      try(element_at(skupricedetails, 'CoreCount')) AS x_vcpu,
-      try(element_at(skupricedetails, 'MemorySize')) AS x_memory,
-      CAST(NULL AS VARCHAR) AS x_gpu,
-      arbitrary(\"ChargeDescription\") AS charge_description
-    FROM
-      \"$database\".\"$table\"
-    WHERE
-      $focus_tag_filter
-      AND \"ChargePeriodStart\" >= DATE '$focus_initial_date'
-      AND \"ChargePeriodStart\" <= DATE '$final_date'
-    GROUP BY 1,2,3,4,5,6,7,8,12,13,14,15,16,17,18,19
-    ORDER BY charge_period_start, service_name"
-
-    queryResults=$(aws athena start-query-execution \
-      --query-string "$sql" \
-      --work-group "$workgroup" \
-      --query-execution-context Database=$database,Catalog=$catalog \
-)
-  else
-    # Standard query (original format)
-    queryResults=$(aws athena start-query-execution \
+  queryResults=$(aws athena start-query-execution \
     --query-string \
         "SELECT \
           line_item_product_code, identity_time_interval, sum(line_item_unblended_cost) AS cost, \
@@ -258,7 +159,6 @@ if  [[ "$provider" = "aws" ]]; then
     --work-group "$workgroup" \
     --query-execution-context Database=$database,Catalog=$catalog \
 )
-  fi
 
   executionId=$(echo $queryResults | jq .QueryExecutionId | sed 's/"//g')
 
@@ -290,74 +190,12 @@ if  [[ "$provider" = "aws" ]]; then
 
   aws athena get-query-results --query-execution-id $executionId > "$OUTPUT_DIR/cloudcosts-tmp.json"
 
-  if [[ "$format" == "focus" ]]; then
-    echo "Transforming to FOCUS format..."
-    # Transform Athena results to FOCUS-compliant JSON array
-    # Write directly to final filename to avoid mv issues
-    jq '[
-      .ResultSet.Rows[1:][] |
-      .Data |
-      {
-        ServiceName: .[0].VarCharValue,
-        ServiceCategory: .[1].VarCharValue,
-        ChargeSubCategory: .[2].VarCharValue,
-        ChargeCategory: (.[3].VarCharValue // "Usage"),
-        RegionId: .[4].VarCharValue,
-        ResourceId: .[5].VarCharValue,
-        ChargePeriodStart: .[6].VarCharValue,
-        ChargePeriodEnd: .[7].VarCharValue,
-        BilledCost: (.[8].VarCharValue | if . then tonumber else 0 end),
-        EffectiveCost: (.[9].VarCharValue | if . then tonumber else 0 end),
-        ConsumedQuantity: (.[10].VarCharValue | if . then tonumber else 0 end),
-        ConsumedUnit: .[11].VarCharValue,
-        BillingCurrency: .[12].VarCharValue,
-        BillingAccountId: .[13].VarCharValue,
-        SubAccountId: .[14].VarCharValue,
-        x_InstanceType: .[15].VarCharValue,
-        x_vCPU: .[16].VarCharValue,
-        x_Memory: .[17].VarCharValue,
-        x_GPU: .[18].VarCharValue,
-        ChargeDescription: .[19].VarCharValue,
-        ProviderName: "Amazon Web Services"
-      }
-    ]' "$OUTPUT_DIR/cloudcosts-tmp.json" > "$OUTPUT_DIR/cloudcosts.json"
-
-    if [[ $? -ne 0 ]]; then
-      echo "Error transforming to FOCUS format"
-      cat "$OUTPUT_DIR/cloudcosts-tmp.json"
-      exit 1
-    fi
-
-    if [[ ! -f "$OUTPUT_DIR/cloudcosts.json" ]]; then
-      echo "Error: Output file was not created"
-      exit 1
-    fi
-
-    # Debug: Show file was created
-    file_size=$(stat -f%z "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || stat -c%s "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || echo "unknown")
-    echo "File created: $OUTPUT_DIR/cloudcosts.json (size: $file_size bytes)"
-    row_count=$(jq 'length' "$OUTPUT_DIR/cloudcosts.json" 2>/dev/null || echo "0")
-    if [ "$row_count" = "0" ]; then
-      tag_display="${tagkey:-aws:eks:cluster-name}=$tagvalue"
-      echo "Note: No cost rows matched (tag $tag_display in date range). Try --days to widen the range or confirm the tag exists in the FOCUS export."
-    fi
-    ls -lh "$OUTPUT_DIR/cloudcosts.json" || true
-
-    rm -f "$OUTPUT_DIR/cloudcosts-tmp.json"
-    echo "Saved AWS costs file in FOCUS format to $OUTPUT_DIR/cloudcosts.json"
-  else
-    mv "$OUTPUT_DIR/cloudcosts-tmp.json" "$OUTPUT_DIR/cloudcosts.json"
-    echo "Saved AWS costs file in $OUTPUT_DIR/cloudcosts.json"
-  fi
+  mv "$OUTPUT_DIR/cloudcosts-tmp.json" "$OUTPUT_DIR/cloudcosts.json"
+  echo "Saved AWS costs file in $OUTPUT_DIR/cloudcosts.json"
   exit 0
 fi
 if [[ "$provider" == "gcp" ]]; then
   echo "Google Cloud integration......"
-
-  # When using FOCUS format, derive project from focusview (project.dataset.view_name) if not set
-  if [[ "$format" == "focus" && "$focusview" != "" && "$projectname" = "" ]]; then
-    projectname="${focusview%%.*}"
-  fi
 
   if [[ "$tagvalue" = "" ]]; then
     usage
@@ -367,12 +205,11 @@ if [[ "$provider" == "gcp" ]]; then
     usage
     exit 1
   fi
-  
+
   if [[ "$tagkey" = "" ]]; then
     tagkey="goog-k8s-cluster-name"
   fi
-  # When format is focus we use focusview, not table; only require dataset/billingaccount for standard format
-  if [[ "$table" = "" && "$format" != "focus" ]]; then
+  if [[ "$table" = "" ]]; then
     if [[ "$projectname" = "" || "$dataset" = "" || "$billingaccount" = "" ]]; then
       usage
       exit 1
@@ -383,20 +220,8 @@ if [[ "$provider" == "gcp" ]]; then
 
   echo "Google BigQuery is running......"
 
-  if [[ "$format" == "focus" ]]; then
-    if [[ "$focusview" == "" ]]; then
-      echo "Error: --focusview is required when using FOCUS format"
-      usage
-      exit 1
-    fi
-    echo "Using FOCUS format from view: $focusview"
-    # Include rows that have the cluster tag OR have the cluster name in GKE ResourceId (e.g. control plane / clusters without cost allocation tags).
-    # Aggregate by period, service, SKU, and resource so output size is reduced while preserving FOCUS column shape.
-    sql="WITH f AS ( SELECT * FROM \`$focusview\` WHERE ChargePeriodStart >= '$initial_date_time' AND ChargePeriodStart < '$final_date_time' AND (EXISTS (SELECT 1 FROM UNNEST(Tags) AS t WHERE t.key = '$tagkey' AND t.value = '$tagvalue') OR ResourceId LIKE '%/clusters/$tagvalue%') ) SELECT ChargePeriodStart, ChargePeriodEnd, ServiceName, ChargeDescription, ResourceId, ANY_VALUE(AvailabilityZone) AS AvailabilityZone, SUM(CAST(BilledCost AS NUMERIC)) AS BilledCost, ANY_VALUE(BillingAccountId) AS BillingAccountId, ANY_VALUE(BillingCurrency) AS BillingCurrency, ANY_VALUE(BillingPeriodStart) AS BillingPeriodStart, ANY_VALUE(BillingPeriodEnd) AS BillingPeriodEnd, ANY_VALUE(ChargeCategory) AS ChargeCategory, ANY_VALUE(ChargeClass) AS ChargeClass, ANY_VALUE(CommitmentDiscountCategory) AS CommitmentDiscountCategory, ANY_VALUE(CommitmentDiscountId) AS CommitmentDiscountId, ANY_VALUE(CommitmentDiscountName) AS CommitmentDiscountName, SUM(CAST(COALESCE(ConsumedQuantity, 0) AS NUMERIC)) AS ConsumedQuantity, ANY_VALUE(ConsumedUnit) AS ConsumedUnit, SUM(CAST(ContractedCost AS NUMERIC)) AS ContractedCost, ANY_VALUE(ContractedUnitPrice) AS ContractedUnitPrice, SUM(CAST(EffectiveCost AS NUMERIC)) AS EffectiveCost, SUM(CAST(ListCost AS NUMERIC)) AS ListCost, ANY_VALUE(ListUnitPrice) AS ListUnitPrice, ANY_VALUE(PricingCategory) AS PricingCategory, SUM(CAST(COALESCE(PricingQuantity, 0) AS NUMERIC)) AS PricingQuantity, ANY_VALUE(PricingUnit) AS PricingUnit, ANY_VALUE(ProviderName) AS ProviderName, ANY_VALUE(PublisherName) AS PublisherName, ANY_VALUE(RegionId) AS RegionId, ANY_VALUE(RegionName) AS RegionName, ANY_VALUE(ResourceName) AS ResourceName, ANY_VALUE(ResourceType) AS ResourceType, ANY_VALUE(ServiceCategory) AS ServiceCategory, ANY_VALUE(SkuId) AS SkuId, ANY_VALUE(SkuPriceId) AS SkuPriceId, ANY_VALUE(SubAccountId) AS SubAccountId, ANY_VALUE(Tags) AS Tags, ANY_VALUE(x_Credits) AS x_Credits, ANY_VALUE(x_CostType) AS x_CostType, ANY_VALUE(x_CurrencyConversionRate) AS x_CurrencyConversionRate, ANY_VALUE(x_ExportTime) AS x_ExportTime, ANY_VALUE(x_Location) AS x_Location, ANY_VALUE(x_Project) AS x_Project, ANY_VALUE(x_ServiceId) AS x_ServiceId FROM f GROUP BY ChargePeriodStart, ChargePeriodEnd, ServiceName, ChargeDescription, ResourceId ORDER BY ChargePeriodStart DESC"
-  else
-    # Same filter as FOCUS: cluster tag OR GKE ResourceId (control plane / clusters without cost allocation tags)
-    sql="SELECT cost, 0.0 AS cost_at_list, '' AS cost_type, service, sku, usage, usage_start_time, usage_end_time, CASE WHEN machine_spec IS NOT NULL OR accelerator_type IS NOT NULL THEN [ STRUCT('compute.googleapis.com/machine_spec' AS key, machine_spec AS value), STRUCT('compute.googleapis.com/cores' AS key, total_cores AS value), STRUCT('compute.googleapis.com/memory' AS key, total_memory AS value), STRUCT('compute.googleapis.com/accelerator_type' AS key, accelerator_type AS value), STRUCT('compute.googleapis.com/accelerator_count' AS key, accelerator_count AS value) ] ELSE NULL END AS system_labels, resource_type FROM ( SELECT SUM(main.cost) AS cost, STRUCT(main.service.description) AS service, STRUCT(main.sku.description AS description) AS sku, main.usage_start_time, main.usage_end_time, STRUCT(SUM(main.usage.amount) AS amount, SUM(main.usage.amount_in_pricing_units) AS amount_in_pricing_units, '' AS pricing_unit, '' AS unit) AS usage, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/machine_spec') AS machine_spec, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/cores') AS total_cores, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/memory') AS total_memory, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/accelerator_type') AS accelerator_type, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/accelerator_count') AS accelerator_count, CASE WHEN LOWER(main.sku.description) LIKE '%gpu%' OR LOWER(main.sku.description) LIKE '%nvidia%' OR LOWER(main.sku.description) LIKE '%tesla%' OR LOWER(main.sku.description) LIKE '%tpu%' OR LOWER(main.sku.description) LIKE '%accelerator%' THEN 'GPU' ELSE 'Compute' END AS resource_type FROM ( SELECT * FROM \`$table\` AS raw WHERE (EXISTS (SELECT 1 FROM UNNEST(raw.labels) AS l WHERE l.key = '$tagkey' AND l.value = '$tagvalue') OR raw.resource.global_name LIKE '%/clusters/$tagvalue%') AND raw.usage_start_time >= '$initial_date_time' AND raw.usage_start_time < '$final_date_time' AND TIMESTAMP_TRUNC(raw._PARTITIONTIME, DAY) >= '$initial_date_time' AND TIMESTAMP_TRUNC(raw._PARTITIONTIME, DAY) <= '$final_date_time') AS main GROUP BY main.service.description, main.usage_start_time, main.usage_end_time, main.sku.description, machine_spec, total_memory, total_cores, accelerator_type, accelerator_count) ORDER BY usage_start_time DESC"
-  fi
+  # Cluster filter: tag OR GKE ResourceId (control plane / clusters without cost allocation tags)
+  sql="SELECT cost, 0.0 AS cost_at_list, '' AS cost_type, service, sku, usage, usage_start_time, usage_end_time, CASE WHEN machine_spec IS NOT NULL OR accelerator_type IS NOT NULL THEN [ STRUCT('compute.googleapis.com/machine_spec' AS key, machine_spec AS value), STRUCT('compute.googleapis.com/cores' AS key, total_cores AS value), STRUCT('compute.googleapis.com/memory' AS key, total_memory AS value), STRUCT('compute.googleapis.com/accelerator_type' AS key, accelerator_type AS value), STRUCT('compute.googleapis.com/accelerator_count' AS key, accelerator_count AS value) ] ELSE NULL END AS system_labels, resource_type FROM ( SELECT SUM(main.cost) AS cost, STRUCT(main.service.description) AS service, STRUCT(main.sku.description AS description) AS sku, main.usage_start_time, main.usage_end_time, STRUCT(SUM(main.usage.amount) AS amount, SUM(main.usage.amount_in_pricing_units) AS amount_in_pricing_units, '' AS pricing_unit, '' AS unit) AS usage, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/machine_spec') AS machine_spec, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/cores') AS total_cores, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/memory') AS total_memory, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/accelerator_type') AS accelerator_type, (SELECT value FROM UNNEST(main.system_labels) WHERE key = 'compute.googleapis.com/accelerator_count') AS accelerator_count, CASE WHEN LOWER(main.sku.description) LIKE '%gpu%' OR LOWER(main.sku.description) LIKE '%nvidia%' OR LOWER(main.sku.description) LIKE '%tesla%' OR LOWER(main.sku.description) LIKE '%tpu%' OR LOWER(main.sku.description) LIKE '%accelerator%' THEN 'GPU' ELSE 'Compute' END AS resource_type FROM ( SELECT * FROM \`$table\` AS raw WHERE (EXISTS (SELECT 1 FROM UNNEST(raw.labels) AS l WHERE l.key = '$tagkey' AND l.value = '$tagvalue') OR raw.resource.global_name LIKE '%/clusters/$tagvalue%') AND raw.usage_start_time >= '$initial_date_time' AND raw.usage_start_time < '$final_date_time' AND TIMESTAMP_TRUNC(raw._PARTITIONTIME, DAY) >= '$initial_date_time' AND TIMESTAMP_TRUNC(raw._PARTITIONTIME, DAY) <= '$final_date_time') AS main GROUP BY main.service.description, main.usage_start_time, main.usage_end_time, main.sku.description, machine_spec, total_memory, total_cores, accelerator_type, accelerator_count) ORDER BY usage_start_time DESC"
 
   BQ_CMD="bq"
   if [[ -x "/google-cloud-sdk/bin/bq" ]]; then
