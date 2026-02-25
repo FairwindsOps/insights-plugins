@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.9
+* Bump pluto to v5.22.8 and polaris to 10.1.5
+
 ## 2.2.8
 * Bumped to Go 1.26
 * Bump library dependencies

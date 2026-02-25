@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.9
+* Bump nova to v3.11.10, pluto to v5.22.8, polaris to 10.1.5
+
 ## 6.2.8
 * Bumped to Go 1.26
 * Bump library dependencies

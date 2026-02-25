@@ -2,8 +2,8 @@ FROM alpine:3.23 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV trivyVersion=0.69.1
-ENV polarisVersion=10.1.4
-ENV plutoVersion=5.22.7
+ENV polarisVersion=10.1.5
+ENV plutoVersion=5.22.8
 ENV helmVersion=4.1.1
 
 # Bash and openssl are  required by the Helm script.
@@ -27,5 +27,8 @@ COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=downloader /usr/local/bin/polaris /usr/local/bin/polaris
 COPY --from=downloader /usr/local/bin/helm /usr/local/bin/helm
 COPY --from=downloader /usr/local/bin/pluto /usr/local/bin/pluto
+
+# Final upgrade to pick up security fixes (e.g. gnutls CVE-2026-1584)
+RUN apk update && apk -U upgrade
 
 CMD ["insights-ci"]
