@@ -35,7 +35,7 @@ RUN set -eux; \
     /google-cloud-sdk/install.sh --quiet --path-update=false; \
     rm -rf /google-cloud-sdk/platform/gsutil/third_party; \
     rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography*; \
-    rm -rf /usr/lib/az/lib/python3.12/site-packages/cryptography*
+    #rm -rf /usr/lib/az/lib/python3.12/site-packages/cryptography*
 
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
