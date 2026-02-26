@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.10
+* GKE Managed Prometheus fallback for KSM metrics
+
 ## 1.8.9
 * Bumped to Go 1.26
 * Bump library dependencies

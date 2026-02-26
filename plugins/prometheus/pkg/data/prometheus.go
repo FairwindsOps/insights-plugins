@@ -245,6 +245,124 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 }
 
 // =============================================================================
+// GKE SYSTEM METRICS FALLBACK (GMP)
+// =============================================================================
+// When kube-state-metrics returns no data on GKE Managed Prometheus (e.g. curated
+// KSM package doesn't expose requests/limits), we fall back to GKE system metrics
+// (kubernetes.io/container/*) which are official, default, and queryable via the
+// same GMP Prometheus API. Only used when clusterName is set (cluster-scoped).
+
+const gkeSystemMetricsPrefix = "kubernetes_io:container_"
+
+// queryGKEContainerMetric runs a PromQL query for a GKE system metric (k8s_container
+// resource), with cluster filter. Returns matrix with labels that may use
+// namespace_name/pod_name/container_name; call normalizeGKEContainerMatrix before use.
+func queryGKEContainerMetric(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string, metricName string, sumByContainer bool) (model.Matrix, error) {
+	if clusterName == "" {
+		return nil, fmt.Errorf("cluster name required for GKE system metrics query")
+	}
+	// GKE k8s_container resource uses cluster_name; monitored_resource disambiguates.
+	selector := fmt.Sprintf(`%s%s{monitored_resource="k8s_container", cluster_name="%s"}`, gkeSystemMetricsPrefix, metricName, clusterName)
+	query := selector
+	if sumByContainer {
+		// Multiple series per container (e.g. accelerator per resource_name); sum to one per container.
+		query = fmt.Sprintf(`sum by (namespace_name, pod_name, container_name) (%s)`, selector)
+	}
+	values, warnings, err := api.QueryRange(ctx, query, r)
+	for _, warning := range warnings {
+		logrus.Warn(warning)
+	}
+	if err != nil {
+		return model.Matrix{}, err
+	}
+	return values.(model.Matrix), nil
+}
+
+// normalizeGKEContainerMatrix copies each series and normalizes labels to namespace, pod, container
+// so getKey() and getOwner() work. GKE k8s_container uses namespace_name, pod_name, container_name
+// (or sometimes namespace, pod, container); we unify to the short form.
+func normalizeGKEContainerMatrix(m model.Matrix) model.Matrix {
+	if len(m) == 0 {
+		return m
+	}
+	out := make(model.Matrix, 0, len(m))
+	for _, stream := range m {
+		norm := make(model.Metric)
+		for k, v := range stream.Metric {
+			norm[k] = v
+		}
+		// Prefer _name suffix (GKE resource labels), fall back to short form.
+		if v, ok := stream.Metric["namespace_name"]; ok {
+			norm["namespace"] = v
+		} else if v, ok := stream.Metric["namespace"]; ok {
+			norm["namespace"] = v
+		}
+		if v, ok := stream.Metric["pod_name"]; ok {
+			norm["pod"] = v
+		} else if v, ok := stream.Metric["pod"]; ok {
+			norm["pod"] = v
+		}
+		if v, ok := stream.Metric["container_name"]; ok {
+			norm["container"] = v
+		} else if v, ok := stream.Metric["container"]; ok {
+			norm["container"] = v
+		}
+		out = append(out, &model.SampleStream{Metric: norm, Values: stream.Values})
+	}
+	return out
+}
+
+func getMemoryRequestsGKE(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	m, err := queryGKEContainerMetric(ctx, api, r, clusterName, "memory_request_bytes", false)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeGKEContainerMatrix(m), nil
+}
+
+func getMemoryLimitsGKE(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	m, err := queryGKEContainerMetric(ctx, api, r, clusterName, "memory_limit_bytes", false)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeGKEContainerMatrix(m), nil
+}
+
+func getCPURequestsGKE(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	m, err := queryGKEContainerMetric(ctx, api, r, clusterName, "cpu_request_cores", false)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeGKEContainerMatrix(m), nil
+}
+
+func getCPULimitsGKE(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	m, err := queryGKEContainerMetric(ctx, api, r, clusterName, "cpu_limit_cores", false)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeGKEContainerMatrix(m), nil
+}
+
+func getGPURequestsGKE(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	m, err := queryGKEContainerMetric(ctx, api, r, clusterName, "accelerator_request", true)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeGKEContainerMatrix(m), nil
+}
+
+func getGPULimitsGKE(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	// GKE system metrics expose container/accelerator/request but not a separate "limit".
+	// Use the same request metric as best-effort limit proxy when KSM has no limits.
+	m, err := queryGKEContainerMetric(ctx, api, r, clusterName, "accelerator_request", true)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeGKEContainerMatrix(m), nil
+}
+
+// =============================================================================
 // GPU METRICS - Multi-vendor support
 // =============================================================================
 // Supported GPU/accelerator types:

@@ -126,9 +126,18 @@ func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restM
 	return response, nil
 }
 
+// IsGMP returns true if the Prometheus address is GKE Managed Prometheus (same API serves Cloud Monitoring metrics).
+func IsGMP(prometheusAddress string) bool {
+	return strings.Contains(prometheusAddress, "monitoring.googleapis.com")
+}
+
 // GetMetrics returns the memory/cpu and requests for each container running in the cluster.
-func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API, clusterName string, skipCAdvisorNonZeroMetricsValidation, skipKSMNonZeroMetricsValidation bool) ([]CombinedRequest, error) {
+// When prometheusAddress is GMP and clusterName is set, request/limit metrics that return 0 from
+// kube-state-metrics are retried using GKE system metrics (kubernetes.io/container/*).
+func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper meta.RESTMapper, api prometheusV1.API, clusterName string, prometheusAddress string, skipCAdvisorNonZeroMetricsValidation, skipKSMNonZeroMetricsValidation bool) ([]CombinedRequest, error) {
 	r := getRange()
+	useGKEFallback := IsGMP(prometheusAddress) && clusterName != ""
+
 	memory, err := getMemory(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
@@ -151,6 +160,12 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	if err != nil {
 		return nil, err
 	}
+	if len(memoryRequest) == 0 && useGKEFallback {
+		if gke, gkeErr := getMemoryRequestsGKE(ctx, api, r, clusterName); gkeErr == nil && len(gke) > 0 {
+			logrus.Infof("Using GKE system metrics for memory requests (kube-state-metrics returned no data)")
+			memoryRequest = gke
+		}
+	}
 	logrus.Infof("Found %d metrics for memoryRequests", len(memoryRequest))
 	if !skipKSMNonZeroMetricsValidation && len(memoryRequest) == 0 {
 		return nil, fmt.Errorf("No memory request metrics found. It is likely that the data is not being collected correctly. Verify kube-state-metrics is running and the Prometheus configuration is correct")
@@ -159,6 +174,12 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	cpuRequest, err := getCPURequests(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
+	}
+	if len(cpuRequest) == 0 && useGKEFallback {
+		if gke, gkeErr := getCPURequestsGKE(ctx, api, r, clusterName); gkeErr == nil && len(gke) > 0 {
+			logrus.Infof("Using GKE system metrics for cpu requests (kube-state-metrics returned no data)")
+			cpuRequest = gke
+		}
 	}
 	logrus.Infof("Found %d metrics for cpuRequests", len(cpuRequest))
 	if !skipKSMNonZeroMetricsValidation && len(cpuRequest) == 0 {
@@ -169,6 +190,12 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	if err != nil {
 		return nil, err
 	}
+	if len(memoryLimits) == 0 && useGKEFallback {
+		if gke, gkeErr := getMemoryLimitsGKE(ctx, api, r, clusterName); gkeErr == nil && len(gke) > 0 {
+			logrus.Infof("Using GKE system metrics for memory limits (kube-state-metrics returned no data)")
+			memoryLimits = gke
+		}
+	}
 	logrus.Infof("Found %d metrics for memoryLimits", len(memoryLimits))
 	if !skipKSMNonZeroMetricsValidation && len(memoryLimits) == 0 {
 		return nil, fmt.Errorf("No memory limit metrics found. It is likely that the data is not being collected correctly. Verify kube-state-metrics is running and the Prometheus configuration is correct")
@@ -177,6 +204,12 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 	cpuLimits, err := getCPULimits(ctx, api, r, clusterName)
 	if err != nil {
 		return nil, err
+	}
+	if len(cpuLimits) == 0 && useGKEFallback {
+		if gke, gkeErr := getCPULimitsGKE(ctx, api, r, clusterName); gkeErr == nil && len(gke) > 0 {
+			logrus.Infof("Using GKE system metrics for cpu limits (kube-state-metrics returned no data)")
+			cpuLimits = gke
+		}
 	}
 	logrus.Infof("Found %d metrics for cpuLimits", len(cpuLimits))
 	if !skipKSMNonZeroMetricsValidation && len(cpuLimits) == 0 {
@@ -208,12 +241,24 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		logrus.Warnf("GPU request metrics not available: %v", err)
 		gpuRequests = model.Matrix{}
 	}
+	if len(gpuRequests) == 0 && useGKEFallback {
+		if gke, gkeErr := getGPURequestsGKE(ctx, api, r, clusterName); gkeErr == nil && len(gke) > 0 {
+			logrus.Infof("Using GKE system metrics for GPU requests (kube-state-metrics returned no data)")
+			gpuRequests = gke
+		}
+	}
 	logrus.Infof("Found %d metrics for GPU requests", len(gpuRequests))
 
 	gpuLimits, err := getGPULimits(ctx, api, r, clusterName)
 	if err != nil {
 		logrus.Warnf("GPU limit metrics not available: %v", err)
 		gpuLimits = model.Matrix{}
+	}
+	if len(gpuLimits) == 0 && useGKEFallback {
+		if gke, gkeErr := getGPULimitsGKE(ctx, api, r, clusterName); gkeErr == nil && len(gke) > 0 {
+			logrus.Infof("Using GKE system metrics for GPU limits (kube-state-metrics returned no data)")
+			gpuLimits = gke
+		}
 	}
 	logrus.Infof("Found %d metrics for GPU limits", len(gpuLimits))
 
