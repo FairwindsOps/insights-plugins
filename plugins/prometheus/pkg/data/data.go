@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"net/url"
 	"strings"
 	"time"
 
@@ -128,7 +129,20 @@ func GetNodesMetrics(ctx context.Context, dynamicClient dynamic.Interface, restM
 
 // IsGMP returns true if the Prometheus address is GKE Managed Prometheus (same API serves Cloud Monitoring metrics).
 func IsGMP(prometheusAddress string) bool {
-	return strings.Contains(prometheusAddress, "monitoring.googleapis.com")
+	const gmpHost = "monitoring.googleapis.com"
+	s := prometheusAddress
+	if s == "" {
+		return false
+	}
+	if !strings.Contains(s, "://") {
+		s = "https://" + s
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	return host == gmpHost
 }
 
 // GetMetrics returns the memory/cpu and requests for each container running in the cluster.
@@ -278,6 +292,9 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 	for _, cpuVal := range cpuRequest {
+		if len(cpuVal.Values) == 0 {
+			continue
+		}
 		key := getKey(cpuVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(cpuVal)
@@ -285,6 +302,9 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 	for _, memVal := range memoryRequest {
+		if len(memVal.Values) == 0 {
+			continue
+		}
 		key := getKey(memVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(memVal)
@@ -292,6 +312,9 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 	for _, cpuVal := range cpuLimits {
+		if len(cpuVal.Values) == 0 {
+			continue
+		}
 		key := getKey(cpuVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(cpuVal)
@@ -299,6 +322,9 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		combinedRequests[key] = request
 	}
 	for _, memVal := range memoryLimits {
+		if len(memVal.Values) == 0 {
+			continue
+		}
 		key := getKey(memVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(memVal)

@@ -596,3 +596,83 @@ func TestGPUUtilizationQueriesStructure(t *testing.T) {
 	assert.True(t, vendorNames["intel"], "Intel vendor should be present")
 	assert.True(t, vendorNames["habana"], "Habana vendor should be present")
 }
+
+func TestIsGMP(t *testing.T) {
+	tests := []struct {
+		name     string
+		address  string
+		expected bool
+	}{
+		{"GMP with https", "https://monitoring.googleapis.com", true},
+		{"GMP with path", "https://monitoring.googleapis.com/v1/projects/123/location/global", true},
+		{"GMP host:port", "https://monitoring.googleapis.com:443", true},
+		{"GMP no scheme", "monitoring.googleapis.com:443", true},
+		{"non-GMP prometheus", "http://prometheus:9090", false},
+		{"non-GMP localhost", "http://localhost:9090", false},
+		{"domain in query param", "https://other.com?url=monitoring.googleapis.com", false},
+		{"empty", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := IsGMP(tt.address)
+			assert.Equal(t, tt.expected, got, "IsGMP(%q)", tt.address)
+		})
+	}
+}
+
+func TestValidateClusterNameForPromQL(t *testing.T) {
+	assert.NoError(t, validateClusterNameForPromQL("my-cluster"))
+	assert.NoError(t, validateClusterNameForPromQL("prod-us-east-1"))
+	assert.Error(t, validateClusterNameForPromQL("cluster\"inject"))
+	assert.Error(t, validateClusterNameForPromQL("cluster\\escape"))
+	assert.Error(t, validateClusterNameForPromQL("cluster\nnewline"))
+	assert.Error(t, validateClusterNameForPromQL("cluster\rcr"))
+}
+
+func TestNormalizeGKEContainerMatrix(t *testing.T) {
+	// Empty matrix returns as-is
+	empty := normalizeGKEContainerMatrix(model.Matrix{})
+	assert.Len(t, empty, 0)
+
+	// GKE uses namespace_name, pod_name, container_name
+	in := model.Matrix{
+		{
+			Metric: model.Metric{
+				"namespace_name": "default",
+				"pod_name":       "nginx-abc",
+				"container_name": "nginx",
+			},
+			Values: []model.SamplePair{{Timestamp: 0, Value: 1}},
+		},
+	}
+	out := normalizeGKEContainerMatrix(in)
+	requireLen(t, out, 1)
+	assert.Equal(t, model.LabelValue("default"), out[0].Metric["namespace"])
+	assert.Equal(t, model.LabelValue("nginx-abc"), out[0].Metric["pod"])
+	assert.Equal(t, model.LabelValue("nginx"), out[0].Metric["container"])
+	assert.Equal(t, model.SampleValue(1), out[0].Values[0].Value)
+
+	// Short form (namespace, pod, container) is preserved
+	in2 := model.Matrix{
+		{
+			Metric: model.Metric{
+				"namespace": "kube-system",
+				"pod":       "coredns-xyz",
+				"container": "coredns",
+			},
+			Values: []model.SamplePair{{Timestamp: 0, Value: 2}},
+		},
+	}
+	out2 := normalizeGKEContainerMatrix(in2)
+	requireLen(t, out2, 1)
+	assert.Equal(t, model.LabelValue("kube-system"), out2[0].Metric["namespace"])
+	assert.Equal(t, model.LabelValue("coredns-xyz"), out2[0].Metric["pod"])
+	assert.Equal(t, model.LabelValue("coredns"), out2[0].Metric["container"])
+}
+
+func requireLen(t *testing.T, m model.Matrix, n int) {
+	t.Helper()
+	if len(m) != n {
+		t.Fatalf("expected matrix length %d, got %d", n, len(m))
+	}
+}

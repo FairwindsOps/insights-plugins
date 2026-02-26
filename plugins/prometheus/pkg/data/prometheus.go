@@ -16,6 +16,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	prometheusV1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -254,12 +255,25 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 
 const gkeSystemMetricsPrefix = "kubernetes_io:container_"
 
+// validateClusterNameForPromQL returns an error if clusterName contains characters
+// that are unsafe to interpolate into a PromQL label value (could break the query or enable injection).
+func validateClusterNameForPromQL(clusterName string) error {
+	if strings.ContainsAny(clusterName, "\"\\\n\r") {
+		return fmt.Errorf("cluster name contains unsafe character for PromQL")
+	}
+	return nil
+}
+
 // queryGKEContainerMetric runs a PromQL query for a GKE system metric (k8s_container
 // resource), with cluster filter. Returns matrix with labels that may use
 // namespace_name/pod_name/container_name; call normalizeGKEContainerMatrix before use.
+// See: https://cloud.google.com/monitoring/api/resources#tag_k8s_container (cluster_name is a resource label).
 func queryGKEContainerMetric(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string, metricName string, sumByContainer bool) (model.Matrix, error) {
 	if clusterName == "" {
 		return nil, fmt.Errorf("cluster name required for GKE system metrics query")
+	}
+	if err := validateClusterNameForPromQL(clusterName); err != nil {
+		return nil, err
 	}
 	// GKE k8s_container resource uses cluster_name; monitored_resource disambiguates.
 	selector := fmt.Sprintf(`%s%s{monitored_resource="k8s_container", cluster_name="%s"}`, gkeSystemMetricsPrefix, metricName, clusterName)
@@ -275,7 +289,11 @@ func queryGKEContainerMetric(ctx context.Context, api prometheusV1.API, r promet
 	if err != nil {
 		return model.Matrix{}, err
 	}
-	return values.(model.Matrix), nil
+	matrix, ok := values.(model.Matrix)
+	if !ok {
+		return nil, fmt.Errorf("expected Matrix from QueryRange, got %T", values)
+	}
+	return matrix, nil
 }
 
 // normalizeGKEContainerMatrix copies each series and normalizes labels to namespace, pod, container
