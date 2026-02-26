@@ -44,20 +44,41 @@ func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, 
 	return values.(model.Matrix), err
 }
 
-func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
-	clusterFilter := ""
-	if clusterName != "" {
-		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
-	}
-	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="byte", resource="memory"%s}`, clusterFilter)
-	values, warnings, err := api.QueryRange(ctx, query, r)
+// queryKubeStateMetric runs a kube-state-metrics query with an optional cluster label filter.
+// If clusterName is set and the filtered query returns no series, it retries without the filter
+// and logs a warning. This allows GKE Managed Prometheus (and other backends that use a
+// different cluster label value) to still return data.
+func queryKubeStateMetric(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string, queryWithFilter string, queryNoFilter string) (model.Matrix, error) {
+	values, warnings, err := api.QueryRange(ctx, queryWithFilter, r)
 	for _, warning := range warnings {
 		logrus.Warn(warning)
 	}
 	if err != nil {
 		return model.Matrix{}, err
 	}
-	return values.(model.Matrix), err
+	m := values.(model.Matrix)
+	if len(m) == 0 && clusterName != "" {
+		logrus.Warnf("kube-state-metrics query returned 0 series with cluster=%q; retrying without cluster filter (GMP may use a different cluster label value)", clusterName)
+		values, warnings, err = api.QueryRange(ctx, queryNoFilter, r)
+		for _, warning := range warnings {
+			logrus.Warn(warning)
+		}
+		if err != nil {
+			return model.Matrix{}, err
+		}
+		m = values.(model.Matrix)
+	}
+	return m, nil
+}
+
+func getMemoryRequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
+	clusterFilter := ""
+	if clusterName != "" {
+		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
+	}
+	withFilter := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="byte", resource="memory"%s}`, clusterFilter)
+	noFilter := `kube_pod_container_resource_requests{container!="POD", container!="", unit="byte", resource="memory"}`
+	return queryKubeStateMetric(ctx, api, r, clusterName, withFilter, noFilter)
 }
 
 func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
@@ -65,15 +86,9 @@ func getCPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Ra
 	if clusterName != "" {
 		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
 	}
-	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="core", resource="cpu"%s}`, clusterFilter)
-	values, warnings, err := api.QueryRange(ctx, query, r)
-	for _, warning := range warnings {
-		logrus.Warn(warning)
-	}
-	if err != nil {
-		return model.Matrix{}, err
-	}
-	return values.(model.Matrix), err
+	withFilter := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", unit="core", resource="cpu"%s}`, clusterFilter)
+	noFilter := `kube_pod_container_resource_requests{container!="POD", container!="", unit="core", resource="cpu"}`
+	return queryKubeStateMetric(ctx, api, r, clusterName, withFilter, noFilter)
 }
 
 func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
@@ -81,15 +96,9 @@ func getMemoryLimits(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	if clusterName != "" {
 		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
 	}
-	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="byte", resource="memory"%s}`, clusterFilter)
-	values, warnings, err := api.QueryRange(ctx, query, r)
-	for _, warning := range warnings {
-		logrus.Warn(warning)
-	}
-	if err != nil {
-		return model.Matrix{}, err
-	}
-	return values.(model.Matrix), err
+	withFilter := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="byte", resource="memory"%s}`, clusterFilter)
+	noFilter := `kube_pod_container_resource_limits{container!="POD", container!="", unit="byte", resource="memory"}`
+	return queryKubeStateMetric(ctx, api, r, clusterName, withFilter, noFilter)
 }
 
 func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
@@ -97,15 +106,9 @@ func getCPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Rang
 	if clusterName != "" {
 		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
 	}
-	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="core", resource="cpu"%s}`, clusterFilter)
-	values, warnings, err := api.QueryRange(ctx, query, r)
-	for _, warning := range warnings {
-		logrus.Warn(warning)
-	}
-	if err != nil {
-		return model.Matrix{}, err
-	}
-	return values.(model.Matrix), err
+	withFilter := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", unit="core", resource="cpu"%s}`, clusterFilter)
+	noFilter := `kube_pod_container_resource_limits{container!="POD", container!="", unit="core", resource="cpu"}`
+	return queryKubeStateMetric(ctx, api, r, clusterName, withFilter, noFilter)
 }
 
 func getCPU(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
@@ -315,15 +318,9 @@ func getGPURequests(ctx context.Context, api prometheusV1.API, r prometheusV1.Ra
 	if clusterName != "" {
 		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
 	}
-	query := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", resource=~"%s"%s}`, gpuResourcePattern, clusterFilter)
-	values, warnings, err := api.QueryRange(ctx, query, r)
-	for _, warning := range warnings {
-		logrus.Warn(warning)
-	}
-	if err != nil {
-		return model.Matrix{}, err
-	}
-	return values.(model.Matrix), err
+	withFilter := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", resource=~"%s"%s}`, gpuResourcePattern, clusterFilter)
+	noFilter := fmt.Sprintf(`kube_pod_container_resource_requests{container!="POD", container!="", resource=~"%s"}`, gpuResourcePattern)
+	return queryKubeStateMetric(ctx, api, r, clusterName, withFilter, noFilter)
 }
 
 // getGPULimits fetches GPU resource limits from kube-state-metrics for ALL vendors.
@@ -333,13 +330,7 @@ func getGPULimits(ctx context.Context, api prometheusV1.API, r prometheusV1.Rang
 	if clusterName != "" {
 		clusterFilter = fmt.Sprintf(`, cluster="%s"`, clusterName)
 	}
-	query := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", resource=~"%s"%s}`, gpuResourcePattern, clusterFilter)
-	values, warnings, err := api.QueryRange(ctx, query, r)
-	for _, warning := range warnings {
-		logrus.Warn(warning)
-	}
-	if err != nil {
-		return model.Matrix{}, err
-	}
-	return values.(model.Matrix), err
+	withFilter := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", resource=~"%s"%s}`, gpuResourcePattern, clusterFilter)
+	noFilter := fmt.Sprintf(`kube_pod_container_resource_limits{container!="POD", container!="", resource=~"%s"}`, gpuResourcePattern)
+	return queryKubeStateMetric(ctx, api, r, clusterName, withFilter, noFilter)
 }
