@@ -29,6 +29,8 @@ const (
 	containerNetworkTransmitBytesTotal = "container_network_transmit_bytes_total"
 )
 
+const gkeSystemMetricsPrefix = "kubernetes_io:container_"
+
 func getMemory(ctx context.Context, api prometheusV1.API, r prometheusV1.Range, clusterName string) (model.Matrix, error) {
 	clusterFilter := ""
 	if clusterName != "" {
@@ -245,18 +247,6 @@ func queryPrometheus(ctx context.Context, api prometheusV1.API, r prometheusV1.R
 	return values.(model.Matrix), nil
 }
 
-// =============================================================================
-// GKE SYSTEM METRICS FALLBACK (GMP)
-// =============================================================================
-// When kube-state-metrics returns no data on GKE Managed Prometheus (e.g. curated
-// KSM package doesn't expose requests/limits), we fall back to GKE system metrics
-// (kubernetes.io/container/*) which are official, default, and queryable via the
-// same GMP Prometheus API. Only used when clusterName is set (cluster-scoped).
-
-const gkeSystemMetricsPrefix = "kubernetes_io:container_"
-
-// validateClusterNameForPromQL returns an error if clusterName contains characters
-// that are unsafe to interpolate into a PromQL label value (could break the query or enable injection).
 func validateClusterNameForPromQL(clusterName string) error {
 	if strings.ContainsAny(clusterName, "\"\\\n\r") {
 		return fmt.Errorf("cluster name contains unsafe character for PromQL")
