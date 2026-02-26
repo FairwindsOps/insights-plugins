@@ -16,6 +16,7 @@ package data
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
@@ -296,9 +297,7 @@ func normalizeGKEContainerMatrix(m model.Matrix) model.Matrix {
 	out := make(model.Matrix, 0, len(m))
 	for _, stream := range m {
 		norm := make(model.Metric)
-		for k, v := range stream.Metric {
-			norm[k] = v
-		}
+		maps.Copy(norm, stream.Metric)
 		// Prefer _name suffix (GKE resource labels), fall back to short form.
 		if v, ok := stream.Metric["namespace_name"]; ok {
 			norm["namespace"] = v
