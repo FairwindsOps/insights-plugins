@@ -30,7 +30,7 @@ For `kubectlVersion` use the one with `kubernetes-` prefix.
 Version number below are just for demonstration, not the latest used.
 
 - ci:
-  - trivyVersion=0.68.1 (source: https://github.com/aquasecurity/trivy/tags)
+  - trivyVersion=0.69.2 (source: https://github.com/aquasecurity/trivy/tags)
   - polarisVersion=10.1.3 (source: https://github.com/FairwindsOps/polaris/tags)
   - plutoVersion=5.22.7 (source: https://github.com/FairwindsOps/pluto/tags)
   - helmVersion=4.0.2 (source: https://github.com/helm/helm/tags)
@@ -48,7 +48,7 @@ Version number below are just for demonstration, not the latest used.
   - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
 
 - trivy:
-  - trivyVersion=0.68.1 (source: https://github.com/aquasecurity/trivy/tags)
+  - trivyVersion=0.69.2 (source: https://github.com/aquasecurity/trivy/tags)
   - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
   - ENV CLOUD_SDK_VERSION=558.0.0 (source: https://docs.cloud.google.com/sdk/gcloud)
 
