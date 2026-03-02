@@ -83,7 +83,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName, skipNonZeroMetricsValidation, skipKSMNonZeroMetricsValidation)
+	res, err := data.GetMetrics(context.Background(), dynamic, restMapper, client, clusterName, address, skipNonZeroMetricsValidation, skipKSMNonZeroMetricsValidation)
 	if err != nil {
 		panic(err)
 	}
