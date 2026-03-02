@@ -39,21 +39,21 @@ Version number below are just for demonstration, not the latest used.
   - CLOUD_SDK_VERSION=558.0.0 (source: https://docs.cloud.google.com/sdk/gcloud)
 
 - kube-bench:
-  - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
+  - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
 
 - kubectl:
-  - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
+  - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
 
 - kyverno-policy-sync:
-  - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
+  - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
 
 - trivy:
   - trivyVersion=0.68.1 (source: https://github.com/aquasecurity/trivy/tags)
-  - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
+  - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
   - ENV CLOUD_SDK_VERSION=558.0.0 (source: https://docs.cloud.google.com/sdk/gcloud)
 
 - downloader:
-  - kubectlVersion=1.34.3 (source https://github.com/kubernetes/kubectl/tags)
+  - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
 
 4. For each updated sub-module
    - Update `CHANGELOG.md`:

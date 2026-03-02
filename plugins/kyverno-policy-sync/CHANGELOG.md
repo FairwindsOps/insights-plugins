@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.9
+* Bump kubectlVersion to v1.35.2
+
 ## 0.2.8
 * Bumped to Go 1.26
 * Bump library dependencies
