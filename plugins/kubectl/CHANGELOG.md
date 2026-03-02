@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.21.2
+* Bump kubectlVersion to v1.35.2
+
 ## 0.21.1
 * Bump kubectlVersion to v1.35.1
 
