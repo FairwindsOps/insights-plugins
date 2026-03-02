@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.10
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 2.2.9
 * Bump pluto to v5.22.8 and polaris to 10.1.5
 

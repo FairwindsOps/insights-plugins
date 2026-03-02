@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.9
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 1.4.8
 * Bumped to Go 1.26
 * Bump library dependencies
