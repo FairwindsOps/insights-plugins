@@ -1,7 +1,11 @@
 # Changelog
 
-## 1.8.10
+## 1.8.11
 * GKE Managed Prometheus fallback for kube-state-metrics request/limit metrics when KSM returns no data
+
+## 1.8.10
+* Bump library dependencies
+* Bump indirect library dependencies
 
 ## 1.8.9
 * Bumped to Go 1.26

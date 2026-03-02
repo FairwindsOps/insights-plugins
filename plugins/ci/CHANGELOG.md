@@ -1,5 +1,9 @@
 # Changelog
 
+## 6.2.10
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 6.2.9
 * Bump nova to v3.11.10, pluto to v5.22.8, polaris to 10.1.5
 
