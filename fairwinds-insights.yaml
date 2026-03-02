@@ -21,7 +21,7 @@ images:
     - quay.io/fairwinds/on-demand-job-runner:0.2.8
     - quay.io/fairwinds/fw-opa:3.1.10
     - quay.io/fairwinds/postgres-partman:17.0.0
-    - quay.io/fairwinds/prometheus-collector:1.8.10
+    - quay.io/fairwinds/prometheus-collector:1.8.11
     - quay.io/fairwinds/rbac-reporter:1.4.9
     - quay.io/fairwinds/right-sizer:0.6.9
     - quay.io/fairwinds/fw-trivy:0.34.10
