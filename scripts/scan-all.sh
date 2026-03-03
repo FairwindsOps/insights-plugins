@@ -63,6 +63,7 @@ plugin_map["quay.io/fairwinds/workloads"]="workloads"
 plugin_map["quay.io/fairwinds/on-demand-job-runner"]="on-demand-job-runner"
 plugin_map["quay.io/fairwinds/kyverno-policy-sync"]="kyverno-policy-sync"
 plugin_map["quay.io/fairwinds/insights-event-watcher"]="event-watcher"
+plugin_map["quay.io/fairwinds/postgres-partman"]="postgres-partman"
 
 echo "scanning all images"
 for name in "${images[@]}"; do
@@ -71,9 +72,6 @@ for name in "${images[@]}"; do
     fi
 
     name_without_tag=$(echo $name | sed "s/:.*//")
-    if [[ $name_without_tag == "quay.io/fairwinds/postgres-partman" ]]; then
-      continue
-    fi
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
       if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
         name=$(echo $name_without_tag:$branch_name)
