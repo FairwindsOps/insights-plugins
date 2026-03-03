@@ -1,5 +1,8 @@
 # Changelog
 
+## 17.0.1
+* Fixing vulnerabilities
+
 ## 17.0.0
 * BREAKING CHANGE: changes base image to cloudnative pg
 
