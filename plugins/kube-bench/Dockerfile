@@ -2,7 +2,7 @@ FROM aquasec/kube-bench:v0.15.0
 
 ARG TARGETARCH
 ARG TARGETOS
-RUN apk -U upgrade
+RUN apk update && apk -U upgrade
 RUN apk --no-cache add bash ca-certificates curl
 
 RUN rm /usr/local/bin/kubectl

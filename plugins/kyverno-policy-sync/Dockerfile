@@ -2,7 +2,7 @@ FROM alpine:3.23
 ARG TARGETARCH
 ARG TARGETOS
 WORKDIR /usr/local/bin
-RUN apk -U upgrade
+RUN apk update && apk -U upgrade
 RUN apk --no-cache add ca-certificates curl
 
 # Install kubectl

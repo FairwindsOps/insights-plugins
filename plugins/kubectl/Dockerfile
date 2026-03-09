@@ -1,7 +1,7 @@
 FROM alpine:3.23
 ARG TARGETARCH
 ARG TARGETOS
-RUN apk -U upgrade
+RUN apk update && apk -U upgrade
 RUN apk add curl
 ENV kubectlVersion=1.35.2
 RUN curl -LO https://dl.k8s.io/release/$kubectlVersion/bin/${TARGETOS}/${TARGETARCH}/kubectl

@@ -18,7 +18,7 @@ RUN curl -L --retry 3 --retry-delay 5 --fail https://get.helm.sh/helm-v${helmVer
 FROM alpine:3.23
 WORKDIR /insights
 # Security: upgrade OS packages (e.g. zlib CVE-2026-22184)
-RUN apk -U upgrade
+RUN apk update && apk -U upgrade
 RUN apk add --no-cache skopeo libc6-compat
 RUN apk add --no-cache git
 
