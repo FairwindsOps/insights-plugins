@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.6.11
-* Security: document scratch image (zlib CVE-2026-22184 N/A)
-
 ## 0.6.10
 * Bump library dependencies
 * Bump indirect library dependencies
