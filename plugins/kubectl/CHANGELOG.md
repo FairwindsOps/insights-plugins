@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.21.3
+* Security: refresh package index and upgrade OS packages (zlib CVE-2026-22184)
+
 ## 0.21.2
 * Bump kubectlVersion to v1.35.2
 

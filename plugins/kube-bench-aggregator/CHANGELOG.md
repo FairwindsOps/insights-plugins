@@ -1,10 +1,9 @@
 # Changelog
 
-## 0.4.8
-* Bump library dependencies
-* Bump indirect library dependencies
+## 0.4.9
+* Security: refresh package index and upgrade OS packages (zlib CVE-2026-22184)
 
-## 0.4.7
+## 0.4.8
 * Bump library dependencies
 * Bump indirect library dependencies
 

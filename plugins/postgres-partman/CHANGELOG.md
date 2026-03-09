@@ -1,5 +1,8 @@
 # Changelog
 
+## 17.0.2
+* Security: document OS package security updates (zlib CVE-2026-22184)
+
 ## 17.0.1
 * Fixing vulnerabilities
 

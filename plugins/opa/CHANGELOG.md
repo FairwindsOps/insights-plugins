@@ -1,10 +1,9 @@
 # Changelog
 
-## 3.1.11
-* Bump library dependencies
-* Bump indirect library dependencies
+## 3.1.12
+* Security: refresh package index and upgrade OS packages (zlib CVE-2026-22184)
 
-## 3.1.10
+## 3.1.11
 * Bump library dependencies
 * Bump indirect library dependencies
 
