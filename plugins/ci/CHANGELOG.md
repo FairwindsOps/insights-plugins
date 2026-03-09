@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.2.11
+* Bump trivy to 0.69.3, pluto to 5.23.0
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 6.2.10
 * Bump library dependencies
 * Bump indirect library dependencies
