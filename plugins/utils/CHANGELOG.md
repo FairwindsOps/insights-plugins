@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.12
+* Security: upgrade OS packages in image (e.g. zlib CVE-2026-22184)
+
 ## 0.0.11
 * bumped alpine to 3.23
 
