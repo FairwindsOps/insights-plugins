@@ -5,6 +5,10 @@
 * Bump library dependencies
 * Bump indirect library dependencies
 
+## 0.34.10
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 0.34.9
 * Remove kubectl from image to fix CVE-2025-68121 (Go crypto/tls in kubectl binary). Plugin uses in-cluster Kubernetes client, not kubectl.
 * Bumped CLOUD_SDK_VERSION to 558.0.0
