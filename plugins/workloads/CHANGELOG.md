@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.8.8
+* Bump library github.com/samber/lo to version v1.53.0
+* Bump library sigs.k8s.io/controller-runtime to version v0.23.3
+* Bump indirect library dependencies
+
 ## 2.8.7
 * Bump library dependencies
 * Bump indirect library dependencies

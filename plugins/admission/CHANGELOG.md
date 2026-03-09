@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.11
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa to version v0.0.0-20260303202014-f10e759073ed
+* Bump library github.com/fairwindsops/pluto/v5 to version v5.23.1
+* Bump library github.com/fairwindsops/polaris to version v0.0.0-20260309171616-2007a2c317c1
+* Bump library github.com/samber/lo to version v1.53.0
+* Bump library sigs.k8s.io/controller-runtime to version v0.23.3
+* Bump indirect library dependencies
+
 ## 2.2.10
 * Bump library dependencies
 * Bump indirect library dependencies

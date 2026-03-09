@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.10
+* Bump indirect library dependencies
+
 ## 0.2.9
 * Bump kubectlVersion to v1.35.2
 

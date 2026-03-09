@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.2.11
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa to version v0.0.0-20260303202014-f10e759073ed
+* Bump library github.com/fairwindsops/insights-plugins/plugins/trivy to version v0.0.0-20260303202014-f10e759073ed
+* Bump library github.com/samber/lo to version v1.53.0
+* Bump library trivyVersion to version 0.69.3
+* Bump library polarisVersion to version 10.1.6
+* Bump library plutoVersion to version 5.23.1
+* Bump indirect library dependencies
+
 ## 6.2.10
 * Bump library dependencies
 * Bump indirect library dependencies
