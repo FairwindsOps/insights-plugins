@@ -1,8 +1,5 @@
 # Changelog
 
-## 2.8.9
-* Security: refresh package index and upgrade OS packages (zlib CVE-2026-22184)
-
 ## 2.8.8
 * Bump library dependencies
 * Bump indirect library dependencies
