@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.34.11
+* Bump library github.com/google/go-containerregistry to version v0.21.2
+* Bump library github.com/samber/lo to version v1.53.0
+* Bump library trivyVersion to version 0.69.3
+* Bump library CLOUD_SDK_VERSION to version 559.0.0
+* Bump indirect library dependencies
+
 ## 0.34.10
 * Bump library dependencies
 * Bump indirect library dependencies

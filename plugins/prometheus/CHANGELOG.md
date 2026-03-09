@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.12
+* Bump library golang.org/x/oauth2 to version v0.36.0
+* Bump library sigs.k8s.io/controller-runtime to version v0.23.3
+* Bump indirect library dependencies
+
 ## 1.8.11
 * GKE Managed Prometheus fallback for kube-state-metrics request/limit metrics when KSM returns no data
 
