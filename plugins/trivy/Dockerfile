@@ -2,7 +2,7 @@ FROM alpine:3.23 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV trivyVersion=0.69.3
-RUN apk update && apk add curl
+RUN apk update && apk -U upgrade && apk add curl
 
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz

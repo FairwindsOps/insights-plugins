@@ -7,7 +7,7 @@ ENV plutoVersion=5.23.0
 ENV helmVersion=4.1.1
 
 # Bash and openssl are  required by the Helm script.
-RUN apk update && apk --no-cache add curl bash openssl ca-certificates
+RUN apk update && apk -U upgrade && apk --no-cache add curl bash openssl ca-certificates
 
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L --retry 3 --retry-delay 5 --fail https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
@@ -17,6 +17,7 @@ RUN curl -L --retry 3 --retry-delay 5 --fail https://get.helm.sh/helm-v${helmVer
 
 FROM alpine:3.23
 WORKDIR /insights
+# Security: upgrade OS packages (e.g. zlib CVE-2026-22184)
 RUN apk -U upgrade
 RUN apk add --no-cache skopeo libc6-compat
 RUN apk add --no-cache git
@@ -28,7 +29,7 @@ COPY --from=downloader /usr/local/bin/polaris /usr/local/bin/polaris
 COPY --from=downloader /usr/local/bin/helm /usr/local/bin/helm
 COPY --from=downloader /usr/local/bin/pluto /usr/local/bin/pluto
 
-# Final upgrade to pick up security fixes (e.g. gnutls CVE-2026-1584)
+# Final upgrade to pick up security fixes
 RUN apk update && apk -U upgrade
 
 CMD ["insights-ci"]
