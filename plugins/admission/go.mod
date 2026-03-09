@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/admission
 
-go 1.26.1
+go 1.26
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
