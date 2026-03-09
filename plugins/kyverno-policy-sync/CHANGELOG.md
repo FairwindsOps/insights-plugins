@@ -1,19 +1,16 @@
 # Changelog
 
-## 0.2.11
-* Security: refresh package index and upgrade OS packages (zlib CVE-2026-22184)
-
 ## 0.2.10
 * Bump library dependencies
 * Bump indirect library dependencies
 
 ## 0.2.9
+* Bump kubectlVersion to v1.35.2
+
+## 0.2.8
 * Bumped to Go 1.26
 * Bump library dependencies
 * Bump indirect library dependencies
-
-## 0.2.8
-* Bump kubectlVersion to v1.35.2
 
 ## 0.2.7
 * Bump kubectlVersion to v1.35.1

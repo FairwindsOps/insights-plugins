@@ -1,8 +1,5 @@
 # Changelog
 
-## 0.6.10
-* Security: refresh package index and upgrade OS packages (zlib CVE-2026-22184)
-
 ## 0.6.9
 * Bump library dependencies
 * Bump indirect library dependencies

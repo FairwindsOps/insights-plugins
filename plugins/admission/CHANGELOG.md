@@ -1,8 +1,5 @@
 # Changelog
 
-## 2.2.12
-* Security: refresh package index and upgrade OS packages (zlib CVE-2026-22184)
-
 ## 2.2.11
 * Bump library github.com/fairwindsops/pluto/v5 to v5.23.0
 * Bump library dependencies

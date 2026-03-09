@@ -1,12 +1,9 @@
 # Changelog
 
-## 1.0.8
-* Security: document OS package update (zlib CVE-2026-22184)
-
 ## 1.0.7
-* Removed FOCUS format support for AWS and GCP. AWS and GCP now only support standard (native) output format. Azure continues to output FOCUS format only. Removed `--format` and `--focusview` options. Removed `gcp-FOCUS-query.sql` template.
+* Bump CLOUD_SDK_VERSION to 559.0.0
 
-## 1.0.5
+## 1.0.6
 * Fixing vulnerabilities
 
 ## 1.0.4
