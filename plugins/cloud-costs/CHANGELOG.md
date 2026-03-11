@@ -4,10 +4,10 @@
 * Bump CLOUD_SDK_VERSION to 559.0.0
 
 ## 1.0.6
-* Fixing vulnerabilities
+* Removed FOCUS format support for AWS and GCP. AWS and GCP now only support standard (native) output format. Azure continues to output FOCUS format only. Removed `--format` and `--focusview` options. Removed `gcp-FOCUS-query.sql` template.
 
 ## 1.0.5
-* Removed FOCUS format support for AWS and GCP. AWS and GCP now only support standard (native) output format. Azure continues to output FOCUS format only. Removed `--format` and `--focusview` options. Removed `gcp-FOCUS-query.sql` template.
+* Fixing vulnerabilities
 
 ## 1.0.4
 * Added aggregation to GPC FOCUS view
