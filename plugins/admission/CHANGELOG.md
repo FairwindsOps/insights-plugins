@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2.2.12
-* Bump pluto to v5.23.1 (library and report version)
+* Bump pluto to v5.23.5 (library and report version)
 
 ## 2.2.11
 * Bump library github.com/fairwindsops/pluto/v5 to v5.23.0
