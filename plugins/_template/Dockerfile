@@ -4,7 +4,7 @@
 # Goreleaser builds the binary, which is copied into the Docker image here.
 FROM alpine:3.23
 WORKDIR /usr/local/bin
-RUN apk -U upgrade
+RUN apk update && apk -U upgrade
 RUN apk --no-cache add ca-certificates
 
 USER 1200

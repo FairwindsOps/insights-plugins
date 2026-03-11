@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.34.11
+* Bump trivy to 0.69.3, CLOUD_SDK_VERSION to 559.0.0
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 0.34.10
 * Bump library dependencies
 * Bump indirect library dependencies

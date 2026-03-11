@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.8.7
+## 2.8.8
 * Bump library dependencies
 * Bump indirect library dependencies
 

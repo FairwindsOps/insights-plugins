@@ -6,10 +6,10 @@ declare -a changed_plugins=($2)
 
 branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
-novaVersion=v3.11
-plutoVersion=v5.22
-goldilocksVersion=v4.14
-polarisVersion=10.1
+novaVersion=v3.11.13
+plutoVersion=v5.23.5
+goldilocksVersion=v4.14.18
+polarisVersion=10.1.6
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
 images=(quay.io/fairwinds/polaris:${polarisVersion} quay.io/fairwinds/nova:${novaVersion} us-docker.pkg.dev/fairwinds-ops/oss/pluto:${plutoVersion} us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:${goldilocksVersion})
@@ -63,7 +63,6 @@ plugin_map["quay.io/fairwinds/workloads"]="workloads"
 plugin_map["quay.io/fairwinds/on-demand-job-runner"]="on-demand-job-runner"
 plugin_map["quay.io/fairwinds/kyverno-policy-sync"]="kyverno-policy-sync"
 plugin_map["quay.io/fairwinds/insights-event-watcher"]="event-watcher"
-plugin_map["quay.io/fairwinds/postgres-partman"]="postgres-partman"
 
 echo "scanning all images"
 for name in "${images[@]}"; do
@@ -72,6 +71,10 @@ for name in "${images[@]}"; do
     fi
 
     name_without_tag=$(echo $name | sed "s/:.*//")
+    if [[ $name_without_tag == "quay.io/fairwinds/postgres-partman" ]]; then
+      echo "skipping postgres-partman"
+      continue
+    fi    
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
       if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
         name=$(echo $name_without_tag:$branch_name)

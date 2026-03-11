@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.21
+* apt upgrade
+
 ## 0.1.20
 * bumped alpine to 3.23
 

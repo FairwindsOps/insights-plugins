@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/azure-cli:2.83.0-azurelinux3.0
 ARG TARGETARCH
 ARG TARGETOS
 
-ENV CLOUD_SDK_VERSION=558.0.0
+ENV CLOUD_SDK_VERSION=559.0.0
 
 # Install base dependencies
 RUN tdnf -y update && \

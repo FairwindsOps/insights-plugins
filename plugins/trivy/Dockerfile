@@ -1,20 +1,20 @@
 FROM alpine:3.23 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.69.2
-RUN apk update && apk add curl
+ENV trivyVersion=0.69.3
+RUN apk update && apk -U upgrade && apk add curl
 
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
 FROM python:3-alpine3.23
 WORKDIR /trivy
-RUN apk -U upgrade
+RUN apk update && apk -U upgrade
 
 # for gcloud
 RUN apk --no-cache add bash curl libc6-compat ca-certificates
 
-ENV CLOUD_SDK_VERSION=558.0.0
+ENV CLOUD_SDK_VERSION=559.0.0
 
 RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 

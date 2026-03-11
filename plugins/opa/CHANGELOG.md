@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.11
+* Bump library dependencies
+* Bump indirect library dependencies
+
 ## 3.1.10
 * Bump library dependencies
 * Bump indirect library dependencies
