@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.13
+* Bump indirect library dependencies
+
 ## 1.8.12
 * Bump library dependencies
 * Bump indirect library dependencies
