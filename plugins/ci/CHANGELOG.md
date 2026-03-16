@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.2.13
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa to version v0.0.0-20260311165234-dec7bf83ba9c
+* Bump library github.com/fairwindsops/insights-plugins/plugins/trivy to version v0.0.0-20260311165234-dec7bf83ba9c
+* Bump library helm to version 4.1.3
+* Bump indirect library dependencies
+
 ## 6.2.12
 * Bump polaris to 10.1.6, pluto to 5.23.5
 
