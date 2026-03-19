@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.21.4
+* Bump kubectlVersion to v1.35.3
+
 ## 0.21.3
 * Fixing vulnerabilities
 

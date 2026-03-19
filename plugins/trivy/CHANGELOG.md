@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.13
+* Bump library CLOUD_SDK_VERSION to version 561.0.0
+
 ## 0.34.12
 * Bump library CLOUD_SDK_VERSION to version 560.0.0
 * Bump indirect library dependencies
