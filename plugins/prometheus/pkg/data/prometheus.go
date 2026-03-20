@@ -400,7 +400,7 @@ var gpuUtilizationQueries = []gpuUtilizationQuery{
   avg by (namespace, pod) (
     label_replace(
       label_replace(
-        avg_over_time(DCGM_FI_DEV_GPU_UTIL{exported_namespace=~".+", exported_pod=~".+"%s}[10m]),
+        avg_over_time(DCGM_FI_DEV_GPU_UTIL{exported_namespace=~".+", exported_pod=~".+"%s}[2m]),
         "namespace", "$1", "exported_namespace", "(.+)"
       ),
       "pod", "$1", "exported_pod", "(.+)"
