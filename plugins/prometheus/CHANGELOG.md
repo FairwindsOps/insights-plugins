@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.14
+* Improved collecting GPU usage
+
 ## 1.8.13
 * Bump indirect library dependencies
 
