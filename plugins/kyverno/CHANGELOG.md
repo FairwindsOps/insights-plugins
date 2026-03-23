@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+* Bump library k8s.io/apimachinery to version v0.35.3
+* Bump library k8s.io/client-go to version v0.35.3
+* Bump indirect library dependencies
+
 ## 0.5.11
 * Bump indirect library dependencies
 

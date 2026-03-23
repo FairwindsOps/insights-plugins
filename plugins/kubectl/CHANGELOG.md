@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.22.0
+* Bump library kubectlVersion to version 1.35.3
+
 ## 0.21.3
 * Fixing vulnerabilities
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+* Bump library k8s.io/api to version v0.35.3
+* Bump library k8s.io/apimachinery to version v0.35.3
+* Bump library k8s.io/client-go to version v0.35.3
+* Bump indirect library dependencies
+
 ## 0.2.11
 * Bump library github.com/aws/aws-sdk-go-v2 to version v1.41.4
 * Bump library github.com/aws/aws-sdk-go-v2/config to version v1.32.12
