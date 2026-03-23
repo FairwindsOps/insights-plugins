@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0
+## 0.6.11
 * Bump library kubectlVersion to version 1.35.3
 * Bump indirect library dependencies
 
