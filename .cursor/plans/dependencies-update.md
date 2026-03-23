@@ -56,17 +56,19 @@ Version number below are just for demonstration, not the latest used.
   - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
 
 4. For each updated sub-module
-   - Update `CHANGELOG.md`:
+  - Update `version.txt` using the following rule:
+    - if dep. major version changed OR potential breaking change, bump the MINOR version
+    - if dep. minor/patch version changed, bump the PATCH version
+  - Update `CHANGELOG.md`:
     - for each DIRECT updated lib append a bullet to the message `* Bump library X to version X.Y.Z`
     - If there is any INDIRECT lib updated, create a new bullet: `* Bump indirect library dependencies`
-  - Update `version.txt` by bumping a minor version
 
 5. Review changes
   - Summarize updated dependencies
   - Highlight major version bumps
   - Flag potential breaking changes
 
-6. Suggest a commit message in the following format: `chore(deps): Bump library dependencies (YYYY-MM-DD)`
+6. Commit with message in the following format: `chore(deps): Bump library dependencies (YYYY-MM-DD)`
 
 Output:
   - Summary of updated dependencies
