@@ -14,7 +14,7 @@ RUN apk update && apk -U upgrade
 # for gcloud
 RUN apk --no-cache add bash curl libc6-compat ca-certificates
 
-ENV CLOUD_SDK_VERSION=560.0.0
+ENV CLOUD_SDK_VERSION=561.0.0
 
 RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
