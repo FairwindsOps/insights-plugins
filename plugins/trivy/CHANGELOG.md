@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.34.13
+* Bump library github.com/google/go-containerregistry to version v0.21.3
+* Bump library k8s.io/api to version v0.35.3
+* Bump library k8s.io/apimachinery to version v0.35.3
+* Bump library k8s.io/client-go to version v0.35.3
+* Bump library CLOUD_SDK_VERSION to version 561.0.0
+* Bump indirect library dependencies
+
 ## 0.34.12
 * Bump library CLOUD_SDK_VERSION to version 560.0.0
 * Bump indirect library dependencies
