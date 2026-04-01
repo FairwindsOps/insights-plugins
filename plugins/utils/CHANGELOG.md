@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.13
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 0.0.12
 * Security: upgrade OS packages in image (e.g. zlib CVE-2026-22184)
 

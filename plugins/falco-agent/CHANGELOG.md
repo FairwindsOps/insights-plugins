@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.12
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 0.4.11
 * Bump library github.com/falcosecurity/falcosidekick to version v0.0.0-20260309151552-b1f4acff5582
 * Bump indirect library dependencies

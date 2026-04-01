@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.12
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 0.2.11
 * Bump library github.com/aws/aws-sdk-go-v2 to version v1.41.4
 * Bump library github.com/aws/aws-sdk-go-v2/config to version v1.32.12

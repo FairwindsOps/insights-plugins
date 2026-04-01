@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.14
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+* Bump direct Go dependencies to releases at least one week old on the module proxy (k8s.io/api, apimachinery, client-go v0.35.3; github.com/google/go-containerregistry v0.21.3).
+
 ## 2.2.13
 * Bump library github.com/fairwindsops/insights-plugins/plugins/opa to version v0.0.0-20260311165234-dec7bf83ba9c
 * Bump library github.com/fairwindsops/polaris to version v0.0.0-20260309171616-2007a2c317c1

@@ -1,5 +1,9 @@
 # Changelog
 
+## 6.2.14
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+* Bump direct Go dependency github.com/google/go-containerregistry to v0.21.3 (release at least one week old on module proxy).
+
 ## 6.2.13
 * Bump library github.com/fairwindsops/insights-plugins/plugins/opa to version v0.0.0-20260311165234-dec7bf83ba9c
 * Bump library github.com/fairwindsops/insights-plugins/plugins/trivy to version v0.0.0-20260311165234-dec7bf83ba9c

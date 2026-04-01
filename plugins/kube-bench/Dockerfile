@@ -2,8 +2,8 @@ FROM aquasec/kube-bench:v0.15.0
 
 ARG TARGETARCH
 ARG TARGETOS
-RUN apk update && apk -U upgrade
-RUN apk --no-cache add bash ca-certificates curl
+RUN apk --no-cache add bash ca-certificates curl \
+    && apk --no-cache add --upgrade libcrypto3 libssl3 zlib
 
 RUN rm /usr/local/bin/kubectl
 ENV kubectlVersion=1.35.2

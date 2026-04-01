@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.13
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 3.1.12
 * Bump indirect library dependencies
 

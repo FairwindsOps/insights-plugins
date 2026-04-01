@@ -2,8 +2,8 @@ FROM alpine:3.23
 ARG TARGETARCH
 ARG TARGETOS
 WORKDIR /usr/local/bin
-RUN apk update && apk -U upgrade
-RUN apk --no-cache add ca-certificates curl
+RUN apk --no-cache add ca-certificates curl \
+    && apk --no-cache add --upgrade libcrypto3 libssl3 zlib
 
 # Install kubectl
 ENV kubectlVersion=1.35.2
