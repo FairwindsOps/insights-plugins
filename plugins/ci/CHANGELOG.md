@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.2.14
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa to version v0.0.0-20260323141611-0faea3d8f298
+* Bump library github.com/fairwindsops/insights-plugins/plugins/trivy to version v0.0.0-20260323141611-0faea3d8f298
+* Bump indirect library dependencies
+
 ## 6.2.13
 * Bump library github.com/fairwindsops/insights-plugins/plugins/opa to version v0.0.0-20260311165234-dec7bf83ba9c
 * Bump library github.com/fairwindsops/insights-plugins/plugins/trivy to version v0.0.0-20260311165234-dec7bf83ba9c

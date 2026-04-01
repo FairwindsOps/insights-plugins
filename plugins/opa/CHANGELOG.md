@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.13
+* Bump library github.com/open-policy-agent/opa to version v1.15.0
+* Bump library k8s.io/api to version v0.35.3
+* Bump library k8s.io/apimachinery to version v0.35.3
+* Bump library k8s.io/client-go to version v0.35.3
+* Bump indirect library dependencies
+
 ## 3.1.12
 * Bump indirect library dependencies
 
