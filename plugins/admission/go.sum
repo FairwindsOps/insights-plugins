@@ -42,10 +42,10 @@ github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20260311165234-dec7b
 github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20260311165234-dec7bf83ba9c/go.mod h1:ky7PIirEg78RgnWr3Mcq+6IQA6UafVnLQdpuhvdmm38=
 github.com/fairwindsops/pluto/v5 v5.23.5 h1:Ob7CoOcKF//NznFqP9I2Qq5u9ibZg2vX6EctDYLs3c4=
 github.com/fairwindsops/pluto/v5 v5.23.5/go.mod h1:c/v2nKKdpaTIjg65wEPTwCldFdiHBmGOoXF7uH8OLEs=
-github.com/fairwindsops/polaris v0.0.0-20260309171616-2007a2c317c1 h1:EzuMgnL1ed0dJYLLRaztigVMmuDJ/cY6SFWvY4CSNZQ=
-github.com/fairwindsops/polaris v0.0.0-20260309171616-2007a2c317c1/go.mod h1:W0MdV/hBtCT9BhJGz3x1f+rOD6dyp3wP/P6jWuDwFPQ=
-github.com/fatih/color v1.18.0 h1:S8gINlzdQ840/4pfAwic/ZE0djQEH3wM94VfqLTZcOM=
-github.com/fatih/color v1.18.0/go.mod h1:4FelSpRwEGDpQ12mAdzqdOukCy4u8WUtOY6lkT/6HfU=
+github.com/fairwindsops/polaris v0.0.0-20260401181752-47c7deddfd66 h1:3q+OuVEZ6xowXMVNtEd3XTxEt3X8tyuWZDsaOu72FvU=
+github.com/fairwindsops/polaris v0.0.0-20260401181752-47c7deddfd66/go.mod h1:sx3fqGtcV96tr7MSchhRcbwBDJ0BLx1Le+ToTQpzfA4=
+github.com/fatih/color v1.19.0 h1:Zp3PiM21/9Ld6FzSKyL5c/BULoe/ONr9KlbYVOfG8+w=
+github.com/fatih/color v1.19.0/go.mod h1:zNk67I0ZUT1bEGsSGyCZYZNrHuTkJJB+r6Q9VuMi0LE=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/foxcpp/go-mockdns v1.2.0 h1:omK3OrHRD1IWJz1FuFBCFquhXslXoF17OvBS6JPzZF0=

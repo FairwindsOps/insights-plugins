@@ -8,7 +8,7 @@ require (
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v5 v5.23.5
-	github.com/fairwindsops/polaris v0.0.0-20260309171616-2007a2c317c1
+	github.com/fairwindsops/polaris v0.0.0-20260401181752-47c7deddfd66
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.53.0
 	github.com/sirupsen/logrus v1.9.4
@@ -32,7 +32,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
-	github.com/fatih/color v1.18.0 // indirect
+	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
