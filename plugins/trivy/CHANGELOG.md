@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.13
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 0.34.12
 * Bump library CLOUD_SDK_VERSION to version 560.0.0
 * Bump indirect library dependencies

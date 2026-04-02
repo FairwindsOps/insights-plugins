@@ -1,4 +1,4 @@
 FROM alpine:3.23
 
-RUN apk update && apk -U upgrade && \
-  apk --no-cache add curl jq bash openssl ca-certificates
+RUN apk --no-cache add curl jq bash openssl ca-certificates \
+    && apk --no-cache add --upgrade libcrypto3 libssl3 zlib

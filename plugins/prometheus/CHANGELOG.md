@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.15
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 1.8.14
 * Improved collecting GPU usage
 
