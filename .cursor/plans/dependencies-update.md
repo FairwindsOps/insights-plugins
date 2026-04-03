@@ -79,6 +79,7 @@ Requires `jq` on the PATH. If `jq` is missing, say so and skip automated age che
 
 7. Review changes
   - Summarize updated dependencies
+  - List the dependencies that were blocked due to release age policy
   - Highlight major version bumps
   - Flag potential breaking changes
 
