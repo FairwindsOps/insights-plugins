@@ -1,5 +1,9 @@
 # Changelog
 
+## 6.2.15
+* Bump library trivyVersion to version 0.69.4
+* Bump indirect library dependencies
+
 ## 6.2.14
 * Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
 * Bump direct Go dependency github.com/google/go-containerregistry to v0.21.3 (release at least one week old on module proxy).

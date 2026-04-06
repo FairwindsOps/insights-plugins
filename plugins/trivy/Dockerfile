@@ -1,7 +1,7 @@
 FROM alpine:3.23 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.69.3
+ENV trivyVersion=0.69.4
 RUN apk add --no-cache ca-certificates curl \
     && apk --no-cache add --upgrade libcrypto3 libssl3 zlib
 
