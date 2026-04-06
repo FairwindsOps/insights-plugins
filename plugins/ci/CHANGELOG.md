@@ -1,7 +1,6 @@
 # Changelog
 
 ## 6.2.15
-* Bump library trivyVersion to version 0.69.4
 * Bump indirect library dependencies
 
 ## 6.2.14
