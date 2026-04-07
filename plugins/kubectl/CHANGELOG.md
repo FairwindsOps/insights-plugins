@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.21.5
+* Bump library kubectlVersion to version 1.35.3
+
 ## 0.21.4
 * Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
 

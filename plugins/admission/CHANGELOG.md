@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.15
+* Bump indirect library dependencies
+
 ## 2.2.14
 * Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
 * Bump direct Go dependencies to releases at least one week old on the module proxy (k8s.io/api, apimachinery, client-go v0.35.3; github.com/google/go-containerregistry v0.21.3).
