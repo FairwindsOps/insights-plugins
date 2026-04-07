@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   slack: circleci/slack@4.12.5
   rok8s-scripts: fairwinds/rok8s-scripts@12.1.1
+  renovate: daniel-shuy/renovate@3.1.0
 
 commands:
   install_goreleaser_dependencies:
@@ -351,3 +352,24 @@ workflows:
     jobs:
       - build_and_push_plugins
       - scan_for_vulnerabilities
+
+  renovate:
+    triggers:
+      - schedule:
+          # Every Monday at 08:00 UTC
+          cron: "0 8 * * 1"
+          filters:
+            branches:
+              only:
+                - main
+    jobs:
+      - renovate/run
+
+  # TODO: remove this workflow after testing
+  renovate-test:
+    jobs:
+      - renovate/run:
+          filters:
+            branches:
+              only:
+                - add-renovate-plugins/vv/INS-2168
