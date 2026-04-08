@@ -67,6 +67,11 @@
   "packageRules": [
     {
       "matchManagers": ["gomod"],
+      "matchDepTypes": ["replace"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["gomod"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "Go non-major updates"
     },
