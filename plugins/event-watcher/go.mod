@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/aws/aws-sdk-go-v2 v1.41.5
-	github.com/aws/aws-sdk-go-v2/config v1.32.12
+	github.com/aws/aws-sdk-go-v2/config v1.32.13
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.64.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/spf13/cobra v1.10.2
