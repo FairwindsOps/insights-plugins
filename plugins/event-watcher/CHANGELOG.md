@@ -1,5 +1,8 @@
 # Changelog
 
+# 0.2.15
+* Bump 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to version v1.65.0
+
 ## 0.2.14
 * Bump library github.com/aws/aws-sdk-go-v2/config to version v1.32.13
 * Bump indirect library dependencies
