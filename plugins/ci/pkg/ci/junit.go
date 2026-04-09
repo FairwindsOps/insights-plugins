@@ -1,44 +1,47 @@
 package ci
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/fairwindsops/insights-plugins/plugins/ci/pkg/models"
-	"github.com/jstemmer/go-junit-report/formatter"
+	"github.com/jstemmer/go-junit-report/v2/junit"
 	"github.com/sirupsen/logrus"
 )
 
+const junitClassname = "fairwinds-insights-ci"
+
 // SaveJUnitFile will save the
 func (ci *CIScan) SaveJUnitFile(results models.ScanResults) error {
-	cases := make([]formatter.JUnitTestCase, 0)
+	suite := junit.Testsuite{
+		Name: "CI scan",
+		ID:   0,
+		Time: "0.000",
+	}
 
 	for _, actionItem := range results.NewActionItems {
-		cases = append(cases, formatter.JUnitTestCase{
-			Name: actionItem.GetReadableTitle(),
-			Failure: &formatter.JUnitFailure{
-				Message:  actionItem.Remediation,
-				Contents: fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
+		suite.AddTestcase(junit.Testcase{
+			Name:      actionItem.GetReadableTitle(),
+			Classname: junitClassname,
+			Failure: &junit.Result{
+				Message: actionItem.Remediation,
+				Data:    fmt.Sprintf("File: %s\nDescription: %s", actionItem.Notes, actionItem.Description),
 			},
 		})
 	}
 
 	for _, actionItem := range results.FixedActionItems {
-		cases = append(cases, formatter.JUnitTestCase{
-			Name: actionItem.GetReadableTitle(),
+		suite.AddTestcase(junit.Testcase{
+			Name:      actionItem.GetReadableTitle(),
+			Classname: junitClassname,
 		})
 	}
 
-	testSuites := formatter.JUnitTestSuites{
-		Suites: []formatter.JUnitTestSuite{
-			{
-				Tests:     len(results.NewActionItems) + len(results.FixedActionItems),
-				TestCases: cases,
-			},
-		},
-	}
+	var suites junit.Testsuites
+	suites.AddSuite(suite)
 
 	jUnitOutputFile := filepath.Join(ci.baseFolder, ci.config.Options.JUnitOutput)
 	err := os.MkdirAll(filepath.Dir(jUnitOutputFile), os.ModePerm)
@@ -46,12 +49,12 @@ func (ci *CIScan) SaveJUnitFile(results models.ScanResults) error {
 		return fmt.Errorf("could not create dir: %v", err)
 	}
 
-	xmlBytes, err := xml.MarshalIndent(testSuites, "", "\t")
-	if err != nil {
+	var buf bytes.Buffer
+	buf.WriteString(xml.Header)
+	if err := suites.WriteXML(&buf); err != nil {
 		return err
 	}
-	xmlBytes = append([]byte(xml.Header), xmlBytes...)
-	err = os.WriteFile(jUnitOutputFile, xmlBytes, 0644)
+	err = os.WriteFile(jUnitOutputFile, buf.Bytes(), 0644)
 	if err != nil {
 		return fmt.Errorf("could not save file: %v", err)
 	}
