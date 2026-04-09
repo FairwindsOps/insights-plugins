@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.16
+* Bump lib github.com/jstemmer/go-junit-report to v2.1.0
+
 ## 6.2.15
 * Bump indirect library dependencies
 
