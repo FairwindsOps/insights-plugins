@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.0
+* Bump library gomodules.xyz/jsonpatch/v3 to version v3.0.1
+* Bump indirect library dependencies
+
 ## 2.2.16
 * Bump library github.com/fairwindsops/pluto/v5 to v5.23.6
 * Bump indirect library dependencies
