@@ -9,9 +9,9 @@ permissions:
 
 jobs:
   stale:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v10.2.0
+      - uses: actions/stale@v4
         with:
           exempt-issue-labels: pinned
           stale-pr-label: stale
