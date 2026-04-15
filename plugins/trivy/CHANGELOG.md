@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.34.15
+* Bump library github.com/google/go-containerregistry to version v0.21.4
+* Bump indirect library dependencies
+
 ## 0.34.14
 * Bump library github.com/google/go-containerregistry to version v0.21.3
 * Bump library k8s.io/api to version v0.35.3
