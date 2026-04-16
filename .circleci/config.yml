@@ -293,6 +293,17 @@ jobs:
       - set_tags
       - run: ./.circleci/scripts/ci-plugin-e2e-test.sh
 
+  # On Renovate PRs, bump plugins/*/version.txt + CHANGELOG.md and push to the PR branch.
+  bump_renovate_pr_versions:
+    docker:
+      - image: cimg/go:1.26
+    steps:
+      - checkout
+      - set_vault
+      - run:
+          name: Bump version and changelog for Renovate PR
+          command: ./.circleci/scripts/bump-renovate-pr.sh
+
 workflows:
   version: 2
   release:
@@ -351,3 +362,11 @@ workflows:
     jobs:
       - build_and_push_plugins
       - scan_for_vulnerabilities
+
+  renovate_bump:
+    jobs:
+      - bump_renovate_pr_versions:
+          context: org-global
+          filters:
+            branches:
+              only: /renovate\/.*/
