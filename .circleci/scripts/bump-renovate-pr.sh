@@ -40,6 +40,9 @@ if git diff --quiet; then
   exit 0
 fi
 
+git config --global user.name "Insights CI"
+git config --global user.email insights@fairwinds.com
+
 git add plugins/*/version.txt plugins/*/CHANGELOG.md
 git commit -m "chore: bump version.txt and CHANGELOG.md for changed plugins"
 
