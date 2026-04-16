@@ -1,4 +1,9 @@
 tags.sh
+
+# Python
+__pycache__/
+*.py[cod]
+
 plugins/*/dist/
 plugins/*/.goreleaser.yml
 # MacOS files

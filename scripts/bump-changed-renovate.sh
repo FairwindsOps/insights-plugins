@@ -4,6 +4,8 @@ set -eo pipefail
 # Bump version.txt / CHANGELOG.md for plugins changed on a Renovate PR branch.
 # Intended for CI (e.g. .circleci/scripts/bump-renovate-pr.sh).
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
 message=$1
 
 if [[ -z $message ]]; then
@@ -13,12 +15,33 @@ fi
 
 bump_one_plugin() {
   local d=$1
-  local msg=$2
+  local fallback_msg=$2
+  local rel="${d#./}go.mod"
+  local bullets_tmp
+  bullets_tmp=$(mktemp)
+
+  if [[ -f "$rel" ]]; then
+    local py_out
+    py_out=$(python3 "${SCRIPT_DIR}/gomod-diff-changelog.py" "$rel" 2>/dev/null) || py_out=""
+    if [[ -n "$py_out" ]]; then
+      printf '%s\n' "$py_out" > "$bullets_tmp"
+    else
+      printf '%s\n' "$fallback_msg" > "$bullets_tmp"
+    fi
+  else
+    printf '%s\n' "$fallback_msg" > "$bullets_tmp"
+  fi
+
+  local version
   version=$(cat "$d/version.txt" | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
   echo "$version" > "$d/version.txt"
   echo -e "# Changelog" > /tmp/CHANGELOG.md
   echo -e "\n## $version" >> /tmp/CHANGELOG.md
-  echo -e "* $msg" >> /tmp/CHANGELOG.md
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" ]] && continue
+    echo "* $line" >> /tmp/CHANGELOG.md
+  done < "$bullets_tmp"
+  rm -f "$bullets_tmp"
   tail -n+2 "$d/CHANGELOG.md" >> /tmp/CHANGELOG.md
   mv /tmp/CHANGELOG.md "$d/CHANGELOG.md"
 }
