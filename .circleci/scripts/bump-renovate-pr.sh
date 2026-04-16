@@ -40,9 +40,6 @@ if git diff --quiet; then
   exit 0
 fi
 
-git config user.email "circleci@fairwinds.io"
-git config user.name "CircleCI Renovate bump"
-
 git add plugins/*/version.txt plugins/*/CHANGELOG.md
 git commit -m "chore: bump version.txt and CHANGELOG.md for changed plugins"
 

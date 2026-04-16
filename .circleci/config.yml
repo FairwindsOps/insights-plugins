@@ -308,7 +308,14 @@ workflows:
   version: 2
   release:
     jobs:
-      - test
+      - bump_renovate_pr_versions:
+          context: org-global
+          filters:
+            branches:
+              only: /renovate\/.*/
+      - test:
+          requires:
+            - bump_renovate_pr_versions
       - check_version_changed
       - validate_modified_opa_policies:
           name: Validate Modified OPA Policies
@@ -337,7 +344,7 @@ workflows:
       - ci_plugin_e2e:
           requires:
             - build_and_push_plugins
-            
+
   check_vulnerabilities:
     jobs:
       - scan_for_vulnerabilities
@@ -362,11 +369,3 @@ workflows:
     jobs:
       - build_and_push_plugins
       - scan_for_vulnerabilities
-
-  renovate_bump:
-    jobs:
-      - bump_renovate_pr_versions:
-          context: org-global
-          filters:
-            branches:
-              only: /renovate\/.*/
