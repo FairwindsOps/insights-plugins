@@ -312,9 +312,7 @@ workflows:
           filters:
             branches:
               only: /renovate\/.*/
-      - test:
-          requires:
-            - bump_renovate_pr_versions
+      - test
       - check_version_changed
       - validate_modified_opa_policies:
           name: Validate Modified OPA Policies
