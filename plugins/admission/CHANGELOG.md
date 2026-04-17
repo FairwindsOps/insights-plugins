@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.18
+* Bump library gomodules.xyz/jsonpatch/v3 to v3.0.1
+
 ## 2.2.17
 * Bump library golang.org/x/mod to v0.35.0
 
