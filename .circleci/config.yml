@@ -309,7 +309,6 @@ workflows:
   release:
     jobs:
       - bump_renovate_pr_versions:
-          context: org-global
           filters:
             branches:
               only: /renovate\/.*/
