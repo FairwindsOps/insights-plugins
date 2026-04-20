@@ -13,13 +13,13 @@ Kubernetes 1.35 makes in-place pod resize GA: CPU and memory requests/limits are
 - **Actual (applied):** `status.containerStatuses[*].resources`
 - **Scheduler/internal tracking:** `status.containerStatuses[*].allocatedResources` and resize conditions
 
-For Insights, the current behavior is still valid, but not always current for clusters using in-place resize:
+For Insights, behavior is **mixed** until the full plan lands:
 
-- `insights-plugins` workloads currently reports **spec/template** resources.
-- Insights backend stores those values in `k8s_resources.container_resources`.
-- Cost logic uses billed as `max(usage, request)` from these reported values.
+- **`insights-plugins` workloads (Phase 1 done):** each container still has **spec/template** CPU/memory in `Resource.Requests`/`Limits`; optional **`Resource.Actual`** is added when Running+Ready pods agree on `status.containerStatuses[].resources`.
+- **Insights backend (Phase 2 not started):** still ingests and stores **spec-shaped** values in `k8s_resources.container_resources`; it does not yet persist or use `Actual` for cost.
+- **Cost logic** still uses `max(usage, request)` from **reported** inputs (today: spec-oriented paths).
 
-Result: if resources are changed in-place without corresponding template updates, UI/cost/recommendation "current" values may lag real runtime state.
+Result: in-place skew is **reduced in the raw workloads JSON** (optional `Actual`), but **product/cost/UI** stay spec-based until backend and UI consume `Actual`.
 
 ---
 
@@ -59,8 +59,8 @@ Important caveat: in-place does not guarantee "no restart." Actual restart behav
 | Area | Impact | Why |
 |---|---|---|
 | Right-sizer | High opportunity | Can reduce disruption by attempting in-place resize after updating controller spec. |
-| Workloads report | Medium | Currently spec/template only; may lag actual when pods are resized in-place. |
-| Cost and recommendations | Medium | Billed math is right, but input request values can be stale if only template/spec is reported. |
+| Workloads report | Medium → mitigated (plugin) | Spec fields can still lag template; **optional `Actual` in workloads output** surfaces applied resources when status is present and replicas agree. Insights must adopt the field (Phase 2) for product value. |
+| Cost and recommendations | Medium (until Phase 2) | Billed math is right, but backend still keys off **spec**-shaped inputs; optional cost mode using **`Actual`** is Phase 2. |
 | Node allocation/capacity | Keep as-is | Should remain spec/scheduling semantics, not runtime-applied values. |
 
 ---
@@ -78,7 +78,7 @@ The previous draft was directionally correct but had a few issues:
 
 3. **"First pod with resources wins" is risky**
    - During rollouts, replicas can differ; selecting the first pod with status resources can produce noisy or misleading "actual."
-   - Use a deterministic policy (recommended below).
+   - **Phase 1 implements** Running+Ready filtering + **majority** fingerprint per container; ties **omit** `Actual`.
 
 4. **Prometheus caveat**
    - kube-state-metrics has active work to expose status-based resource metrics.
@@ -88,24 +88,30 @@ The previous draft was directionally correct but had a few issues:
 
 ## Recommended plan (prioritized)
 
-### Now (docs/product)
+Status is tracked by **phase** (see Implementation details). At a glance:
 
-- Document that workload resource views and costs are currently based on desired/spec inputs.
-- Note that in-place resize may not be fully reflected until template-based data catches up (or actual support is enabled).
+| Track | Status | Outcome |
+|--------|--------|---------|
+| **Phase 1 — workloads plugin** | **Done** | `GetAllTopControllersWithPods`, optional `Resource.Actual`, schema + tests (`pkg/actual.go`). |
+| **Phase 2 — Insights backend + product** | **Next** | Parse/persist `Actual`, optional cost mode, UI labels (Configured vs Applied). |
+| **Phase 3 — Prometheus / UX / right-sizer** | **Later** | Status metrics in KSM when stable; panels and right-sizer can align with applied resources. |
 
-### Next (plugin implementation)
+### Done (Phase 1)
 
-- Add optional actual resources to workloads output.
-- Keep existing spec fields unchanged for backward compatibility.
-- Keep node allocation spec-based.
+- Optional **applied** resources on workloads report (`Resource.Actual`), with **spec fields unchanged** for backward compatibility.
+- **Node allocation** unchanged (still spec/scheduling via `PodRequestsAndLimits(pod.Spec)`).
+- **Docs** (this file) describe behavior, limits, and roadmap.
 
-### Later (backend + product behavior)
+### Next (Phase 2 — backend and product)
 
-- Persist optional actual values in backend.
-- Add a setting: **Use actual resources for workload cost when available** (default off).
-- Update UI labels to clearly distinguish:
-  - **Configured (desired/spec)**
-  - **Applied (actual/status)**
+- Parse and persist optional container **`Actual`** from workloads reports (`pkg/reports/workloads.go` and storage).
+- Add a setting: **Use actual resources for workload cost when available** (default off); wire `pkg/database/metrics.go` when enabled.
+- Update UI copy to distinguish **Configured (desired/spec)** vs **Applied (actual/status)** wherever workload resources are shown.
+
+### Later (Phase 3 and follow-ups)
+
+- **Prometheus plugin:** optional status-based series when customer KSM exposes them (see kube-state-metrics section).
+- **Right-sizer / Goldilocks:** consider in-place resize after controller spec updates; align “current” with applied when backend exposes it.
 
 ---
 
@@ -115,23 +121,14 @@ The previous draft was directionally correct but had a few issues:
 
 **Status:** Implemented in this repo (workloads plugin).
 
-1. Switch from `GetAllTopControllersSummary` to `GetAllTopControllersWithPods` in workloads collection.
-2. Add optional `Actual` under each container resource in report model and `plugins/workloads/results.schema`.
-3. Convert pods from unstructured to `corev1.Pod`, then read:
-   - `pod.Status.ContainerStatuses[*].Resources.Requests`
-   - `pod.Status.ContainerStatuses[*].Resources.Limits`
-4. Populate `Actual` with a deterministic selection policy:
-   - consider only **Running** pods with **PodReady=True**;
-   - per container name, group pods by applied request/limit fingerprint; **majority wins**;
-   - if there is a tie for the highest vote count (including 1:1 splits during rollouts), **omit** `Actual` for that container.
-5. Keep existing `Requests`/`Limits` fields mapped from spec unchanged.
-6. Keep node allocation logic unchanged (`PodRequestsAndLimits(pod.Spec)` semantics).
-7. Add tests for:
-   - no status resources -> unchanged output,
-   - status resources present -> `Actual` emitted,
-   - mixed replicas during rollout -> deterministic behavior.
+Delivered:
 
-### Phase 2: `~/git/Insights` backend
+- `GetAllTopControllersWithPods` in workloads collection; unstructured pods converted to `corev1.Pod`.
+- Optional `Resource.Actual` in the report model and `plugins/workloads/results.schema`; spec `Requests`/`Limits` unchanged.
+- Aggregation from `status.containerStatuses[].resources`: **Running** + **PodReady=True**, per-container **majority** fingerprint, **omit** on vote tie; tests in `pkg/actual_test.go`.
+- Node allocation unchanged (`PodRequestsAndLimits(pod.Spec)`).
+
+### Phase 2: `~/git/Insights` backend (**next**)
 
 1. Extend workloads report parsing (`pkg/reports/workloads.go`) to accept optional container `Actual`.
 2. Persist actual values separately from existing spec columns (do not overwrite legacy request/limit fields).
@@ -144,10 +141,10 @@ The previous draft was directionally correct but had a few issues:
    - mixed availability of actual by container,
    - toggling cost setting on/off.
 
-### Phase 3: optional improvements
+### Phase 3: optional improvements (**later**)
 
 - Align Prometheus ingestion if/when status-resource metrics are available in target KSM versions.
-- Update Goldilocks/right-sizing UI semantics so "current" can reflect applied values.
+- Update Goldilocks/right-sizing UI semantics so "current" can reflect applied values (often depends on Phase 2 data in the app).
 
 ---
 
@@ -269,8 +266,8 @@ You may see guidance that conflates **desired (spec)** with **applied (status)**
 ## Open questions
 
 - **Resolved for Phase 1 workloads:** when replicas disagree on applied resources, use a **majority** among Running+Ready pods; **omit `Actual`** when the top vote is tied or there is no data.
-- Should actual-resource cost mode be cluster-level, org-level, or feature-flagged first?
-- Do we want a rollout gate (for example, only show actual when at least N% of ready pods agree)?
+- Should actual-resource **cost mode** (Phase 2) be cluster-level, org-level, or feature-flagged first?
+- Optional refinement: require **≥ N%** ready-pod agreement before emitting `Actual` (Phase 1 uses simple majority instead).
 
 ---
 
