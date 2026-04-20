@@ -362,6 +362,46 @@
                             "Memory",
                             "CPU"
                           ]
+                        },
+                        "Actual": {
+                          "type": "object",
+                          "description": "Optional runtime-applied resources from status.containerStatuses[].resources (Kubernetes in-place resize). Omitted when unavailable or ambiguous across replicas.",
+                          "properties": {
+                            "Requests": {
+                              "type": "object",
+                              "properties": {
+                                "Memory": {
+                                  "type": "string"
+                                },
+                                "CPU": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "Memory",
+                                "CPU"
+                              ]
+                            },
+                            "Limits": {
+                              "type": "object",
+                              "properties": {
+                                "Memory": {
+                                  "type": "string"
+                                },
+                                "CPU": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "Memory",
+                                "CPU"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "Requests",
+                            "Limits"
+                          ]
                         }
                       },
                       "required": [

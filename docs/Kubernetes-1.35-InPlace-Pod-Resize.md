@@ -1,6 +1,6 @@
 # Kubernetes 1.35 In-Place Pod Resize: Impact and Plan
 
-**Last updated:** March 2026  
+**Last updated:** April 2026  
 **Scope:** What changes with in-place resize, what it means for Insights, and a practical implementation plan.
 
 ---
@@ -40,7 +40,7 @@ Important caveat: in-place does not guarantee "no restart." Actual restart behav
 
 ### `insights-plugins`
 
-- **Workloads plugin** uses `GetAllTopControllersSummary` and emits container resources from `workload.PodSpec` (template/spec path), not per-pod status.
+- **Workloads plugin** uses `GetAllTopControllersWithPods` and emits **spec/template** CPU and memory in `Resource.Requests`/`Resource.Limits`; when enough **Running + Ready** pods agree, it also emits optional **`Resource.Actual`** from `status.containerStatuses[].resources` (per-container majority; omitted if ambiguous).
 - **Node allocation** uses `PodRequestsAndLimits(pod)` from `pod.Spec`; this should remain spec-based.
 - **Prometheus plugin** queries `kube_pod_container_resource_requests/limits` (spec-oriented metrics).
 - **Right-sizer plugin** can patch controller memory limits, but there is no current in-place resize implementation in code/TODO docs.
@@ -113,15 +113,17 @@ The previous draft was directionally correct but had a few issues:
 
 ### Phase 1: `insights-plugins` workloads
 
+**Status:** Implemented in this repo (workloads plugin).
+
 1. Switch from `GetAllTopControllersSummary` to `GetAllTopControllersWithPods` in workloads collection.
 2. Add optional `Actual` under each container resource in report model and `plugins/workloads/results.schema`.
 3. Convert pods from unstructured to `corev1.Pod`, then read:
    - `pod.Status.ContainerStatuses[*].Resources.Requests`
    - `pod.Status.ContainerStatuses[*].Resources.Limits`
 4. Populate `Actual` with a deterministic selection policy:
-   - prefer Running + Ready pods,
-   - prefer newest ready pod,
-   - if multiple disagree, choose majority value per container (or mark unknown and omit).
+   - consider only **Running** pods with **PodReady=True**;
+   - per container name, group pods by applied request/limit fingerprint; **majority wins**;
+   - if there is a tie for the highest vote count (including 1:1 splits during rollouts), **omit** `Actual` for that container.
 5. Keep existing `Requests`/`Limits` fields mapped from spec unchanged.
 6. Keep node allocation logic unchanged (`PodRequestsAndLimits(pod.Spec)` semantics).
 7. Add tests for:
@@ -209,7 +211,7 @@ There is **no** query path today for status-derived request/limit series. Any fu
 **How request/limit collection differs from non-GCP**
 
 - **Primary path is unchanged:** we still query kube-state-metrics-style metrics first (`kube_pod_container_resource_*` with `unit=` filters).
-- **Fallback path (GMP only):** if **any** of the CPU/memory request/limit queries return **no series** and `clusterName` is set, we retry using **GKE system metrics** exposed in PromQL as:
+- **Fallback path (GMP only):** for **each** of the CPU/memory request/limit queries, if that query’s result matrix is **empty** (`len(matrix)==0`) and `clusterName` is set, we retry **that metric only** using **GKE system metrics** exposed in PromQL as:
 
   `kubernetes_io:container_<name>{monitored_resource="k8s_container", cluster_name="<cluster>"}`
 
@@ -266,7 +268,7 @@ You may see guidance that conflates **desired (spec)** with **applied (status)**
 
 ## Open questions
 
-- What is the preferred deterministic rule when replicas disagree on actual values?
+- **Resolved for Phase 1 workloads:** when replicas disagree on applied resources, use a **majority** among Running+Ready pods; **omit `Actual`** when the top vote is tied or there is no data.
 - Should actual-resource cost mode be cluster-level, org-level, or feature-flagged first?
 - Do we want a rollout gate (for example, only show actual when at least N% of ready pods agree)?
 
@@ -280,6 +282,7 @@ You may see guidance that conflates **desired (spec)** with **applied (status)**
 - Google Cloud: [GKE / Kubernetes metrics (Cloud Monitoring)](https://cloud.google.com/monitoring/api/metrics_kubernetes)
 - Internal code paths:
   - `insights-plugins/plugins/workloads/pkg/info.go`
+  - `insights-plugins/plugins/workloads/pkg/actual.go` (aggregates optional `Actual`)
   - `insights-plugins/plugins/workloads/pkg/allocated.go`
   - `insights-plugins/plugins/prometheus/pkg/data/prometheus.go`
   - `insights-plugins/plugins/prometheus/pkg/data/data.go` (GMP detection + GKE fallback)
