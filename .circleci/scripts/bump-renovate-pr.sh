@@ -1,5 +1,6 @@
 #! /usr/bin/env bash
 # Bump plugins/*/version.txt and CHANGELOG.md on Renovate dependency PRs (CircleCI).
+# Runs only if the latest commit is by renovate[bot].
 # Requires GITHUB_TOKEN (repo scope) in project env or a context (e.g. org-global).
 set -euo pipefail
 
@@ -13,8 +14,9 @@ if [[ -z "${GITHUB_TOKEN:-}" ]]; then
   exit 1
 fi
 
-if [[ -z "${CIRCLE_PULL_REQUEST:-}" && -z "${CIRCLE_PR_NUMBER:-}" ]]; then
-  echo "Not a pull request pipeline; skipping bump."
+AUTHOR=$(git log -1 --format='%an')
+if [[ "$AUTHOR" != "renovate[bot]" ]]; then
+  echo "Latest commit author is not renovate[bot] (got '${AUTHOR}'); skipping bump."
   exit 0
 fi
 
