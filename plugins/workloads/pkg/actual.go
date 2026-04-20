@@ -1,36 +1,36 @@
 package workloads
 
 import (
+	"sort"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// aggregateAppliedResourcesByContainer returns per-container applied resources
-// derived from pod status (status.containerStatuses[].resources), using only
-// Running pods that report Ready. When multiple pods disagree, the majority wins;
-// on a tie at the top, Actual is omitted (nil) for that container.
-func aggregateAppliedResourcesByContainer(podObjs []unstructured.Unstructured, podSpec *corev1.PodSpec) map[string]*AppliedResources {
-	if podSpec == nil || len(podObjs) == 0 {
-		return nil
-	}
-
-	out := make(map[string]*AppliedResources)
-	for _, c := range podSpec.Containers {
-		if ar := aggregateOneContainer(c.Name, podObjs); ar != nil {
-			out[c.Name] = ar
-		}
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
+// SpecAppliedSkewPod is one pod whose applied resources (pod status) differ from
+// that pod's container spec for the given template container name.
+type SpecAppliedSkewPod struct {
+	Namespace string
+	Name      string
+	UID       string
+	Applied   AppliedResources
 }
 
-func aggregateOneContainer(containerName string, podObjs []unstructured.Unstructured) *AppliedResources {
-	counts := map[string]int{}
-	canonical := map[string]AppliedResources{}
+// SpecAppliedStats counts Running+Ready pods where status.containerStatuses[].resources
+// is present and semantically matches the pod's spec for that container, and lists pods
+// where it does not (in-place skew, rollout, etc.).
+type SpecAppliedStats struct {
+	ConvergedCount int
+	SkewPods       []SpecAppliedSkewPod `json:",omitempty"`
+}
+
+func computeSpecAppliedStats(containerName string, podObjs []unstructured.Unstructured) SpecAppliedStats {
+	var out SpecAppliedStats
+	if len(podObjs) == 0 {
+		return out
+	}
 
 	for _, u := range podObjs {
 		pod := &corev1.Pod{}
@@ -40,6 +40,12 @@ func aggregateOneContainer(containerName string, podObjs []unstructured.Unstruct
 		if pod.Status.Phase != corev1.PodRunning || !podReady(pod) {
 			continue
 		}
+
+		ctnSpec := findContainerInPodSpec(pod, containerName)
+		if ctnSpec == nil {
+			continue
+		}
+
 		var cs *corev1.ContainerStatus
 		for i := range pod.Status.ContainerStatuses {
 			if pod.Status.ContainerStatuses[i].Name == containerName {
@@ -50,35 +56,69 @@ func aggregateOneContainer(containerName string, podObjs []unstructured.Unstruct
 		if cs == nil || cs.Resources == nil || !resourceRequirementsPopulated(cs.Resources) {
 			continue
 		}
+
+		if resourceRequirementsCPUAndMemoryEqual(&ctnSpec.Resources, cs.Resources) {
+			out.ConvergedCount++
+			continue
+		}
+
 		applied := appliedResourcesFromRequirements(cs.Resources)
 		if applied == nil {
 			continue
 		}
-		k := appliedResourcesKey(*applied)
-		counts[k]++
-		canonical[k] = *applied
-	}
-	if len(counts) == 0 {
-		return nil
+		out.SkewPods = append(out.SkewPods, SpecAppliedSkewPod{
+			Namespace: pod.Namespace,
+			Name:      pod.Name,
+			UID:       string(pod.UID),
+			Applied:   *applied,
+		})
 	}
 
-	maxVotes := 0
-	for _, c := range counts {
-		if c > maxVotes {
-			maxVotes = c
+	if len(out.SkewPods) > 0 {
+		sort.Slice(out.SkewPods, func(i, j int) bool {
+			if out.SkewPods[i].Namespace != out.SkewPods[j].Namespace {
+				return out.SkewPods[i].Namespace < out.SkewPods[j].Namespace
+			}
+			return out.SkewPods[i].Name < out.SkewPods[j].Name
+		})
+	} else {
+		out.SkewPods = nil
+	}
+
+	return out
+}
+
+func findContainerInPodSpec(pod *corev1.Pod, name string) *corev1.Container {
+	for i := range pod.Spec.Containers {
+		if pod.Spec.Containers[i].Name == name {
+			return &pod.Spec.Containers[i]
 		}
 	}
-	var winners []string
-	for k, c := range counts {
-		if c == maxVotes {
-			winners = append(winners, k)
-		}
+	return nil
+}
+
+func resourceRequirementsCPUAndMemoryEqual(spec, status *corev1.ResourceRequirements) bool {
+	if spec == nil {
+		spec = &corev1.ResourceRequirements{}
 	}
-	if len(winners) != 1 {
-		return nil
+	if status == nil {
+		return false
 	}
-	w := canonical[winners[0]]
-	return &w
+	return qtyListEqual(spec.Requests, status.Requests, corev1.ResourceCPU) &&
+		qtyListEqual(spec.Requests, status.Requests, corev1.ResourceMemory) &&
+		qtyListEqual(spec.Limits, status.Limits, corev1.ResourceCPU) &&
+		qtyListEqual(spec.Limits, status.Limits, corev1.ResourceMemory)
+}
+
+func qtyListEqual(a, b corev1.ResourceList, name corev1.ResourceName) bool {
+	var qa, qb resource.Quantity
+	if q, ok := a[name]; ok {
+		qa = q
+	}
+	if q, ok := b[name]; ok {
+		qb = q
+	}
+	return qa.Cmp(qb) == 0
 }
 
 func podReady(pod *corev1.Pod) bool {
@@ -133,8 +173,4 @@ func qtyString(rl corev1.ResourceList, name corev1.ResourceName) string {
 	}
 	z := resource.MustParse("0")
 	return (&z).String()
-}
-
-func appliedResourcesKey(a AppliedResources) string {
-	return a.Requests.CPU + "\x00" + a.Requests.Memory + "\x00" + a.Limits.CPU + "\x00" + a.Limits.Memory
 }

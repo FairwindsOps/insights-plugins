@@ -62,7 +62,11 @@ type AppliedResources struct {
 type ResourceResult struct {
 	Requests ResourcesInfo
 	Limits   ResourcesInfo
-	Actual   *AppliedResources `json:",omitempty"`
+	// SpecAppliedConvergedCount is how many Running+Ready pods have status.containerStatuses[].resources
+	// populated and equal to that pod's container spec (CPU/memory requests and limits), for this container name.
+	SpecAppliedConvergedCount int `json:"SpecAppliedConvergedCount"`
+	// SpecAppliedSkewPods lists pods where applied status differs from pod spec (e.g. in-place resize); empty/nil when none.
+	SpecAppliedSkewPods []SpecAppliedSkewPod `json:",omitempty"`
 }
 
 // ResourcesInfo provides a request/limit item information.
@@ -136,9 +140,12 @@ func resourcesFromContainerSpec(container corev1.Container) ResourceResult {
 	return resources
 }
 
-func formatContainer(container corev1.Container, containerStatus corev1.ContainerStatus, time metav1.Time, actual *AppliedResources) ContainerResult {
+func formatContainer(container corev1.Container, containerStatus corev1.ContainerStatus, time metav1.Time, specApplied SpecAppliedStats) ContainerResult {
 	resources := resourcesFromContainerSpec(container)
-	resources.Actual = actual
+	resources.SpecAppliedConvergedCount = specApplied.ConvergedCount
+	if len(specApplied.SkewPods) > 0 {
+		resources.SpecAppliedSkewPods = specApplied.SkewPods
+	}
 	containerResult := ContainerResult{
 		Name:         container.Name,
 		Image:        container.Image,
@@ -172,16 +179,11 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	for _, workload := range workloads {
 		topController := workload.TopController
 
-		actualByContainer := aggregateAppliedResourcesByContainer(workload.Pods, workload.PodSpec)
-
 		var containers []ContainerResult
 		if workload.PodSpec != nil {
 			for _, ctn := range workload.PodSpec.Containers {
-				var actual *AppliedResources
-				if actualByContainer != nil {
-					actual = actualByContainer[ctn.Name]
-				}
-				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp(), actual))
+				stats := computeSpecAppliedStats(ctn.Name, workload.Pods)
+				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp(), stats))
 			}
 		}
 

@@ -15,11 +15,11 @@ Kubernetes 1.35 makes in-place pod resize GA: CPU and memory requests/limits are
 
 For Insights, behavior is **mixed** until the full plan lands:
 
-- **`insights-plugins` workloads (Phase 1 done):** each container still has **spec/template** CPU/memory in `Resource.Requests`/`Limits`; optional **`Resource.Actual`** is added when Running+Ready pods agree on `status.containerStatuses[].resources`.
-- **Insights backend (Phase 2 not started):** still ingests and stores **spec-shaped** values in `k8s_resources.container_resources`; it does not yet persist or use `Actual` for cost.
+- **`insights-plugins` workloads (Phase 1 done):** each container still has **template** CPU/memory in `Resource.Requests`/`Limits`. Per container, the report adds **`SpecAppliedConvergedCount`** and optional **`SpecAppliedSkewPods`**: for each **Running + Ready** pod with `status.containerStatuses[].resources` populated, we compare **that pod’s container spec** to **applied status** (CPU/memory); **converged** increments on match, **skew** lists pods with mismatch and their **Applied** values (empty when all match or no observable status).
+- **Insights backend (Phase 2 not started):** still ingests and stores **template/spec-shaped** values in `k8s_resources.container_resources`; it does not yet persist skew/converged or use applied status for cost.
 - **Cost logic** still uses `max(usage, request)` from **reported** inputs (today: spec-oriented paths).
 
-Result: in-place skew is **reduced in the raw workloads JSON** (optional `Actual`), but **product/cost/UI** stay spec-based until backend and UI consume `Actual`.
+Result: **Skew and convergence** are visible in the raw workloads JSON per container without listing every replica; **product/cost/UI** stay template/spec-based until backend consumes these fields.
 
 ---
 
@@ -40,7 +40,7 @@ Important caveat: in-place does not guarantee "no restart." Actual restart behav
 
 ### `insights-plugins`
 
-- **Workloads plugin** uses `GetAllTopControllersWithPods` and emits **spec/template** CPU and memory in `Resource.Requests`/`Resource.Limits`; when enough **Running + Ready** pods agree, it also emits optional **`Resource.Actual`** from `status.containerStatuses[].resources` (per-container majority; omitted if ambiguous).
+- **Workloads plugin** uses `GetAllTopControllersWithPods` and emits **template** CPU and memory in `Resource.Requests`/`Resource.Limits`, plus **`SpecAppliedConvergedCount`** and **`SpecAppliedSkewPods`** (per template container): compares each **pod’s** spec to `status.containerStatuses[].resources` for that container name; only Running+Ready pods with populated status resources participate.
 - **Node allocation** uses `PodRequestsAndLimits(pod)` from `pod.Spec`; this should remain spec-based.
 - **Prometheus plugin** queries `kube_pod_container_resource_requests/limits` (spec-oriented metrics).
 - **Right-sizer plugin** can patch controller memory limits, but there is no current in-place resize implementation in code/TODO docs.
@@ -59,8 +59,8 @@ Important caveat: in-place does not guarantee "no restart." Actual restart behav
 | Area | Impact | Why |
 |---|---|---|
 | Right-sizer | High opportunity | Can reduce disruption by attempting in-place resize after updating controller spec. |
-| Workloads report | Medium → mitigated (plugin) | Spec fields can still lag template; **optional `Actual` in workloads output** surfaces applied resources when status is present and replicas agree. Insights must adopt the field (Phase 2) for product value. |
-| Cost and recommendations | Medium (until Phase 2) | Billed math is right, but backend still keys off **spec**-shaped inputs; optional cost mode using **`Actual`** is Phase 2. |
+| Workloads report | Medium → mitigated (plugin) | Template `Requests`/`Limits` can still lag rollout; **converged count + skew list** surfaces per-pod spec vs applied mismatch without listing every matching pod. Insights must adopt fields (Phase 2) for product value. |
+| Cost and recommendations | Medium (until Phase 2) | Billed math is right, but backend still keys off **spec**-shaped inputs; optional cost mode using **applied/skew data** is Phase 2. |
 | Node allocation/capacity | Keep as-is | Should remain spec/scheduling semantics, not runtime-applied values. |
 
 ---
@@ -76,9 +76,8 @@ The previous draft was directionally correct but had a few issues:
    - `plugins/right-sizer/TODO.md` currently does not track in-place resize work.
    - Either add a TODO item there or remove that internal pointer.
 
-3. **"First pod with resources wins" is risky**
-   - During rollouts, replicas can differ; selecting the first pod with status resources can produce noisy or misleading "actual."
-   - **Phase 1 implements** Running+Ready filtering + **majority** fingerprint per container; ties **omit** `Actual`.
+3. **Aggregate "one true Actual" across replicas** can mislead during rollouts.
+   - **Phase 1 implements** per-pod **spec vs status** comparison; **converged count** + **skew list** (only divergent pods with applied values).
 
 4. **Prometheus caveat**
    - kube-state-metrics has active work to expose status-based resource metrics.
@@ -92,19 +91,19 @@ Status is tracked by **phase** (see Implementation details). At a glance:
 
 | Track | Status | Outcome |
 |--------|--------|---------|
-| **Phase 1 — workloads plugin** | **Done** | `GetAllTopControllersWithPods`, optional `Resource.Actual`, schema + tests (`pkg/actual.go`). |
-| **Phase 2 — Insights backend + product** | **Next** | Parse/persist `Actual`, optional cost mode, UI labels (Configured vs Applied). |
+| **Phase 1 — workloads plugin** | **Done** | `GetAllTopControllersWithPods`, `SpecAppliedConvergedCount` / `SpecAppliedSkewPods`, schema + tests (`pkg/actual.go`). |
+| **Phase 2 — Insights backend + product** | **Next** | Parse/persist converged/skew (or derived applied), optional cost mode, UI labels (Configured vs Applied). |
 | **Phase 3 — Prometheus / UX / right-sizer** | **Later** | Status metrics in KSM when stable; panels and right-sizer can align with applied resources. |
 
 ### Done (Phase 1)
 
-- Optional **applied** resources on workloads report (`Resource.Actual`), with **spec fields unchanged** for backward compatibility.
+- **`SpecAppliedConvergedCount`** and **`SpecAppliedSkewPods`** on each container’s `Resource`, with template **`Requests`/`Limits` unchanged** for backward compatibility.
 - **Node allocation** unchanged (still spec/scheduling via `PodRequestsAndLimits(pod.Spec)`).
 - **Docs** (this file) describe behavior, limits, and roadmap.
 
 ### Next (Phase 2 — backend and product)
 
-- Parse and persist optional container **`Actual`** from workloads reports (`pkg/reports/workloads.go` and storage).
+- Parse and persist **`SpecAppliedConvergedCount`**, **`SpecAppliedSkewPods`**, or derived fields from workloads reports (`pkg/reports/workloads.go` and storage).
 - Add a setting: **Use actual resources for workload cost when available** (default off); wire `pkg/database/metrics.go` when enabled.
 - Update UI copy to distinguish **Configured (desired/spec)** vs **Applied (actual/status)** wherever workload resources are shown.
 
@@ -124,21 +123,21 @@ Status is tracked by **phase** (see Implementation details). At a glance:
 Delivered:
 
 - `GetAllTopControllersWithPods` in workloads collection; unstructured pods converted to `corev1.Pod`.
-- Optional `Resource.Actual` in the report model and `plugins/workloads/results.schema`; spec `Requests`/`Limits` unchanged.
-- Aggregation from `status.containerStatuses[].resources`: **Running** + **PodReady=True**, per-container **majority** fingerprint, **omit** on vote tie; tests in `pkg/actual_test.go`.
+- Per container: **`SpecAppliedConvergedCount`** and **`SpecAppliedSkewPods`** in the report model and `plugins/workloads/results.schema`; template `Requests`/`Limits` unchanged.
+- Compare **each pod’s** container spec to **`status.containerStatuses[].resources`** (CPU/memory `resource.Quantity` semantics); **Running** + **PodReady=True**; only pods with populated applied status are counted or listed; tests in `pkg/actual_test.go`.
 - Node allocation unchanged (`PodRequestsAndLimits(pod.Spec)`).
 
 ### Phase 2: `~/git/Insights` backend (**next**)
 
-1. Extend workloads report parsing (`pkg/reports/workloads.go`) to accept optional container `Actual`.
-2. Persist actual values separately from existing spec columns (do not overwrite legacy request/limit fields).
+1. Extend workloads report parsing (`pkg/reports/workloads.go`) to accept **`SpecAppliedConvergedCount`** / **`SpecAppliedSkewPods`** (or derived columns).
+2. Persist applied/skew-related values separately from existing spec columns (do not overwrite legacy request/limit fields).
 3. Update cost pipeline (`pkg/database/metrics.go`) behind a setting:
    - default: existing spec-based behavior,
    - optional: use actual request for billed comparisons when available.
 4. Add migration and API/query support to expose both desired and actual consistently.
 5. Add regression tests for:
-   - legacy reports (no actual),
-   - mixed availability of actual by container,
+   - legacy reports (no `SpecApplied*` fields),
+   - mixed convergence/skew by container,
    - toggling cost setting on/off.
 
 ### Phase 3: optional improvements (**later**)
@@ -265,9 +264,9 @@ You may see guidance that conflates **desired (spec)** with **applied (status)**
 
 ## Open questions
 
-- **Resolved for Phase 1 workloads:** when replicas disagree on applied resources, use a **majority** among Running+Ready pods; **omit `Actual`** when the top vote is tied or there is no data.
-- Should actual-resource **cost mode** (Phase 2) be cluster-level, org-level, or feature-flagged first?
-- Optional refinement: require **≥ N%** ready-pod agreement before emitting `Actual` (Phase 1 uses simple majority instead).
+- **Resolved for Phase 1 workloads:** per-pod **spec vs applied** comparison; **converged count** + **skew-only list** (no aggregate “winner” across replicas).
+- Should applied-resource **cost mode** (Phase 2) be cluster-level, org-level, or feature-flagged first?
+- Optional refinement: gate listing on **≥ N%** of Running+Ready pods with observable status (Phase 1 lists every divergent pod with applied values).
 
 ---
 
@@ -279,7 +278,7 @@ You may see guidance that conflates **desired (spec)** with **applied (status)**
 - Google Cloud: [GKE / Kubernetes metrics (Cloud Monitoring)](https://cloud.google.com/monitoring/api/metrics_kubernetes)
 - Internal code paths:
   - `insights-plugins/plugins/workloads/pkg/info.go`
-  - `insights-plugins/plugins/workloads/pkg/actual.go` (aggregates optional `Actual`)
+  - `insights-plugins/plugins/workloads/pkg/actual.go` (`SpecAppliedConvergedCount`, `SpecAppliedSkewPods`)
   - `insights-plugins/plugins/workloads/pkg/allocated.go`
   - `insights-plugins/plugins/prometheus/pkg/data/prometheus.go`
   - `insights-plugins/plugins/prometheus/pkg/data/data.go` (GMP detection + GKE fallback)

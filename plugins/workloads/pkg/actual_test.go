@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func podUnstructured(t *testing.T, pod *corev1.Pod) unstructured.Unstructured {
@@ -18,119 +19,138 @@ func podUnstructured(t *testing.T, pod *corev1.Pod) unstructured.Unstructured {
 	return unstructured.Unstructured{Object: o}
 }
 
-func readyPod(name string, res *corev1.ResourceRequirements) *corev1.Pod {
+func podWithResources(name, ns string, specReq, statusReq *corev1.ResourceRequirements) *corev1.Pod {
 	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name, Namespace: ns, UID: types.UID("uid-" + name),
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:      "app",
+				Image:     "img",
+				Resources: derefReq(specReq),
+			}},
+		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
 			Conditions: []corev1.PodCondition{
 				{Type: corev1.PodReady, Status: corev1.ConditionTrue},
 			},
-			ContainerStatuses: []corev1.ContainerStatus{
-				{Name: "app", Resources: res},
-			},
+			ContainerStatuses: []corev1.ContainerStatus{{
+				Name:      "app",
+				Resources: statusReq,
+			}},
 		},
 	}
 }
 
-func TestAggregateAppliedResourcesByContainer_nilAndEmpty(t *testing.T) {
-	spec := &corev1.PodSpec{
-		Containers: []corev1.Container{{Name: "app", Image: "x"}},
+func derefReq(r *corev1.ResourceRequirements) corev1.ResourceRequirements {
+	if r == nil {
+		return corev1.ResourceRequirements{}
 	}
-	require.Nil(t, aggregateAppliedResourcesByContainer(nil, spec))
-	require.Nil(t, aggregateAppliedResourcesByContainer(nil, nil))
-
-	out := aggregateAppliedResourcesByContainer([]unstructured.Unstructured{}, spec)
-	require.Nil(t, out)
+	return *r
 }
 
-func TestAggregateAppliedResourcesByContainer_singlePod(t *testing.T) {
-	spec := &corev1.PodSpec{
-		Containers: []corev1.Container{{Name: "app", Image: "x"}},
-	}
+func TestComputeSpecAppliedStats_specMatchesStatus(t *testing.T) {
 	res := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			corev1.ResourceCPU:    resource.MustParse("100m"),
 			corev1.ResourceMemory: resource.MustParse("128Mi"),
 		},
 		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("200m"),
-			corev1.ResourceMemory: resource.MustParse("256Mi"),
+			corev1.ResourceCPU: resource.MustParse("200m"),
 		},
 	}
-	u := podUnstructured(t, readyPod("p1", res))
-	out := aggregateAppliedResourcesByContainer([]unstructured.Unstructured{u}, spec)
-	require.NotNil(t, out)
-	require.NotNil(t, out["app"])
-	require.Equal(t, "100m", out["app"].Requests.CPU)
-	require.Equal(t, "128Mi", out["app"].Requests.Memory)
-	require.Equal(t, "200m", out["app"].Limits.CPU)
-	require.Equal(t, "256Mi", out["app"].Limits.Memory)
+	p := podWithResources("p1", "default", res, res)
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 1, stats.ConvergedCount)
+	require.Nil(t, stats.SkewPods)
 }
 
-func TestAggregateAppliedResourcesByContainer_majorityTie(t *testing.T) {
-	spec := &corev1.PodSpec{
-		Containers: []corev1.Container{{Name: "app", Image: "x"}},
-	}
-	resA := &corev1.ResourceRequirements{
+func TestComputeSpecAppliedStats_skew(t *testing.T) {
+	spec := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
 	}
-	resB := &corev1.ResourceRequirements{
+	status := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("200m")},
 	}
-	p1 := podUnstructured(t, readyPod("p1", resA))
-	p2 := podUnstructured(t, readyPod("p2", resB))
-	out := aggregateAppliedResourcesByContainer([]unstructured.Unstructured{p1, p2}, spec)
-	require.Nil(t, out)
+	p := podWithResources("p1", "prod", spec, status)
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 0, stats.ConvergedCount)
+	require.Len(t, stats.SkewPods, 1)
+	require.Equal(t, "prod", stats.SkewPods[0].Namespace)
+	require.Equal(t, "p1", stats.SkewPods[0].Name)
+	require.Equal(t, "uid-p1", stats.SkewPods[0].UID)
+	require.Equal(t, "200m", stats.SkewPods[0].Applied.Requests.CPU)
 }
 
-func TestAggregateAppliedResourcesByContainer_majorityWins(t *testing.T) {
-	spec := &corev1.PodSpec{
-		Containers: []corev1.Container{{Name: "app", Image: "x"}},
-	}
-	resA := &corev1.ResourceRequirements{
-		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
-	}
-	resB := &corev1.ResourceRequirements{
-		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("200m")},
-	}
-	p1 := podUnstructured(t, readyPod("p1", resA))
-	p2 := podUnstructured(t, readyPod("p2", resA))
-	p3 := podUnstructured(t, readyPod("p3", resB))
-	out := aggregateAppliedResourcesByContainer([]unstructured.Unstructured{p1, p2, p3}, spec)
-	require.NotNil(t, out)
-	require.NotNil(t, out["app"])
-	require.Equal(t, "100m", out["app"].Requests.CPU)
-}
-
-func TestAggregateAppliedResourcesByContainer_skipsNotRunning(t *testing.T) {
-	spec := &corev1.PodSpec{
-		Containers: []corev1.Container{{Name: "app", Image: "x"}},
-	}
+func TestComputeSpecAppliedStats_convergedAndSkew(t *testing.T) {
 	res := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
 	}
-	pod := readyPod("p1", res)
-	pod.Status.Phase = corev1.PodPending
-	u := podUnstructured(t, pod)
-	out := aggregateAppliedResourcesByContainer([]unstructured.Unstructured{u}, spec)
-	require.Nil(t, out)
+	skewed := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("500m")},
+	}
+	p1 := podWithResources("a", "ns", res, res)
+	p2 := podWithResources("b", "ns", res, res)
+	p3 := podWithResources("c", "ns", res, skewed)
+	var u []unstructured.Unstructured
+	u = append(u, podUnstructured(t, p1), podUnstructured(t, p2), podUnstructured(t, p3))
+	stats := computeSpecAppliedStats("app", u)
+	require.Equal(t, 2, stats.ConvergedCount)
+	require.Len(t, stats.SkewPods, 1)
+	require.Equal(t, "c", stats.SkewPods[0].Name)
 }
 
-func TestAggregateAppliedResourcesByContainer_skipsNotReady(t *testing.T) {
-	spec := &corev1.PodSpec{
-		Containers: []corev1.Container{{Name: "app", Image: "x"}},
+func TestComputeSpecAppliedStats_semanticCpuEqual(t *testing.T) {
+	spec := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
 	}
+	status := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("0.1")},
+	}
+	p := podWithResources("p1", "default", spec, status)
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 1, stats.ConvergedCount)
+	require.Nil(t, stats.SkewPods)
+}
+
+func TestComputeSpecAppliedStats_skipsNotRunning(t *testing.T) {
 	res := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
 	}
-	pod := readyPod("p1", res)
-	pod.Status.Conditions = []corev1.PodCondition{
-		{Type: corev1.PodReady, Status: corev1.ConditionFalse},
+	p := podWithResources("p1", "default", res, res)
+	p.Status.Phase = corev1.PodPending
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 0, stats.ConvergedCount)
+	require.Nil(t, stats.SkewPods)
+}
+
+func TestComputeSpecAppliedStats_skipsNotReady(t *testing.T) {
+	res := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
 	}
-	u := podUnstructured(t, pod)
-	out := aggregateAppliedResourcesByContainer([]unstructured.Unstructured{u}, spec)
-	require.Nil(t, out)
+	p := podWithResources("p1", "default", res, res)
+	p.Status.Conditions = []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionFalse}}
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 0, stats.ConvergedCount)
+}
+
+func TestComputeSpecAppliedStats_noStatusResources(t *testing.T) {
+	res := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")},
+	}
+	p := podWithResources("p1", "default", res, res)
+	p.Status.ContainerStatuses[0].Resources = nil
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 0, stats.ConvergedCount)
+	require.Nil(t, stats.SkewPods)
 }
 
 func TestAppliedResourcesFromRequirements_requestFromLimitMirror(t *testing.T) {

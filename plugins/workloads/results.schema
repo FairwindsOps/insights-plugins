@@ -363,50 +363,50 @@
                             "CPU"
                           ]
                         },
-                        "Actual": {
-                          "type": "object",
-                          "description": "Optional runtime-applied resources from status.containerStatuses[].resources (Kubernetes in-place resize). Omitted when unavailable or ambiguous across replicas.",
-                          "properties": {
-                            "Requests": {
-                              "type": "object",
-                              "properties": {
-                                "Memory": {
-                                  "type": "string"
+                        "SpecAppliedConvergedCount": {
+                          "type": "integer",
+                          "description": "Running+Ready pods where status.containerStatuses[].resources matches this pod's container spec (CPU/memory) for this container name."
+                        },
+                        "SpecAppliedSkewPods": {
+                          "type": "array",
+                          "description": "Pods where applied resources in status differ from that pod's container spec (e.g. in-place resize in progress).",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "Namespace": { "type": "string" },
+                              "Name": { "type": "string" },
+                              "UID": { "type": "string" },
+                              "Applied": {
+                                "type": "object",
+                                "properties": {
+                                  "Requests": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Memory": { "type": "string" },
+                                      "CPU": { "type": "string" }
+                                    },
+                                    "required": [ "Memory", "CPU" ]
+                                  },
+                                  "Limits": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Memory": { "type": "string" },
+                                      "CPU": { "type": "string" }
+                                    },
+                                    "required": [ "Memory", "CPU" ]
+                                  }
                                 },
-                                "CPU": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "Memory",
-                                "CPU"
-                              ]
+                                "required": [ "Requests", "Limits" ]
+                              }
                             },
-                            "Limits": {
-                              "type": "object",
-                              "properties": {
-                                "Memory": {
-                                  "type": "string"
-                                },
-                                "CPU": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "Memory",
-                                "CPU"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "Requests",
-                            "Limits"
-                          ]
+                            "required": [ "Namespace", "Name", "UID", "Applied" ]
+                          }
                         }
                       },
                       "required": [
                         "Requests",
-                        "Limits"
+                        "Limits",
+                        "SpecAppliedConvergedCount"
                       ]
                     }
                   },
