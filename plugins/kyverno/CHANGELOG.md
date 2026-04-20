@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.13
+* Bump library k8s.io/apimachinery to version v0.35.3
+* Bump library k8s.io/client-go to version v0.35.3
+* Bump indirect library dependencies
+
+## 0.5.12
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 0.5.11
 * Bump indirect library dependencies
 

@@ -395,8 +395,22 @@ type gpuUtilizationQuery struct {
 // gpuUtilizationQueries lists all vendor-specific GPU utilization queries.
 // Missing exporters will return empty results (not errors).
 var gpuUtilizationQueries = []gpuUtilizationQuery{
-	// NVIDIA DCGM Exporter - reports 0-100%
-	{"nvidia", `avg by (namespace, pod) (DCGM_FI_DEV_GPU_UTIL{namespace!="", pod!=""%s}) / 100`},
+	// NVIDIA DCGM Exporter - gauge 0–100%. When Prometheus keeps scrape target
+	{"nvidia", `(
+  avg by (namespace, pod) (
+    label_replace(
+      label_replace(
+        avg_over_time(DCGM_FI_DEV_GPU_UTIL{exported_namespace=~".+", exported_pod=~".+"%s}[2m]),
+        "namespace", "$1", "exported_namespace", "(.+)"
+      ),
+      "pod", "$1", "exported_pod", "(.+)"
+    )
+  )
+or
+  avg by (namespace, pod) (
+    avg_over_time(DCGM_FI_DEV_GPU_UTIL{namespace!="", pod!="", exported_namespace="", exported_pod=""%s}[2m])
+  )
+) / 100`},
 	// AMD Device Metrics Exporter (ROCm) - reports 0-100%
 	// GPU_GFX_ACTIVITY measures graphics engine usage percentage
 	{"amd", `avg by (namespace, pod) (GPU_GFX_ACTIVITY{namespace!="", pod!=""%s}) / 100`},
@@ -417,7 +431,7 @@ func getGPUUsage(ctx context.Context, api prometheusV1.API, r prometheusV1.Range
 
 	var allResults model.Matrix
 	for _, q := range gpuUtilizationQueries {
-		query := fmt.Sprintf(q.query, clusterFilter)
+		query := strings.ReplaceAll(q.query, "%s", clusterFilter)
 		values, err := queryPrometheus(ctx, api, r, query)
 		if err != nil {
 			// Exporter not installed for this vendor - this is expected

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "minimumReleaseAge": "7 days",
+  "enabledManagers": [
+    "gomod",
+    "dockerfile"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["ENV trivyVersion=(?<currentValue>[\\d.]+)"],
+      "depNameTemplate": "aquasecurity/trivy",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["ENV polarisVersion=(?<currentValue>[\\d.]+)"],
+      "depNameTemplate": "FairwindsOps/polaris",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["ENV plutoVersion=(?<currentValue>[\\d.]+)"],
+      "depNameTemplate": "FairwindsOps/pluto",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["ENV helmVersion=(?<currentValue>[\\d.]+)"],
+      "depNameTemplate": "helm/helm",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["ENV kubectlVersion=(?<currentValue>[\\d.]+)"],
+      "depNameTemplate": "kubernetes/kubernetes",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["ENV CLOUD_SDK_VERSION=(?<currentValue>[\\d.]+)"],
+      "depNameTemplate": "google/cloud-sdk",
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["ENV PG_PARTMAN_VERSION=(?<currentValue>v[\\d.]+)"],
+      "depNameTemplate": "pgpartman/pg_partman",
+      "datasourceTemplate": "github-releases"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["replace"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "Go non-major updates"
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Go major updates"
+    },
+    {
+      "matchManagers": ["dockerfile", "regex"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "Dockerfile non-major updates"
+    },
+    {
+      "matchManagers": ["dockerfile", "regex"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Dockerfile major updates"
+    }
+  ]
+}

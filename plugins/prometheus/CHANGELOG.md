@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.16
+* Bump library k8s.io/api, k8s.io/apimachinery, k8s.io/client-go to v0.35.3
+
+## 1.8.15
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
+## 1.8.14
+* Improved collecting GPU usage
+
 ## 1.8.13
 * Bump indirect library dependencies
 

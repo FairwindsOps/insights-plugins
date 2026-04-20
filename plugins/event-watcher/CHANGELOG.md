@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.17
+* Bump github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to version v1.68.0
+
+## 0.2.16
+* Bump github.com/aws/aws-sdk-go-v2/config to version v1.32.14
+* Bump github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to version v1.67.0
+
+## 0.2.15
+* Bump 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to version v1.65.0
+
+## 0.2.14
+* Bump library github.com/aws/aws-sdk-go-v2/config to version v1.32.13
+* Bump indirect library dependencies
+
+## 0.2.13
+* Bump library github.com/aws/aws-sdk-go-v2 to version v1.41.5
+* Bump library k8s.io/api to version v0.35.3
+* Bump library k8s.io/apimachinery to version v0.35.3
+* Bump library k8s.io/client-go to version v0.35.3
+* Bump indirect library dependencies
+
+## 0.2.12
+* Harden Alpine-based Docker images: targeted upgrades for libcrypto3, libssl3, and zlib instead of full `apk upgrade` (narrower supply-chain exposure).
+
 ## 0.2.11
 * Bump library github.com/aws/aws-sdk-go-v2 to version v1.41.4
 * Bump library github.com/aws/aws-sdk-go-v2/config to version v1.32.12

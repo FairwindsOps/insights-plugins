@@ -55,18 +55,35 @@ Version number below are just for demonstration, not the latest used.
 - downloader:
   - kubectlVersion=1.35.2 (source https://github.com/kubernetes/kubectl/tags)
 
-4. For each updated sub-module
-   - Update `CHANGELOG.md`:
+5. Check release age (policy)
+
+**Policy:** Prefer versions that have been published for **at least one week**. If the resolved version is newer than that, **revert that module** to the previous working version (or pick an older tag) and note it in the summary.
+
+For each important upgraded module, check the publish time:
+
+```bash
+go list -m -json <module>@<version> | jq -r .Time
+```
+
+Example module string: `github.com/stretchr/testify@v1.8.4`
+
+Requires `jq` on the PATH. If `jq` is missing, say so and skip automated age checks or use another way to compare dates.
+
+6. For each updated sub-module
+  - Update `version.txt` using the following rule:
+    - if dep. major version changed OR potential breaking change, bump the MINOR version
+    - if dep. minor/patch version changed, bump the PATCH version
+  - Update `CHANGELOG.md`:
     - for each DIRECT updated lib append a bullet to the message `* Bump library X to version X.Y.Z`
     - If there is any INDIRECT lib updated, create a new bullet: `* Bump indirect library dependencies`
-  - Update `version.txt` by bumping a minor version
 
-5. Review changes
+7. Review changes
   - Summarize updated dependencies
+  - List the dependencies that were blocked due to release age policy
   - Highlight major version bumps
   - Flag potential breaking changes
 
-6. Suggest a commit message in the following format: `chore(deps): Bump library dependencies (YYYY-MM-DD)`
+8. Commit with message in the following format: `chore(deps): Bump library dependencies (YYYY-MM-DD)`
 
 Output:
   - Summary of updated dependencies

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.22
+* revert apt upgrade
+
 ## 0.1.21
 * apt upgrade
 
