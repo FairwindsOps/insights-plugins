@@ -108,7 +108,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/go:1.26
+      - image: cimg/go:1.26.2
     resource_class: large
     steps:
       - checkout
@@ -137,7 +137,7 @@ jobs:
 
   check_version_changed:
     docker:
-      - image: cimg/go:1.26
+      - image: cimg/go:1.26.2
     steps:
       - checkout
       - set_vault
@@ -296,7 +296,7 @@ jobs:
   # On Renovate PRs, bump plugins/*/version.txt + CHANGELOG.md and push to the PR branch.
   bump_renovate_pr_versions:
     docker:
-      - image: cimg/go:1.26
+      - image: cimg/go:1.26.2
     steps:
       - checkout
       - set_vault

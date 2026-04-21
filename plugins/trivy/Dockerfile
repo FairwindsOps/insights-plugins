@@ -1,7 +1,7 @@
-FROM alpine:3.23 AS downloader
+FROM alpine:3.23.4 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.69.3
+ENV trivyVersion=0.70.0
 RUN apk add --no-cache ca-certificates curl \
     && apk --no-cache add --upgrade libcrypto3 libssl3 zlib
 
@@ -11,8 +11,9 @@ RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="$
 FROM python:3-alpine3.23
 WORKDIR /trivy
 # for gcloud
-RUN apk --no-cache add bash curl libc6-compat ca-certificates \
-    && apk --no-cache add --upgrade libcrypto3 libssl3 zlib
+RUN apk upgrade --no-cache \
+    && apk --no-cache add bash curl libc6-compat ca-certificates \
+    && apk --no-cache add --upgrade libcrypto3 libssl3 zlib musl musl-utils
 
 ENV CLOUD_SDK_VERSION=560.0.0
 

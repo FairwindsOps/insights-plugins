@@ -1,10 +1,10 @@
-FROM alpine:3.23 AS downloader
+FROM alpine:3.23.4 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.69.3
+ENV trivyVersion=0.70.0
 ENV polarisVersion=10.1.7
 ENV plutoVersion=5.23.5
-ENV helmVersion=4.1.3
+ENV helmVersion=4.1.4
 
 # Bash and openssl are  required by the Helm script.
 RUN apk --no-cache add curl bash openssl ca-certificates \
@@ -16,7 +16,7 @@ RUN curl -L --retry 3 --retry-delay 5 --fail "https://github.com/FairwindsOps/po
 RUN curl -L --retry 3 --retry-delay 5 --fail "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 RUN curl -L --retry 3 --retry-delay 5 --fail https://get.helm.sh/helm-v${helmVersion}-${TARGETOS}-${TARGETARCH}.tar.gz > helm.tar.gz && tar -xvf helm.tar.gz && mv ${TARGETOS}-${TARGETARCH}/helm /usr/local/bin/helm && rm helm.tar.gz
 
-FROM alpine:3.23
+FROM alpine:3.23.4
 WORKDIR /insights
 
 RUN apk add --no-cache skopeo libc6-compat git \

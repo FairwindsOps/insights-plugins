@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.2.17
+* Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
+* Pin runtime image to Alpine 3.23.4 (addresses Alpine OpenSSL CVE-2026-28390 and musl CVE-2026-40200 where applicable).
+* Bump bundled Helm to v4.1.4 (CVE-2026-35204, CVE-2026-35205).
+* Bump bundled Trivy CLI to v0.70.0 (addresses upstream scanner CVEs in bundled dependencies including stdlib and gRPC).
+
 ## 6.2.16
 * Bump lib github.com/jstemmer/go-junit-report to v2.1.0
 
