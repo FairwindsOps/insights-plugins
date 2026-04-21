@@ -3,6 +3,7 @@
 ## 3.1.17
 * Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
 * Pin runtime image to Alpine 3.23.4 (addresses Alpine OpenSSL CVE-2026-28390 and musl CVE-2026-40200 where applicable).
+* Bump library k8s.io/apimachinery to v0.35.4
 
 ## 3.1.16
 * Bump library github.com/open-policy-agent/opa to v1.15.2
