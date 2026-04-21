@@ -51,10 +51,22 @@ type ContainerResult struct {
 	Resource     ResourceResult
 }
 
+// AppliedResources are CPU/memory request and limit strings derived from
+// status.containerStatuses[].resources (runtime-applied), not pod spec.
+type AppliedResources struct {
+	Requests ResourcesInfo
+	Limits   ResourcesInfo
+}
+
 // ResourceResult provides resources information.
 type ResourceResult struct {
 	Requests ResourcesInfo
 	Limits   ResourcesInfo
+	// SpecAppliedConvergedCount is how many Running+Ready pods have status.containerStatuses[].resources
+	// populated and equal to that pod's container spec (CPU/memory requests and limits), for this container name.
+	SpecAppliedConvergedCount int `json:"SpecAppliedConvergedCount"`
+	// SpecAppliedSkewPods lists pods where applied status differs from pod spec (e.g. in-place resize); empty/nil when none.
+	SpecAppliedSkewPods []SpecAppliedSkewPod `json:",omitempty"`
 }
 
 // ResourcesInfo provides a request/limit item information.
@@ -108,7 +120,7 @@ func formatControllers(kind, name, namespace, uid string, ownerReferences []meta
 	return ControllerResult{kind, name, namespace, annotations, labels, podLabels, podAnnotations, uid, ownerUID, podCount, containers}
 }
 
-func formatContainer(container corev1.Container, containerStatus corev1.ContainerStatus, time metav1.Time) ContainerResult {
+func resourcesFromContainerSpec(container corev1.Container) ResourceResult {
 	resources := ResourceResult{
 		Requests: ResourcesInfo{
 			CPU:    container.Resources.Requests.Cpu().String(),
@@ -124,6 +136,15 @@ func formatContainer(container corev1.Container, containerStatus corev1.Containe
 	}
 	if container.Resources.Requests.Memory().IsZero() && !container.Resources.Limits.Memory().IsZero() {
 		resources.Requests.Memory = resources.Limits.Memory
+	}
+	return resources
+}
+
+func formatContainer(container corev1.Container, containerStatus corev1.ContainerStatus, time metav1.Time, specApplied SpecAppliedStats) ContainerResult {
+	resources := resourcesFromContainerSpec(container)
+	resources.SpecAppliedConvergedCount = specApplied.ConvergedCount
+	if len(specApplied.SkewPods) > 0 {
+		resources.SpecAppliedSkewPods = specApplied.SkewPods
 	}
 	containerResult := ContainerResult{
 		Name:         container.Name,
@@ -150,7 +171,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		Dynamic:    dynamicClient,
 		RESTMapper: restMapper,
 	}
-	workloads, err := client.GetAllTopControllersSummary("")
+	workloads, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
 		return nil, fmt.Errorf("error while getting all TopControllers: %v", err)
 	}
@@ -161,7 +182,8 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		var containers []ContainerResult
 		if workload.PodSpec != nil {
 			for _, ctn := range workload.PodSpec.Containers {
-				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp()))
+				stats := computeSpecAppliedStats(ctn.Name, workload.Pods)
+				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp(), stats))
 			}
 		}
 

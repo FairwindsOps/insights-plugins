@@ -362,11 +362,51 @@
                             "Memory",
                             "CPU"
                           ]
+                        },
+                        "SpecAppliedConvergedCount": {
+                          "type": "integer",
+                          "description": "Running+Ready pods where status.containerStatuses[].resources matches this pod's container spec (CPU/memory) for this container name."
+                        },
+                        "SpecAppliedSkewPods": {
+                          "type": "array",
+                          "description": "Pods where applied resources in status differ from that pod's container spec (e.g. in-place resize in progress).",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "Namespace": { "type": "string" },
+                              "Name": { "type": "string" },
+                              "UID": { "type": "string" },
+                              "Applied": {
+                                "type": "object",
+                                "properties": {
+                                  "Requests": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Memory": { "type": "string" },
+                                      "CPU": { "type": "string" }
+                                    },
+                                    "required": [ "Memory", "CPU" ]
+                                  },
+                                  "Limits": {
+                                    "type": "object",
+                                    "properties": {
+                                      "Memory": { "type": "string" },
+                                      "CPU": { "type": "string" }
+                                    },
+                                    "required": [ "Memory", "CPU" ]
+                                  }
+                                },
+                                "required": [ "Requests", "Limits" ]
+                              }
+                            },
+                            "required": [ "Namespace", "Name", "UID", "Applied" ]
+                          }
                         }
                       },
                       "required": [
                         "Requests",
-                        "Limits"
+                        "Limits",
+                        "SpecAppliedConvergedCount"
                       ]
                     }
                   },
