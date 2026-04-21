@@ -88,10 +88,7 @@ executors:
   goreleaser:
     resource_class: large
     docker:
-      # The goreleaser image tag determines the version of Go.
-      # Manually check goreleaser images for their version of Go.
-      # Ref: https://hub.docker.com/r/goreleaser/goreleaser/tags
-      - image: goreleaser/goreleaser:v2.14.2
+      - image: goreleaser/goreleaser:v2.15.4
 
 
 jobs:
@@ -108,7 +105,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/go:1.26
+      - image: cimg/go:1.26.2
     resource_class: large
     steps:
       - checkout
@@ -137,7 +134,7 @@ jobs:
 
   check_version_changed:
     docker:
-      - image: cimg/go:1.26
+      - image: cimg/go:1.26.2
     steps:
       - checkout
       - set_vault
@@ -296,7 +293,7 @@ jobs:
   # On Renovate PRs, bump plugins/*/version.txt + CHANGELOG.md and push to the PR branch.
   bump_renovate_pr_versions:
     docker:
-      - image: cimg/go:1.26
+      - image: cimg/go:1.26.2
     steps:
       - checkout
       - set_vault

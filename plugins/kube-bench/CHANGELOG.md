@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.13
+* Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
+* Harden packages on the upstream `aquasec/kube-bench` base image: targeted `apk` upgrades for libcrypto3, libssl3, and zlib.
+
 ## 0.6.12
 * Bump library kubectlVersion to version 1.35.3
 * Bump indirect library dependencies

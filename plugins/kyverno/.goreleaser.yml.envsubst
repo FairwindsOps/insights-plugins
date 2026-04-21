@@ -8,6 +8,7 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
+  - GOTOOLCHAIN=go1.26.2
   # Avoid contaminating workstation Go directories.
   - GOMODCACHE={{ .Env.TMPDIR }}/kyverno-go-mod-cache
   - GOBIN={{ .Env.TMPDIR }}/kyverno-go-bin
