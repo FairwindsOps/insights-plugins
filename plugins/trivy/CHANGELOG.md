@@ -4,6 +4,7 @@
 * Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
 * Pin runtime image to Alpine 3.23.4 (addresses Alpine OpenSSL CVE-2026-28390 and musl CVE-2026-40200 where applicable).
 * Bump bundled Trivy CLI to v0.70.0 (addresses upstream CVEs in bundled dependencies including stdlib, gRPC, Docker, and BuildKit).
+* Harden the Trivy CLI downloader stage: `apk upgrade` plus explicit `musl` / `musl-utils` upgrades alongside OpenSSL/zlib.
 
 ## 0.34.16
 * Bump library github.com/google/go-containerregistry to version v0.21.5
