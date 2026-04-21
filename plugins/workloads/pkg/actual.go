@@ -171,6 +171,5 @@ func qtyString(rl corev1.ResourceList, name corev1.ResourceName) string {
 	if q, ok := rl[name]; ok {
 		return (&q).String()
 	}
-	z := resource.MustParse("0")
-	return (&z).String()
+	return ""
 }
