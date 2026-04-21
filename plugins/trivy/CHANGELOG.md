@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.17
+* Bump library k8s.io/apimachinery to v0.35.4
+
 ## 0.34.16
 * Bump library github.com/google/go-containerregistry to version v0.21.5
 * Bump indirect library dependencies
