@@ -4,20 +4,20 @@ go 1.26.0
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
-	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20260311165234-dec7bf83ba9c
+	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20260421141932-aab6336be9c7
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v5 v5.23.6
-	github.com/fairwindsops/polaris v0.0.0-20260401181752-47c7deddfd66
+	github.com/fairwindsops/polaris v0.0.0-20260421160527-fd862afadc9f
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.53.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/mod v0.35.0
 	gomodules.xyz/jsonpatch/v2 v2.5.0
-	k8s.io/api v0.35.3
+	k8s.io/api v0.35.4
 	k8s.io/apimachinery v0.35.4
-	k8s.io/client-go v0.35.3
+	k8s.io/client-go v0.35.4
 	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -76,7 +76,7 @@ require (
 	github.com/olekukonko/errors v1.2.0 // indirect
 	github.com/olekukonko/ll v0.1.8 // indirect
 	github.com/olekukonko/tablewriter v1.1.4 // indirect
-	github.com/open-policy-agent/opa v1.15.1 // indirect
+	github.com/open-policy-agent/opa v1.15.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect

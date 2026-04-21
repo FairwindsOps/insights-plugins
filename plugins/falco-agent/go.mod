@@ -4,13 +4,13 @@ go 1.26.0
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
-	github.com/falcosecurity/falcosidekick v0.0.0-20260309151552-b1f4acff5582
+	github.com/falcosecurity/falcosidekick v0.0.0-20260415092148-551fba1be4c2
 	github.com/gorilla/mux v1.8.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/afero v1.15.0
-	k8s.io/api v0.35.3
+	k8s.io/api v0.35.4
 	k8s.io/apimachinery v0.35.4
-	k8s.io/client-go v0.35.3
+	k8s.io/client-go v0.35.4
 	sigs.k8s.io/controller-runtime v0.23.3
 )
 

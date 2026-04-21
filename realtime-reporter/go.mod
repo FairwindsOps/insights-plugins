@@ -5,15 +5,15 @@ go 1.26.0
 require (
 	github.com/aereal/go-httpretryafter v0.1.0
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20260311165234-dec7bf83ba9c
-	github.com/fairwindsops/polaris v0.0.0-20260401181752-47c7deddfd66
+	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20260421141932-aab6336be9c7
+	github.com/fairwindsops/polaris v0.0.0-20260421160527-fd862afadc9f
 	github.com/samber/lo v1.53.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	k8s.io/api v0.35.3
+	k8s.io/api v0.35.4
 	k8s.io/apimachinery v0.35.4
-	k8s.io/client-go v0.35.3
+	k8s.io/client-go v0.35.4
 	sigs.k8s.io/controller-runtime v0.23.3
 )
 
