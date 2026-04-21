@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.14
+* Bump library k8s.io/apimachinery to v0.35.4
+
 ## 0.4.13
 * Bump library k8s.io/api to version v0.35.3
 * Bump library k8s.io/apimachinery to version v0.35.3

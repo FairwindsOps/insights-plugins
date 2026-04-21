@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.2.18
+* Bump library k8s.io/apimachinery to v0.35.4
+
 ## 2.2.17
 * Bump library golang.org/x/mod to v0.35.0
 

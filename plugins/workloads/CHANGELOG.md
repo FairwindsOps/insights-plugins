@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.9.1
+* Bump library k8s.io/apimachinery to v0.35.4
+
 ## 2.9.0
 * Workloads report: per container, emit **`SpecAppliedConvergedCount`** and **`SpecAppliedSkewPods`** by comparing each Running+Ready pod’s container spec to **`status.containerStatuses[].resources`** (CPU/memory); skew entries include applied values for divergent pods only.
 
