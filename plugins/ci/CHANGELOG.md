@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.2.17
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa to v0.0.0-20260421141932-aab6336be9c7
+* Bump library github.com/fairwindsops/insights-plugins/plugins/trivy to v0.0.0-20260421141932-aab6336be9c7
+* Bump indirect libraries dependencies
+
 ## 6.2.16
 * Bump lib github.com/jstemmer/go-junit-report to v2.1.0
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.19
+* Bump library github.com/fairwindsops/insights-plugins/plugins/opa to v0.0.0-20260421141932-aab6336be9c7
+* Bump library github.com/fairwindsops/polaris to v0.0.0-20260421160527-fd862afadc9f
+* Bump library k8s.io/api to v0.35.4
+* Bump library k8s.io/client-go to v0.35.4
+* Bump indirect libraries dependencies
+
 ## 2.2.18
 * Bump library k8s.io/apimachinery to v0.35.4
 
