@@ -88,9 +88,6 @@ executors:
   goreleaser:
     resource_class: large
     docker:
-      # The goreleaser image tag determines the version of Go (must satisfy go.work).
-      # v2.14.x ships Go 1.26.1; with GOTOOLCHAIN=local that cannot satisfy go 1.26.2 in go.work.
-      # Ref: https://hub.docker.com/r/goreleaser/goreleaser/tags
       - image: goreleaser/goreleaser:v2.15.4
 
 
