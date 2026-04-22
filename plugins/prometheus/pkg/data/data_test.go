@@ -15,6 +15,19 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+func TestAverageSampleValues(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, model.SampleValue(0), averageSampleValues(nil))
+	assert.Equal(t, model.SampleValue(0), averageSampleValues([]model.SamplePair{}))
+	assert.Equal(t, model.SampleValue(10), averageSampleValues([]model.SamplePair{
+		{Value: 10},
+	}))
+	assert.Equal(t, model.SampleValue(15), averageSampleValues([]model.SamplePair{
+		{Value: 10},
+		{Value: 20},
+	}))
+}
+
 func TestGetKey(t *testing.T) {
 	sample := model.SampleStream{
 		Metric: model.Metric{
