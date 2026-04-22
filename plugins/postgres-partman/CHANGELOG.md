@@ -1,5 +1,8 @@
 # Changelog
 
+## 17.0.2
+* Reducing vulnerabilities
+
 ## 17.0.1
 * Fixing vulnerabilities
 
