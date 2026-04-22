@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.8.19
+## 1.9.0
 * Adjusting prometheus collector for in-place pod resize
 
 ## 1.8.18
