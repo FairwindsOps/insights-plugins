@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.9.3
+
+* **Spec applied stats:** converged vs skew now compares **GPU-class extended resources** (e.g. `nvidia.com/gpu`, `amd.com/gpu`, same family as the prometheus plugin’s GPU request metrics) in addition to CPU and memory. **`SpecAppliedConvergedCount`** may decrease for workloads where spec and status matched on CPU/memory but differed on GPU.
+* **Skew payload:** each **`SpecAppliedSkewPods[].Applied`** object may include optional **`ExtendedRequests`** and **`ExtendedLimits`** maps (resource name → quantity string). **`results.schema`** updated accordingly.
+* **Per-workload template resources:** each container **`Resource`** may include optional **`GPURequests`** and **`GPULimits`** maps (resource name → quantity string from the controller/pod **spec**), parallel to **`Requests.CPU`/`Memory`** and **`Limits.CPU`/`Memory`**.
+
 ## 2.9.2
 * Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
 * Pin runtime image to Alpine 3.23.4 (addresses Alpine OpenSSL CVE-2026-28390 and musl CVE-2026-40200 where applicable).

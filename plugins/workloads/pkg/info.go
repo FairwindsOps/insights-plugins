@@ -51,19 +51,28 @@ type ContainerResult struct {
 	Resource     ResourceResult
 }
 
-// AppliedResources are CPU/memory request and limit strings derived from
+// AppliedResources are request/limit strings derived from
 // status.containerStatuses[].resources (runtime-applied), not pod spec.
+// CPU and Memory live on Requests/Limits; GPU-class extended resources use ExtendedRequests/ExtendedLimits.
 type AppliedResources struct {
 	Requests ResourcesInfo
 	Limits   ResourcesInfo
+	// ExtendedRequests maps GPU-class resource names (e.g. nvidia.com/gpu) to applied request quantity strings.
+	ExtendedRequests map[string]string `json:"ExtendedRequests,omitempty"`
+	// ExtendedLimits maps GPU-class resource names to applied limit quantity strings.
+	ExtendedLimits map[string]string `json:"ExtendedLimits,omitempty"`
 }
 
 // ResourceResult provides resources information.
 type ResourceResult struct {
 	Requests ResourcesInfo
 	Limits   ResourcesInfo
+	// GPURequests maps GPU-class resource names from the controller template (pod spec) to request quantity strings.
+	GPURequests map[string]string `json:"GPURequests,omitempty"`
+	// GPULimits maps GPU-class resource names from the controller template (pod spec) to limit quantity strings.
+	GPULimits map[string]string `json:"GPULimits,omitempty"`
 	// SpecAppliedConvergedCount is how many Running+Ready pods have status.containerStatuses[].resources
-	// populated and equal to that pod's container spec (CPU/memory requests and limits), for this container name.
+	// populated and equal to that pod's container spec (CPU/memory and tracked GPU-class requests/limits), for this container name.
 	SpecAppliedConvergedCount int `json:"SpecAppliedConvergedCount"`
 	// SpecAppliedSkewPods lists pods where applied status differs from pod spec (e.g. in-place resize); empty/nil when none.
 	SpecAppliedSkewPods []SpecAppliedSkewPod `json:",omitempty"`
@@ -137,6 +146,9 @@ func resourcesFromContainerSpec(container corev1.Container) ResourceResult {
 	if container.Resources.Requests.Memory().IsZero() && !container.Resources.Limits.Memory().IsZero() {
 		resources.Requests.Memory = resources.Limits.Memory
 	}
+	gpuReq, gpuLim := extendedGPUMapsFromResourceRequirements(&container.Resources)
+	resources.GPURequests = gpuReq
+	resources.GPULimits = gpuLim
 	return resources
 }
 

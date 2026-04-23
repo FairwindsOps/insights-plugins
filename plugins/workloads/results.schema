@@ -363,9 +363,19 @@
                             "CPU"
                           ]
                         },
+                        "GPURequests": {
+                          "type": "object",
+                          "description": "Optional map of GPU-class resource name to template (spec) request quantity string.",
+                          "additionalProperties": { "type": "string" }
+                        },
+                        "GPULimits": {
+                          "type": "object",
+                          "description": "Optional map of GPU-class resource name to template (spec) limit quantity string.",
+                          "additionalProperties": { "type": "string" }
+                        },
                         "SpecAppliedConvergedCount": {
                           "type": "integer",
-                          "description": "Running+Ready pods where status.containerStatuses[].resources matches this pod's container spec (CPU/memory) for this container name."
+                          "description": "Running+Ready pods where status.containerStatuses[].resources matches this pod's container spec (CPU/memory and tracked GPU-class resources) for this container name."
                         },
                         "SpecAppliedSkewPods": {
                           "type": "array",
@@ -394,6 +404,16 @@
                                       "CPU": { "type": "string" }
                                     },
                                     "required": [ "Memory", "CPU" ]
+                                  },
+                                  "ExtendedRequests": {
+                                    "type": "object",
+                                    "description": "Optional map of GPU-class applied request resource name to quantity string (e.g. nvidia.com/gpu).",
+                                    "additionalProperties": { "type": "string" }
+                                  },
+                                  "ExtendedLimits": {
+                                    "type": "object",
+                                    "description": "Optional map of GPU-class applied limit resource name to quantity string.",
+                                    "additionalProperties": { "type": "string" }
                                   }
                                 },
                                 "required": [ "Requests", "Limits" ]

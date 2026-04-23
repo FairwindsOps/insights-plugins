@@ -165,3 +165,73 @@ func TestAppliedResourcesFromRequirements_requestFromLimitMirror(t *testing.T) {
 	require.Equal(t, "500m", out.Requests.CPU)
 	require.Equal(t, "500m", out.Limits.CPU)
 }
+
+func TestComputeSpecAppliedStats_gpuSkewCpuMemoryMatch(t *testing.T) {
+	gpu := corev1.ResourceName("nvidia.com/gpu")
+	spec := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("100m"),
+			corev1.ResourceMemory: resource.MustParse("128Mi"),
+			gpu:                   resource.MustParse("1"),
+		},
+	}
+	status := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("100m"),
+			corev1.ResourceMemory: resource.MustParse("128Mi"),
+			gpu:                   resource.MustParse("2"),
+		},
+	}
+	p := podWithResources("gpu-skew", "default", spec, status)
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 0, stats.ConvergedCount)
+	require.Len(t, stats.SkewPods, 1)
+	require.Equal(t, "2", stats.SkewPods[0].Applied.ExtendedRequests["nvidia.com/gpu"])
+}
+
+func TestComputeSpecAppliedStats_gpuAndCpuMatchConverged(t *testing.T) {
+	gpu := corev1.ResourceName("nvidia.com/gpu")
+	res := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("100m"),
+			corev1.ResourceMemory: resource.MustParse("128Mi"),
+			gpu:                   resource.MustParse("1"),
+		},
+	}
+	p := podWithResources("ok", "default", res, res)
+	u := podUnstructured(t, p)
+	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	require.Equal(t, 1, stats.ConvergedCount)
+	require.Nil(t, stats.SkewPods)
+}
+
+func TestAppliedResourcesFromRequirements_gpuExtended(t *testing.T) {
+	gpu := corev1.ResourceName("nvidia.com/gpu")
+	req := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			gpu: resource.MustParse("1"),
+		},
+		Limits: corev1.ResourceList{
+			gpu: resource.MustParse("1"),
+		},
+	}
+	out := appliedResourcesFromRequirements(req)
+	require.NotNil(t, out)
+	require.Equal(t, "1", out.ExtendedRequests["nvidia.com/gpu"])
+	require.Equal(t, "1", out.ExtendedLimits["nvidia.com/gpu"])
+}
+
+func TestAppliedResourcesFromRequirements_gpuRequestFromLimit(t *testing.T) {
+	gpu := corev1.ResourceName("amd.com/gpu")
+	req := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{},
+		Limits: corev1.ResourceList{
+			gpu: resource.MustParse("2"),
+		},
+	}
+	out := appliedResourcesFromRequirements(req)
+	require.NotNil(t, out)
+	require.Equal(t, "2", out.ExtendedRequests["amd.com/gpu"])
+	require.Equal(t, "2", out.ExtendedLimits["amd.com/gpu"])
+}
