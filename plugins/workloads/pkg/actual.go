@@ -19,8 +19,8 @@ type SpecAppliedSkewPod struct {
 }
 
 // SpecAppliedStats counts Running+Ready pods where status.containerStatuses[].resources
-// is present and semantically matches the pod's spec for that container, and lists pods
-// where it does not (in-place skew, rollout, etc.).
+// is present and semantically matches the pod's spec (CPU/memory and GPU-class extended
+// resources) for that container, and lists pods where it does not (in-place skew, rollout, etc.).
 type SpecAppliedStats struct {
 	ConvergedCount int
 	SkewPods       []SpecAppliedSkewPod `json:",omitempty"`
@@ -57,7 +57,7 @@ func computeSpecAppliedStats(containerName string, podObjs []unstructured.Unstru
 			continue
 		}
 
-		if resourceRequirementsCPUAndMemoryEqual(&ctnSpec.Resources, cs.Resources) {
+		if resourceRequirementsSpecMatchesApplied(&ctnSpec.Resources, cs.Resources) {
 			out.ConvergedCount++
 			continue
 		}
@@ -95,6 +95,27 @@ func findContainerInPodSpec(pod *corev1.Pod, name string) *corev1.Container {
 		}
 	}
 	return nil
+}
+
+func resourceRequirementsSpecMatchesApplied(spec, status *corev1.ResourceRequirements) bool {
+	if spec == nil {
+		spec = &corev1.ResourceRequirements{}
+	}
+	if status == nil {
+		return false
+	}
+	if !resourceRequirementsCPUAndMemoryEqual(spec, status) {
+		return false
+	}
+	for _, name := range gpuClassResourceNamesInUnion(spec, status) {
+		if !qtyListEqual(spec.Requests, status.Requests, name) {
+			return false
+		}
+		if !qtyListEqual(spec.Limits, status.Limits, name) {
+			return false
+		}
+	}
+	return true
 }
 
 func resourceRequirementsCPUAndMemoryEqual(spec, status *corev1.ResourceRequirements) bool {
@@ -146,12 +167,12 @@ func appliedResourcesFromRequirements(req *corev1.ResourceRequirements) *Applied
 	}
 	out := AppliedResources{
 		Requests: ResourcesInfo{
-			CPU:    qtyString(req.Requests, corev1.ResourceCPU),
-			Memory: qtyString(req.Requests, corev1.ResourceMemory),
+			CPU:    resourceQuantityString(req.Requests, corev1.ResourceCPU),
+			Memory: resourceQuantityString(req.Requests, corev1.ResourceMemory),
 		},
 		Limits: ResourcesInfo{
-			CPU:    qtyString(req.Limits, corev1.ResourceCPU),
-			Memory: qtyString(req.Limits, corev1.ResourceMemory),
+			CPU:    resourceQuantityString(req.Limits, corev1.ResourceCPU),
+			Memory: resourceQuantityString(req.Limits, corev1.ResourceMemory),
 		},
 	}
 	cpuReq := req.Requests[corev1.ResourceCPU]
@@ -164,12 +185,10 @@ func appliedResourcesFromRequirements(req *corev1.ResourceRequirements) *Applied
 	if memReq.IsZero() && !memLim.IsZero() {
 		out.Requests.Memory = out.Limits.Memory
 	}
-	return &out
-}
 
-func qtyString(rl corev1.ResourceList, name corev1.ResourceName) string {
-	if q, ok := rl[name]; ok {
-		return (&q).String()
-	}
-	return ""
+	gpuReq, gpuLim := extendedGPUMapsFromResourceRequirements(req)
+	out.ExtendedRequests = gpuReq
+	out.ExtendedLimits = gpuLim
+
+	return &out
 }
