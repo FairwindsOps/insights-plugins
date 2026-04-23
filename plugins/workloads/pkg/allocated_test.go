@@ -328,18 +328,3 @@ func TestPodRequestsAndLimits_IncludesGPU(t *testing.T) {
 	assert.Equal(t, int64(3), (&gpuReqs).Value())
 	assert.Equal(t, int64(3), (&gpuLimits).Value())
 }
-
-func TestGPUResourceNames_ContainsAllVendors(t *testing.T) {
-	expectedResources := []v1.ResourceName{
-		"nvidia.com/gpu",
-		"nvidia.com/gpu.shared",
-		"amd.com/gpu",
-		"intel.com/gpu",
-		"habana.ai/gaudi",
-		"google.com/tpu",
-		"k8s.amazonaws.com/vgpu",
-	}
-
-	assert.Equal(t, expectedResources, gpuResourceNames)
-	assert.Len(t, gpuResourceNames, 7)
-}

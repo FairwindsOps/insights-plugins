@@ -68,7 +68,7 @@ func TestExtendedGPUMaps_requestFromLimitMirror(t *testing.T) {
 	require.Equal(t, map[string]string{"amd.com/gpu": "1"}, lim)
 }
 
-func TestGpuClassResourceNamesInUnion(t *testing.T) {
+func TestGPUClassResourceNamesInUnion(t *testing.T) {
 	spec := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			"nvidia.com/gpu": resource.MustParse("1"),

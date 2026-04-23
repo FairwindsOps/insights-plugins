@@ -6,10 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// gpuClassResourceNameSet lists extended resource names treated as GPU/accelerator
-// for spec-vs-applied convergence (Kubernetes API object form). Keep aligned with
-// plugins/prometheus/pkg/data/prometheus.go gpuResourcePattern (kube-state-metrics
-// uses underscores instead of "." and "/").
 var gpuClassResourceNameSet = map[corev1.ResourceName]struct{}{
 	"nvidia.com/gpu":         {},
 	"nvidia.com/gpu.shared":  {},
@@ -25,8 +21,6 @@ func isGPUClassResourceName(name corev1.ResourceName) bool {
 	return ok
 }
 
-// gpuClassResourceNamesInUnion returns sorted unique GPU-class resource names present
-// in either spec or status requests or limits.
 func gpuClassResourceNamesInUnion(spec, status *corev1.ResourceRequirements) []corev1.ResourceName {
 	seen := map[corev1.ResourceName]struct{}{}
 	add := func(rl corev1.ResourceList) {
@@ -52,8 +46,6 @@ func gpuClassResourceNamesInUnion(spec, status *corev1.ResourceRequirements) []c
 	return out
 }
 
-// gpuClassResourceNamesInRequirements returns sorted unique GPU-class names in a single
-// ResourceRequirements (used when building applied extended maps from status only).
 func gpuClassResourceNamesInRequirements(req *corev1.ResourceRequirements) []corev1.ResourceName {
 	if req == nil {
 		return nil
@@ -68,10 +60,6 @@ func resourceQuantityString(rl corev1.ResourceList, name corev1.ResourceName) st
 	return ""
 }
 
-// extendedGPUMapsFromResourceRequirements returns GPU-class request and limit quantity
-// strings from a ResourceRequirements (container spec or applied status). When a GPU
-// request is unset but the limit is set, the request map entry mirrors the limit (same
-// rule as CPU/memory on the main Requests/Limits fields).
 func extendedGPUMapsFromResourceRequirements(req *corev1.ResourceRequirements) (requests, limits map[string]string) {
 	if req == nil {
 		return nil, nil
