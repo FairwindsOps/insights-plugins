@@ -53,24 +53,21 @@ type ContainerResult struct {
 
 // AppliedResources are request/limit strings derived from
 // status.containerStatuses[].resources (runtime-applied), not pod spec.
-// CPU and Memory live on Requests/Limits; GPU-class extended resources use ExtendedRequests/ExtendedLimits.
+// CPU and Memory stay on Requests/Limits (ResourcesInfo). GPU-class applied quantities use ExtendedRequests/ExtendedLimits.
 type AppliedResources struct {
-	Requests ResourcesInfo
-	Limits   ResourcesInfo
-	// ExtendedRequests maps GPU-class resource names (e.g. nvidia.com/gpu) to applied request quantity strings.
+	Requests         ResourcesInfo
+	Limits           ResourcesInfo
 	ExtendedRequests map[string]string `json:"ExtendedRequests,omitempty"`
-	// ExtendedLimits maps GPU-class resource names to applied limit quantity strings.
-	ExtendedLimits map[string]string `json:"ExtendedLimits,omitempty"`
+	ExtendedLimits   map[string]string `json:"ExtendedLimits,omitempty"`
 }
 
 // ResourceResult provides resources information.
 type ResourceResult struct {
 	Requests ResourcesInfo
 	Limits   ResourcesInfo
-	// GPURequests maps GPU-class resource names from the controller template (pod spec) to request quantity strings.
+	// GPURequests / GPULimits: optional template (pod spec) GPU-class maps; resource names vary by vendor (see Extended* on Applied for applied status when skewing).
 	GPURequests map[string]string `json:"GPURequests,omitempty"`
-	// GPULimits maps GPU-class resource names from the controller template (pod spec) to limit quantity strings.
-	GPULimits map[string]string `json:"GPULimits,omitempty"`
+	GPULimits   map[string]string `json:"GPULimits,omitempty"`
 	// SpecAppliedConvergedCount is how many Running+Ready pods have status.containerStatuses[].resources
 	// populated and equal to that pod's container spec (CPU/memory and tracked GPU-class requests/limits), for this container name.
 	SpecAppliedConvergedCount int `json:"SpecAppliedConvergedCount"`
@@ -78,7 +75,7 @@ type ResourceResult struct {
 	SpecAppliedSkewPods []SpecAppliedSkewPod `json:",omitempty"`
 }
 
-// ResourcesInfo provides a request/limit item information.
+// ResourcesInfo provides request/limit item information (CPU and memory only).
 type ResourcesInfo struct {
 	Memory string
 	CPU    string

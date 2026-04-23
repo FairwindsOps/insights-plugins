@@ -97,8 +97,6 @@ func findContainerInPodSpec(pod *corev1.Pod, name string) *corev1.Container {
 	return nil
 }
 
-// resourceRequirementsSpecMatchesApplied is true when spec and status agree on CPU, memory,
-// and every GPU-class extended resource present on either side (requests and limits each).
 func resourceRequirementsSpecMatchesApplied(spec, status *corev1.ResourceRequirements) bool {
 	if spec == nil {
 		spec = &corev1.ResourceRequirements{}
@@ -188,9 +186,9 @@ func appliedResourcesFromRequirements(req *corev1.ResourceRequirements) *Applied
 		out.Requests.Memory = out.Limits.Memory
 	}
 
-	extReq, extLim := extendedGPUMapsFromResourceRequirements(req)
-	out.ExtendedRequests = extReq
-	out.ExtendedLimits = extLim
+	gpuReq, gpuLim := extendedGPUMapsFromResourceRequirements(req)
+	out.ExtendedRequests = gpuReq
+	out.ExtendedLimits = gpuLim
 
 	return &out
 }

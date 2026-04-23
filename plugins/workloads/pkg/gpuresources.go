@@ -6,22 +6,23 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// isGPUClassResourceName returns true for extended resource names that the Fairwinds
-// prometheus collector treats as GPU/accelerator requests/limits (see
-// plugins/prometheus/pkg/data/prometheus.go gpuResourcePattern). Kubernetes API
-// uses dotted names; kube-state-metrics labels use underscores — here we match API names.
+// gpuClassResourceNameSet lists extended resource names treated as GPU/accelerator
+// for spec-vs-applied convergence (Kubernetes API object form). Keep aligned with
+// plugins/prometheus/pkg/data/prometheus.go gpuResourcePattern (kube-state-metrics
+// uses underscores instead of "." and "/").
+var gpuClassResourceNameSet = map[corev1.ResourceName]struct{}{
+	"nvidia.com/gpu":         {},
+	"nvidia.com/gpu.shared":  {},
+	"k8s.amazonaws.com/vgpu": {},
+	"amd.com/gpu":            {},
+	"intel.com/gpu":          {},
+	"habana.ai/gaudi":        {},
+	"google.com/tpu":         {},
+}
+
 func isGPUClassResourceName(name corev1.ResourceName) bool {
-	switch string(name) {
-	case "nvidia.com/gpu", "nvidia.com/gpu.shared",
-		"k8s.amazonaws.com/vgpu",
-		"amd.com/gpu",
-		"intel.com/gpu",
-		"habana.ai/gaudi",
-		"google.com/tpu":
-		return true
-	default:
-		return false
-	}
+	_, ok := gpuClassResourceNameSet[name]
+	return ok
 }
 
 // gpuClassResourceNamesInUnion returns sorted unique GPU-class resource names present
