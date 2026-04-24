@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.9.4
+
+* **Spec applied stats:** **`SpecAppliedConvergedCount`** and **`SpecAppliedSkewPods`** compare each Running+Ready pod’s applied **`status.containerStatuses[].resources`** to the **top controller pod template** for that container (not the pod’s own spec). Pods resized in place while the template is unchanged are skew; **`results.schema`** descriptions updated.
+
 ## 2.9.3
 
 * **Spec applied stats:** converged vs skew now compares **GPU-class extended resources** (e.g. `nvidia.com/gpu`, `amd.com/gpu`, same family as the prometheus plugin’s GPU request metrics) in addition to CPU and memory. **`SpecAppliedConvergedCount`** may decrease for workloads where spec and status matched on CPU/memory but differed on GPU.

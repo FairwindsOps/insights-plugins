@@ -63,7 +63,7 @@ func TestComputeSpecAppliedStats_specMatchesStatus(t *testing.T) {
 	}
 	p := podWithResources("p1", "default", res, res)
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", res, []unstructured.Unstructured{u})
 	require.Equal(t, 1, stats.ConvergedCount)
 	require.Nil(t, stats.SkewPods)
 }
@@ -75,9 +75,10 @@ func TestComputeSpecAppliedStats_skew(t *testing.T) {
 	status := &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("200m")},
 	}
-	p := podWithResources("p1", "prod", spec, status)
+	// Pod spec/status both match applied resize; template is still the old spec.
+	p := podWithResources("p1", "prod", status, status)
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", spec, []unstructured.Unstructured{u})
 	require.Equal(t, 0, stats.ConvergedCount)
 	require.Len(t, stats.SkewPods, 1)
 	require.Equal(t, "prod", stats.SkewPods[0].Namespace)
@@ -98,7 +99,7 @@ func TestComputeSpecAppliedStats_convergedAndSkew(t *testing.T) {
 	p3 := podWithResources("c", "ns", res, skewed)
 	var u []unstructured.Unstructured
 	u = append(u, podUnstructured(t, p1), podUnstructured(t, p2), podUnstructured(t, p3))
-	stats := computeSpecAppliedStats("app", u)
+	stats := computeSpecAppliedStats("app", res, u)
 	require.Equal(t, 2, stats.ConvergedCount)
 	require.Len(t, stats.SkewPods, 1)
 	require.Equal(t, "c", stats.SkewPods[0].Name)
@@ -113,7 +114,7 @@ func TestComputeSpecAppliedStats_semanticCpuEqual(t *testing.T) {
 	}
 	p := podWithResources("p1", "default", spec, status)
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", spec, []unstructured.Unstructured{u})
 	require.Equal(t, 1, stats.ConvergedCount)
 	require.Nil(t, stats.SkewPods)
 }
@@ -125,7 +126,7 @@ func TestComputeSpecAppliedStats_skipsNotRunning(t *testing.T) {
 	p := podWithResources("p1", "default", res, res)
 	p.Status.Phase = corev1.PodPending
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", res, []unstructured.Unstructured{u})
 	require.Equal(t, 0, stats.ConvergedCount)
 	require.Nil(t, stats.SkewPods)
 }
@@ -137,7 +138,7 @@ func TestComputeSpecAppliedStats_skipsNotReady(t *testing.T) {
 	p := podWithResources("p1", "default", res, res)
 	p.Status.Conditions = []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionFalse}}
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", res, []unstructured.Unstructured{u})
 	require.Equal(t, 0, stats.ConvergedCount)
 }
 
@@ -148,7 +149,7 @@ func TestComputeSpecAppliedStats_noStatusResources(t *testing.T) {
 	p := podWithResources("p1", "default", res, res)
 	p.Status.ContainerStatuses[0].Resources = nil
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", res, []unstructured.Unstructured{u})
 	require.Equal(t, 0, stats.ConvergedCount)
 	require.Nil(t, stats.SkewPods)
 }
@@ -184,7 +185,7 @@ func TestComputeSpecAppliedStats_gpuSkewCpuMemoryMatch(t *testing.T) {
 	}
 	p := podWithResources("gpu-skew", "default", spec, status)
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", spec, []unstructured.Unstructured{u})
 	require.Equal(t, 0, stats.ConvergedCount)
 	require.Len(t, stats.SkewPods, 1)
 	require.Equal(t, "2", stats.SkewPods[0].Applied.ExtendedRequests["nvidia.com/gpu"])
@@ -201,7 +202,7 @@ func TestComputeSpecAppliedStats_gpuAndCpuMatchConverged(t *testing.T) {
 	}
 	p := podWithResources("ok", "default", res, res)
 	u := podUnstructured(t, p)
-	stats := computeSpecAppliedStats("app", []unstructured.Unstructured{u})
+	stats := computeSpecAppliedStats("app", res, []unstructured.Unstructured{u})
 	require.Equal(t, 1, stats.ConvergedCount)
 	require.Nil(t, stats.SkewPods)
 }
