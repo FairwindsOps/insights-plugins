@@ -69,8 +69,10 @@ type ResourceResult struct {
 	GPURequests map[string]string `json:"GPURequests,omitempty"`
 	GPULimits   map[string]string `json:"GPULimits,omitempty"`
 	// SpecAppliedConvergedCount is how many Running+Ready pods have status.containerStatuses[].resources
-	SpecAppliedConvergedCount int                  `json:"SpecAppliedConvergedCount"`
-	SpecAppliedSkewPods       []SpecAppliedSkewPod `json:",omitempty"`
+	// populated and semantically matching this workload's pod template (CPU/memory and tracked GPU-class resources) for this container.
+	SpecAppliedConvergedCount int `json:"SpecAppliedConvergedCount"`
+	// SpecAppliedSkewPods lists pods whose applied status resources differ from the top controller pod template (e.g. in-place resize ahead of template rollout).
+	SpecAppliedSkewPods []SpecAppliedSkewPod `json:",omitempty"`
 }
 
 // ResourcesInfo provides request/limit item information (CPU and memory only).
