@@ -6,7 +6,7 @@ Queries and saves cloud cost data for Fairwinds Insights. Supports AWS and GCP i
 
 | Provider | Data Source | Authentication |
 |----------|-------------|----------------|
-| AWS | [Cost and Usage Report (CUR)](https://docs.aws.amazon.com/cur/latest/userguide/what-is-cur.html) via Athena | AWS IAM / Instance Role |
+| AWS | [Cost and Usage Report (CUR)](https://docs.aws.amazon.com/cur/latest/userguide/what-is-cur.html) and [CUR 2.0 / Data Exports](https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.html) via Athena | AWS IAM / Instance Role |
 | GCP | [Cloud Billing Export](https://cloud.google.com/billing/docs/how-to/export-data-bigquery) via BigQuery | Service Account |
 | Azure | [Cost Management API](https://learn.microsoft.com/en-us/rest/api/cost-management/) | Service Principal / Managed Identity |
 
@@ -36,10 +36,19 @@ cloud-costs.sh \
 | Option | Description | Required |
 |--------|-------------|----------|
 | `--database` | Athena database name | Yes |
-| `--table` | Athena table name | Yes |
+| `--table` | Athena table name (or view) | Yes |
 | `--catalog` | Athena catalog | Yes |
 | `--workgroup` | Athena workgroup | Yes |
-| `--tagprefix` | Tag prefix (e.g., `resource_tags_user_`) | No |
+| `--tagprefix` | Legacy CUR only: flattened tag column prefix (e.g. `resource_tags_user_`) | No |
+| `--awscurversion` | `legacy` (default) or `cur2` for native [CUR 2.0](https://docs.aws.amazon.com/cur/latest/userguide/table-dictionary-cur2.html) schema in Athena | No |
+| `--cur2tagcolumn` | CUR 2.0 only: tag map column to filter — `tags` (default) or `resource_tags` | No |
+| `--tagmapkey` | CUR 2.0 only: exact map key for the tag filter (overrides `--tagkey` / `resourceTags/` default). Example: `resourceTags/kubernetes-cluster` | No |
+
+Environment variable `CLOUD_COSTS_AWS_CUR_VERSION` sets the same value as `--awscurversion` when the flag is omitted (`legacy` or `cur2`).
+
+**Legacy CUR** (`--awscurversion legacy`, default): use `--tagprefix` for flattened `resource_tags_user_*` columns, or omit it to filter on a `tags` MAP using raw `--tagkey`.
+
+**CUR 2.0** (`--awscurversion cur2`): `--tagprefix` is ignored. The query filters the unified `tags` MAP with `resourceTags/<tagkey>` (and falls back to `<tagkey>`), or use `--cur2tagcolumn resource_tags` with cost-allocation tag keys, or set `--tagmapkey` to the full key. Product fields that live in the CUR 2.0 `product` map (`memory`, `vcpu`, `clock_speed`, `gpu`) are read via `element_at`; top-level `product_instance_type` and `product_product_family` are unchanged. Output column names match legacy so [Fairwinds Insights](https://github.com/fairwindsops/fairwinds-insights) `AwsCostsReport` parsing continues to work.
 
 ### GCP Options
 
@@ -71,6 +80,38 @@ cloud-costs.sh \
   --catalog "AwsDataCatalog" \
   --workgroup "primary" \
   --days 7
+```
+
+### AWS - CUR 2.0 (Data Exports) in Athena
+
+Use when the Athena table is the native CUR 2.0 schema (nested `tags`, `product` MAP, etc.):
+
+```bash
+cloud-costs.sh \
+  --provider aws \
+  --awscurversion cur2 \
+  --tagkey "kubernetes-cluster" \
+  --tagvalue "my-cluster" \
+  --database "cur2_database" \
+  --table "cur2_export" \
+  --catalog "AwsDataCatalog" \
+  --workgroup "primary" \
+  --days 7
+```
+
+If your cost allocation tag appears under a non-default key in the `tags` map, pass the full key:
+
+```bash
+cloud-costs.sh \
+  --provider aws \
+  --awscurversion cur2 \
+  --tagkey "kubernetes-cluster" \
+  --tagvalue "my-cluster" \
+  --tagmapkey "resourceTags/kubernetes-cluster" \
+  --database "cur2_database" \
+  --table "cur2_export" \
+  --catalog "AwsDataCatalog" \
+  --workgroup "primary"
 ```
 
 ### GCP - Standard Format
