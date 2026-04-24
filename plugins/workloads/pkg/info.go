@@ -69,10 +69,8 @@ type ResourceResult struct {
 	GPURequests map[string]string `json:"GPURequests,omitempty"`
 	GPULimits   map[string]string `json:"GPULimits,omitempty"`
 	// SpecAppliedConvergedCount is how many Running+Ready pods have status.containerStatuses[].resources
-	// populated and equal to that pod's container spec (CPU/memory and tracked GPU-class requests/limits), for this container name.
-	SpecAppliedConvergedCount int `json:"SpecAppliedConvergedCount"`
-	// SpecAppliedSkewPods lists pods where applied status differs from pod spec (e.g. in-place resize); empty/nil when none.
-	SpecAppliedSkewPods []SpecAppliedSkewPod `json:",omitempty"`
+	SpecAppliedConvergedCount int                  `json:"SpecAppliedConvergedCount"`
+	SpecAppliedSkewPods       []SpecAppliedSkewPod `json:",omitempty"`
 }
 
 // ResourcesInfo provides request/limit item information (CPU and memory only).
@@ -191,7 +189,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		var containers []ContainerResult
 		if workload.PodSpec != nil {
 			for _, ctn := range workload.PodSpec.Containers {
-				stats := computeSpecAppliedStats(ctn.Name, workload.Pods)
+				stats := computeSpecAppliedStats(ctn.Name, &ctn.Resources, workload.Pods)
 				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp(), stats))
 			}
 		}

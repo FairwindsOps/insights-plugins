@@ -9,8 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// SpecAppliedSkewPod is one pod whose applied resources (pod status) differ from
-// that pod's container spec for the given template container name.
 type SpecAppliedSkewPod struct {
 	Namespace string
 	Name      string
@@ -18,18 +16,19 @@ type SpecAppliedSkewPod struct {
 	Applied   AppliedResources
 }
 
-// SpecAppliedStats counts Running+Ready pods where status.containerStatuses[].resources
-// is present and semantically matches the pod's spec (CPU/memory and GPU-class extended
-// resources) for that container, and lists pods where it does not (in-place skew, rollout, etc.).
 type SpecAppliedStats struct {
 	ConvergedCount int
 	SkewPods       []SpecAppliedSkewPod `json:",omitempty"`
 }
 
-func computeSpecAppliedStats(containerName string, podObjs []unstructured.Unstructured) SpecAppliedStats {
+func computeSpecAppliedStats(containerName string, templateResources *corev1.ResourceRequirements, podObjs []unstructured.Unstructured) SpecAppliedStats {
 	var out SpecAppliedStats
 	if len(podObjs) == 0 {
 		return out
+	}
+	tpl := templateResources
+	if tpl == nil {
+		tpl = &corev1.ResourceRequirements{}
 	}
 
 	for _, u := range podObjs {
@@ -57,7 +56,7 @@ func computeSpecAppliedStats(containerName string, podObjs []unstructured.Unstru
 			continue
 		}
 
-		if resourceRequirementsSpecMatchesApplied(&ctnSpec.Resources, cs.Resources) {
+		if resourceRequirementsSpecMatchesApplied(tpl, cs.Resources) {
 			out.ConvergedCount++
 			continue
 		}
