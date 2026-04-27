@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.20
+* Bump library github.com/aws/aws-sdk-go-v2 to v1.41.6
+* Bump library github.com/aws/aws-sdk-go-v2/config to v1.32.16
+* Bump library github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to v1.69.1
+* Bump library k8s.io/api to v0.35.4
+* Bump library k8s.io/client-go to v0.35.4
+* Bump indirect libraries dependencies
+
 ## 0.2.19
 * Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
 * Pin runtime image to Alpine 3.23.4 (addresses Alpine OpenSSL CVE-2026-28390 and musl CVE-2026-40200 where applicable).

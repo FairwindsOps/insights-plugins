@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.9.5
+* Bump library k8s.io/api to v0.35.4
+* Bump library k8s.io/client-go to v0.35.4
+
 ## 2.9.4
 
 * **Spec applied stats:** **`SpecAppliedConvergedCount`** and **`SpecAppliedSkewPods`** compare each Running+Ready pod’s applied **`status.containerStatuses[].resources`** to the **top controller pod template** for that container (not the pod’s own spec). Pods resized in place while the template is unchanged are skew; **`results.schema`** descriptions updated.
