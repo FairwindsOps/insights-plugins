@@ -195,7 +195,7 @@ if  [[ "$provider" = "aws" ]]; then
 
   queryResults=$(aws athena start-query-execution \
     --query-string \
-        "SELECT ${aws_select_cols} FROM $database.$table WHERE $tag_filter AND line_item_usage_end_date > timestamp '$initial_date_time' AND line_item_usage_end_date <= timestamp '$final_date_time' GROUP BY 1,2,4,5,6,7,8,11,12,13 ORDER BY 1, 2" \
+        "SELECT ${aws_select_cols} FROM \"$database\".\"$table\" WHERE $tag_filter AND line_item_usage_end_date > timestamp '$initial_date_time' AND line_item_usage_end_date <= timestamp '$final_date_time' GROUP BY 1,2,4,5,6,7,8,11,12,13 ORDER BY 1, 2" \
     --work-group "$workgroup" \
     --query-execution-context Database=$database,Catalog=$catalog \
 )
