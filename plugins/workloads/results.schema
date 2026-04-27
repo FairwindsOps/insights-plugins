@@ -375,11 +375,11 @@
                         },
                         "SpecAppliedConvergedCount": {
                           "type": "integer",
-                          "description": "Running+Ready pods where status.containerStatuses[].resources matches this pod's container spec (CPU/memory and tracked GPU-class resources) for this container name."
+                          "description": "Running+Ready pods where status.containerStatuses[].resources matches this workload's pod template for this container name (CPU/memory and tracked GPU-class resources)."
                         },
                         "SpecAppliedSkewPods": {
                           "type": "array",
-                          "description": "Pods where applied resources in status differ from that pod's container spec (e.g. in-place resize in progress).",
+                          "description": "Pods where applied resources in status differ from the top controller pod template (e.g. in-place resize ahead of a template rollout).",
                           "items": {
                             "type": "object",
                             "properties": {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.17
+* Bump library k8s.io/api to v0.35.4
+* Bump library k8s.io/client-go to v0.35.4
+
+## 0.4.16
+* Bump library github.com/falcosecurity/falcosidekick to v0.0.0-20260415092148-551fba1be4c2
+
 ## 0.4.15
 * Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
 * Pin runtime image to Alpine 3.23.4 (addresses Alpine OpenSSL CVE-2026-28390 and musl CVE-2026-40200 where applicable).
