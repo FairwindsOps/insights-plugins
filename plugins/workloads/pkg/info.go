@@ -51,25 +51,31 @@ type ContainerResult struct {
 	Resource     ResourceResult
 }
 
-// AppliedResources are CPU/memory request and limit strings derived from
+// AppliedResources are request/limit strings derived from
 // status.containerStatuses[].resources (runtime-applied), not pod spec.
+// CPU and Memory stay on Requests/Limits (ResourcesInfo). GPU-class applied quantities use ExtendedRequests/ExtendedLimits.
 type AppliedResources struct {
-	Requests ResourcesInfo
-	Limits   ResourcesInfo
+	Requests         ResourcesInfo
+	Limits           ResourcesInfo
+	ExtendedRequests map[string]string `json:"ExtendedRequests,omitempty"`
+	ExtendedLimits   map[string]string `json:"ExtendedLimits,omitempty"`
 }
 
 // ResourceResult provides resources information.
 type ResourceResult struct {
 	Requests ResourcesInfo
 	Limits   ResourcesInfo
+	// GPURequests / GPULimits: optional template (pod spec) GPU-class maps; resource names vary by vendor (see Extended* on Applied for applied status when skewing).
+	GPURequests map[string]string `json:"GPURequests,omitempty"`
+	GPULimits   map[string]string `json:"GPULimits,omitempty"`
 	// SpecAppliedConvergedCount is how many Running+Ready pods have status.containerStatuses[].resources
-	// populated and equal to that pod's container spec (CPU/memory requests and limits), for this container name.
+	// populated and semantically matching this workload's pod template (CPU/memory and tracked GPU-class resources) for this container.
 	SpecAppliedConvergedCount int `json:"SpecAppliedConvergedCount"`
-	// SpecAppliedSkewPods lists pods where applied status differs from pod spec (e.g. in-place resize); empty/nil when none.
+	// SpecAppliedSkewPods lists pods whose applied status resources differ from the top controller pod template (e.g. in-place resize ahead of template rollout).
 	SpecAppliedSkewPods []SpecAppliedSkewPod `json:",omitempty"`
 }
 
-// ResourcesInfo provides a request/limit item information.
+// ResourcesInfo provides request/limit item information (CPU and memory only).
 type ResourcesInfo struct {
 	Memory string
 	CPU    string
@@ -137,6 +143,9 @@ func resourcesFromContainerSpec(container corev1.Container) ResourceResult {
 	if container.Resources.Requests.Memory().IsZero() && !container.Resources.Limits.Memory().IsZero() {
 		resources.Requests.Memory = resources.Limits.Memory
 	}
+	gpuReq, gpuLim := extendedGPUMapsFromResourceRequirements(&container.Resources)
+	resources.GPURequests = gpuReq
+	resources.GPULimits = gpuLim
 	return resources
 }
 
@@ -182,7 +191,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		var containers []ContainerResult
 		if workload.PodSpec != nil {
 			for _, ctn := range workload.PodSpec.Containers {
-				stats := computeSpecAppliedStats(ctn.Name, workload.Pods)
+				stats := computeSpecAppliedStats(ctn.Name, &ctn.Resources, workload.Pods)
 				containers = append(containers, formatContainer(ctn, corev1.ContainerStatus{}, topController.GetCreationTimestamp(), stats))
 			}
 		}

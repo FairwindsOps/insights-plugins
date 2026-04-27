@@ -298,7 +298,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		key := getKey(cpuVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(cpuVal)
-		request.cpuRequest = cpuVal.Values[0].Value
+		request.cpuRequest = averageSampleValues(cpuVal.Values)
 		combinedRequests[key] = request
 	}
 	for _, memVal := range memoryRequest {
@@ -308,7 +308,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		key := getKey(memVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(memVal)
-		request.memoryRequest = memVal.Values[0].Value
+		request.memoryRequest = averageSampleValues(memVal.Values)
 		combinedRequests[key] = request
 	}
 	for _, cpuVal := range cpuLimits {
@@ -318,7 +318,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		key := getKey(cpuVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(cpuVal)
-		request.cpuLimit = cpuVal.Values[0].Value
+		request.cpuLimit = averageSampleValues(cpuVal.Values)
 		combinedRequests[key] = request
 	}
 	for _, memVal := range memoryLimits {
@@ -328,7 +328,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		key := getKey(memVal)
 		request := combinedRequests[key]
 		request.Owner = getOwner(memVal)
-		request.memoryLimit = memVal.Values[0].Value
+		request.memoryLimit = averageSampleValues(memVal.Values)
 		combinedRequests[key] = request
 	}
 	for _, gpuVal := range gpuRequests {
@@ -336,7 +336,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request := combinedRequests[key]
 		request.Owner = getOwner(gpuVal)
 		if len(gpuVal.Values) > 0 {
-			request.gpuRequest = gpuVal.Values[0].Value
+			request.gpuRequest = averageSampleValues(gpuVal.Values)
 		}
 		combinedRequests[key] = request
 	}
@@ -345,7 +345,7 @@ func GetMetrics(ctx context.Context, dynamicClient dynamic.Interface, restMapper
 		request := combinedRequests[key]
 		request.Owner = getOwner(gpuVal)
 		if len(gpuVal.Values) > 0 {
-			request.gpuLimit = gpuVal.Values[0].Value
+			request.gpuLimit = averageSampleValues(gpuVal.Values)
 		}
 		combinedRequests[key] = request
 	}
@@ -453,6 +453,20 @@ func getOwner(sample *model.SampleStream) Owner {
 		PodName:             string(sample.Metric["pod"]),
 		Container:           string(sample.Metric["container"]),
 	}
+}
+
+// averageSampleValues returns the arithmetic mean of values in a QueryRange stream.
+// Used for request/limit gauges so a mid-window resize contributes both old and new
+// spec to the scalar instead of only the first timestep (Values[0]).
+func averageSampleValues(values []model.SamplePair) model.SampleValue {
+	if len(values) == 0 {
+		return 0
+	}
+	var sum float64
+	for _, v := range values {
+		sum += float64(v.Value)
+	}
+	return model.SampleValue(sum / float64(len(values)))
 }
 
 // adjustMetricsForMultiContainerPods splits values for any metrics

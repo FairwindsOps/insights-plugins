@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"context"
+	"sort"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -44,15 +45,14 @@ type NodeUtilization struct {
 	GPULimitsFraction float64 `json:"gpuLimitsFraction"`
 }
 
-// gpuResourceNames lists all supported GPU resource types across vendors
-var gpuResourceNames = []v1.ResourceName{
-	"nvidia.com/gpu",
-	"nvidia.com/gpu.shared",
-	"amd.com/gpu",
-	"intel.com/gpu",
-	"habana.ai/gaudi",
-	"google.com/tpu",
-	"k8s.amazonaws.com/vgpu",
+var gpuResourceNames []v1.ResourceName
+
+func init() {
+	gpuResourceNames = make([]v1.ResourceName, 0, len(gpuClassResourceNameSet))
+	for n := range gpuClassResourceNameSet {
+		gpuResourceNames = append(gpuResourceNames, n)
+	}
+	sort.Slice(gpuResourceNames, func(i, j int) bool { return gpuResourceNames[i] < gpuResourceNames[j] })
 }
 
 func GetNodeAllocatedResource(ctx context.Context, client k8sClient.Interface, node v1.Node) (NodeAllocatedResources, NodeUtilization, error) {
