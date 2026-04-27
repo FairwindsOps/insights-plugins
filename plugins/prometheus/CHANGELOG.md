@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.1
+* Bump library k8s.io/api to v0.35.4
+* Bump library k8s.io/client-go to v0.35.4
+
 ## 1.9.0
 * Adjusting prometheus collector for in-place pod resize
 

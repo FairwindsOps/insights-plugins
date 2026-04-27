@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.15
+* Bump library k8s.io/api to v0.35.4
+* Bump library k8s.io/client-go to v0.35.4
+
 ## 0.6.14
 * Build with Go 1.26.2 (stdlib CVE-2026-32280, CVE-2026-32281, CVE-2026-32283, CVE-2026-33810) via module `go` version and `GOTOOLCHAIN=go1.26.2` in release builds.
 * Release image remains `FROM scratch` (no Alpine base packages in the shipped image).
