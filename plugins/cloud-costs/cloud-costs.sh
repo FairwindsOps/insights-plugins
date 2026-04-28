@@ -23,7 +23,10 @@ usage: cloud-costs \
   --billingaccount <billing account - required for GCP if table is not provided> \
   --subscription <subscription ID - required for Azure> \
   [--timeout <time in seconds>] \
-  [--days <number of days to query, default is 5>]
+  [--days <number of days to query, default is 5>] \
+  [--awscurversion legacy|cur2] \
+  [--cur2tagcolumn tags|resource_tags] \
+  [--tagmapkey <exact map key for CUR 2.0 tag filter>]
 
 This script runs cloud costs integration for Fairwinds Insights.
 EOF
@@ -42,6 +45,9 @@ dataset=''
 billingaccount=''
 subscription=''
 days=''
+awscurversion=''
+cur2tagcolumn=''
+tagmapkey=''
 while [ ! $# -eq 0 ]; do
     flag=${1##-}
     flag=${flag##-}
@@ -89,6 +95,15 @@ while [ ! $# -eq 0 ]; do
         subscription)
             subscription=${2}
             ;;
+        awscurversion)
+            awscurversion=${2}
+            ;;
+        cur2tagcolumn)
+            cur2tagcolumn=${2}
+            ;;
+        tagmapkey)
+            tagmapkey=${2}
+            ;;
         *)
             usage
             exit 1
@@ -103,6 +118,13 @@ fi
 if [[ "$days" = "" ]]; then
   days='5'
 fi
+if [[ "$awscurversion" = "" && "$CLOUD_COSTS_AWS_CUR_VERSION" != "" ]]; then
+  awscurversion=$CLOUD_COSTS_AWS_CUR_VERSION
+fi
+if [[ "$awscurversion" = "" ]]; then
+  awscurversion=legacy
+fi
+awscurversion=$(printf '%s' "$awscurversion" | tr '[:upper:]' '[:lower:]')
 # Default to /tmp when unset so container runs work (K8s often has read-only root; see Dockerfile AZURE_CONFIG_DIR)
 OUTPUT_DIR=${OUTPUT_DIR:-/output}
 
@@ -122,6 +144,10 @@ final_date=$(date -u +"%Y-%m-%d")
 
 if  [[ "$provider" = "aws" ]]; then
   echo "AWS CUR Integration......"
+  if [[ "$awscurversion" != "legacy" && "$awscurversion" != "cur2" ]]; then
+    echo "Invalid --awscurversion or CLOUD_COSTS_AWS_CUR_VERSION: use legacy or cur2" >&2
+    exit 1
+  fi
   if [[ "$tagvalue" = "" || "$database" = "" || "$table" = "" || "$catalog" = "" || "$workgroup" = "" || "$days" = "" ]]; then
     usage
     exit 1
@@ -130,32 +156,46 @@ if  [[ "$provider" = "aws" ]]; then
     usage
     exit 1
   fi
+  if [[ "$awscurversion" = "cur2" ]]; then
+    if [[ "$cur2tagcolumn" = "" ]]; then
+      cur2tagcolumn=tags
+    fi
+    cur2tagcolumn=$(printf '%s' "$cur2tagcolumn" | tr '[:upper:]' '[:lower:]')
+    if [[ "$cur2tagcolumn" != "tags" && "$cur2tagcolumn" != "resource_tags" ]]; then
+      echo "Invalid --cur2tagcolumn: use tags or resource_tags" >&2
+      exit 1
+    fi
+  fi
 
-  # Tag filter:
-  # - If tagprefix is provided, use legacy CUR flattened columns (e.g. resource_tags_user_kubernetes_cluster)
-  # - Otherwise, assume a "tags" MAP column is available (common in newer Athena exports)
-  if [[ "$tagprefix" != "" ]]; then
-    tag_filter="$tagprefix$tagkey='$tagvalue'"
+  echo "AWS CUR version mode: ${awscurversion}"
+
+  # Tag filter and SELECT list depend on legacy CUR vs CUR 2.0 (Data Exports).
+  if [[ "$awscurversion" = "cur2" ]]; then
+    if [[ "$tagprefix" != "" ]]; then
+      echo "Note: --tagprefix is ignored in CUR 2.0 mode (use tags/resource_tags map columns)." >&2
+    fi
+    if [[ "$tagmapkey" != "" ]]; then
+      tag_filter="try(element_at($cur2tagcolumn, '$tagmapkey')) = '$tagvalue'"
+    elif [[ "$cur2tagcolumn" = "resource_tags" ]]; then
+      tag_filter="try(element_at(resource_tags, '$tagkey')) = '$tagvalue'"
+    else
+      # Unified CUR 2.0 tags map: resource cost-allocation tags use resourceTags/<key> (see AWS CUR 2.0 table dictionary).
+      tag_filter="try(coalesce(element_at(tags, concat('resourceTags/', '$tagkey')), element_at(tags, '$tagkey'))) = '$tagvalue'"
+    fi
+    aws_select_cols="line_item_product_code, identity_time_interval, sum(line_item_unblended_cost) AS cost, line_item_usage_type, try(coalesce(element_at(product, 'memory'), element_at(product, 'Memory'))) AS product_memory, product_instance_type, try(coalesce(element_at(product, 'vcpu'), element_at(product, 'Vcpu'))) AS product_vcpu, try(coalesce(element_at(product, 'clock_speed'), element_at(product, 'clockSpeed'))) AS product_clock_speed, sum(1) AS count, sum(line_item_usage_amount) AS line_item_usage_amount, line_item_operation, product_product_family, try(coalesce(element_at(product, 'gpu'), element_at(product, 'Gpu'))) AS product_gpu"
   else
-    # tags is a MAP(varchar,varchar), so use element_at() or bracket notation
-    # try() handles cases where tags might be null or the key doesn't exist
-    tag_filter="try(coalesce(element_at(tags, '$tagkey'), tags['$tagkey'])) = '$tagvalue'"
+    # Legacy CUR: flattened tag columns with optional prefix, or a plain tags MAP.
+    if [[ "$tagprefix" != "" ]]; then
+      tag_filter="$tagprefix$tagkey='$tagvalue'"
+    else
+      tag_filter="try(coalesce(element_at(tags, '$tagkey'), tags['$tagkey'])) = '$tagvalue'"
+    fi
+    aws_select_cols="line_item_product_code, identity_time_interval, sum(line_item_unblended_cost) AS cost, line_item_usage_type, product_memory, product_instance_type, product_vcpu, product_clock_speed, sum(1) AS count, sum(line_item_usage_amount) AS line_item_usage_amount, line_item_operation, product_product_family, product_gpu"
   fi
 
   queryResults=$(aws athena start-query-execution \
     --query-string \
-        "SELECT \
-          line_item_product_code, identity_time_interval, sum(line_item_unblended_cost) AS cost, \
-          line_item_usage_type, product_memory, product_instance_type, product_vcpu, product_clock_speed, sum(1) AS count, \
-          sum(line_item_usage_amount) AS line_item_usage_amount, line_item_operation, product_product_family, product_gpu \
-        FROM \
-          "$database"."$table" \
-        WHERE \
-          $tag_filter \
-          AND line_item_usage_end_date > timestamp '$initial_date_time' \
-          AND line_item_usage_end_date <= timestamp '$final_date_time' \
-        GROUP BY  1,2,4,5,6,7,8,11,12,13
-        Order by 1, 2" \
+        "SELECT ${aws_select_cols} FROM \"$database\".\"$table\" WHERE $tag_filter AND line_item_usage_end_date > timestamp '$initial_date_time' AND line_item_usage_end_date <= timestamp '$final_date_time' GROUP BY 1,2,4,5,6,7,8,11,12,13 ORDER BY 1, 2" \
     --work-group "$workgroup" \
     --query-execution-context Database=$database,Catalog=$catalog \
 )

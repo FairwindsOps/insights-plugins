@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.0
+* AWS: support native **CUR 2.0** Athena tables via `--awscurversion cur2` (optional `--cur2tagcolumn`, `--tagmapkey`, env `CLOUD_COSTS_AWS_CUR_VERSION`). Legacy CUR behavior remains the default.
+
 ## 1.0.8
 * Bump library CLOUD_SDK_VERSION to version 560.0.0
 
