@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.22
+* Bump library k8s.io/api to v0.36.0
+* Bump library k8s.io/apimachinery to v0.36.0
+* Bump library k8s.io/client-go to v0.36.0
+* Bump indirect libraries dependencies
+
 ## 2.2.21
 * Bump library gomodules.xyz/jsonpatch/v3 to v3.0.1
 
