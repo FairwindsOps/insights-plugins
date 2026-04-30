@@ -1,9 +1,11 @@
 # Changelog
 
-## 2.2.22
+## 2.3.0
 * Bump library k8s.io/api to v0.36.0
 * Bump library k8s.io/apimachinery to v0.36.0
 * Bump library k8s.io/client-go to v0.36.0
+* Bump library sigs.k8s.io/controller-runtime to v0.24.0 (aligned with client-go v0.36)
+* Bump indirect library k8s.io/apiextensions-apiserver to v0.36.0
 * Bump indirect libraries dependencies
 
 ## 2.2.21
