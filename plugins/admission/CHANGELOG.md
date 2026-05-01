@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.1
+* Bump library gomodules.xyz/jsonpatch/v2 to v2.5.0
+* Bump library gomodules.xyz/jsonpatch/v3 to v3.0.1
+
 ## 2.3.0
 * Bump library k8s.io/api to v0.36.0
 * Bump library k8s.io/apimachinery to v0.36.0
