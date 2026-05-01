@@ -1,12 +1,19 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":dependencyDashboard"
   ],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 10,
   "minimumReleaseAge": "7 days",
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "enabledManagers": [
     "gomod",
-    "dockerfile"
+    "dockerfile",
+    "circleci",
+    "custom.regex"
   ],
   "customManagers": [
     {
@@ -62,6 +69,27 @@
       "matchStrings": ["ENV PG_PARTMAN_VERSION=(?<currentValue>v[\\d.]+)"],
       "depNameTemplate": "pgpartman/pg_partman",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "description": "Kind node image for rok8s-scripts kubernetes_e2e_tests (orb job parameter)",
+      "fileMatch": ["(^|/)\\.circleci/config\\.yml$"],
+      "matchStrings": [
+        "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^@\"]+)@sha256:(?<currentDigest>[a-f0-9]+)\""
+      ],
+      "depNameTemplate": "kindest/node",
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "golangci-lint version in CircleCI test job",
+      "fileMatch": ["(^|/)\\.circleci/config\\.yml$"],
+      "matchStrings": [
+        "golangci/golangci-lint/v2/cmd/golangci-lint@(?<currentValue>v[0-9.]+)"
+      ],
+      "depNameTemplate": "golangci/golangci-lint",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
     }
   ],
   "packageRules": [
@@ -81,14 +109,53 @@
       "groupName": "Go major updates"
     },
     {
-      "matchManagers": ["dockerfile", "regex"],
+      "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "Dockerfile non-major updates"
     },
     {
-      "matchManagers": ["dockerfile", "regex"],
+      "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["major"],
       "groupName": "Dockerfile major updates"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["**/Dockerfile"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "Dockerfile non-major updates"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["**/Dockerfile"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Dockerfile major updates"
+    },
+    {
+      "matchManagers": ["circleci"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "CircleCI non-major updates"
+    },
+    {
+      "matchManagers": ["circleci"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "CircleCI major updates"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [".circleci/config.yml"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "CircleCI config (regex) non-major updates"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [".circleci/config.yml"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "CircleCI config (regex) major updates"
+    },
+    {
+      "description": "Every upgrade: upstream release must be at least 7 days old",
+      "matchManagers": ["gomod", "dockerfile", "circleci", "custom.regex"],
+      "minimumReleaseAge": "7 days"
     }
   ]
 }
