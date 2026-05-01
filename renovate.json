@@ -1,9 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":dependencyDashboard"
   ],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 10,
   "minimumReleaseAge": "7 days",
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "enabledManagers": [
     "gomod",
     "dockerfile",
