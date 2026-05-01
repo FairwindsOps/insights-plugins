@@ -151,6 +151,11 @@
       "matchFileNames": [".circleci/config.yml"],
       "matchUpdateTypes": ["major"],
       "groupName": "CircleCI config (regex) major updates"
+    },
+    {
+      "description": "Every upgrade: upstream release must be at least 7 days old",
+      "matchManagers": ["gomod", "dockerfile", "circleci", "custom.regex"],
+      "minimumReleaseAge": "7 days"
     }
   ]
 }
