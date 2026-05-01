@@ -3,7 +3,7 @@ module github.com/fairwindsops/insights-plugins/plugins/kube-bench
 go 1.26.2
 
 require (
-	github.com/aquasecurity/kube-bench v0.15.0
+	github.com/aquasecurity/kube-bench v0.15.1
 	github.com/sirupsen/logrus v1.9.4
 )
 
