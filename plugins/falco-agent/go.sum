@@ -30,6 +30,8 @@ github.com/falcosecurity/falcosidekick v0.0.0-20260309151552-b1f4acff5582 h1:1q7
 github.com/falcosecurity/falcosidekick v0.0.0-20260309151552-b1f4acff5582/go.mod h1:rubAsal9mGLGJl4R88YT/dkZcifC0xJjtHQLHPJNMrA=
 github.com/falcosecurity/falcosidekick v0.0.0-20260415092148-551fba1be4c2 h1:9pz3p56rRNk7E2+WL1vZWnlfEhQ1sTziEYgStdEQhyU=
 github.com/falcosecurity/falcosidekick v0.0.0-20260415092148-551fba1be4c2/go.mod h1:Vp5wLguUBBf/VCZpEkSxfE0B7U7hbSUpRlimrunO9bk=
+github.com/falcosecurity/falcosidekick v0.0.0-20260424092138-21268790da5b h1:wlufce+yZAOmnKPDkONERO3C0jJr6zgoMpd3RLmQbLo=
+github.com/falcosecurity/falcosidekick v0.0.0-20260424092138-21268790da5b/go.mod h1:Vp5wLguUBBf/VCZpEkSxfE0B7U7hbSUpRlimrunO9bk=
 github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=
 github.com/fsnotify/fsnotify v1.9.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/fxamacker/cbor/v2 v2.9.1 h1:2rWm8B193Ll4VdjsJY28jxs70IdDsHRWgQYAI80+rMQ=
