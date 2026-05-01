@@ -21,7 +21,10 @@ require (
 	sigs.k8s.io/yaml v1.6.0
 )
 
-require gomodules.xyz/jsonpatch/v2 v2.5.0
+require (
+	gomodules.xyz/jsonpatch/v2 v2.5.0
+	gomodules.xyz/jsonpatch/v3 v3.0.1
+)
 
 require (
 	github.com/agnivade/levenshtein v1.2.1 // indirect
