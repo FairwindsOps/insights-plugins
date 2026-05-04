@@ -6,7 +6,7 @@ require (
 	github.com/aereal/go-httpretryafter v0.1.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/fairwindsops/insights-plugins/plugins/admission v0.0.0-20260311165234-dec7bf83ba9c
-	github.com/fairwindsops/polaris v0.0.0-20260401181752-47c7deddfd66
+	github.com/fairwindsops/polaris v0.0.0-20260427183900-1fdfec73a1a6
 	github.com/samber/lo v1.53.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
@@ -51,7 +51,6 @@ require (
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -111,7 +110,7 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.35.3 // indirect
+	k8s.io/apiextensions-apiserver v0.35.4 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260330154417-16be699c7b31 // indirect
 	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5 // indirect
