@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.19
+* Bump dependencies
+
 ## 6.2.18
 * Fix vulnerabilities
 
