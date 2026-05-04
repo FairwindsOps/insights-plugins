@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.3
+* Bump library github.com/fairwindsops/pluto/v5 to v5.24.0
+
 ## 2.3.2
 * Bump library gomodules.xyz/jsonpatch/v3 to v3.0.1
 
