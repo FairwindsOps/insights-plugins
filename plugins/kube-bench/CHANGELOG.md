@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.16
+* Bump library github.com/aquasecurity/kube-bench to v0.15.2
+
 ## 0.6.15
 * Fixing kubectl URL
 
