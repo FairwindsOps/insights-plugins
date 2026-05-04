@@ -7,7 +7,7 @@ import (
 	"github.com/fairwindsops/polaris/pkg/mutation"
 	polariswebhook "github.com/fairwindsops/polaris/pkg/webhook"
 	"github.com/sirupsen/logrus"
-	"gomodules.xyz/jsonpatch/v2"
+	"gomodules.xyz/jsonpatch/v3"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 )
