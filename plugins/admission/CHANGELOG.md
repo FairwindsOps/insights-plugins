@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.4
+* Bump indirect libraries dependencies
+
 ## 2.3.3
 * Bump library github.com/fairwindsops/pluto/v5 to v5.24.0
 
