@@ -16,14 +16,15 @@ RUN apk upgrade --no-cache \
     && apk --no-cache add bash curl libc6-compat ca-certificates \
     && apk --no-cache add --upgrade libcrypto3 libssl3 zlib musl musl-utils
 
-ENV CLOUD_SDK_VERSION=565.0.0
+ENV CLOUD_SDK_VERSION=566.0.0
 
 RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
   google-cloud-sdk/install.sh --quiet --path-update=false && \ 
   rm -rf /trivy/google-cloud-sdk/platform/gsutil/third_party && \
-  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography*
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography* && \
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/docs
 
 ENV PATH=$PATH:/trivy/google-cloud-sdk/bin
 

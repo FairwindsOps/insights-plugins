@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2
+* Bump `CLOUD_SDK_VERSION` to 566.0.0 and remove unused `cryptography` documentation trees from the Cloud SDK Python layout.
+
 ## 1.1.1
 * Bump dependencies
 
