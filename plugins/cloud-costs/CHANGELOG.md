@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.2
+* Bump `CLOUD_SDK_VERSION` to 566.0.0, upgrade bundled `pyopenssl` to at least 26.0.0 (CVE-2026-27459), and remove unused `cryptography` documentation trees from the Cloud SDK Python layout.
+
 ## 1.1.1
 * Bump dependencies
 

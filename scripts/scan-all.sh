@@ -7,8 +7,8 @@ declare -a changed_plugins=($2)
 branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
 novaVersion=v3.11.15
-plutoVersion=v5.23.5
-goldilocksVersion=v4.14.18
+plutoVersion=v5.24.0
+goldilocksVersion=v4.15.0
 polarisVersion=10.1.8
 
 # Hard-coding four external images we own. Versions taken from insights-agent. Need to find a better solution here.
