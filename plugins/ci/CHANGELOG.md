@@ -1,8 +1,5 @@
 # Changelog
 
-## 6.2.20
-* Bump bundled Pluto to v5.24.0 (release dated 2026-04-27), built with current upstream fixes for Go and Alpine supply-chain issues in the prior binary.
-
 ## 6.2.19
 * Bump dependencies
 
