@@ -87,7 +87,7 @@ func (m MockClient) ClaimOnDemandJobs(limit int) ([]OnDemandJob, error) {
 			ReportType: "trivy",
 			Status:     string(JobStatusPending),
 			Options: map[string]string{
-				"imagesToScan": "quay.io/fairwinds/polaris:9.6,quay.io/fairwinds/workloads:2.6",
+				"imagesToScan": "us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0,quay.io/fairwinds/workloads:2.9.6",
 			},
 		},
 	}, nil
