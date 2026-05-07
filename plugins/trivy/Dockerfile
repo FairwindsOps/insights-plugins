@@ -9,49 +9,41 @@ RUN apk upgrade --no-cache \
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
-# Debian/glibc: Google Cloud SDK's bundled Python is glibc-linked and fails on Alpine (musl), e.g. posix_fallocate64.
-FROM python:3.13-slim-bookworm
+FROM python:3-alpine3.23
 WORKDIR /trivy
-ARG TARGETARCH
+# for gcloud
+RUN apk upgrade --no-cache \
+    && apk --no-cache add bash curl libc6-compat ca-certificates \
+    && apk --no-cache add --upgrade libcrypto3 libssl3 zlib musl musl-utils
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends bash curl ca-certificates skopeo \
-    && rm -rf /var/lib/apt/lists/*
+ENV CLOUD_SDK_VERSION=566.0.0
 
-ENV CLOUD_SDK_VERSION=567.0.0
-
-RUN set -eux; \
-    case "${TARGETARCH}" in \
-      arm64) googleArch="arm" ;; \
-      amd64) googleArch="x86_64" ;; \
-      *) echo "unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
-    esac; \
-    curl -fsSLO "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
-    tar -xf "google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
-    rm "google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
-    google-cloud-sdk/install.sh --quiet --path-update=false; \
-    rm -rf /trivy/google-cloud-sdk/platform/gsutil/third_party; \
-    rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/docs; \
-    rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/pkg_resources/tests; \
-    /trivy/google-cloud-sdk/platform/bundledpythonunix/bin/python3 -m pip install --no-cache-dir --upgrade \
-      'pyopenssl>=26.0.0' 'cryptography>=44.0.0'
+RUN curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
+  tar -xvf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
+  rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \ 
+  google-cloud-sdk/install.sh --quiet --path-update=false && \ 
+  rm -rf /trivy/google-cloud-sdk/platform/gsutil/third_party && \
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography* && \
+  rm -rf /trivy/google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/docs
 
 ENV PATH=$PATH:/trivy/google-cloud-sdk/bin
 
 COPY scan ./scan
 COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 
-RUN TRIVY_CACHE_DIR=/var/tmp trivy image \
-  --download-db-only \
+RUN TRIVY_CACHE_DIR=/var/tmp trivy image \ 
+  --download-db-only \ 
   --db-repository "ghcr.io/aquasecurity/trivy-db:2","public.ecr.aws/aquasecurity/trivy-db:2","docker.io/aquasec/trivy-db:2"
 
-RUN TRIVY_CACHE_DIR=/var/tmp trivy image \
-  --download-java-db-only \
+RUN TRIVY_CACHE_DIR=/var/tmp trivy image \ 
+  --download-java-db-only \ 
   --java-db-repository "ghcr.io/aquasecurity/trivy-java-db:1","public.ecr.aws/aquasecurity/trivy-java-db:1","docker.io/aquasec/trivy-java-db:1"
 
 ENV CLOUDSDK_CONFIG=/tmp/gcloud
 ENV HOME=/
 RUN mkdir $HOME/.docker
 
+RUN apk add --no-cache skopeo
+
 COPY report.sh ./
-CMD ["./report.sh"]
+CMD ./report.sh
