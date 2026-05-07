@@ -9,13 +9,14 @@ RUN apk upgrade --no-cache \
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
 
-FROM python:3-alpine3.23
+# Debian/glibc: Google Cloud SDK's bundled Python is glibc-linked and fails on Alpine (musl), e.g. posix_fallocate64.
+FROM python:3.13-slim-bookworm
 WORKDIR /trivy
 ARG TARGETARCH
-# for gcloud
-RUN apk upgrade --no-cache \
-    && apk --no-cache add bash curl libc6-compat ca-certificates \
-    && apk --no-cache add --upgrade libcrypto3 libssl3 zlib musl musl-utils
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends bash curl ca-certificates skopeo \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV CLOUD_SDK_VERSION=567.0.0
 
@@ -40,19 +41,17 @@ ENV PATH=$PATH:/trivy/google-cloud-sdk/bin
 COPY scan ./scan
 COPY --from=downloader /usr/local/bin/trivy /usr/local/bin/trivy
 
-RUN TRIVY_CACHE_DIR=/var/tmp trivy image \ 
-  --download-db-only \ 
+RUN TRIVY_CACHE_DIR=/var/tmp trivy image \
+  --download-db-only \
   --db-repository "ghcr.io/aquasecurity/trivy-db:2","public.ecr.aws/aquasecurity/trivy-db:2","docker.io/aquasec/trivy-db:2"
 
-RUN TRIVY_CACHE_DIR=/var/tmp trivy image \ 
-  --download-java-db-only \ 
+RUN TRIVY_CACHE_DIR=/var/tmp trivy image \
+  --download-java-db-only \
   --java-db-repository "ghcr.io/aquasecurity/trivy-java-db:1","public.ecr.aws/aquasecurity/trivy-java-db:1","docker.io/aquasec/trivy-java-db:1"
 
 ENV CLOUDSDK_CONFIG=/tmp/gcloud
 ENV HOME=/
 RUN mkdir $HOME/.docker
 
-RUN apk add --no-cache skopeo
-
 COPY report.sh ./
-CMD ./report.sh
+CMD ["./report.sh"]
