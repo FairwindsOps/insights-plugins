@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.1.3
-* Fixing vulnerabilities
+* Bump `CLOUD_SDK_VERSION` to 567.0.0; upgrade bundled SDK Python (`pyopenssl`, `cryptography`); remove unused `pkg_resources/tests` and docs trees under the Cloud SDK layout.
 
 ## 1.1.2
 * Bump `CLOUD_SDK_VERSION` to 566.0.0 and remove unused `cryptography` documentation trees from the Cloud SDK Python layout.

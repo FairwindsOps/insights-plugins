@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.17
+* Rebuild upstream `kube-bench` v0.15.2 in-image with Go 1.26.2 and `github.com/jackc/pgx/v5` v5.9.2; `apk upgrade` including musl/musl-utils; bump bundled `kubectl` to v1.35.4.
+
 ## 0.6.16
 * Bump library github.com/aquasecurity/kube-bench to v0.15.2
 

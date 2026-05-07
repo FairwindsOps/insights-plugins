@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.34.23
+* Bump `CLOUD_SDK_VERSION` to 567.0.0; install Cloud SDK tarball by `TARGETARCH` (amd64/arm64).
+* Upgrade bundled SDK Python (`pyopenssl`, `cryptography`) and remove unused `pkg_resources/tests` and docs trees under the Cloud SDK layout (Trivy scan hygiene).
+
 ## 0.34.22
 * Bump `CLOUD_SDK_VERSION` to 566.0.0 and remove unused `cryptography` documentation trees from the Cloud SDK Python layout.
 
