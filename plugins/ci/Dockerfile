@@ -2,7 +2,7 @@ FROM alpine:3.23.4 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV trivyVersion=0.70.0
-ENV polarisVersion=10.1.8
+ENV polarisVersion=10.2.0
 ENV plutoVersion=5.24.0
 ENV helmVersion=4.1.4
 
@@ -12,7 +12,7 @@ RUN apk --no-cache add curl bash openssl ca-certificates \
 
 RUN if [ "${TARGETARCH}" = "amd64" ] ; then trivyArch="64bit"; else trivyArch="${TARGETARCH}"; fi && \
   curl -L --retry 3 --retry-delay 5 --fail https://github.com/aquasecurity/trivy/releases/download/v${trivyVersion}/trivy_${trivyVersion}_${TARGETOS}-${trivyArch}.tar.gz > trivy.tar.gz && tar -xvf trivy.tar.gz && mv ./trivy /usr/local/bin/trivy && rm trivy.tar.gz
-RUN curl -L --retry 3 --retry-delay 5 --fail "https://github.com/FairwindsOps/polaris/releases/download/$polarisVersion/polaris_${TARGETOS}_${TARGETARCH}.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
+RUN curl -L --retry 3 --retry-delay 5 --fail "https://github.com/FairwindsOps/polaris/releases/download/v${polarisVersion}/polaris_${polarisVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > polaris.tar.gz && tar -xvf polaris.tar.gz && chmod +x polaris && rm polaris.tar.gz && mv ./polaris /usr/local/bin/polaris
 RUN curl -L --retry 3 --retry-delay 5 --fail "https://github.com/FairwindsOps/pluto/releases/download/v$plutoVersion/pluto_${plutoVersion}_${TARGETOS}_${TARGETARCH}.tar.gz" > pluto.tar.gz && tar -xvf pluto.tar.gz && chmod +x pluto && rm pluto.tar.gz && mv ./pluto /usr/local/bin/pluto
 RUN curl -L --retry 3 --retry-delay 5 --fail https://get.helm.sh/helm-v${helmVersion}-${TARGETOS}-${TARGETARCH}.tar.gz > helm.tar.gz && tar -xvf helm.tar.gz && mv ${TARGETOS}-${TARGETARCH}/helm /usr/local/bin/helm && rm helm.tar.gz
 

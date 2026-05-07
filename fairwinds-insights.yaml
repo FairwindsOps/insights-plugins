@@ -4,8 +4,8 @@ options:
 # run ./scripts/scan-all.sh to regenerate
 images:
   docker:
-    - quay.io/fairwinds/polaris:10.1.8
-    - quay.io/fairwinds/nova:v3.11.15
+    - us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0
+    - us-docker.pkg.dev/fairwinds-ops/oss/nova:v3.12.0
     - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.24.0
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.15.0
     - quay.io/fairwinds/insights-admission-controller:2.3.4
@@ -18,7 +18,7 @@ images:
     - quay.io/fairwinds/kubectl:0.21.8
     - quay.io/fairwinds/kyverno-policy-sync:0.2.19
     - quay.io/fairwinds/kyverno:0.5.18
-    - quay.io/fairwinds/on-demand-job-runner:0.2.16
+    - quay.io/fairwinds/on-demand-job-runner:0.2.17
     - quay.io/fairwinds/fw-opa:3.1.20
     - quay.io/fairwinds/postgres-partman:17.0.2
     - quay.io/fairwinds/prometheus-collector:1.9.2
