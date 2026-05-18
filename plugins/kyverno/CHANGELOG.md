@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.6.0
+* Add kyverno version to reports
 
 ## 0.5.18
 * Improving renovate
