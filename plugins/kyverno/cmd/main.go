@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,6 +22,7 @@ import (
 type Client struct {
 	RestMapper       meta.RESTMapper
 	DynamicInterface dynamic.Interface
+	Kube             kubernetes.Interface
 }
 
 func main() {
@@ -28,6 +32,10 @@ func main() {
 		logrus.Fatal("Error getting kube client: ", err)
 	}
 	ctx := context.Background()
+	kyvernoVersion := detectKyvernoVersion(ctx, client.Kube)
+	if kyvernoVersion != "" {
+		logrus.Infof("Detected Kyverno version from admission controller image: %s", kyvernoVersion)
+	}
 	clusterPoliciesTitleAndDescription, err := createPoliciesTitleAndDescriptionMap(ctx, "ClusterPolicy", client)
 	if err != nil {
 		logrus.Fatal("Error creating policies title and description map: ", err)
@@ -79,6 +87,7 @@ func main() {
 
 	logrus.Info("Validating admission policies found: ", len(filteredValidatingAdmissionPolicies))
 	response := map[string]any{
+		"kyvernoVersion":                   kyvernoVersion,
 		"policyReports":                    policyReportsViolations,
 		"clusterPolicyReports":             clusterPolicyReportsViolations,
 		"validatingAdmissionPolicyReports": validatingAdmissionPolicyReports,
@@ -232,10 +241,85 @@ func getKubeClient() (*Client, error) {
 	restMapper := restmapper.NewDiscoveryRESTMapper(groupResources)
 
 	client := Client{
-		restMapper,
-		dynamicInterface,
+		RestMapper:       restMapper,
+		DynamicInterface: dynamicInterface,
+		Kube:             kube,
 	}
 	return &client, nil
+}
+
+// detectKyvernoVersion returns the admission-controller container image tag
+// (e.g. v1.18.0) when a standard Kyverno Helm install is present; otherwise "".
+func detectKyvernoVersion(ctx context.Context, kube kubernetes.Interface) string {
+	for _, ns := range []string{"kyverno", "kyverno-system"} {
+		if v := detectKyvernoVersionInNamespace(ctx, kube, ns); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func detectKyvernoVersionInNamespace(ctx context.Context, kube kubernetes.Interface, namespace string) string {
+	deploys, err := kube.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/component=admission-controller",
+	})
+	if err != nil {
+		logrus.Debugf("listing admission-controller deployments in namespace %q: %v", namespace, err)
+		return ""
+	}
+	if len(deploys.Items) == 0 {
+		return ""
+	}
+	items := deploys.Items
+	sort.Slice(items, func(i, j int) bool { return items[i].Name < items[j].Name })
+	for i := range items {
+		if v := kyvernoVersionFromContainers(items[i].Spec.Template.Spec.Containers); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// kyvernoVersionFromContainers returns an image tag from the main Kyverno workload
+// container, avoiding unrelated sidecars that also use tagged images.
+func kyvernoVersionFromContainers(containers []corev1.Container) string {
+	for _, c := range containers {
+		if c.Name != "kyverno" {
+			continue
+		}
+		if tag := extractVersionFromImage(c.Image); tag != "" {
+			return tag
+		}
+	}
+	for _, c := range containers {
+		if !strings.Contains(strings.ToLower(imageRefWithoutDigest(c.Image)), "kyverno/kyverno") {
+			continue
+		}
+		if tag := extractVersionFromImage(c.Image); tag != "" {
+			return tag
+		}
+	}
+	return ""
+}
+
+func imageRefWithoutDigest(image string) string {
+	image = strings.TrimSpace(image)
+	if i := strings.Index(image, "@"); i >= 0 {
+		return image[:i]
+	}
+	return image
+}
+
+func extractVersionFromImage(image string) string {
+	image = imageRefWithoutDigest(image)
+	if image == "" {
+		return ""
+	}
+	idx := strings.LastIndex(image, ":")
+	if idx < 0 || idx >= len(image)-1 {
+		return ""
+	}
+	return strings.TrimSpace(image[idx+1:])
 }
 
 func (c *Client) ListResources(ctx context.Context, resourceType string, dynamicClient dynamic.Interface, restMapper meta.RESTMapper) ([]unstructured.Unstructured, error) {
