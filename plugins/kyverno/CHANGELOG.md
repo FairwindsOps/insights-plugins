@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1
+* Bump library k8s.io/api to v0.36.1
+* Bump library k8s.io/apimachinery to v0.36.1
+* Bump library k8s.io/client-go to v0.36.1
+* Bump library sigs.k8s.io/controller-runtime to v0.24.1
+* Bump indirect libraries dependencies
+
 ## 0.6.0
 * Add kyverno version to reports
 
