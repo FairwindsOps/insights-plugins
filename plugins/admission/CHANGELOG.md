@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.5
+* Bump library golang.org/x/mod to v0.36.0
+* Bump library k8s.io/api to v0.36.1
+* Bump library k8s.io/apimachinery to v0.36.1
+* Bump library k8s.io/client-go to v0.36.1
+* Bump library sigs.k8s.io/controller-runtime to v0.24.1
+
 ## 2.3.4
 * Bump library github.com/fairwindsops/polaris to v0.0.0-20260427183900-1fdfec73a1a6
 

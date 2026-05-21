@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.18
+* Bump library k8s.io/api to v0.36.1
+* Bump library k8s.io/apimachinery to v0.36.1
+* Bump library k8s.io/client-go to v0.36.1
+
 ## 0.2.17
 * Update `MockClient` sample `imagesToScan` to Fairwinds OSS Artifact Registry for Polaris and current workloads image tag.
 

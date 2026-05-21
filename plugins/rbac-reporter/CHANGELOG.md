@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.18
+* Bump library k8s.io/api to v0.36.1
+* Bump library k8s.io/apimachinery to v0.36.1
+* Bump library k8s.io/client-go to v0.36.1
+* Bump library sigs.k8s.io/controller-runtime to v0.24.1
+* Bump indirect libraries dependencies
+
 ## 1.4.17
 * Bump library k8s.io/api to v0.36.0
 * Bump library k8s.io/apimachinery to v0.36.0

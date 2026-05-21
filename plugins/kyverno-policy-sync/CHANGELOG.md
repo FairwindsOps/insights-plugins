@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.20
+* Bump library k8s.io/apimachinery to v0.36.1
+* Bump library k8s.io/client-go to v0.36.1
+* Bump indirect libraries dependencies
+
 ## 0.2.19
 * Bump bundled `kubectl` to v1.35.4 (addresses stdlib and `moby/spdystream` findings in the client binary).
 
