@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.34.25
+* Bump library github.com/Masterminds/semver/v3 to v3.5.0
+* Bump library k8s.io/api to v0.36.1
+* Bump library k8s.io/apimachinery to v0.36.1
+* Bump library k8s.io/client-go to v0.36.1
+
 ## 0.34.24
 * Bump dependencies
 
