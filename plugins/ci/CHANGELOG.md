@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.21
+* Bump dependencies
+
 ## 6.2.20
 * Fix vulnerabilities
 
