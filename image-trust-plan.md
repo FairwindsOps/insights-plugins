@@ -11,7 +11,7 @@ This plugin should be separate from `trivy` because the problem it solves is dif
 - `trivy` answers: "What vulnerabilities are in this image?"
 - `image-trust` answers: "Is this image signed by a trusted signer?"
 
-The plugin should enumerate images currently used by workloads, verify each image by digest against a trust policy, and upload a dedicated Insights report containing actionable findings for unsigned or untrusted images.
+The plugin should enumerate images currently used by workloads, verify each image by digest against a trust policy, and upload a dedicated Insights report containing a trust result for every image plus actionable findings for non-compliant images.
 
 ## Problem
 
@@ -23,7 +23,7 @@ That leaves a supply-chain gap:
 - an image may be signed, but not by a signer we trust
 - registry or verification failures may hide real trust issues if we do not classify them clearly
 
-We need a report similar to other Insights reports that tells users which running images are not compliant with image-signing expectations.
+We need a report similar to other Insights reports that tells users the trust state of every running image and clearly identifies which images are not compliant with image-signing expectations.
 
 ## Decision
 
@@ -35,6 +35,13 @@ Why this is the best fit:
 - it keeps trust verification separate from vulnerability scanning
 - it avoids overloading the Trivy report format with unrelated concerns
 - it allows separate rollout, configuration, and failure handling
+
+Additional product decisions:
+
+- send all image results to Insights, not just failing ones
+- upload through the standard report endpoint used by other plugins
+- support multiple popular verification methods behind a common verifier interface
+- add allowlists for approved images and trusted signers
 
 ## Why Not Extend Existing Plugins
 
@@ -54,8 +61,12 @@ Why this is the best fit:
 - deduplicate images while preserving workload ownership metadata
 - verify images by immutable digest
 - classify each image into a trust status
-- report non-compliant images in a format Insights can ingest and present
+- report every image in a format Insights can ingest and present
+- expose specific per-image trust results and reasons
+- derive findings from those results for non-compliant images
 - support private registries and scoped rollout
+- support allowlists for approved image patterns, registries, and signers
+- support multiple popular verification methods
 - support on-demand execution like other report types
 
 ## Non-Goals
@@ -63,25 +74,47 @@ Why this is the best fit:
 - replacing admission-control enforcement
 - blocking workloads directly from this plugin
 - replacing `trivy` or merging with vulnerability reporting
-- implementing every signing technology in v1
 - automatically deciding policy exceptions for third-party images
 
 ## Recommended V1 Scope
 
 V1 should support:
 
-- Cosign verification
+- Cosign keyless verification
 - digest-based verification
 - keyless verification using trusted issuer and subject matching
 - key-based verification using configured public keys
-- allowlists or exclusions for approved image patterns
+- certificate-based verification where verifier metadata can be mapped to trusted identities
+- KMS-backed signing flows when they are verified through Cosign-compatible trust material
+- Notation / Notary Project verification
+- allowlists or exclusions for approved image patterns, registries, and signers
 - explicit classification of verification failures versus unsigned images
+- reporting all images, even when compliant
 
 V1 should not require:
 
-- Notation support
 - attestation policy evaluation beyond basic signature trust
 - historical drift analysis beyond the current report payload
+- Docker Content Trust / Notary v1 support unless a strong product need emerges
+
+## Verification Modes
+
+The plugin should be designed around a verifier interface so we can support multiple trust mechanisms without rewriting report generation.
+
+Initial verification modes:
+
+1. `cosign-keyless`
+   - trusted by issuer plus subject or subject regexp
+2. `cosign-key`
+   - trusted by public key material
+3. `cosign-certificate`
+   - trusted by certificate identity constraints where applicable
+4. `cosign-kms`
+   - treated as a Cosign-backed verification mode, with trust rooted in configured keys or certificate identity
+5. `notation`
+   - Notary Project / Notation verification for OCI artifacts
+
+The plugin should normalize verifier output into one common trust result model.
 
 ## Trust Model
 
@@ -105,9 +138,9 @@ This distinction matters because remediation is different for each case.
 4. Deduplicate images so the same digest is verified only once.
 5. Verify the image against the configured trust policy.
 6. Attach verification results back to all owning workloads.
-7. Build an Insights report.
+7. Build an Insights report containing all image results.
 8. Write `/output/image-trust.json`.
-9. Upload the report as a new `image-trust` datatype.
+9. Upload the report as a new `image-trust` datatype through the same standard `/data/$datatype` endpoint other plugins use.
 
 ## Plugin Layout
 
@@ -133,8 +166,11 @@ plugins/image-trust/
     models/
       report.go
     verify/
+      verifier.go
       cosign.go
       cosign_test.go
+      notation.go
+      notation_test.go
       classify.go
 ```
 
@@ -152,7 +188,7 @@ If the logic stays stable and is needed by more plugins later, it can be extract
 
 ## Verification Implementation
 
-For the MVP, prefer using the `cosign` CLI from the plugin container rather than wiring the full Sigstore Go libraries immediately.
+For the first implementation, prefer using external CLIs from the plugin container rather than wiring full signing libraries immediately.
 
 Reasons:
 
@@ -160,9 +196,22 @@ Reasons:
 - the CLI path will be faster to implement and easier to debug in containerized execution
 - it allows us to establish the report model and UX before optimizing internals
 
+Recommended tools:
+
+- `cosign` for Sigstore verification modes
+- `notation` for Notary Project verification
+
 The plugin should verify by digest, not tag.
 
 If the workload only references a tag, the plugin should use the resolved digest from Kubernetes status where available. If no trustworthy digest can be established, the result should be `unknown` or `verification_error`, not `verified`.
+
+Each verifier should return:
+
+- normalized image ID
+- verification mode used
+- trust status
+- human-readable reason
+- signer details when available
 
 ## Configuration
 
@@ -170,12 +219,15 @@ Suggested environment variables for V1:
 
 - `NAMESPACE_ALLOWLIST`
 - `NAMESPACE_BLOCKLIST`
-- `IMAGE_TRUST_MODE`
+- `IMAGE_TRUST_MODES`
 - `IMAGE_TRUST_TRUSTED_ISSUERS`
 - `IMAGE_TRUST_TRUSTED_SUBJECTS`
 - `IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS`
 - `IMAGE_TRUST_PUBLIC_KEYS`
 - `IMAGE_TRUST_PUBLIC_KEY_FILE`
+- `IMAGE_TRUST_TRUSTED_SIGNER_ALLOWLIST`
+- `IMAGE_TRUST_IMAGE_ALLOWLIST`
+- `IMAGE_TRUST_REGISTRY_ALLOWLIST`
 - `IMAGE_TRUST_EXCLUDED_IMAGE_PATTERNS`
 - `IMAGE_TRUST_FAIL_OPEN`
 - `REGISTRY_USER`
@@ -185,14 +237,16 @@ Suggested environment variables for V1:
 
 Configuration principles:
 
+- support multiple verification methods
 - support both keyless and key-based verification
 - allow teams to scope rollout by namespace
 - allow exclusions for known third-party images
+- allow explicit allowlists for approved images, registries, and signers
 - keep verification errors separate from policy failures
 
 ## Report Shape
 
-The exact Insights schema can be adjusted later, but the plugin output should contain both image-level and owner-level context.
+The plugin output should contain both image-level and owner-level context, and it should include all images, not only failing ones.
 
 Suggested top-level shape:
 
@@ -203,7 +257,14 @@ Suggested top-level shape:
       "name": "ghcr.io/example/app:1.2.3",
       "id": "ghcr.io/example/app@sha256:abc123",
       "status": "unsigned",
+      "verificationMode": "cosign-keyless",
       "reason": "no matching signatures found",
+      "allowlisted": false,
+      "signer": {
+        "issuer": "",
+        "subject": "",
+        "keyRef": ""
+      },
       "owners": [
         {
           "namespace": "production",
@@ -214,11 +275,24 @@ Suggested top-level shape:
       ],
       "lastCheckedAt": "2026-05-26T00:00:00Z"
     }
-  ]
+  ],
+  "summary": {
+    "totalImages": 100,
+    "verified": 72,
+    "unsigned": 11,
+    "signedUntrusted": 7,
+    "verificationError": 8,
+    "unknown": 2,
+    "allowlisted": 14
+  }
 }
 ```
 
-If Insights requires an action-item-oriented structure instead, the plugin should map each non-compliant image owner to a finding with:
+The report should be sent to the same standard report endpoint other plugins use:
+
+- `/v0/organizations/$organization/clusters/$cluster/data/image-trust`
+
+In addition to the full image list, the plugin should derive per-owner findings for non-compliant images with:
 
 - resource namespace
 - resource kind
@@ -234,6 +308,7 @@ Recommended title examples:
 - `Container image is unsigned`
 - `Container image is signed by an untrusted signer`
 - `Container image trust could not be verified`
+- `Container image trust is allowlisted`
 
 ## Remediation Guidance
 
@@ -243,6 +318,26 @@ The report should produce remediation text that matches the trust state:
 - `signed_untrusted`: update signing configuration or use an approved signing identity
 - `verification_error`: fix registry credentials, network access, or trust configuration and rerun
 - `unknown`: ensure the workload resolves to a digest or that image metadata is available
+
+Allowlisted images should still be reported in the full image list, but findings for them should be suppressed or specially marked depending on product behavior.
+
+## Allowlist Behavior
+
+Allowlists should be explicit policy inputs, not implicit passes.
+
+Recommended allowlist types:
+
+- image pattern allowlist
+- registry allowlist
+- signer allowlist
+- namespace-scoped allowlist if needed later
+
+Recommended behavior:
+
+- allowlisted images still appear in the report
+- allowlisted images carry `allowlisted: true`
+- allowlisted images are excluded from failing findings by default
+- allowlist matches should record why the image was exempted
 
 ## On-Demand Job Support
 
@@ -262,8 +357,7 @@ Follow the same model used by other plugins:
 
 - the plugin writes a final file to `/output/image-trust.json`
 - the uploader posts it to `/data/image-trust`
-
-If the backend needs a different datatype name, that can be adjusted later, but the plugin should be built around a dedicated report type from the start.
+- this should use the generic uploader path rather than a one-off endpoint
 
 ## Phased Implementation Plan
 
@@ -297,30 +391,34 @@ Exit criteria:
 
 ### Phase 3: Verification MVP
 
-Integrate Cosign-based verification.
+Integrate the verifier interface and implement at least one end-to-end mode.
 
 Exit criteria:
 
 - plugin can classify images as `verified`, `unsigned`, or `verification_error`
 - digest verification works for the common case
+- report includes all images, not just failures
 
 ### Phase 4: Trust Policy Expansion
 
-Add signer policy support.
+Add multiple verification modes and allowlist support.
 
 Exit criteria:
 
 - keyless identity matching works
 - key-based verification works
+- notation verification works
 - `signed_untrusted` is reported separately from `unsigned`
+- allowlisted images are present in the report and suppressed from findings by policy
 
 ### Phase 5: Report Quality
 
-Shape findings for Insights and add remediation text.
+Shape the full report plus derived findings for Insights and add remediation text.
 
 Exit criteria:
 
 - report is useful in product without manual interpretation
+- report includes all image states and aggregate counts
 - findings include owner references and clear remediation
 
 ### Phase 6: Hardening
@@ -351,6 +449,8 @@ Use known signed and unsigned image examples to validate:
 - unsigned image
 - signed image with trusted identity
 - signed image with untrusted identity
+- notation-verified image
+- allowlisted unsigned image
 - registry authentication failure
 - digest missing or unresolved case
 
@@ -368,7 +468,7 @@ Recommended rollout sequence:
 
 1. release plugin with audit-style reporting only
 2. validate result quality in internal or test clusters
-3. refine exclusion and policy configuration
+3. refine allowlist and policy configuration
 4. enable on-demand runs in product
 5. promote as a supported report type
 
@@ -380,14 +480,14 @@ This plugin should complement admission-control-based enforcement, not replace i
 - operator confusion if unsigned and verification failures are mixed together
 - registry auth complexity for private images
 - support burden if trust configuration is too flexible in v1
+- scope and maintenance cost increase if we support multiple verification systems from day one
 
 ## Open Questions
 
-- Should the backend store all image states or only non-compliant findings?
-- What should the final datatype name be in the Insights API?
 - Should the initial severity be fixed or status-dependent?
 - Should `verification_error` generate a finding by default or only a warning?
-- Do we want Notation support in a later phase, or is Cosign enough for the first release?
+- What is the exact precedence between allowlists and verification failures?
+- Do we need Docker Content Trust support, or are Cosign and Notation sufficient for "popular" verification methods?
 
 ## Recommended Next Step
 
