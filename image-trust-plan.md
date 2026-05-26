@@ -160,11 +160,24 @@ plugins/image-trust/
     config/
       config.go
       config_test.go
-    image/
-      getimages.go
-      getimages_test.go
+    discovery/
+      images.go
+      images_test.go
+    normalize/
+      references.go
+      references_test.go
     models/
+      image.go
+      result.go
       report.go
+    policy/
+      allowlist.go
+      allowlist_test.go
+      trustpolicy.go
+      trustpolicy_test.go
+    report/
+      builder.go
+      builder_test.go
     verify/
       verifier.go
       cosign.go
@@ -172,7 +185,288 @@ plugins/image-trust/
       notation.go
       notation_test.go
       classify.go
+      classify_test.go
+    output/
+      write.go
+      write_test.go
 ```
+
+## Clean Code Principles
+
+The implementation should optimize for clarity and changeability over minimizing file count.
+
+Guidelines:
+
+- keep `cmd/main.go` thin and focused on wiring
+- isolate external side effects behind small interfaces
+- keep trust status classification deterministic and centralized
+- separate image discovery, policy evaluation, verification, and report building
+- prefer small structs with explicit fields over generic `map[string]any`
+- return typed errors or structured result codes where practical
+- avoid hidden behavior in package globals
+- keep allowlist behavior explicit and testable
+- design each verifier as an adapter behind a shared interface
+
+## Architecture Overview
+
+Recommended internal flow:
+
+1. `config` loads environment variables into a validated runtime config
+2. `discovery` fetches cluster images and owner references
+3. `normalize` produces stable verification targets and deduplicates them
+4. `verify` runs one or more verifier adapters against each image
+5. `policy` evaluates trust rules and allowlists against verifier output
+6. `report` converts image results into the final Insights payload
+7. `output` writes the report file for the uploader
+
+This gives the plugin one clear orchestration path while keeping the logic independently testable.
+
+## Dependency Direction
+
+Package dependencies should flow inward toward simple models:
+
+- `cmd` may depend on all internal packages
+- `config` should depend only on standard library helpers and `models` if needed
+- `discovery`, `normalize`, `verify`, `policy`, `report`, and `output` should depend on `models`
+- `report` should not call verifier code directly
+- `policy` should not know about CLI commands or file system details
+- verifier implementations should not build final Insights reports
+
+This keeps business rules separate from transport and tooling concerns.
+
+## Core Interfaces
+
+Suggested interfaces:
+
+```go
+type ImageDiscoverer interface {
+    ListImages(ctx context.Context) ([]models.DiscoveredImage, error)
+}
+
+type Verifier interface {
+    Name() string
+    Verify(ctx context.Context, image models.VerificationTarget) (models.VerificationObservation, error)
+}
+
+type AllowlistMatcher interface {
+    Match(image models.VerificationTarget, observation models.VerificationObservation) *models.AllowlistMatch
+}
+
+type ReportBuilder interface {
+    Build(results []models.ImageTrustResult) models.Report
+}
+```
+
+Notes:
+
+- `Verifier` should return raw observation data, not final policy status
+- final status should be assigned in one place after allowlist and trust-policy evaluation
+- this prevents every verifier from reimplementing policy decisions differently
+
+## Data Model Plan
+
+Keep a small number of explicit model types:
+
+- `DiscoveredImage`
+  - image reference as seen in cluster
+  - resolved digest if available
+  - owners
+- `VerificationTarget`
+  - normalized immutable target used for verification
+- `VerificationObservation`
+  - raw verifier output
+  - verifier name
+  - signer details
+  - tool-specific reason
+- `AllowlistMatch`
+  - whether matched
+  - rule type
+  - rule value
+- `ImageTrustResult`
+  - final status
+  - reason
+  - allowlisted flag
+  - owners
+- `Report`
+  - full image results plus summary and derived findings
+
+This split helps keep verification facts separate from policy decisions.
+
+## Package Responsibilities
+
+### `pkg/config`
+
+Responsible for:
+
+- environment parsing
+- default values
+- validation
+- compiling regex patterns once
+
+Should not be responsible for:
+
+- verification logic
+- report generation
+
+### `pkg/discovery`
+
+Responsible for:
+
+- Kubernetes image discovery
+- namespace filtering
+- owner aggregation
+
+Should not be responsible for:
+
+- trust policy
+- allowlist evaluation
+- external verifier invocation
+
+### `pkg/normalize`
+
+Responsible for:
+
+- choosing the best immutable verification target
+- canonicalizing image IDs
+- deduplicating equivalent images
+
+This is important because digest-resolution mistakes are one of the biggest correctness risks.
+
+### `pkg/verify`
+
+Responsible for:
+
+- wrapping `cosign` and `notation`
+- parsing command output
+- returning normalized observations
+
+Should not be responsible for:
+
+- deciding if an allowlist should suppress a finding
+- deciding final severity
+
+### `pkg/policy`
+
+Responsible for:
+
+- trust policy evaluation
+- allowlist evaluation
+- merging verifier observations into final result states
+
+This should be the only place that decides whether a result is:
+
+- `verified`
+- `unsigned`
+- `signed_untrusted`
+- `verification_error`
+- `unknown`
+
+### `pkg/report`
+
+Responsible for:
+
+- converting final results into the report payload
+- generating summary counts
+- deriving findings for non-compliant results
+
+### `pkg/output`
+
+Responsible for:
+
+- writing the final JSON payload
+- ensuring stable file output behavior
+
+## Coding Roadmap
+
+Implementation should happen in small reviewable slices.
+
+### Slice 1: Skeleton and Models
+
+Deliver:
+
+- plugin scaffolding
+- core model types
+- config loading
+- empty report output
+
+Definition of done:
+
+- binary runs
+- writes valid JSON
+- unit tests cover config and report writing
+
+### Slice 2: Discovery and Normalization
+
+Deliver:
+
+- image discovery copied and adapted from Trivy
+- normalized verification targets
+- deterministic deduplication
+
+Definition of done:
+
+- test fixtures cover duplicate owners, namespace filters, missing digests
+
+### Slice 3: Verifier Interface and Cosign Adapter
+
+Deliver:
+
+- `Verifier` interface
+- `cosign-keyless` implementation
+- raw observation model
+
+Definition of done:
+
+- command execution is isolated behind testable helpers
+- parser tests cover success, unsigned, and command failure paths
+
+### Slice 4: Policy and Allowlists
+
+Deliver:
+
+- trust policy evaluator
+- image, registry, and signer allowlists
+- final result classifier
+
+Definition of done:
+
+- unit tests cover precedence and suppression rules
+
+### Slice 5: Report Builder
+
+Deliver:
+
+- full image report
+- summary counts
+- derived findings
+
+Definition of done:
+
+- report builder tests use table-driven inputs for all statuses
+
+### Slice 6: Additional Verifiers
+
+Deliver:
+
+- `cosign-key`
+- `notation`
+- optional certificate-oriented trust mapping
+
+Definition of done:
+
+- new verifiers plug in without changing report or policy packages
+
+### Slice 7: Operational Hardening
+
+Deliver:
+
+- retry and timeout policy
+- clearer structured logs
+- private registry support refinements
+
+Definition of done:
+
+- end-to-end smoke tests pass for public and private registry scenarios
 
 ## Reuse Strategy
 
@@ -434,11 +728,23 @@ Exit criteria:
 
 ## Testing Plan
 
+Testing should favor fast unit tests first, then a smaller number of integration and end-to-end checks.
+
+Principles:
+
+- use table-driven tests for policy and status mapping
+- use fixture-based tests for command output parsing
+- keep external CLI execution behind injectable helpers or interfaces
+- avoid requiring a live cluster for most tests
+- keep one or two smoke tests for real verifier behavior
+
 ### Unit Tests
 
 - config parsing
 - image discovery filters and deduplication
+- normalization and digest selection
 - trust status classification
+- allowlist precedence
 - error classification
 - report generation
 
@@ -454,13 +760,33 @@ Use known signed and unsigned image examples to validate:
 - registry authentication failure
 - digest missing or unresolved case
 
+Fixture sources should include:
+
+- captured `cosign verify` output
+- captured `notation verify` output
+- normalized fake image discovery inputs
+- sample allowlist configurations
+
 ### End-to-End Tests
 
 Smoke test the plugin in a cluster with:
 
 - at least one signed first-party image
 - at least one unsigned image
+- at least one allowlisted image
 - optional private registry case
+
+## Testability Requirements
+
+The code should be written so these components can be tested in isolation:
+
+- config validation without Kubernetes access
+- discovery without verifier binaries
+- verifier parsing without real clusters
+- policy evaluation without shelling out
+- report generation without any external dependencies
+
+If a package cannot be tested without a live registry or cluster, the package boundary should be revisited.
 
 ## Rollout Plan
 
