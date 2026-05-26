@@ -6,8 +6,10 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/config"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/discovery"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/output"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/report"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/verify"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,10 +28,36 @@ func main() {
 
 	logrus.Infof("discovered %d images", len(images))
 
-	finalReport := report.Build(images, time.Now())
+	results, err := verifyImages(ctx, cfg, images, time.Now())
+	if err != nil {
+		logrus.Fatalf("verifying images: %v", err)
+	}
+
+	finalReport := report.Build(results)
 	if err := output.WriteReport(output.FinalReportPath, finalReport); err != nil {
 		logrus.Fatalf("writing report: %v", err)
 	}
 
 	logrus.Infof("wrote image trust report to %s", output.FinalReportPath)
+}
+
+func verifyImages(ctx context.Context, cfg *config.Config, images []models.DiscoveredImage, now time.Time) ([]models.ImageTrustResult, error) {
+	verifier, err := verify.NewCosignVerifier(
+		verify.ExecRunner{},
+		cfg.TrustedIssuers,
+		cfg.TrustedSubjects,
+		cfg.TrustedSubjectREs,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := verify.VerifyImages(ctx, images, verifier)
+	if err != nil {
+		return nil, err
+	}
+	for i := range results {
+		results[i].LastCheckedAt = now.UTC()
+	}
+	return results, nil
 }

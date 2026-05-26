@@ -37,3 +37,35 @@ func (i DiscoveredImage) UniqueKey() string {
 	}
 	return i.Name
 }
+
+// VerificationReference returns the best immutable image reference available.
+func (i DiscoveredImage) VerificationReference() string {
+	if strings.Contains(i.ID, "@sha256:") {
+		return i.ID
+	}
+	if strings.HasPrefix(i.ID, "sha256:") {
+		repo := repositoryFromReference(i.Name)
+		if repo != "" {
+			return repo + "@" + i.ID
+		}
+	}
+	if strings.Contains(i.Name, "@sha256:") {
+		return i.Name
+	}
+	return ""
+}
+
+func repositoryFromReference(ref string) string {
+	if ref == "" {
+		return ""
+	}
+	if idx := strings.Index(ref, "@"); idx >= 0 {
+		return ref[:idx]
+	}
+	lastSlash := strings.LastIndex(ref, "/")
+	lastColon := strings.LastIndex(ref, ":")
+	if lastColon > lastSlash {
+		return ref[:lastColon]
+	}
+	return ref
+}
