@@ -14,6 +14,8 @@ type Config struct {
 	TrustedIssuers     []string
 	TrustedSubjects    []string
 	TrustedSubjectREs  []string
+	ImageAllowlist     []string
+	RegistryAllowlist  []string
 }
 
 // LoadFromEnvironment parses plugin configuration from environment variables.
@@ -25,6 +27,8 @@ func LoadFromEnvironment() (*Config, error) {
 		TrustedIssuers:     parseCSVEnv("IMAGE_TRUST_TRUSTED_ISSUERS"),
 		TrustedSubjects:    parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECTS"),
 		TrustedSubjectREs:  parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS"),
+		ImageAllowlist:     parseCSVEnv("IMAGE_TRUST_IMAGE_ALLOWLIST"),
+		RegistryAllowlist:  parseCSVEnv("IMAGE_TRUST_REGISTRY_ALLOWLIST"),
 	}
 	if len(cfg.VerificationModes) == 0 {
 		cfg.VerificationModes = []string{"cosign-keyless"}

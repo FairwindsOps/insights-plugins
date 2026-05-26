@@ -12,3 +12,5 @@ require (
 	k8s.io/client-go v0.36.1
 	sigs.k8s.io/controller-runtime v0.24.1
 )
+
+require github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect

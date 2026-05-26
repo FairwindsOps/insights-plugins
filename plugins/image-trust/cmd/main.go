@@ -8,6 +8,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/discovery"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/output"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/policy"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/report"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/verify"
 	"github.com/sirupsen/logrus"
@@ -56,6 +57,13 @@ func verifyImages(ctx context.Context, cfg *config.Config, images []models.Disco
 	if err != nil {
 		return nil, err
 	}
+
+	matcher := policy.NewAllowlistMatcher(cfg.ImageAllowlist, cfg.RegistryAllowlist)
+	results, err = matcher.Apply(images, results)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := range results {
 		results[i].LastCheckedAt = now.UTC()
 	}
