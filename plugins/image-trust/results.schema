@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "id": { "type": "string" },
+          "pullRef": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "unsigned",
+              "signed_untrusted",
+              "verification_error",
+              "unknown"
+            ]
+          },
+          "reason": { "type": "string" },
+          "verificationMode": { "type": "string" },
+          "allowlisted": { "type": "boolean" },
+          "allowlistReason": { "type": "string" },
+          "owners": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "kind": { "type": "string" },
+                "namespace": { "type": "string" },
+                "container": { "type": "string" }
+              },
+              "required": ["name", "kind", "namespace"]
+            }
+          },
+          "signer": {
+            "type": "object",
+            "properties": {
+              "issuer": { "type": "string" },
+              "subject": { "type": "string" },
+              "keyRef": { "type": "string" }
+            }
+          },
+          "lastCheckedAt": { "type": "string" }
+        },
+        "required": ["name", "status", "allowlisted", "owners", "lastCheckedAt"]
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "totalImages": { "type": "integer" },
+        "verified": { "type": "integer" },
+        "unsigned": { "type": "integer" },
+        "signedUntrusted": { "type": "integer" },
+        "verificationError": { "type": "integer" },
+        "unknown": { "type": "integer" },
+        "allowlisted": { "type": "integer" }
+      },
+      "required": ["totalImages"]
+    },
+    "ActionItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ResourceNamespace": { "type": "string" },
+          "ResourceKind": { "type": "string" },
+          "ResourceName": { "type": "string" },
+          "Title": { "type": "string" },
+          "Description": { "type": "string" },
+          "Remediation": { "type": "string" },
+          "Severity": { "type": "number" },
+          "Category": { "type": "string" }
+        },
+        "required": [
+          "ResourceNamespace",
+          "ResourceKind",
+          "ResourceName",
+          "Title",
+          "Description",
+          "Remediation",
+          "Severity",
+          "Category"
+        ]
+      }
+    }
+  },
+  "required": ["images", "summary"]
+}
