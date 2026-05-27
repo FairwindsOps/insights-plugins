@@ -9,8 +9,9 @@ const (
 
 // VerificationObservation is the raw result returned by a verifier.
 type VerificationObservation struct {
-	Mode   VerificationMode
-	Status Status
-	Reason string
-	Signer SignerDetails
+	Mode    VerificationMode
+	Status  Status
+	Reason  string
+	Signer  SignerDetails
+	Signers []SignerDetails
 }

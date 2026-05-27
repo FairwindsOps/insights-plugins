@@ -14,6 +14,7 @@ type Config struct {
 	TrustedIssuers     []string
 	TrustedSubjects    []string
 	TrustedSubjectREs  []string
+	SignerAllowlist    []string
 	ImageAllowlist     []string
 	RegistryAllowlist  []string
 }
@@ -27,6 +28,7 @@ func LoadFromEnvironment() (*Config, error) {
 		TrustedIssuers:     parseCSVEnv("IMAGE_TRUST_TRUSTED_ISSUERS"),
 		TrustedSubjects:    parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECTS"),
 		TrustedSubjectREs:  parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS"),
+		SignerAllowlist:    parseCSVEnv("IMAGE_TRUST_SIGNER_ALLOWLIST"),
 		ImageAllowlist:     parseCSVEnv("IMAGE_TRUST_IMAGE_ALLOWLIST"),
 		RegistryAllowlist:  parseCSVEnv("IMAGE_TRUST_REGISTRY_ALLOWLIST"),
 	}

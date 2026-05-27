@@ -51,6 +51,7 @@ func VerifyImages(ctx context.Context, images []models.DiscoveredImage, verifier
 			Allowlisted:      false,
 			Owners:           image.Owners,
 			Signer:           observation.Signer,
+			CandidateSigners: append([]models.SignerDetails(nil), observation.Signers...),
 		})
 	}
 	return results, nil

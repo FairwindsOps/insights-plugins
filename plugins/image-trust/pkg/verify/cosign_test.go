@@ -24,7 +24,7 @@ func (f *fakeRunner) Run(_ context.Context, name string, args ...string) (string
 }
 
 func TestCosignVerifierVerifySuccess(t *testing.T) {
-	runner := &fakeRunner{stdout: "[]"}
+	runner := &fakeRunner{stdout: `[{"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main"}}]`}
 	verifier, err := NewCosignVerifier(
 		runner,
 		[]string{"https://token.actions.githubusercontent.com"},
@@ -39,9 +39,12 @@ func TestCosignVerifierVerifySuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, models.StatusVerified, observation.Status)
+	require.Equal(t, "https://token.actions.githubusercontent.com", observation.Signer.Issuer)
+	require.Equal(t, "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main", observation.Signer.Subject)
 	require.Equal(t, "cosign", runner.name)
 	require.Contains(t, runner.args, "--certificate-identity-regexp")
 	require.Contains(t, runner.args, "--certificate-oidc-issuer-regexp")
+	require.Contains(t, runner.args, ".*")
 	require.Contains(t, runner.args, "ghcr.io/example/api@sha256:abc")
 }
 
@@ -63,10 +66,14 @@ func TestCosignVerifierVerifyUnsigned(t *testing.T) {
 
 func TestCosignVerifierVerifySignedUntrusted(t *testing.T) {
 	runner := &fakeRunner{
-		stderr: "Error: certificate identity https://github.com/other/repo did not match expected identities",
-		err:    errors.New("exit status 1"),
+		stdout: `[{"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/other/repo/.github/workflows/build.yml@refs/heads/main"}}]`,
 	}
-	verifier, err := NewCosignVerifier(runner, nil, nil, nil)
+	verifier, err := NewCosignVerifier(
+		runner,
+		[]string{"https://token.actions.githubusercontent.com"},
+		nil,
+		[]string{"https://github.com/example/.+"},
+	)
 	require.NoError(t, err)
 
 	observation, err := verifier.Verify(context.Background(), models.DiscoveredImage{
@@ -75,6 +82,7 @@ func TestCosignVerifierVerifySignedUntrusted(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, models.StatusSignedUntrusted, observation.Status)
+	require.Equal(t, "https://github.com/other/repo/.github/workflows/build.yml@refs/heads/main", observation.Signer.Subject)
 }
 
 func TestCosignVerifierVerifyUnknownWhenDigestMissing(t *testing.T) {
@@ -98,4 +106,13 @@ func TestBuildAlternationRegex(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, pattern, "^https://issuer\\.example$")
 	require.Contains(t, pattern, "https://github.com/example/.+")
+}
+
+func TestExtractCosignSigners(t *testing.T) {
+	signers, err := extractCosignSigners(`[{"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main","keyid":"abc123"}}]`)
+	require.NoError(t, err)
+	require.Len(t, signers, 1)
+	require.Equal(t, "https://token.actions.githubusercontent.com", signers[0].Issuer)
+	require.Equal(t, "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main", signers[0].Subject)
+	require.Equal(t, "abc123", signers[0].KeyRef)
 }

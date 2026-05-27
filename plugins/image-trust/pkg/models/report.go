@@ -21,17 +21,18 @@ type SignerDetails struct {
 
 // ImageTrustResult is the final per-image trust state sent to Insights.
 type ImageTrustResult struct {
-	Name             string        `json:"name"`
-	ID               string        `json:"id"`
-	PullRef          string        `json:"pullRef"`
-	Status           Status        `json:"status"`
-	Reason           string        `json:"reason,omitempty"`
-	VerificationMode string        `json:"verificationMode,omitempty"`
-	Allowlisted      bool          `json:"allowlisted"`
-	AllowlistReason  string        `json:"allowlistReason,omitempty"`
-	Owners           []Resource    `json:"owners"`
-	Signer           SignerDetails `json:"signer"`
-	LastCheckedAt    time.Time     `json:"lastCheckedAt"`
+	Name             string          `json:"name"`
+	ID               string          `json:"id"`
+	PullRef          string          `json:"pullRef"`
+	Status           Status          `json:"status"`
+	Reason           string          `json:"reason,omitempty"`
+	VerificationMode string          `json:"verificationMode,omitempty"`
+	Allowlisted      bool            `json:"allowlisted"`
+	AllowlistReason  string          `json:"allowlistReason,omitempty"`
+	Owners           []Resource      `json:"owners"`
+	Signer           SignerDetails   `json:"signer"`
+	CandidateSigners []SignerDetails `json:"-"`
+	LastCheckedAt    time.Time       `json:"lastCheckedAt"`
 }
 
 // Finding is a derived action item for non-compliant images.
@@ -48,18 +49,18 @@ type Finding struct {
 
 // Summary aggregates image-trust statuses across all images in the report.
 type Summary struct {
-	TotalImages        int `json:"totalImages"`
-	Verified           int `json:"verified"`
-	Unsigned           int `json:"unsigned"`
-	SignedUntrusted    int `json:"signedUntrusted"`
-	VerificationError  int `json:"verificationError"`
-	Unknown            int `json:"unknown"`
-	Allowlisted        int `json:"allowlisted"`
+	TotalImages       int `json:"totalImages"`
+	Verified          int `json:"verified"`
+	Unsigned          int `json:"unsigned"`
+	SignedUntrusted   int `json:"signedUntrusted"`
+	VerificationError int `json:"verificationError"`
+	Unknown           int `json:"unknown"`
+	Allowlisted       int `json:"allowlisted"`
 }
 
 // Report is the top-level image-trust report payload.
 type Report struct {
-	Images    []ImageTrustResult `json:"images"`
-	Summary   Summary            `json:"summary"`
-	Findings  []Finding          `json:"ActionItems,omitempty"`
+	Images   []ImageTrustResult `json:"images"`
+	Summary  Summary            `json:"summary"`
+	Findings []Finding          `json:"ActionItems,omitempty"`
 }

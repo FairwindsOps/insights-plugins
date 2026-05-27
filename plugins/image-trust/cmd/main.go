@@ -58,7 +58,7 @@ func verifyImages(ctx context.Context, cfg *config.Config, images []models.Disco
 		return nil, err
 	}
 
-	matcher := policy.NewAllowlistMatcher(cfg.ImageAllowlist, cfg.RegistryAllowlist)
+	matcher := policy.NewAllowlistMatcher(cfg.ImageAllowlist, cfg.RegistryAllowlist, cfg.SignerAllowlist)
 	results, err = matcher.Apply(images, results)
 	if err != nil {
 		return nil, err

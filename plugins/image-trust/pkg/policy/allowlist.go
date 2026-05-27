@@ -12,13 +12,15 @@ import (
 type AllowlistMatcher struct {
 	imagePatterns    []string
 	registryPatterns []string
+	signerPatterns   []string
 }
 
 // NewAllowlistMatcher creates an allowlist matcher from configured patterns.
-func NewAllowlistMatcher(imagePatterns, registryPatterns []string) *AllowlistMatcher {
+func NewAllowlistMatcher(imagePatterns, registryPatterns, signerPatterns []string) *AllowlistMatcher {
 	return &AllowlistMatcher{
 		imagePatterns:    append([]string(nil), imagePatterns...),
 		registryPatterns: append([]string(nil), registryPatterns...),
+		signerPatterns:   append([]string(nil), signerPatterns...),
 	}
 }
 
@@ -81,6 +83,40 @@ func (m *AllowlistMatcher) match(image models.DiscoveredImage, result models.Ima
 			}
 			if matched {
 				return true, "registry allowlist matched: " + pattern, nil
+			}
+		}
+	}
+
+	signerCandidates := make([]string, 0, len(result.CandidateSigners)*3)
+	for _, signer := range result.CandidateSigners {
+		if signer.Issuer != "" {
+			signerCandidates = append(signerCandidates, signer.Issuer)
+		}
+		if signer.Subject != "" {
+			signerCandidates = append(signerCandidates, signer.Subject)
+		}
+		if signer.Issuer != "" || signer.Subject != "" {
+			signerCandidates = append(signerCandidates, signer.Issuer+"|"+signer.Subject)
+		}
+	}
+	if result.Signer.Issuer != "" || result.Signer.Subject != "" {
+		signerCandidates = append(signerCandidates,
+			result.Signer.Issuer,
+			result.Signer.Subject,
+			result.Signer.Issuer+"|"+result.Signer.Subject,
+		)
+	}
+	for _, pattern := range m.signerPatterns {
+		for _, candidate := range signerCandidates {
+			if candidate == "" {
+				continue
+			}
+			matched, err := doublestar.Match(pattern, candidate)
+			if err != nil {
+				return false, "", fmt.Errorf("matching signer allowlist pattern %q: %w", pattern, err)
+			}
+			if matched {
+				return true, "signer allowlist matched: " + pattern, nil
 			}
 		}
 	}

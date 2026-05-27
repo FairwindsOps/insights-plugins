@@ -8,7 +8,7 @@ import (
 )
 
 func TestAllowlistByImagePattern(t *testing.T) {
-	matcher := NewAllowlistMatcher([]string{"ghcr.io/example/*"}, nil)
+	matcher := NewAllowlistMatcher([]string{"ghcr.io/example/*"}, nil, nil)
 	images := []models.DiscoveredImage{
 		{
 			Name: "ghcr.io/example/api:1.0.0",
@@ -30,7 +30,7 @@ func TestAllowlistByImagePattern(t *testing.T) {
 }
 
 func TestAllowlistByRegistryPattern(t *testing.T) {
-	matcher := NewAllowlistMatcher(nil, []string{"ghcr.io"})
+	matcher := NewAllowlistMatcher(nil, []string{"ghcr.io"}, nil)
 	images := []models.DiscoveredImage{
 		{
 			Name: "ghcr.io/example/api:1.0.0",
@@ -49,6 +49,38 @@ func TestAllowlistByRegistryPattern(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, updated[0].Allowlisted)
 	require.Contains(t, updated[0].AllowlistReason, "registry allowlist matched")
+}
+
+func TestAllowlistBySignerPattern(t *testing.T) {
+	matcher := NewAllowlistMatcher(nil, nil, []string{"https://token.actions.githubusercontent.com|https://github.com/example/**"})
+	images := []models.DiscoveredImage{
+		{
+			Name: "ghcr.io/example/api:1.0.0",
+			ID:   "ghcr.io/example/api@sha256:abc",
+		},
+	}
+	results := []models.ImageTrustResult{
+		{
+			Name:   "ghcr.io/example/api:1.0.0",
+			ID:     "ghcr.io/example/api@sha256:abc",
+			Status: models.StatusSignedUntrusted,
+			Signer: models.SignerDetails{
+				Issuer:  "https://token.actions.githubusercontent.com",
+				Subject: "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main",
+			},
+			CandidateSigners: []models.SignerDetails{
+				{
+					Issuer:  "https://token.actions.githubusercontent.com",
+					Subject: "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main",
+				},
+			},
+		},
+	}
+
+	updated, err := matcher.Apply(images, results)
+	require.NoError(t, err)
+	require.True(t, updated[0].Allowlisted)
+	require.Contains(t, updated[0].AllowlistReason, "signer allowlist matched")
 }
 
 func TestRegistryFromReference(t *testing.T) {
