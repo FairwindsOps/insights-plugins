@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.20
+* Bump library github.com/aquasecurity/kube-bench to v0.15.5
+
+## 0.6.19
+* Bump dependencies
+
 ## 0.6.18
 * Bump library github.com/aquasecurity/kube-bench to v0.15.4
 
