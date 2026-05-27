@@ -1,6 +1,6 @@
 FROM alpine:3.23.4 AS downloader
 ARG TARGETARCH
-ENV COSIGN_VERSION=2.4.1
+ENV COSIGN_VERSION=3.0.6
 RUN apk --no-cache add ca-certificates curl \
     && if [ "${TARGETARCH}" = "amd64" ]; then cosign_arch="amd64"; else cosign_arch="${TARGETARCH}"; fi \
     && curl -L "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-${cosign_arch}" -o /usr/local/bin/cosign \
