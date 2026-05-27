@@ -14,7 +14,7 @@ Output file: `/output/image-trust.json` (via `report.sh` and the uploader).
 
 ## Configuration
 
-Namespace scope (same pattern as Trivy):
+Namespace scope:
 
 - `NAMESPACE_ALLOWLIST`
 - `NAMESPACE_BLOCKLIST`
