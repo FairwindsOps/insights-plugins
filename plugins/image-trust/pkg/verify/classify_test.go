@@ -24,6 +24,11 @@ func TestClassifyCosignFailure(t *testing.T) {
 			want:    models.StatusSignedUntrusted,
 		},
 		{
+			name:    "registry auth failure",
+			message: "GET https://ghcr.io/v2/example/api/manifests/sha256:abc: UNAUTHORIZED",
+			want:    models.StatusVerificationError,
+		},
+		{
 			name:    "generic failure",
 			message: "Error: context deadline exceeded",
 			want:    models.StatusVerificationError,

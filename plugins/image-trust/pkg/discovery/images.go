@@ -66,36 +66,8 @@ func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []st
 				continue
 			}
 
-			for _, status := range pod.Status.ContainerStatuses {
-				imageName := status.Image
-				if strings.HasPrefix(status.Image, "sha256") {
-					imageName = strings.TrimPrefix(status.ImageID, "docker-pullable://")
-				}
-
-				imageID := strings.TrimPrefix(status.ImageID, "docker-pullable://")
-				imagePullRef := imageID
-				if imagePullRef == "" || strings.HasPrefix(imagePullRef, "sha256:") {
-					imagePullRef = imageName
-				}
-
-				owner.Container = status.Name
-				imageName = strings.TrimPrefix(imageName, dockerIOPrefix)
-				imageID = strings.TrimPrefix(imageID, dockerIOPrefix)
-
-				key := imageName + "/" + imageID
-				if imageOwners[key] == nil {
-					imageOwners[key] = map[models.Resource]struct{}{}
-				}
-				imageOwners[key][owner] = struct{}{}
-				if _, found := keyToImage[key]; found {
-					continue
-				}
-
-				keyToImage[key] = models.DiscoveredImage{
-					Name:    imageName,
-					ID:      imageID,
-					PullRef: imagePullRef,
-				}
+			for _, status := range containerStatusesFromPod(pod) {
+				recordContainerImage(status, owner, keyToImage, imageOwners)
 			}
 		}
 	}
@@ -108,6 +80,47 @@ func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []st
 	}
 
 	return lo.Values(keyToImage), nil
+}
+
+func containerStatusesFromPod(pod corev1.Pod) []corev1.ContainerStatus {
+	statuses := make([]corev1.ContainerStatus, 0,
+		len(pod.Status.ContainerStatuses)+len(pod.Status.InitContainerStatuses)+len(pod.Status.EphemeralContainerStatuses))
+	statuses = append(statuses, pod.Status.ContainerStatuses...)
+	statuses = append(statuses, pod.Status.InitContainerStatuses...)
+	statuses = append(statuses, pod.Status.EphemeralContainerStatuses...)
+	return statuses
+}
+
+func recordContainerImage(status corev1.ContainerStatus, owner models.Resource, keyToImage map[string]models.DiscoveredImage, imageOwners map[string]map[models.Resource]struct{}) {
+	imageName := status.Image
+	if strings.HasPrefix(status.Image, "sha256") {
+		imageName = strings.TrimPrefix(status.ImageID, "docker-pullable://")
+	}
+
+	imageID := strings.TrimPrefix(status.ImageID, "docker-pullable://")
+	imagePullRef := imageID
+	if imagePullRef == "" || strings.HasPrefix(imagePullRef, "sha256:") {
+		imagePullRef = imageName
+	}
+
+	owner.Container = status.Name
+	imageName = strings.TrimPrefix(imageName, dockerIOPrefix)
+	imageID = strings.TrimPrefix(imageID, dockerIOPrefix)
+
+	key := imageName + "/" + imageID
+	if imageOwners[key] == nil {
+		imageOwners[key] = map[models.Resource]struct{}{}
+	}
+	imageOwners[key][owner] = struct{}{}
+	if _, found := keyToImage[key]; found {
+		return
+	}
+
+	keyToImage[key] = models.DiscoveredImage{
+		Name:    imageName,
+		ID:      imageID,
+		PullRef: imagePullRef,
+	}
 }
 
 func namespaceIsBlocked(namespace string, namespaceBlocklist, namespaceAllowlist []string) bool {

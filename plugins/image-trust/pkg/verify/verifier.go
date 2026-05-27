@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"sync"
+	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
 )
@@ -21,11 +24,14 @@ type CommandRunner interface {
 }
 
 // ExecRunner runs commands using os/exec.
-type ExecRunner struct{}
+type ExecRunner struct {
+	ExtraEnv []string
+}
 
 // Run executes a command and captures stdout and stderr.
-func (ExecRunner) Run(ctx context.Context, name string, args ...string) (string, string, error) {
+func (r ExecRunner) Run(ctx context.Context, name string, args ...string) (string, string, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Env = append(os.Environ(), r.ExtraEnv...)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -34,25 +40,69 @@ func (ExecRunner) Run(ctx context.Context, name string, args ...string) (string,
 }
 
 // VerifyImages applies a verifier to all discovered images and returns final image results.
-func VerifyImages(ctx context.Context, images []models.DiscoveredImage, verifier Verifier) ([]models.ImageTrustResult, error) {
-	results := make([]models.ImageTrustResult, 0, len(images))
-	for _, image := range images {
-		observation, err := verifier.Verify(ctx, image)
-		if err != nil {
-			return nil, fmt.Errorf("verifying image %s: %w", image.Name, err)
-		}
-		results = append(results, models.ImageTrustResult{
-			Name:             image.Name,
-			ID:               image.ID,
-			PullRef:          image.PullRef,
-			Status:           observation.Status,
-			Reason:           observation.Reason,
-			VerificationMode: string(observation.Mode),
-			Allowlisted:      false,
-			Owners:           image.Owners,
-			Signer:           observation.Signer,
-			CandidateSigners: append([]models.SignerDetails(nil), observation.Signers...),
-		})
+func VerifyImages(ctx context.Context, images []models.DiscoveredImage, verifier Verifier, maxConcurrent int, perImageTimeout time.Duration) ([]models.ImageTrustResult, error) {
+	if len(images) == 0 {
+		return nil, nil
 	}
+	if maxConcurrent < 1 {
+		maxConcurrent = 1
+	}
+
+	results := make([]models.ImageTrustResult, len(images))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrent)
+	errCh := make(chan error, 1)
+
+	for i, image := range images {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(index int, img models.DiscoveredImage) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			select {
+			case <-ctx.Done():
+				if len(errCh) == 0 {
+					errCh <- ctx.Err()
+				}
+				return
+			default:
+			}
+
+			imageCtx, cancel := context.WithTimeout(ctx, perImageTimeout)
+			defer cancel()
+
+			observation, err := verifier.Verify(imageCtx, img)
+			if err != nil {
+				if len(errCh) == 0 {
+					errCh <- fmt.Errorf("verifying image %s: %w", img.Name, err)
+				}
+				return
+			}
+			results[index] = models.ImageTrustResult{
+				Name:             img.Name,
+				ID:               img.ID,
+				PullRef:          img.PullRef,
+				Status:           observation.Status,
+				Reason:           observation.Reason,
+				VerificationMode: string(observation.Mode),
+				Allowlisted:      false,
+				Owners:           img.Owners,
+				Signer:           observation.Signer,
+				CandidateSigners: append([]models.SignerDetails(nil), observation.Signers...),
+			}
+		}(i, image)
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	if err := <-errCh; err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	return results, nil
 }

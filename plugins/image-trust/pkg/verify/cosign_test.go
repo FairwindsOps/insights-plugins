@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,6 +28,7 @@ func TestCosignVerifierVerifySuccess(t *testing.T) {
 	runner := &fakeRunner{stdout: `[{"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main"}}]`}
 	verifier, err := NewCosignVerifier(
 		runner,
+		registry.Credentials{Username: "user", Password: "pass"},
 		[]string{"https://token.actions.githubusercontent.com"},
 		nil,
 		[]string{"https://github.com/example/.+"},
@@ -46,6 +48,8 @@ func TestCosignVerifierVerifySuccess(t *testing.T) {
 	require.Contains(t, runner.args, "--certificate-oidc-issuer-regexp")
 	require.Contains(t, runner.args, ".*")
 	require.Contains(t, runner.args, "ghcr.io/example/api@sha256:abc")
+	require.Contains(t, runner.args, "--registry-username")
+	require.Contains(t, runner.args, "user")
 }
 
 func TestCosignVerifierVerifyUnsigned(t *testing.T) {
@@ -53,7 +57,7 @@ func TestCosignVerifierVerifyUnsigned(t *testing.T) {
 		stderr: "Error: no matching signatures found",
 		err:    errors.New("exit status 1"),
 	}
-	verifier, err := NewCosignVerifier(runner, nil, nil, nil)
+	verifier, err := NewCosignVerifier(runner, registry.Credentials{}, []string{"https://token.actions.githubusercontent.com"}, nil, nil)
 	require.NoError(t, err)
 
 	observation, err := verifier.Verify(context.Background(), models.DiscoveredImage{
@@ -70,6 +74,7 @@ func TestCosignVerifierVerifySignedUntrusted(t *testing.T) {
 	}
 	verifier, err := NewCosignVerifier(
 		runner,
+		registry.Credentials{Username: "user", Password: "pass"},
 		[]string{"https://token.actions.githubusercontent.com"},
 		nil,
 		[]string{"https://github.com/example/.+"},
@@ -87,7 +92,7 @@ func TestCosignVerifierVerifySignedUntrusted(t *testing.T) {
 
 func TestCosignVerifierVerifyUnknownWhenDigestMissing(t *testing.T) {
 	runner := &fakeRunner{}
-	verifier, err := NewCosignVerifier(runner, nil, nil, nil)
+	verifier, err := NewCosignVerifier(runner, registry.Credentials{}, []string{"https://token.actions.githubusercontent.com"}, nil, nil)
 	require.NoError(t, err)
 
 	observation, err := verifier.Verify(context.Background(), models.DiscoveredImage{

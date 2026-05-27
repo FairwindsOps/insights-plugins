@@ -8,15 +8,17 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
 )
 
 type CosignVerifier struct {
 	runner                CommandRunner
+	registryCreds         registry.Credentials
 	trustedIssuerMatcher  *regexp.Regexp
 	trustedSubjectMatcher *regexp.Regexp
 }
 
-func NewCosignVerifier(runner CommandRunner, trustedIssuers, trustedSubjects, trustedSubjectREs []string) (*CosignVerifier, error) {
+func NewCosignVerifier(runner CommandRunner, registryCreds registry.Credentials, trustedIssuers, trustedSubjects, trustedSubjectREs []string) (*CosignVerifier, error) {
 	issuerRE, err := buildAlternationRegex(trustedIssuers, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building issuer regex: %w", err)
@@ -44,6 +46,7 @@ func NewCosignVerifier(runner CommandRunner, trustedIssuers, trustedSubjects, tr
 
 	return &CosignVerifier{
 		runner:                runner,
+		registryCreds:         registryCreds,
 		trustedIssuerMatcher:  issuerMatcher,
 		trustedSubjectMatcher: subjectMatcher,
 	}, nil
@@ -68,8 +71,9 @@ func (v *CosignVerifier) Verify(ctx context.Context, image models.DiscoveredImag
 		"--output", "json",
 		"--certificate-identity-regexp", ".*",
 		"--certificate-oidc-issuer-regexp", ".*",
-		ref,
 	}
+	args = append(args, v.registryCreds.CosignArgs()...)
+	args = append(args, ref)
 
 	stdout, stderr, err := v.runner.Run(ctx, "cosign", args...)
 	if err != nil {
@@ -97,44 +101,37 @@ func (v *CosignVerifier) Verify(ctx context.Context, image models.DiscoveredImag
 		}, nil
 	}
 
-	if v.hasTrustPolicy() {
-		if len(signers) == 0 {
-			return models.VerificationObservation{
-				Mode:   v.Name(),
-				Status: models.StatusVerificationError,
-				Reason: "cosign verification succeeded but signer identity could not be determined",
-			}, nil
-		}
-		for _, signer := range signers {
-			if v.isTrustedSigner(signer) {
-				return models.VerificationObservation{
-					Mode:    v.Name(),
-					Status:  models.StatusVerified,
-					Reason:  "cosign verification succeeded",
-					Signer:  signer,
-					Signers: signers,
-				}, nil
-			}
-		}
+	if !v.hasTrustPolicy() {
 		return models.VerificationObservation{
-			Mode:    v.Name(),
-			Status:  models.StatusSignedUntrusted,
-			Reason:  "signature was verified but no signer matched the configured trust policy",
-			Signer:  signers[0],
-			Signers: signers,
+			Mode:   v.Name(),
+			Status: models.StatusVerificationError,
+			Reason: "trusted issuer or subject policy is not configured",
 		}, nil
 	}
 
-	primarySigner := models.SignerDetails{}
-	if len(signers) > 0 {
-		primarySigner = signers[0]
+	if len(signers) == 0 {
+		return models.VerificationObservation{
+			Mode:   v.Name(),
+			Status: models.StatusVerificationError,
+			Reason: "cosign verification succeeded but signer identity could not be determined",
+		}, nil
 	}
-
+	for _, signer := range signers {
+		if v.isTrustedSigner(signer) {
+			return models.VerificationObservation{
+				Mode:    v.Name(),
+				Status:  models.StatusVerified,
+				Reason:  "cosign verification succeeded",
+				Signer:  signer,
+				Signers: signers,
+			}, nil
+		}
+	}
 	return models.VerificationObservation{
 		Mode:    v.Name(),
-		Status:  models.StatusVerified,
-		Reason:  "cosign verification succeeded",
-		Signer:  primarySigner,
+		Status:  models.StatusSignedUntrusted,
+		Reason:  "signature was verified but no signer matched the configured trust policy",
+		Signer:  signers[0],
 		Signers: signers,
 	}, nil
 }

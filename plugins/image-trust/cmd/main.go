@@ -9,6 +9,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/output"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/policy"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/report"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/verify"
 	"github.com/sirupsen/logrus"
@@ -22,6 +23,11 @@ func main() {
 		logrus.Fatalf("loading config: %v", err)
 	}
 
+	registryCreds, err := registry.LoadFromEnvironment()
+	if err != nil {
+		logrus.Fatalf("loading registry credentials: %v", err)
+	}
+
 	images, err := discovery.ListImages(ctx, cfg.NamespaceBlocklist, cfg.NamespaceAllowlist)
 	if err != nil {
 		logrus.Fatalf("discovering images: %v", err)
@@ -29,7 +35,7 @@ func main() {
 
 	logrus.Infof("discovered %d images", len(images))
 
-	results, err := verifyImages(ctx, cfg, images, time.Now())
+	results, err := verifyImages(ctx, cfg, registryCreds, images, time.Now())
 	if err != nil {
 		logrus.Fatalf("verifying images: %v", err)
 	}
@@ -42,18 +48,14 @@ func main() {
 	logrus.Infof("wrote image trust report to %s", output.FinalReportPath)
 }
 
-func verifyImages(ctx context.Context, cfg *config.Config, images []models.DiscoveredImage, now time.Time) ([]models.ImageTrustResult, error) {
-	verifier, err := verify.NewCosignVerifier(
-		verify.ExecRunner{},
-		cfg.TrustedIssuers,
-		cfg.TrustedSubjects,
-		cfg.TrustedSubjectREs,
-	)
+func verifyImages(ctx context.Context, cfg *config.Config, registryCreds registry.Credentials, images []models.DiscoveredImage, now time.Time) ([]models.ImageTrustResult, error) {
+	runner := verify.ExecRunner{ExtraEnv: registryCreds.ExtraEnv()}
+	verifier, err := verify.NewVerifier(cfg, runner, registryCreds)
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := verify.VerifyImages(ctx, images, verifier)
+	results, err := verify.VerifyImages(ctx, images, verifier, cfg.MaxConcurrentScans, cfg.ImageVerifyTimeout)
 	if err != nil {
 		return nil, err
 	}

@@ -3,20 +3,31 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
+)
+
+const (
+	DefaultMaxConcurrentScans   = 5
+	DefaultImageVerifyTimeout   = 3 * time.Minute
+	MaxTrustedSubjectRegexpLen  = 512
+	MaxTrustedSubjectRegexpCount = 32
 )
 
 // Config holds runtime configuration for the image-trust plugin.
 type Config struct {
-	NamespaceAllowlist []string
-	NamespaceBlocklist []string
-	VerificationModes  []string
-	TrustedIssuers     []string
-	TrustedSubjects    []string
-	TrustedSubjectREs  []string
-	SignerAllowlist    []string
-	ImageAllowlist     []string
-	RegistryAllowlist  []string
+	NamespaceAllowlist   []string
+	NamespaceBlocklist   []string
+	VerificationModes    []string
+	TrustedIssuers       []string
+	TrustedSubjects      []string
+	TrustedSubjectREs    []string
+	SignerAllowlist      []string
+	ImageAllowlist       []string
+	RegistryAllowlist    []string
+	MaxConcurrentScans   int
+	ImageVerifyTimeout   time.Duration
 }
 
 // LoadFromEnvironment parses plugin configuration from environment variables.
@@ -31,10 +42,37 @@ func LoadFromEnvironment() (*Config, error) {
 		SignerAllowlist:    parseCSVEnv("IMAGE_TRUST_SIGNER_ALLOWLIST"),
 		ImageAllowlist:     parseCSVEnv("IMAGE_TRUST_IMAGE_ALLOWLIST"),
 		RegistryAllowlist:  parseCSVEnv("IMAGE_TRUST_REGISTRY_ALLOWLIST"),
+		MaxConcurrentScans: DefaultMaxConcurrentScans,
+		ImageVerifyTimeout: DefaultImageVerifyTimeout,
 	}
 	if len(cfg.VerificationModes) == 0 {
 		cfg.VerificationModes = []string{"cosign-keyless"}
 	}
+
+	maxConcurrent := os.Getenv("MAX_CONCURRENT_SCANS")
+	if maxConcurrent != "" {
+		value, err := strconv.Atoi(maxConcurrent)
+		if err != nil {
+			return nil, fmt.Errorf("parsing MAX_CONCURRENT_SCANS: %w", err)
+		}
+		if value < 1 {
+			return nil, fmt.Errorf("MAX_CONCURRENT_SCANS must be at least 1")
+		}
+		cfg.MaxConcurrentScans = value
+	}
+
+	timeoutSeconds := os.Getenv("IMAGE_VERIFY_TIMEOUT_SECONDS")
+	if timeoutSeconds != "" {
+		value, err := strconv.Atoi(timeoutSeconds)
+		if err != nil {
+			return nil, fmt.Errorf("parsing IMAGE_VERIFY_TIMEOUT_SECONDS: %w", err)
+		}
+		if value < 1 {
+			return nil, fmt.Errorf("IMAGE_VERIFY_TIMEOUT_SECONDS must be at least 1")
+		}
+		cfg.ImageVerifyTimeout = time.Duration(value) * time.Second
+	}
+
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -61,6 +99,17 @@ func (c *Config) Validate() error {
 	for _, mode := range c.VerificationModes {
 		if mode != "cosign-keyless" {
 			return fmt.Errorf("unsupported verification mode %q", mode)
+		}
+	}
+	if len(c.TrustedIssuers) == 0 && len(c.TrustedSubjects) == 0 && len(c.TrustedSubjectREs) == 0 {
+		return fmt.Errorf("at least one of IMAGE_TRUST_TRUSTED_ISSUERS, IMAGE_TRUST_TRUSTED_SUBJECTS, or IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS is required")
+	}
+	if len(c.TrustedSubjectREs) > MaxTrustedSubjectRegexpCount {
+		return fmt.Errorf("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS supports at most %d patterns", MaxTrustedSubjectRegexpCount)
+	}
+	for _, pattern := range c.TrustedSubjectREs {
+		if len(pattern) > MaxTrustedSubjectRegexpLen {
+			return fmt.Errorf("trusted subject regexp exceeds maximum length of %d characters", MaxTrustedSubjectRegexpLen)
 		}
 	}
 	return nil

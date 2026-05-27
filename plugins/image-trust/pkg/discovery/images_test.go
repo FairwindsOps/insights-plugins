@@ -1,6 +1,11 @@
 package discovery
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
+	corev1 "k8s.io/api/core/v1"
+)
 
 func TestNamespaceIsBlocked(t *testing.T) {
 	tests := []struct {
@@ -42,5 +47,50 @@ func TestNamespaceIsBlocked(t *testing.T) {
 				t.Fatalf("namespaceIsBlocked() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestContainerStatusesFromPod(t *testing.T) {
+	pod := corev1.Pod{
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{Name: "app", Image: "app:latest"},
+			},
+			InitContainerStatuses: []corev1.ContainerStatus{
+				{Name: "init", Image: "init:latest"},
+			},
+			EphemeralContainerStatuses: []corev1.ContainerStatus{
+				{Name: "debug", Image: "debug:latest"},
+			},
+		},
+	}
+
+	statuses := containerStatusesFromPod(pod)
+	if len(statuses) != 3 {
+		t.Fatalf("expected 3 statuses, got %d", len(statuses))
+	}
+}
+
+func TestRecordContainerImageDedupes(t *testing.T) {
+	owner := models.Resource{
+		Namespace: "prod",
+		Kind:      "Deployment",
+		Name:      "api",
+	}
+	keyToImage := map[string]models.DiscoveredImage{}
+	imageOwners := map[string]map[models.Resource]struct{}{}
+
+	status := corev1.ContainerStatus{
+		Name:    "app",
+		Image:   "docker.io/library/nginx:1.25",
+		ImageID: "docker-pullable://docker.io/library/nginx@sha256:abc",
+	}
+	recordContainerImage(status, owner, keyToImage, imageOwners)
+
+	if len(keyToImage) != 1 {
+		t.Fatalf("expected one image, got %d", len(keyToImage))
+	}
+	if len(imageOwners) != 1 {
+		t.Fatalf("expected one owner map, got %d", len(imageOwners))
 	}
 }
