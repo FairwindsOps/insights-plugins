@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.34.26
+* Bump library github.com/google/go-containerregistry to v0.21.6
+* Bump indirect libraries dependencies
+
 ## 0.34.25
 * Bump library github.com/Masterminds/semver/v3 to v3.5.0
 * Bump library k8s.io/api to v0.36.1
