@@ -2,7 +2,7 @@
 
 Reports image trust for container images running in a cluster.
 
-The plugin discovers images used by workloads (including init and ephemeral containers), verifies signatures with Cosign keyless, applies trust policy and allowlists, and uploads a report to Insights at `/data/image-trust`.
+The plugin discovers images used by workloads (including init and ephemeral containers), verifies signatures with Cosign (keyless and/or static public keys), applies trust policy and allowlists, and uploads a report to Insights at `/data/image-trust`.
 
 ## Report output
 
@@ -57,9 +57,31 @@ Allowlists (glob patterns; findings suppressed when matched):
 - `IMAGE_TRUST_REGISTRY_ALLOWLIST`
 - `IMAGE_TRUST_SIGNER_ALLOWLIST` — matches issuer, subject, or `issuer|subject`
 
-Registry credentials (private images; same variables as the Trivy plugin):
+## Private registries
+
+Discovery uses in-cluster pod status (no registry login). **Verification** calls the registry API to fetch signatures, so the image-trust pod needs credentials that can **read** the repository (robot account or token). This is separate from workload `imagePullSecrets`.
+
+Use the same variables as the Trivy plugin:
 
 - `REGISTRY_USER`, `REGISTRY_PASSWORD`, `REGISTRY_PASSWORD_FILE`, `REGISTRY_CERT_DIR`
+
+Example:
+
+```yaml
+env:
+  - name: REGISTRY_PASSWORD_FILE
+    value: /etc/registry/password
+volumeMounts:
+  - name: registry-credentials
+    mountPath: /etc/registry
+    readOnly: true
+volumes:
+  - name: registry-credentials
+    secret:
+      secretName: image-trust-registry
+```
+
+One credential pair applies to all `cosign verify` calls in a run. Multiple private registries with different passwords may require a follow-up (`docker config.json` mount).
 
 Private registry verification requires outbound access to the registry and, for keyless signatures, to Sigstore services (Fulcio, Rekor, and TUF roots).
 

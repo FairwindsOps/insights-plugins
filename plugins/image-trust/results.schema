@@ -21,7 +21,14 @@
             ]
           },
           "reason": { "type": "string" },
-          "verificationMode": { "type": "string" },
+          "verificationMode": {
+            "type": "string",
+            "enum": ["cosign-keyless", "cosign-key"]
+          },
+          "verifiedBy": {
+            "type": "string",
+            "enum": ["cosign-keyless", "cosign-key"]
+          },
           "allowlisted": { "type": "boolean" },
           "allowlistReason": { "type": "string" },
           "owners": {
