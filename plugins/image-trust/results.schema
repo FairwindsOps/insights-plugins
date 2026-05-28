@@ -23,11 +23,11 @@
           "reason": { "type": "string" },
           "verificationMode": {
             "type": "string",
-            "enum": ["cosign-keyless", "cosign-key"]
+            "enum": ["cosign-keyless", "cosign-key", "cosign-attestation-keyless", "cosign-attestation-key"]
           },
           "verifiedBy": {
             "type": "string",
-            "enum": ["cosign-keyless", "cosign-key"]
+            "enum": ["cosign-keyless", "cosign-key", "cosign-attestation-keyless", "cosign-attestation-key"]
           },
           "allowlisted": { "type": "boolean" },
           "allowlistReason": { "type": "string" },

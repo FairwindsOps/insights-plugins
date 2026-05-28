@@ -40,6 +40,7 @@ type Config struct {
 	RegistryAuths          []RegistryAuth
 	RegistryMirrors        map[string]string
 	RegistryCertDirs       map[string]string
+	AttestationTypes       []string
 	VerifyRetries          int
 	VerifyRetryBackoff     time.Duration
 	VerifyRetryJitter      bool
@@ -55,6 +56,7 @@ func LoadFromEnvironment() (*Config, error) {
 		TrustedIssuers:     parseCSVEnv("IMAGE_TRUST_TRUSTED_ISSUERS"),
 		TrustedSubjects:    parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECTS"),
 		TrustedSubjectREs:  parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS"),
+		AttestationTypes:   parseCSVEnv("IMAGE_TRUST_ATTESTATION_TYPES"),
 		PublicKeyPaths:     parseCSVEnv("IMAGE_TRUST_PUBLIC_KEY_PATHS"),
 		PublicKeyRefs:      parseCSVEnv("IMAGE_TRUST_PUBLIC_KEY_REFS"),
 		PublicKeyDir:       strings.TrimSpace(os.Getenv("IMAGE_TRUST_PUBLIC_KEY_DIR")),
@@ -183,7 +185,7 @@ func (c *Config) Validate() error {
 	}
 	for _, mode := range c.VerificationModes {
 		switch mode {
-		case ModeCosignKeyless, ModeCosignKey:
+		case ModeCosignKeyless, ModeCosignKey, ModeCosignAttestationKeyless, ModeCosignAttestationKey:
 		default:
 			return fmt.Errorf("unsupported verification mode %q", mode)
 		}
@@ -201,6 +203,21 @@ func (c *Config) Validate() error {
 	if modeEnabled(c.VerificationModes, ModeCosignKey) {
 		if len(c.PublicKeyPaths) == 0 && len(c.PublicKeyRefs) == 0 && c.PublicKeyDir == "" {
 			return fmt.Errorf("cosign-key requires IMAGE_TRUST_PUBLIC_KEY_PATHS, IMAGE_TRUST_PUBLIC_KEY_REFS, or IMAGE_TRUST_PUBLIC_KEY_DIR")
+		}
+	}
+	if modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) || modeEnabled(c.VerificationModes, ModeCosignAttestationKey) {
+		if len(c.AttestationTypes) == 0 {
+			return fmt.Errorf("attestation modes require IMAGE_TRUST_ATTESTATION_TYPES")
+		}
+	}
+	if modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) {
+		if len(c.TrustedIssuers) == 0 && len(c.TrustedSubjects) == 0 && len(c.TrustedSubjectREs) == 0 {
+			return fmt.Errorf("cosign-attestation-keyless requires at least one of IMAGE_TRUST_TRUSTED_ISSUERS, IMAGE_TRUST_TRUSTED_SUBJECTS, or IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS")
+		}
+	}
+	if modeEnabled(c.VerificationModes, ModeCosignAttestationKey) {
+		if len(c.PublicKeyPaths) == 0 && len(c.PublicKeyRefs) == 0 && c.PublicKeyDir == "" {
+			return fmt.Errorf("cosign-attestation-key requires IMAGE_TRUST_PUBLIC_KEY_PATHS, IMAGE_TRUST_PUBLIC_KEY_REFS, or IMAGE_TRUST_PUBLIC_KEY_DIR")
 		}
 	}
 	if len(c.TrustedSubjectREs) > MaxTrustedSubjectRegexpCount {

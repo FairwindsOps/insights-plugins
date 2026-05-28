@@ -18,6 +18,8 @@ func classifyCosignFailure(message string) (models.Status, string) {
 		return models.StatusVerificationError, "cosign verification failed"
 	case strings.Contains(normalized, "no matching signatures"),
 		strings.Contains(normalized, "no signatures found"),
+		strings.Contains(normalized, "no matching attestations"),
+		strings.Contains(normalized, "no attestations found"),
 		strings.Contains(normalized, "not found in transparency log") && strings.Contains(normalized, "signature"):
 		return models.StatusUnsigned, reason
 	case strings.Contains(normalized, "unauthorized"),

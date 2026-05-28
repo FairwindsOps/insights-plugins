@@ -34,6 +34,31 @@ func NewVerifier(cfg *config.Config, runner CommandRunner, registryCreds registr
 				return nil, err
 			}
 			verifiers = append(verifiers, verifier)
+		case config.ModeCosignAttestationKeyless:
+			verifier, err := NewCosignAttestationVerifier(
+				runner,
+				registryCreds,
+				cfg.AttestationTypes,
+				cfg.TrustedIssuers,
+				cfg.TrustedSubjects,
+				cfg.TrustedSubjectREs,
+			)
+			if err != nil {
+				return nil, err
+			}
+			verifiers = append(verifiers, verifier)
+		case config.ModeCosignAttestationKey:
+			verifier, err := NewCosignAttestationKeyVerifier(
+				runner,
+				registryCreds,
+				cfg.TrustedPublicKeys,
+				cfg.AttestationTypes,
+				cfg.IgnoreTlog,
+			)
+			if err != nil {
+				return nil, err
+			}
+			verifiers = append(verifiers, verifier)
 		default:
 			return nil, fmt.Errorf("unsupported verification mode %q", mode)
 		}

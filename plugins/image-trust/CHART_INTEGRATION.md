@@ -75,6 +75,22 @@ env:
 
 For AWS EKS use `AWS_ROLE_ARN` + `AWS_WEB_IDENTITY_TOKEN_FILE`; for Azure use federated token env vars documented in the plugin README.
 
+## Attestations
+
+Enable attestation modes and set predicate types:
+
+```yaml
+image-trust:
+  modes:
+    - cosign-keyless
+    - cosign-attestation-keyless
+  attestationTypes:
+    - slsaprovenance1
+    - spdxjson
+```
+
+Use `modePolicy: all` when an image must pass **both** signature and attestation verification.
+
 ## Recommended defaults
 
 ```yaml
@@ -85,6 +101,8 @@ image-trust:
   verifyRetryBackoffSeconds: 2
   verifyRetryJitter: true
   useImagePullSecrets: true
-  modes: "cosign-keyless,cosign-key"
+  modes:
+    - cosign-keyless
+    - cosign-key
   modePolicy: any
 ```

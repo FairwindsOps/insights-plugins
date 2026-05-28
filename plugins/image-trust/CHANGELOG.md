@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+* Cosign attestation verification modes: `cosign-attestation-keyless`, `cosign-attestation-key` (`IMAGE_TRUST_ATTESTATION_TYPES`).
+* Supports predicate types such as `slsaprovenance1`, `spdxjson`, and `cyclonedx`.
+
 ## 0.4.0
 
 * Multi-registry auth via `IMAGE_TRUST_REGISTRY_AUTHS` / `_FILE` (merged into docker config; no passwords on cosign CLI).
