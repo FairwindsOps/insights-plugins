@@ -20,9 +20,14 @@ type Config struct {
 	NamespaceAllowlist   []string
 	NamespaceBlocklist   []string
 	VerificationModes    []string
+	ModePolicy           string
 	TrustedIssuers       []string
 	TrustedSubjects      []string
 	TrustedSubjectREs    []string
+	PublicKeyPaths       []string
+	PublicKeyDir         string
+	TrustedPublicKeys    []TrustedPublicKey
+	IgnoreTlog           bool
 	SignerAllowlist      []string
 	ImageAllowlist       []string
 	RegistryAllowlist    []string
@@ -36,9 +41,13 @@ func LoadFromEnvironment() (*Config, error) {
 		NamespaceAllowlist: parseLowerCSVEnv("NAMESPACE_ALLOWLIST"),
 		NamespaceBlocklist: parseLowerCSVEnv("NAMESPACE_BLOCKLIST"),
 		VerificationModes:  parseCSVEnv("IMAGE_TRUST_MODES"),
+		ModePolicy:         strings.ToLower(strings.TrimSpace(os.Getenv("IMAGE_TRUST_MODE_POLICY"))),
 		TrustedIssuers:     parseCSVEnv("IMAGE_TRUST_TRUSTED_ISSUERS"),
 		TrustedSubjects:    parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECTS"),
 		TrustedSubjectREs:  parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS"),
+		PublicKeyPaths:     parseCSVEnv("IMAGE_TRUST_PUBLIC_KEY_PATHS"),
+		PublicKeyDir:       strings.TrimSpace(os.Getenv("IMAGE_TRUST_PUBLIC_KEY_DIR")),
+		IgnoreTlog:         parseBoolEnv("IMAGE_TRUST_IGNORE_TLOG"),
 		SignerAllowlist:    parseCSVEnv("IMAGE_TRUST_SIGNER_ALLOWLIST"),
 		ImageAllowlist:     parseCSVEnv("IMAGE_TRUST_IMAGE_ALLOWLIST"),
 		RegistryAllowlist:  parseCSVEnv("IMAGE_TRUST_REGISTRY_ALLOWLIST"),
@@ -46,7 +55,11 @@ func LoadFromEnvironment() (*Config, error) {
 		ImageVerifyTimeout: DefaultImageVerifyTimeout,
 	}
 	if len(cfg.VerificationModes) == 0 {
-		cfg.VerificationModes = []string{"cosign-keyless"}
+		cfg.VerificationModes = []string{ModeCosignKeyless}
+	}
+	cfg.VerificationModes = dedupeModes(cfg.VerificationModes)
+	if cfg.ModePolicy == "" {
+		cfg.ModePolicy = ModePolicyAny
 	}
 
 	maxConcurrent := os.Getenv("MAX_CONCURRENT_SCANS")
@@ -76,6 +89,15 @@ func LoadFromEnvironment() (*Config, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
+
+	if modeEnabled(cfg.VerificationModes, ModeCosignKey) {
+		keys, err := LoadTrustedPublicKeys(cfg.PublicKeyPaths, cfg.PublicKeyDir)
+		if err != nil {
+			return nil, err
+		}
+		cfg.TrustedPublicKeys = keys
+	}
+
 	return cfg, nil
 }
 
@@ -97,12 +119,24 @@ func (c *Config) Validate() error {
 		}
 	}
 	for _, mode := range c.VerificationModes {
-		if mode != "cosign-keyless" {
+		switch mode {
+		case ModeCosignKeyless, ModeCosignKey:
+		default:
 			return fmt.Errorf("unsupported verification mode %q", mode)
 		}
 	}
-	if len(c.TrustedIssuers) == 0 && len(c.TrustedSubjects) == 0 && len(c.TrustedSubjectREs) == 0 {
-		return fmt.Errorf("at least one of IMAGE_TRUST_TRUSTED_ISSUERS, IMAGE_TRUST_TRUSTED_SUBJECTS, or IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS is required")
+	if c.ModePolicy != ModePolicyAny {
+		return fmt.Errorf("unsupported IMAGE_TRUST_MODE_POLICY %q", c.ModePolicy)
+	}
+	if modeEnabled(c.VerificationModes, ModeCosignKeyless) {
+		if len(c.TrustedIssuers) == 0 && len(c.TrustedSubjects) == 0 && len(c.TrustedSubjectREs) == 0 {
+			return fmt.Errorf("cosign-keyless requires at least one of IMAGE_TRUST_TRUSTED_ISSUERS, IMAGE_TRUST_TRUSTED_SUBJECTS, or IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS")
+		}
+	}
+	if modeEnabled(c.VerificationModes, ModeCosignKey) {
+		if len(c.PublicKeyPaths) == 0 && c.PublicKeyDir == "" {
+			return fmt.Errorf("cosign-key requires IMAGE_TRUST_PUBLIC_KEY_PATHS or IMAGE_TRUST_PUBLIC_KEY_DIR")
+		}
 	}
 	if len(c.TrustedSubjectREs) > MaxTrustedSubjectRegexpCount {
 		return fmt.Errorf("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS supports at most %d patterns", MaxTrustedSubjectRegexpCount)
@@ -145,4 +179,31 @@ func parseLowerCSVEnv(name string) []string {
 		normalized = append(normalized, strings.ToLower(value))
 	}
 	return normalized
+}
+
+func dedupeModes(modes []string) []string {
+	seen := make(map[string]struct{}, len(modes))
+	deduped := make([]string, 0, len(modes))
+	for _, mode := range modes {
+		if _, ok := seen[mode]; ok {
+			continue
+		}
+		seen[mode] = struct{}{}
+		deduped = append(deduped, mode)
+	}
+	return deduped
+}
+
+func modeEnabled(modes []string, mode string) bool {
+	for _, candidate := range modes {
+		if candidate == mode {
+			return true
+		}
+	}
+	return false
+}
+
+func parseBoolEnv(name string) bool {
+	raw := strings.TrimSpace(strings.ToLower(os.Getenv(name)))
+	return raw == "1" || raw == "true" || raw == "yes"
 }

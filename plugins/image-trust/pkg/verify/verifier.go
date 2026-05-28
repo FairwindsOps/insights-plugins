@@ -79,6 +79,10 @@ func VerifyImages(ctx context.Context, images []models.DiscoveredImage, verifier
 				}
 				return
 			}
+			verifiedBy := string(observation.VerifiedBy)
+			if verifiedBy == "" {
+				verifiedBy = string(observation.Mode)
+			}
 			results[index] = models.ImageTrustResult{
 				Name:             img.Name,
 				ID:               img.ID,
@@ -86,6 +90,7 @@ func VerifyImages(ctx context.Context, images []models.DiscoveredImage, verifier
 				Status:           observation.Status,
 				Reason:           observation.Reason,
 				VerificationMode: string(observation.Mode),
+				VerifiedBy:       verifiedBy,
 				Allowlisted:      false,
 				Owners:           img.Owners,
 				Signer:           observation.Signer,

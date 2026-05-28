@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -56,14 +58,41 @@ func TestValidateRejectsUnsupportedMode(t *testing.T) {
 	require.Contains(t, err.Error(), "unsupported verification mode")
 }
 
-func TestValidateRequiresTrustPolicy(t *testing.T) {
+func TestValidateRequiresTrustPolicyForKeyless(t *testing.T) {
 	t.Setenv("IMAGE_TRUST_TRUSTED_ISSUERS", "")
 	t.Setenv("IMAGE_TRUST_TRUSTED_SUBJECTS", "")
 	t.Setenv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS", "")
 
 	_, err := LoadFromEnvironment()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "IMAGE_TRUST_TRUSTED_ISSUERS")
+	require.Contains(t, err.Error(), "cosign-keyless requires")
+}
+
+func TestValidateCosignKeyRequiresPublicKeys(t *testing.T) {
+	t.Setenv("IMAGE_TRUST_MODES", "cosign-key")
+	t.Setenv("IMAGE_TRUST_TRUSTED_ISSUERS", "")
+	t.Setenv("IMAGE_TRUST_TRUSTED_SUBJECTS", "")
+	t.Setenv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS", "")
+
+	_, err := LoadFromEnvironment()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "IMAGE_TRUST_PUBLIC_KEY")
+}
+
+func TestLoadFromEnvironmentWithBothModes(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "vendor.pub")
+	require.NoError(t, os.WriteFile(path, []byte("public-key"), 0o644))
+
+	t.Setenv("IMAGE_TRUST_MODES", "cosign-keyless,cosign-key")
+	t.Setenv("IMAGE_TRUST_TRUSTED_ISSUERS", "https://token.actions.githubusercontent.com")
+	t.Setenv("IMAGE_TRUST_PUBLIC_KEY_PATHS", path)
+
+	cfg, err := LoadFromEnvironment()
+	require.NoError(t, err)
+	require.Equal(t, []string{ModeCosignKeyless, ModeCosignKey}, cfg.VerificationModes)
+	require.Equal(t, ModePolicyAny, cfg.ModePolicy)
+	require.Len(t, cfg.TrustedPublicKeys, 1)
 }
 
 func TestValidateRejectsLongTrustedSubjectRegexp(t *testing.T) {

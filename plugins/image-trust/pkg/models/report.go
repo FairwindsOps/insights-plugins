@@ -27,6 +27,7 @@ type ImageTrustResult struct {
 	Status           Status          `json:"status"`
 	Reason           string          `json:"reason,omitempty"`
 	VerificationMode string          `json:"verificationMode,omitempty"`
+	VerifiedBy       string          `json:"verifiedBy,omitempty"`
 	Allowlisted      bool            `json:"allowlisted"`
 	AllowlistReason  string          `json:"allowlistReason,omitempty"`
 	Owners           []Resource      `json:"owners"`

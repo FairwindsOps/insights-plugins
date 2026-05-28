@@ -7,22 +7,36 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
 )
 
-// NewVerifier creates a verifier for the first configured verification mode.
+// NewVerifier creates a verifier for all configured verification modes.
 func NewVerifier(cfg *config.Config, runner CommandRunner, registryCreds registry.Credentials) (Verifier, error) {
 	if len(cfg.VerificationModes) == 0 {
 		return nil, fmt.Errorf("no verification modes configured")
 	}
 
-	switch cfg.VerificationModes[0] {
-	case "cosign-keyless":
-		return NewCosignVerifier(
-			runner,
-			registryCreds,
-			cfg.TrustedIssuers,
-			cfg.TrustedSubjects,
-			cfg.TrustedSubjectREs,
-		)
-	default:
-		return nil, fmt.Errorf("unsupported verification mode %q", cfg.VerificationModes[0])
+	verifiers := make([]Verifier, 0, len(cfg.VerificationModes))
+	for _, mode := range cfg.VerificationModes {
+		switch mode {
+		case config.ModeCosignKeyless:
+			verifier, err := NewCosignVerifier(
+				runner,
+				registryCreds,
+				cfg.TrustedIssuers,
+				cfg.TrustedSubjects,
+				cfg.TrustedSubjectREs,
+			)
+			if err != nil {
+				return nil, err
+			}
+			verifiers = append(verifiers, verifier)
+		case config.ModeCosignKey:
+			return nil, fmt.Errorf("verification mode %q is not implemented yet", mode)
+		default:
+			return nil, fmt.Errorf("unsupported verification mode %q", mode)
+		}
 	}
+
+	if len(verifiers) == 1 {
+		return verifiers[0], nil
+	}
+	return NewCompositeVerifier(cfg.ModePolicy, verifiers...)
 }

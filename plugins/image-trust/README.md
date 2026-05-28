@@ -21,14 +21,21 @@ Namespace scope:
 
 Verification:
 
-- `IMAGE_TRUST_MODES` — default `cosign-keyless` (only supported mode today)
+- `IMAGE_TRUST_MODES` — comma-separated modes (default `cosign-keyless`). Supported: `cosign-keyless`; `cosign-key` (public keys, coming next). When multiple modes are set, an image is **verified** if **any** mode succeeds (`IMAGE_TRUST_MODE_POLICY=any`, default).
+- `IMAGE_TRUST_MODE_POLICY` — `any` (default): OR across modes.
 - `IMAGE_TRUST_TRUSTED_ISSUERS` — **required** unless subjects/regexps are set; comma-separated OIDC issuers
 - `IMAGE_TRUST_TRUSTED_SUBJECTS` — exact certificate identities
 - `IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS` — identity regexes (max 32 patterns, 512 characters each)
 - `MAX_CONCURRENT_SCANS` — parallel cosign verifications (default `5`)
 - `IMAGE_VERIFY_TIMEOUT_SECONDS` — per-image verify timeout (default `180`)
 
-At least one of `IMAGE_TRUST_TRUSTED_ISSUERS`, `IMAGE_TRUST_TRUSTED_SUBJECTS`, or `IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS` must be configured.
+When `cosign-keyless` is enabled, at least one of `IMAGE_TRUST_TRUSTED_ISSUERS`, `IMAGE_TRUST_TRUSTED_SUBJECTS`, or `IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS` must be configured.
+
+When `cosign-key` is enabled (not yet implemented in the verifier):
+
+- `IMAGE_TRUST_PUBLIC_KEY_PATHS` — comma-separated paths to `.pub` / PEM files
+- `IMAGE_TRUST_PUBLIC_KEY_DIR` — directory of public keys (e.g. `/etc/image-trust/keys` from a mounted Secret)
+- `IMAGE_TRUST_IGNORE_TLOG` — set to `true` for keyed signatures without Rekor (`cosign` `--insecure-ignore-tlog`)
 
 Allowlists (glob patterns; findings suppressed when matched):
 
