@@ -38,6 +38,21 @@ Copy `env.example` to `env` and adjust if needed:
 cp env.example env
 ```
 
+### Optional: keyed verification
+
+To exercise `cosign-key` locally, add a vendor public key under `../testdata/keys/` and set in `env`:
+
+```bash
+export IMAGE_TRUST_MODES='cosign-keyless,cosign-key'
+export IMAGE_TRUST_PUBLIC_KEY_DIR='../testdata/keys'
+```
+
+Mount the directory in `run.sh` if you extend the docker invocation with `-v "$(pwd)/../testdata/keys:/etc/image-trust/keys:ro"` and `IMAGE_TRUST_PUBLIC_KEY_DIR=/etc/image-trust/keys`.
+
+### Optional: private registry
+
+For private images, set `REGISTRY_USER` / `REGISTRY_PASSWORD_FILE` or `REGISTRY_DOCKER_CONFIG_PATH` in `env` (see plugin README).
+
 ## Cleanup
 
 ```bash
