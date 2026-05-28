@@ -41,7 +41,7 @@ func (v *CosignKeyVerifier) Name() models.VerificationMode {
 }
 
 func (v *CosignKeyVerifier) Verify(ctx context.Context, image models.DiscoveredImage) (models.VerificationObservation, error) {
-	ref := image.VerificationReference()
+	ref := v.registryCreds.VerificationReference(image.VerificationReference())
 	if ref == "" {
 		return models.VerificationObservation{
 			Mode:   v.Name(),

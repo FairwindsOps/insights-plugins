@@ -48,8 +48,7 @@ func TestCosignVerifierVerifySuccess(t *testing.T) {
 	require.Contains(t, runner.args, "--certificate-oidc-issuer-regexp")
 	require.Contains(t, runner.args, ".*")
 	require.Contains(t, runner.args, "ghcr.io/example/api@sha256:abc")
-	require.Contains(t, runner.args, "--registry-username")
-	require.Contains(t, runner.args, "user")
+	require.NotContains(t, runner.args, "--registry-password")
 }
 
 func TestCosignVerifierVerifyUnsigned(t *testing.T) {

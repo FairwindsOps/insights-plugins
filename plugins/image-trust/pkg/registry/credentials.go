@@ -6,15 +6,17 @@ import (
 	"strings"
 )
 
-// Credentials holds registry authentication settings for cosign.
+// Credentials holds registry authentication and TLS settings for registry API and cosign.
 type Credentials struct {
-	Username        string
-	Password        string
-	CertDir         string
-	DockerConfigDir string
+	Username            string
+	Password            string
+	CertDir             string
+	DockerConfigDir     string
+	PerRegistryCertDirs map[string]string
+	Mirrors             map[string]string
 }
 
-// LoadFromEnvironment reads registry credentials from the same env vars as the Trivy plugin.
+// LoadFromEnvironment reads registry credentials from environment variables.
 func LoadFromEnvironment() (Credentials, error) {
 	creds := Credentials{
 		Username: os.Getenv("REGISTRY_USER"),
@@ -40,7 +42,6 @@ func LoadFromEnvironment() (Credentials, error) {
 		creds.DockerConfigDir = dir
 	}
 
-	applyDockerConfigEnv(creds)
 	return creds, nil
 }
 
@@ -55,28 +56,18 @@ func applyDockerConfigEnv(creds Credentials) {
 
 // Configured reports whether registry credentials or custom TLS settings are set.
 func (c Credentials) Configured() bool {
-	return c.Username != "" || c.Password != "" || c.CertDir != "" || c.DockerConfigDir != ""
+	return c.Username != "" || c.Password != "" || c.CertDir != "" || c.DockerConfigDir != "" || len(c.PerRegistryCertDirs) > 0
 }
 
 // CosignArgs returns cosign CLI flags for registry authentication.
-// When DockerConfigDir is set, per-registry auth comes from config.json instead.
+// Credentials are always materialized into docker config.json; passwords are never passed on the CLI.
 func (c Credentials) CosignArgs() []string {
-	if c.DockerConfigDir != "" {
-		return nil
-	}
-	var args []string
-	if c.Username != "" {
-		args = append(args, "--registry-username", c.Username)
-	}
-	if c.Password != "" {
-		args = append(args, "--registry-password", c.Password)
-	}
-	return args
+	return nil
 }
 
 // ExtraEnv returns environment variables to pass to cosign subprocesses.
-func (c Credentials) ExtraEnv() []string {
-	var env []string
+func (c Credentials) ExtraEnv(extra ...string) []string {
+	env := append([]string(nil), extra...)
 	if c.CertDir != "" {
 		env = append(env, "SSL_CERT_DIR="+c.CertDir)
 	}
@@ -84,4 +75,9 @@ func (c Credentials) ExtraEnv() []string {
 		env = append(env, "DOCKER_CONFIG="+c.DockerConfigDir)
 	}
 	return env
+}
+
+// VerificationReference applies mirror remapping to an immutable reference.
+func (c Credentials) VerificationReference(ref string) string {
+	return RemapMirror(ref, c.Mirrors)
 }

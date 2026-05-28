@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,7 +36,7 @@ func TestVerifyImagesPreservesOrder(t *testing.T) {
 		{Name: "third", ID: "third@sha256:3"},
 	}
 
-	results, err := VerifyImages(context.Background(), images, verifier, 2, time.Minute, 1)
+	results, err := VerifyImages(context.Background(), images, registry.Credentials{}, verifier, 2, time.Minute, time.Second, false, 1)
 	require.NoError(t, err)
 	require.Len(t, results, 3)
 	require.Equal(t, "first", results[0].Name)

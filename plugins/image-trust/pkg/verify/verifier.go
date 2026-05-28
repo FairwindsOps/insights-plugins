@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
 )
 
 // Verifier checks trust evidence for an immutable image reference.
@@ -43,9 +44,12 @@ func (r ExecRunner) Run(ctx context.Context, name string, args ...string) (strin
 func VerifyImages(
 	ctx context.Context,
 	images []models.DiscoveredImage,
+	creds registry.Credentials,
 	verifier Verifier,
 	maxConcurrent int,
 	perImageTimeout time.Duration,
+	retryBackoff time.Duration,
+	retryJitter bool,
 	verifyRetries int,
 ) ([]models.ImageTrustResult, error) {
 	if len(images) == 0 {
@@ -79,7 +83,14 @@ func VerifyImages(
 			imageCtx, cancel := context.WithTimeout(ctx, perImageTimeout)
 			defer cancel()
 
-			observation, err := VerifyWithRetries(imageCtx, verifier, img, verifyRetries)
+			var observation models.VerificationObservation
+			var err error
+			if preflight, stop := Preflight(img, creds); stop {
+				observation = preflight
+				observation.Mode = verifier.Name()
+			} else {
+				observation, err = VerifyWithRetries(imageCtx, verifier, img, verifyRetries, retryBackoff, retryJitter)
+			}
 			if err != nil {
 				if len(errCh) == 0 {
 					errCh <- fmt.Errorf("verifying image %s: %w", img.Name, err)
@@ -91,17 +102,18 @@ func VerifyImages(
 				verifiedBy = string(observation.Mode)
 			}
 			results[index] = models.ImageTrustResult{
-				Name:             img.Name,
-				ID:               img.ID,
-				PullRef:          img.PullRef,
-				Status:           observation.Status,
-				Reason:           observation.Reason,
-				VerificationMode: string(observation.Mode),
-				VerifiedBy:       verifiedBy,
-				Allowlisted:      false,
-				Owners:           img.Owners,
-				Signer:           observation.Signer,
-				CandidateSigners: append([]models.SignerDetails(nil), observation.Signers...),
+				Name:               img.Name,
+				ID:                 img.ID,
+				PullRef:            img.PullRef,
+				Status:             observation.Status,
+				Reason:             observation.Reason,
+				VerificationMode:   string(observation.Mode),
+				VerifiedBy:         verifiedBy,
+				Allowlisted:        false,
+				Owners:             img.Owners,
+				Signer:             observation.Signer,
+				CandidateSigners:   append([]models.SignerDetails(nil), observation.Signers...),
+				DigestResolveError: img.DigestResolveError,
 			}
 		}(i, image)
 	}

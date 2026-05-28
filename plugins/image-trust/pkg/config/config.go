@@ -37,7 +37,12 @@ type Config struct {
 	ResolveDigests         bool
 	UseImagePullSecrets    bool
 	RegistryAuthHost       string
+	RegistryAuths          []RegistryAuth
+	RegistryMirrors        map[string]string
+	RegistryCertDirs       map[string]string
 	VerifyRetries          int
+	VerifyRetryBackoff     time.Duration
+	VerifyRetryJitter      bool
 }
 
 // LoadFromEnvironment parses plugin configuration from environment variables.
@@ -62,6 +67,8 @@ func LoadFromEnvironment() (*Config, error) {
 		ResolveDigests:      true,
 		UseImagePullSecrets: false,
 		VerifyRetries:       3,
+		VerifyRetryBackoff:  2 * time.Second,
+		VerifyRetryJitter:   true,
 	}
 	if len(cfg.VerificationModes) == 0 {
 		cfg.VerificationModes = []string{ModeCosignKeyless}
@@ -110,6 +117,37 @@ func LoadFromEnvironment() (*Config, error) {
 		}
 		cfg.VerifyRetries = value
 	}
+
+	backoffSeconds := os.Getenv("IMAGE_TRUST_VERIFY_RETRY_BACKOFF_SECONDS")
+	if backoffSeconds != "" {
+		value, err := strconv.Atoi(backoffSeconds)
+		if err != nil {
+			return nil, fmt.Errorf("parsing IMAGE_TRUST_VERIFY_RETRY_BACKOFF_SECONDS: %w", err)
+		}
+		if value < 0 {
+			return nil, fmt.Errorf("IMAGE_TRUST_VERIFY_RETRY_BACKOFF_SECONDS must be non-negative")
+		}
+		cfg.VerifyRetryBackoff = time.Duration(value) * time.Second
+	}
+	cfg.VerifyRetryJitter = parseBoolEnvDefault("IMAGE_TRUST_VERIFY_RETRY_JITTER", true)
+
+	registryAuths, err := LoadRegistryAuths()
+	if err != nil {
+		return nil, err
+	}
+	cfg.RegistryAuths = registryAuths
+
+	registryMirrors, err := LoadRegistryMirrors()
+	if err != nil {
+		return nil, err
+	}
+	cfg.RegistryMirrors = registryMirrors
+
+	registryCertDirs, err := LoadRegistryCertDirs()
+	if err != nil {
+		return nil, err
+	}
+	cfg.RegistryCertDirs = registryCertDirs
 
 	if err := cfg.Validate(); err != nil {
 		return nil, err

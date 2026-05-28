@@ -52,6 +52,18 @@
               "keyRef": { "type": "string" }
             }
           },
+          "candidateSigners": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issuer": { "type": "string" },
+                "subject": { "type": "string" },
+                "keyRef": { "type": "string" }
+              }
+            }
+          },
+          "digestResolveError": { "type": "string" },
           "lastCheckedAt": { "type": "string" }
         },
         "required": ["name", "status", "allowlisted", "owners", "lastCheckedAt"]

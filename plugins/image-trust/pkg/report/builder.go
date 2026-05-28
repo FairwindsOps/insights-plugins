@@ -78,6 +78,12 @@ func detailsForStatus(result models.ImageTrustResult) (title, description, remed
 			"Update signer trust configuration or publish the image using an approved signing identity.",
 			nonCompliantSeverity
 	case models.StatusVerificationError:
+		if result.DigestResolveError != "" {
+			return "Container image digest could not be resolved",
+				"The image-trust plugin could not resolve image " + imageRef + " to a digest before signature verification: " + result.DigestResolveError,
+				"Fix registry authentication (IMAGE_TRUST_REGISTRY_AUTHS or pull secrets), network access, and mirror mapping (IMAGE_TRUST_REGISTRY_MIRRORS).",
+				verificationErrorSeverity
+		}
 		return "Container image trust could not be verified",
 			"The image-trust plugin encountered an operational error while verifying image " + imageRef + ": " + result.Reason,
 			"Fix registry access, network connectivity, or verifier configuration and rerun the report.",

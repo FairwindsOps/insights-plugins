@@ -32,8 +32,9 @@ type ImageTrustResult struct {
 	AllowlistReason  string          `json:"allowlistReason,omitempty"`
 	Owners           []Resource      `json:"owners"`
 	Signer           SignerDetails   `json:"signer"`
-	CandidateSigners []SignerDetails `json:"-"`
-	LastCheckedAt    time.Time       `json:"lastCheckedAt"`
+	CandidateSigners   []SignerDetails `json:"candidateSigners,omitempty"`
+	DigestResolveError string          `json:"digestResolveError,omitempty"`
+	LastCheckedAt      time.Time       `json:"lastCheckedAt"`
 }
 
 // Finding is a derived action item for non-compliant images.

@@ -29,6 +29,8 @@ Verification:
 - `MAX_CONCURRENT_SCANS` — parallel cosign verifications (default `5`)
 - `IMAGE_VERIFY_TIMEOUT_SECONDS` — per-image verify timeout (default `180`)
 - `IMAGE_TRUST_VERIFY_RETRIES` — retries for transient registry/Sigstore errors (default `3`)
+- `IMAGE_TRUST_VERIFY_RETRY_BACKOFF_SECONDS` — delay between retries (default `2`)
+- `IMAGE_TRUST_VERIFY_RETRY_JITTER` — add random jitter to backoff (default `true`)
 - `IMAGE_TRUST_RESOLVE_DIGESTS` — resolve tag-only images to digests via the registry API before verify (default `true`; set `false` to disable)
 
 When `cosign-keyless` is enabled, at least one of `IMAGE_TRUST_TRUSTED_ISSUERS`, `IMAGE_TRUST_TRUSTED_SUBJECTS`, or `IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS` must be configured.
@@ -70,7 +72,22 @@ Use the same variables as the Trivy plugin:
 
 - `REGISTRY_USER`, `REGISTRY_PASSWORD`, `REGISTRY_PASSWORD_FILE`, `REGISTRY_CERT_DIR`
 
-Prefer `REGISTRY_PASSWORD_FILE` over `REGISTRY_PASSWORD` so the password is not passed on the cosign command line.
+Credentials are **always** written to a docker `config.json` for cosign (passwords are never passed on the command line). Prefer `REGISTRY_PASSWORD_FILE` over `REGISTRY_PASSWORD`.
+
+**Multi-registry auth** — `IMAGE_TRUST_REGISTRY_AUTHS` (JSON array) or `IMAGE_TRUST_REGISTRY_AUTHS_FILE`:
+
+```json
+[
+  {"host": "https://index.docker.io/v1/", "username": "user", "password": "token"},
+  {"host": "https://ghcr.io", "username": "user", "password": "token"}
+]
+```
+
+**Registry mirrors** (signatures on upstream): `IMAGE_TRUST_REGISTRY_MIRRORS=mirror.corp=registry.io`
+
+**Per-registry TLS**: `IMAGE_TRUST_REGISTRY_CERT_DIRS=registry.example=/certs/a,ghcr.io=/certs/b`
+
+**Pull secrets**: `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true` — requires RBAC; see [deploy/rbac.yaml](deploy/rbac.yaml) and [CHART_INTEGRATION.md](CHART_INTEGRATION.md).
 
 Example:
 
@@ -88,24 +105,20 @@ volumes:
       secretName: image-trust-registry
 ```
 
-One `REGISTRY_USER` / `REGISTRY_PASSWORD` pair applies to all `cosign verify` calls in a run unless a Docker config is used.
+Legacy single-registry env vars (`REGISTRY_USER` / `REGISTRY_PASSWORD`) are merged into docker config for `IMAGE_TRUST_REGISTRY_AUTH_HOST` (default `https://index.docker.io/v1/`).
 
-For **multiple private registries** with different credentials, mount a Docker `config.json` and set:
-
-- `REGISTRY_DOCKER_CONFIG_PATH` — path to `config.json` or its directory (sets `DOCKER_CONFIG` for cosign)
-
-When `REGISTRY_DOCKER_CONFIG_PATH` is set, username/password env vars are not passed to cosign; auth comes from `auths` in the config file.
-
-To reuse workload credentials, set:
-
-- `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS` — `true` to merge `kubernetes.io/dockerconfigjson` secrets from namespaces in scope (same allow/block lists as discovery). Merged with `REGISTRY_DOCKER_CONFIG_PATH` when both are set; explicit `REGISTRY_USER`/`REGISTRY_PASSWORD` are written into `IMAGE_TRUST_REGISTRY_AUTH_HOST` (default `https://index.docker.io/v1/`).
+- `REGISTRY_DOCKER_CONFIG_PATH` — existing `config.json` merged with auths above and pull secrets
 
 Private registry verification requires outbound access to the registry and, for keyless signatures, to Sigstore services (Fulcio, Rekor, and TUF roots).
 
 ### Self-hosted or air-gapped Sigstore
 
 - **Keyed signing:** use `cosign-key` with `IMAGE_TRUST_IGNORE_TLOG=true` and no Rekor dependency.
-- **Keyless:** requires reachable Fulcio/Rekor (or a private Sigstore stack). The cosign binary inherits standard Sigstore env vars from the pod (`SIGSTORE_ROOT_FILE`, `COSIGN_ROOT`, etc.) — set them on the image-trust container as you would for standalone cosign.
+- **Keyless:** set `FULCIO_URL`, `REKOR_URL`, `SIGSTORE_ROOT_FILE`, etc. on the pod, or use `IMAGE_TRUST_SIGSTORE_ENV_FILE` (one `KEY=VALUE` per line). These are forwarded to cosign subprocesses.
+
+### KMS public keys
+
+Use `IMAGE_TRUST_PUBLIC_KEY_REFS` with cloud credentials on the pod (`GOOGLE_APPLICATION_CREDENTIALS`, `AWS_ROLE_ARN` + `AWS_WEB_IDENTITY_TOKEN_FILE`, Azure federated token env vars). See [CHART_INTEGRATION.md](CHART_INTEGRATION.md).
 
 ## Limitations (Cosign-only)
 
@@ -113,9 +126,9 @@ Private registry verification requires outbound access to the registry and, for 
 |-------|----------|
 | Signature types | OCI Cosign signatures in the registry only (not Notary v1, GPG, or offline bundles) |
 | Attestations | Image signatures only (`cosign verify`), not SLSA/`verify-attestation` |
-| Discovery | Images on running pods under top-level controllers; not every API object type |
-| Digest | Tag-only images without registry resolution remain `unknown` if `IMAGE_TRUST_RESOLVE_DIGESTS=false` or lookup fails |
-| Registry mirrors | Verification uses the reference from pod status; pull-through hostnames may need allowlisting or matching auth |
+| Discovery | Top-level controllers, orphan running pods, and active Jobs (not completed/historical workloads) |
+| Digest | Failed registry lookup → `verification_error` with `digestResolveError`; tag-only without lookup → `unknown` |
+| Registry mirrors | Configure `IMAGE_TRUST_REGISTRY_MIRRORS` when signatures live on upstream hosts |
 
 ## Product integration (this repo)
 
@@ -126,7 +139,7 @@ Private registry verification requires outbound access to the registry and, for 
 | On-demand jobs | `image-trust` report type in `on-demand-job-runner` |
 | JSON schema | `plugins/image-trust/results.schema` |
 
-**Fairwinds Insights Agent chart** ([charts](https://github.com/FairwindsOps/charts) repo): enable with `image-trust.enabled=true` and set `image-trust.trustedIssuers`, `image-trust.publicKeys.secretName`, and `image-trust.privateImages.*` as needed. See `stable/insights-agent/README.md`.
+**Fairwinds Insights Agent chart** ([charts](https://github.com/FairwindsOps/charts) repo): see [CHART_INTEGRATION.md](CHART_INTEGRATION.md) and `stable/insights-agent/README.md`.
 
 ## Running locally
 

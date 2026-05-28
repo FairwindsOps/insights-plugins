@@ -12,10 +12,11 @@ type Resource struct {
 
 // DiscoveredImage is an image observed running in the cluster.
 type DiscoveredImage struct {
-	Name    string     `json:"name"`
-	ID      string     `json:"id"`
-	PullRef string     `json:"pullRef"`
-	Owners  []Resource `json:"owners"`
+	Name               string     `json:"name"`
+	ID                 string     `json:"id"`
+	PullRef            string     `json:"pullRef"`
+	Owners             []Resource `json:"owners"`
+	DigestResolveError string     `json:"digestResolveError,omitempty"`
 }
 
 // Digest returns the digest portion of the image ID when present.

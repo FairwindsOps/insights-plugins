@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0
+
+* Multi-registry auth via `IMAGE_TRUST_REGISTRY_AUTHS` / `_FILE` (merged into docker config; no passwords on cosign CLI).
+* Registry mirror mapping (`IMAGE_TRUST_REGISTRY_MIRRORS`) for pull-through caches.
+* Per-registry TLS (`IMAGE_TRUST_REGISTRY_CERT_DIRS`) with merged CA bundle for cosign and digest resolution.
+* Digest lookup failures surface as `verification_error` with `digestResolveError` in the report.
+* Expanded discovery: orphan running pods and active Kubernetes Jobs.
+* Private Sigstore env passthrough (`IMAGE_TRUST_SIGSTORE_ENV_FILE` + well-known variables).
+* Report exports `candidateSigners`; schema updated.
+* Configurable verify retry backoff and jitter (`IMAGE_TRUST_VERIFY_RETRY_BACKOFF_SECONDS`, `IMAGE_TRUST_VERIFY_RETRY_JITTER`).
+* RBAC manifest and chart integration guide (`deploy/rbac.yaml`, `CHART_INTEGRATION.md`).
+
 ## 0.3.0
 
 * Resolve tag-only images to registry digests before verification (`IMAGE_TRUST_RESOLVE_DIGESTS`, default on).

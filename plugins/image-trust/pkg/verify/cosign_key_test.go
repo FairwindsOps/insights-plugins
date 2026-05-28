@@ -32,7 +32,7 @@ func TestCosignKeyVerifierVerifySuccess(t *testing.T) {
 	require.Contains(t, runner.args, "--key")
 	require.Contains(t, runner.args, "/etc/image-trust/keys/release.pub")
 	require.Contains(t, runner.args, "--insecure-ignore-tlog")
-	require.Contains(t, runner.args, "--registry-username")
+	require.NotContains(t, runner.args, "--registry-password")
 }
 
 func TestCosignKeyVerifierTriesNextKeyAfterUnsigned(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,8 +20,36 @@ func TestLoadFromEnvironment(t *testing.T) {
 	require.Equal(t, "pass", creds.Password)
 	require.Equal(t, "/certs", creds.CertDir)
 	require.True(t, creds.Configured())
-	require.Equal(t, []string{"--registry-username", "user", "--registry-password", "pass"}, creds.CosignArgs())
-	require.Equal(t, []string{"SSL_CERT_DIR=/certs"}, creds.ExtraEnv())
+	require.Empty(t, creds.CosignArgs())
+}
+
+func TestPrepareMaterializesDockerConfigWithoutCLIPassword(t *testing.T) {
+	cfg := &config.Config{
+		RegistryAuthHost: "https://index.docker.io/v1/",
+		RegistryAuths: []config.RegistryAuth{
+			{Host: "https://registry.example/v1/", Username: "robot", Password: "secret"},
+		},
+	}
+	t.Setenv("REGISTRY_USER", "docker-user")
+	t.Setenv("REGISTRY_PASSWORD", "docker-pass")
+
+	creds, err := LoadFromEnvironment()
+	require.NoError(t, err)
+
+	prepared, err := Prepare(t.Context(), cfg, nil)
+	require.NoError(t, err)
+	defer prepared.Cleanup()
+
+	require.NotEmpty(t, prepared.Credentials.DockerConfigDir)
+	require.Empty(t, prepared.Credentials.Username)
+	require.Empty(t, prepared.Credentials.Password)
+	require.Empty(t, prepared.Credentials.CosignArgs())
+
+	data, err := os.ReadFile(filepath.Join(prepared.Credentials.DockerConfigDir, "config.json"))
+	require.NoError(t, err)
+	require.Contains(t, string(data), "registry.example")
+	require.Contains(t, string(data), "docker-user")
+	_ = creds
 }
 
 func TestLoadFromEnvironmentDockerConfig(t *testing.T) {
@@ -34,9 +63,7 @@ func TestLoadFromEnvironmentDockerConfig(t *testing.T) {
 	creds, err := LoadFromEnvironment()
 	require.NoError(t, err)
 	require.Equal(t, dir, creds.DockerConfigDir)
-	require.True(t, creds.Configured())
 	require.Empty(t, creds.CosignArgs())
-	require.Equal(t, []string{"DOCKER_CONFIG=" + dir}, creds.ExtraEnv())
 }
 
 func TestLoadFromEnvironmentPasswordFile(t *testing.T) {
