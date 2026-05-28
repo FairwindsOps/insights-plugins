@@ -4,6 +4,8 @@ Reports image trust for container images running in a cluster.
 
 The plugin discovers images used by workloads (including init and ephemeral containers), resolves tag-only references to digests when possible, verifies signatures with Cosign (keyless and/or static public keys), applies trust policy and allowlists, and uploads a report to Insights at `/data/image-trust`.
 
+For background on how Cosign stores signatures in the registry, keyed vs keyless signing, and what image-trust checks during verification, see [docs/COSIGN.md](docs/COSIGN.md).
+
 ## Report output
 
 - **images**: trust result for every discovered image (verified, unsigned, signed_untrusted, verification_error, unknown)
