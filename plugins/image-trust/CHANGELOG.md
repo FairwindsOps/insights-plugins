@@ -3,7 +3,10 @@
 ## 0.5.1
 
 * Report field `attestationType` when attestation verification succeeds.
-* `IMAGE_TRUST_ATTESTATIONS_ENABLED` auto-appends attestation modes (or when attestation types are configured).
+* `IMAGE_TRUST_ATTESTATIONS_ENABLED` auto-appends attestation modes matching enabled signature modes (or when attestation types are configured).
+* Attestation auto-append follows signature mode parity only (public keys or OIDC policy alone no longer enable extra attestation modes).
+* `modePolicy: all` merges attestation metadata from all successful verifiers regardless of order.
+* Config validation rejects explicit attestation modes without `IMAGE_TRUST_ATTESTATION_TYPES`.
 
 ## 0.5.0
 

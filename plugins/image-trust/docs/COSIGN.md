@@ -208,7 +208,15 @@ Registry credentials are required for **verification** (reading `.cosign` object
 
 ## Attestations
 
-Attestation modes (`cosign-attestation-keyless`, `cosign-attestation-key`) use the same registry storage model but call `cosign verify-attestation` instead of `cosign verify`. Configure comma-separated predicate types with `IMAGE_TRUST_ATTESTATION_TYPES` (for example `slsaprovenance1`, `spdxjson`, `cyclonedx`). The plugin tries each type until one verifies (OR). Attestation modes require `IMAGE_TRUST_ATTESTATION_TYPES` at startup; keyless attestation modes also require issuer/subject trust policy like `cosign-keyless`.
+Attestation modes (`cosign-attestation-keyless`, `cosign-attestation-key`) use the same registry storage model but call `cosign verify-attestation` instead of `cosign verify`. Configure comma-separated predicate types with `IMAGE_TRUST_ATTESTATION_TYPES` (for example `slsaprovenance1`, `spdxjson`, `cyclonedx`).
+
+When `IMAGE_TRUST_ATTESTATIONS_ENABLED` is true or types are configured, matching attestation modes are appended for each enabled signature mode (`cosign-keyless` → `cosign-attestation-keyless`, `cosign-key` → `cosign-attestation-key`). Public keys or OIDC trust policy alone do **not** enable an attestation mode unless the corresponding signature mode is also enabled.
+
+The plugin tries each configured predicate type until one verifies (**OR** semantics). Requiring multiple predicate types (for example both SLSA provenance and SPDX SBOM) is not supported today.
+
+Verification checks predicate **type** and signer trust only — not attestation payload fields (SLSA builder identity, minimum SLSA level, package lists, etc.). Use admission policy engines (Rego, CUE, Kyverno) if you need content-level attestation policy.
+
+Attestation modes require `IMAGE_TRUST_ATTESTATION_TYPES` at startup; keyless attestation modes also require issuer/subject trust policy like `cosign-keyless`.
 
 ## References
 

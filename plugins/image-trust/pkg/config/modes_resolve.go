@@ -23,17 +23,9 @@ func (c *Config) wantsAttestations() bool {
 }
 
 func (c *Config) shouldEnableAttestationKeyless() bool {
-	return modeEnabled(c.VerificationModes, ModeCosignKeyless) || c.hasKeylessTrustPolicy()
+	return modeEnabled(c.VerificationModes, ModeCosignKeyless)
 }
 
 func (c *Config) shouldEnableAttestationKey() bool {
-	return modeEnabled(c.VerificationModes, ModeCosignKey) || c.hasPublicKeyConfig()
-}
-
-func (c *Config) hasKeylessTrustPolicy() bool {
-	return len(c.TrustedIssuers) > 0 || len(c.TrustedSubjects) > 0 || len(c.TrustedSubjectREs) > 0
-}
-
-func (c *Config) hasPublicKeyConfig() bool {
-	return len(c.PublicKeyPaths) > 0 || len(c.PublicKeyRefs) > 0 || c.PublicKeyDir != ""
+	return modeEnabled(c.VerificationModes, ModeCosignKey)
 }

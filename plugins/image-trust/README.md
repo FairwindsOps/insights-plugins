@@ -24,8 +24,8 @@ Namespace scope:
 Verification:
 
 - `IMAGE_TRUST_MODES` — comma-separated modes (default `cosign-keyless`). Supported: `cosign-keyless`, `cosign-key`, `cosign-attestation-keyless`, `cosign-attestation-key`. When multiple modes are set, an image is **verified** if **any** mode succeeds (`IMAGE_TRUST_MODE_POLICY=any`, default), or **all** modes succeed when `IMAGE_TRUST_MODE_POLICY=all`.
-- `IMAGE_TRUST_ATTESTATION_TYPES` — predicate types for attestation modes (e.g. `slsaprovenance1`, `spdxjson`, `cyclonedx`; comma-separated)
-- `IMAGE_TRUST_ATTESTATIONS_ENABLED` — when `true` (or types are set), attestation modes are added automatically alongside signature modes
+- `IMAGE_TRUST_ATTESTATION_TYPES` — predicate types for attestation modes (e.g. `slsaprovenance1`, `spdxjson`, `cyclonedx`; comma-separated). When multiple types are configured, **any one** matching type satisfies attestation verification (OR).
+- `IMAGE_TRUST_ATTESTATIONS_ENABLED` — when `true` (or types are set), matching attestation modes are appended for each enabled signature mode (`cosign-keyless` → `cosign-attestation-keyless`, `cosign-key` → `cosign-attestation-key`)
 - `IMAGE_TRUST_MODE_POLICY` — `any` (default) or `all`
 - `IMAGE_TRUST_TRUSTED_ISSUERS` — comma-separated OIDC issuers (keyless)
 - `IMAGE_TRUST_TRUSTED_SUBJECTS` — exact certificate identities (keyless)
@@ -129,7 +129,7 @@ Use `IMAGE_TRUST_PUBLIC_KEY_REFS` with cloud credentials on the pod (`GOOGLE_APP
 | Topic | Behavior |
 |-------|----------|
 | Signature types | OCI Cosign signatures in the registry only (not Notary v1, GPG, or offline bundles) |
-| Attestations | In-toto attestations via `cosign verify-attestation` when enabled; report includes `attestationType`; no custom Rego/CUE policy files |
+| Attestations | In-toto attestations via `cosign verify-attestation` when enabled; report includes `attestationType`; predicate **type** only (not SLSA level, builder, or SBOM content); multiple configured types are OR (any match passes); no custom Rego/CUE policy files |
 | Discovery | Top-level controllers, orphan running pods, and active Jobs (not completed/historical workloads) |
 | Digest | Failed registry lookup → `verification_error` with `digestResolveError`; tag-only without lookup → `unknown` |
 | Registry mirrors | Configure `IMAGE_TRUST_REGISTRY_MIRRORS` when signatures live on upstream hosts |

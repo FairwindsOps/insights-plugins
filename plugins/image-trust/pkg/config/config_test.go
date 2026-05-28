@@ -112,3 +112,31 @@ func TestValidateRejectsLongTrustedSubjectRegexp(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "maximum length")
 }
+
+func TestValidateAttestationModeRequiresTypes(t *testing.T) {
+	setRequiredTrustPolicyEnv(t)
+	t.Setenv("IMAGE_TRUST_MODES", "cosign-attestation-keyless")
+
+	_, err := LoadFromEnvironment()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "IMAGE_TRUST_ATTESTATION_TYPES")
+}
+
+func TestLoadFromEnvironmentAttestationsEnabledWithHybridTrustConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "vendor.pub")
+	require.NoError(t, os.WriteFile(path, []byte("public-key"), 0o644))
+
+	setRequiredTrustPolicyEnv(t)
+	t.Setenv("IMAGE_TRUST_MODES", "cosign-keyless")
+	t.Setenv("IMAGE_TRUST_ATTESTATIONS_ENABLED", "true")
+	t.Setenv("IMAGE_TRUST_ATTESTATION_TYPES", "slsaprovenance1")
+	t.Setenv("IMAGE_TRUST_PUBLIC_KEY_PATHS", path)
+
+	cfg, err := LoadFromEnvironment()
+	require.NoError(t, err)
+	require.Contains(t, cfg.VerificationModes, ModeCosignKeyless)
+	require.Contains(t, cfg.VerificationModes, ModeCosignAttestationKeyless)
+	require.NotContains(t, cfg.VerificationModes, ModeCosignKey)
+	require.NotContains(t, cfg.VerificationModes, ModeCosignAttestationKey)
+}

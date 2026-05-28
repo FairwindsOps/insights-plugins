@@ -209,12 +209,17 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("cosign-key requires IMAGE_TRUST_PUBLIC_KEY_PATHS, IMAGE_TRUST_PUBLIC_KEY_REFS, or IMAGE_TRUST_PUBLIC_KEY_DIR")
 		}
 	}
+	if modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) || modeEnabled(c.VerificationModes, ModeCosignAttestationKey) {
+		if len(c.AttestationTypes) == 0 {
+			return fmt.Errorf("attestation modes require IMAGE_TRUST_ATTESTATION_TYPES")
+		}
+	}
 	if c.wantsAttestations() {
 		if len(c.AttestationTypes) == 0 {
 			return fmt.Errorf("attestations require IMAGE_TRUST_ATTESTATION_TYPES when IMAGE_TRUST_ATTESTATIONS_ENABLED is true or attestation types are configured")
 		}
 		if !modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) && !modeEnabled(c.VerificationModes, ModeCosignAttestationKey) {
-			return fmt.Errorf("attestations enabled but no attestation verification mode could be configured; set trusted issuers/subjects for keyless and/or public keys for keyed verification")
+			return fmt.Errorf("attestations enabled but no attestation verification mode could be configured; include cosign-keyless and/or cosign-key in IMAGE_TRUST_MODES (matching attestation modes are appended automatically), or set cosign-attestation-keyless and/or cosign-attestation-key explicitly")
 		}
 	}
 	if modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) {

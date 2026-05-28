@@ -152,3 +152,71 @@ func TestCompositeVerifierAllSucceedsWhenAllVerify(t *testing.T) {
 	require.Equal(t, models.StatusVerified, observation.Status)
 	require.Contains(t, observation.Reason, "all configured verification modes succeeded")
 }
+
+func TestCompositeVerifierAllMergesAttestationTypeWhenAttestationRunsFirst(t *testing.T) {
+	composite, err := NewCompositeVerifier("all",
+		stubVerifier{
+			name: models.VerificationModeCosignAttestationKeyless,
+			result: models.VerificationObservation{
+				Mode:            models.VerificationModeCosignAttestationKeyless,
+				Status:          models.StatusVerified,
+				AttestationType: "slsaprovenance1",
+				Signer: models.SignerDetails{
+					Subject: "https://github.com/example/workflow",
+				},
+			},
+		},
+		stubVerifier{
+			name: models.VerificationModeCosignKeyless,
+			result: models.VerificationObservation{
+				Mode:   models.VerificationModeCosignKeyless,
+				Status: models.StatusVerified,
+				Signer: models.SignerDetails{
+					Issuer:  "https://token.actions.githubusercontent.com",
+					Subject: "https://github.com/example/repo/.github/workflows/release.yml@refs/heads/main",
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	observation, err := composite.Verify(context.Background(), models.DiscoveredImage{})
+	require.NoError(t, err)
+	require.Equal(t, models.StatusVerified, observation.Status)
+	require.Equal(t, "slsaprovenance1", observation.AttestationType)
+	require.Equal(t, "https://token.actions.githubusercontent.com", observation.Signer.Issuer)
+}
+
+func TestCompositeVerifierAllMergesAttestationTypeWhenSignatureRunsFirst(t *testing.T) {
+	composite, err := NewCompositeVerifier("all",
+		stubVerifier{
+			name: models.VerificationModeCosignKeyless,
+			result: models.VerificationObservation{
+				Mode:   models.VerificationModeCosignKeyless,
+				Status: models.StatusVerified,
+				Signer: models.SignerDetails{
+					Issuer:  "https://token.actions.githubusercontent.com",
+					Subject: "https://github.com/example/repo/.github/workflows/release.yml@refs/heads/main",
+				},
+			},
+		},
+		stubVerifier{
+			name: models.VerificationModeCosignAttestationKeyless,
+			result: models.VerificationObservation{
+				Mode:            models.VerificationModeCosignAttestationKeyless,
+				Status:          models.StatusVerified,
+				AttestationType: "spdxjson",
+				Signer: models.SignerDetails{
+					Subject: "https://github.com/example/sbom",
+				},
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	observation, err := composite.Verify(context.Background(), models.DiscoveredImage{})
+	require.NoError(t, err)
+	require.Equal(t, models.StatusVerified, observation.Status)
+	require.Equal(t, "spdxjson", observation.AttestationType)
+	require.Equal(t, "https://token.actions.githubusercontent.com", observation.Signer.Issuer)
+}

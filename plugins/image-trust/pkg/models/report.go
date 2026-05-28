@@ -26,7 +26,7 @@ type ImageTrustResult struct {
 	PullRef          string          `json:"pullRef"`
 	Status           Status          `json:"status"`
 	Reason           string          `json:"reason,omitempty"`
-	VerificationMode string          `json:"verificationMode,omitempty"`
+	VerificationMode   string          `json:"verificationMode,omitempty"`
 	VerifiedBy         string          `json:"verifiedBy,omitempty"`
 	AttestationType    string          `json:"attestationType,omitempty"`
 	Allowlisted        bool            `json:"allowlisted"`

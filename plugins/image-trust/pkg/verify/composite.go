@@ -67,12 +67,85 @@ func (c *CompositeVerifier) verifyAll(ctx context.Context, image models.Discover
 			Reason: "no verification modes produced a result",
 		}, nil
 	}
-	observation := attempts[len(attempts)-1]
-	if observation.VerifiedBy == "" {
-		observation.VerifiedBy = observation.Mode
+	return mergeVerifiedObservations(attempts), nil
+}
+
+func mergeVerifiedObservations(attempts []models.VerificationObservation) models.VerificationObservation {
+	merged := attempts[len(attempts)-1]
+	if merged.VerifiedBy == "" {
+		merged.VerifiedBy = merged.Mode
 	}
-	observation.Reason = "all configured verification modes succeeded"
-	return observation, nil
+
+	for _, attempt := range attempts {
+		if attempt.AttestationType != "" {
+			merged.AttestationType = attempt.AttestationType
+		}
+	}
+
+	for _, attempt := range attempts {
+		if isSignatureMode(attempt.Mode) && !signerIsEmpty(attempt.Signer) {
+			merged.Signer = attempt.Signer
+			break
+		}
+	}
+	if signerIsEmpty(merged.Signer) {
+		for _, attempt := range attempts {
+			if isAttestationMode(attempt.Mode) && !signerIsEmpty(attempt.Signer) {
+				merged.Signer = attempt.Signer
+				break
+			}
+		}
+	}
+
+	allSigners := make([]models.SignerDetails, 0)
+	for _, attempt := range attempts {
+		allSigners = append(allSigners, attempt.Signers...)
+	}
+	merged.Signers = dedupeSigners(allSigners)
+	merged.Reason = "all configured verification modes succeeded"
+	return merged
+}
+
+func isSignatureMode(mode models.VerificationMode) bool {
+	switch mode {
+	case models.VerificationModeCosignKeyless, models.VerificationModeCosignKey:
+		return true
+	default:
+		return false
+	}
+}
+
+func isAttestationMode(mode models.VerificationMode) bool {
+	switch mode {
+	case models.VerificationModeCosignAttestationKeyless, models.VerificationModeCosignAttestationKey:
+		return true
+	default:
+		return false
+	}
+}
+
+func signerIsEmpty(signer models.SignerDetails) bool {
+	return signer.Issuer == "" && signer.Subject == "" && signer.KeyRef == ""
+}
+
+func dedupeSigners(signers []models.SignerDetails) []models.SignerDetails {
+	if len(signers) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(signers))
+	deduped := make([]models.SignerDetails, 0, len(signers))
+	for _, signer := range signers {
+		if signerIsEmpty(signer) {
+			continue
+		}
+		key := signer.Issuer + "\x00" + signer.Subject + "\x00" + signer.KeyRef
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		deduped = append(deduped, signer)
+	}
+	return deduped
 }
 
 func (c *CompositeVerifier) verifyAny(ctx context.Context, image models.DiscoveredImage) (models.VerificationObservation, error) {
