@@ -27,6 +27,7 @@ func TestCosignAttestationVerifierVerifySuccess(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, models.StatusVerified, observation.Status)
+	require.Equal(t, "slsaprovenance1", observation.AttestationType)
 	require.Contains(t, runner.args, "verify-attestation")
 	require.Contains(t, runner.args, "--type")
 	require.Contains(t, runner.args, "slsaprovenance1")

@@ -25,7 +25,7 @@ images:
     - quay.io/fairwinds/rbac-reporter:1.4.17
     - quay.io/fairwinds/right-sizer:0.6.16
     - quay.io/fairwinds/fw-trivy:0.34.22
-    - quay.io/fairwinds/image-trust:0.5.0
+    - quay.io/fairwinds/image-trust:0.5.1
     - quay.io/fairwinds/insights-uploader:0.6.9
     - quay.io/fairwinds/insights-utils:0.0.14
     - quay.io/fairwinds/workloads:2.9.6

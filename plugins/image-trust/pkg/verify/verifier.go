@@ -109,6 +109,7 @@ func VerifyImages(
 				Reason:             observation.Reason,
 				VerificationMode:   string(observation.Mode),
 				VerifiedBy:         verifiedBy,
+				AttestationType:    observation.AttestationType,
 				Allowlisted:        false,
 				Owners:             img.Owners,
 				Signer:             observation.Signer,

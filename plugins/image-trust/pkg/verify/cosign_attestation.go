@@ -149,11 +149,12 @@ func (v *CosignAttestationVerifier) verifyType(ctx context.Context, ref, attesta
 	for _, signer := range signers {
 		if v.isTrustedSigner(signer) {
 			return models.VerificationObservation{
-				Mode:    v.Name(),
-				Status:  models.StatusVerified,
-				Reason:  fmt.Sprintf("cosign attestation verification succeeded for type %s", attestationType),
-				Signer:  signer,
-				Signers: signers,
+				Mode:            v.Name(),
+				Status:          models.StatusVerified,
+				Reason:          fmt.Sprintf("cosign attestation verification succeeded for type %s", attestationType),
+				AttestationType: attestationType,
+				Signer:          signer,
+				Signers:         signers,
 			}, nil
 		}
 	}

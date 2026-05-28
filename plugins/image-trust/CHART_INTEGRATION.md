@@ -77,17 +77,20 @@ For AWS EKS use `AWS_ROLE_ARN` + `AWS_WEB_IDENTITY_TOKEN_FILE`; for Azure use fe
 
 ## Attestations
 
-Enable attestation modes and set predicate types:
+Enable with `attestations.enabled` and predicate types (attestation modes are appended automatically):
 
 ```yaml
 image-trust:
   modes:
     - cosign-keyless
-    - cosign-attestation-keyless
-  attestationTypes:
-    - slsaprovenance1
-    - spdxjson
+  attestations:
+    enabled: true
+    types:
+      - slsaprovenance1
+      - spdxjson
 ```
+
+Setting `attestations.types` alone (without `enabled`) also activates attestations. The plugin sets `attestationType` on verified images.
 
 Use `modePolicy: all` when an image must pass **both** signature and attestation verification.
 

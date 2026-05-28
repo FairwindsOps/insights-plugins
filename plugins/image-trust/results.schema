@@ -29,6 +29,7 @@
             "type": "string",
             "enum": ["cosign-keyless", "cosign-key", "cosign-attestation-keyless", "cosign-attestation-key"]
           },
+          "attestationType": { "type": "string" },
           "allowlisted": { "type": "boolean" },
           "allowlistReason": { "type": "string" },
           "owners": {

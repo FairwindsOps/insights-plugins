@@ -41,6 +41,7 @@ type Config struct {
 	RegistryMirrors        map[string]string
 	RegistryCertDirs       map[string]string
 	AttestationTypes       []string
+	AttestationsEnabled    bool
 	VerifyRetries          int
 	VerifyRetryBackoff     time.Duration
 	VerifyRetryJitter      bool
@@ -132,6 +133,9 @@ func LoadFromEnvironment() (*Config, error) {
 		cfg.VerifyRetryBackoff = time.Duration(value) * time.Second
 	}
 	cfg.VerifyRetryJitter = parseBoolEnvDefault("IMAGE_TRUST_VERIFY_RETRY_JITTER", true)
+	cfg.AttestationsEnabled = parseBoolEnv("IMAGE_TRUST_ATTESTATIONS_ENABLED")
+
+	cfg.ResolveVerificationModes()
 
 	registryAuths, err := LoadRegistryAuths()
 	if err != nil {
@@ -205,9 +209,12 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("cosign-key requires IMAGE_TRUST_PUBLIC_KEY_PATHS, IMAGE_TRUST_PUBLIC_KEY_REFS, or IMAGE_TRUST_PUBLIC_KEY_DIR")
 		}
 	}
-	if modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) || modeEnabled(c.VerificationModes, ModeCosignAttestationKey) {
+	if c.wantsAttestations() {
 		if len(c.AttestationTypes) == 0 {
-			return fmt.Errorf("attestation modes require IMAGE_TRUST_ATTESTATION_TYPES")
+			return fmt.Errorf("attestations require IMAGE_TRUST_ATTESTATION_TYPES when IMAGE_TRUST_ATTESTATIONS_ENABLED is true or attestation types are configured")
+		}
+		if !modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) && !modeEnabled(c.VerificationModes, ModeCosignAttestationKey) {
+			return fmt.Errorf("attestations enabled but no attestation verification mode could be configured; set trusted issuers/subjects for keyless and/or public keys for keyed verification")
 		}
 	}
 	if modeEnabled(c.VerificationModes, ModeCosignAttestationKeyless) {

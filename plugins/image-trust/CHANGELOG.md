@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+* Report field `attestationType` when attestation verification succeeds.
+* `IMAGE_TRUST_ATTESTATIONS_ENABLED` auto-appends attestation modes (or when attestation types are configured).
+
 ## 0.5.0
 
 * Cosign attestation verification modes: `cosign-attestation-keyless`, `cosign-attestation-key` (`IMAGE_TRUST_ATTESTATION_TYPES`).

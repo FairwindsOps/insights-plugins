@@ -126,10 +126,11 @@ func (v *CosignAttestationKeyVerifier) verifyWithKey(
 	}
 
 	return models.VerificationObservation{
-		Mode:    v.Name(),
-		Status:  models.StatusVerified,
-		Reason:  fmt.Sprintf("cosign attestation verification succeeded with trusted public key %s for type %s", key.ID, attestationType),
-		Signer:  signer,
-		Signers: signers,
+		Mode:            v.Name(),
+		Status:          models.StatusVerified,
+		Reason:          fmt.Sprintf("cosign attestation verification succeeded with trusted public key %s for type %s", key.ID, attestationType),
+		AttestationType: attestationType,
+		Signer:          signer,
+		Signers:         signers,
 	}, nil
 }
