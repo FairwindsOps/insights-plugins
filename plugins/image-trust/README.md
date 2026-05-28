@@ -100,7 +100,7 @@ Private registry verification requires outbound access to the registry and, for 
 | On-demand jobs | `image-trust` report type in `on-demand-job-runner` |
 | JSON schema | `plugins/image-trust/results.schema` |
 
-**Fairwinds Insights Agent chart** (separate [charts](https://github.com/FairwindsOps/charts) repo): add a CronJob/uploader pair for `image-trust` mirroring `trivy` — enable flag, image tag, env for trust policy and allowlists, schedule, and resources.
+**Fairwinds Insights Agent chart** ([charts](https://github.com/FairwindsOps/charts) repo): enable with `image-trust.enabled=true` and set `image-trust.trustedIssuers`, `image-trust.publicKeys.secretName`, and `image-trust.privateImages.*` as needed. See `stable/insights-agent/README.md`.
 
 ## Running locally
 
