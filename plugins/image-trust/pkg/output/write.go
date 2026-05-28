@@ -30,10 +30,10 @@ func WriteReport(path string, report models.Report) error {
 		return fmt.Errorf("creating temp file: %w", err)
 	}
 	tempName := tempFile.Name()
-	defer os.Remove(tempName)
+	defer func() { _ = os.Remove(tempName) }()
 
 	if _, err := tempFile.Write(data); err != nil {
-		tempFile.Close()
+		_ = tempFile.Close()
 		return fmt.Errorf("writing temp report: %w", err)
 	}
 	if err := tempFile.Close(); err != nil {

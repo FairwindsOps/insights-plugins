@@ -65,31 +65,42 @@ func buildFinding(owner models.Resource, result models.ImageTrustResult) models.
 }
 
 func detailsForStatus(result models.ImageTrustResult) (title, description, remediation string, severity float64) {
+	imageRef := imageReference(result)
 	switch result.Status {
 	case models.StatusUnsigned:
 		return "Container image is unsigned",
-			"The image-trust plugin did not find a matching signature for this image.",
-			"Sign the image in CI and redeploy the workload using a verified digest reference.",
+			"The image-trust plugin did not find a matching Cosign signature for image " + imageRef + ".",
+			"Sign the image in CI with Cosign keyless signing and redeploy the workload using the signed digest reference.",
 			nonCompliantSeverity
 	case models.StatusSignedUntrusted:
 		return "Container image is signed by an untrusted signer",
-			"The image-trust plugin found signature data, but it did not match the configured trusted signer policy.",
+			"The image-trust plugin verified a Cosign signature on image " + imageRef + ", but the signer did not match the configured trusted issuer/subject policy.",
 			"Update signer trust configuration or publish the image using an approved signing identity.",
 			nonCompliantSeverity
 	case models.StatusVerificationError:
 		return "Container image trust could not be verified",
-			"The image-trust plugin encountered an operational error while verifying this image: " + result.Reason,
+			"The image-trust plugin encountered an operational error while verifying image " + imageRef + ": " + result.Reason,
 			"Fix registry access, network connectivity, or verifier configuration and rerun the report.",
 			verificationErrorSeverity
 	case models.StatusUnknown:
 		return "Container image trust is unknown",
-			"The image-trust plugin could not resolve this image to an immutable digest reference for verification.",
+			"The image-trust plugin could not resolve image " + imageRef + " to an immutable digest reference for Cosign verification.",
 			"Ensure the workload resolves to a digest-backed image reference or that runtime image metadata is available.",
 			verificationErrorSeverity
 	default:
 		return "Container image trust requires attention",
-			"Image trust status requires review.",
+			"Image trust status for " + imageRef + " requires review.",
 			"Review image trust configuration and rerun the report.",
 			verificationErrorSeverity
 	}
+}
+
+func imageReference(result models.ImageTrustResult) string {
+	if result.ID != "" {
+		return result.ID
+	}
+	if result.Name != "" {
+		return result.Name
+	}
+	return "(unknown image)"
 }
