@@ -29,7 +29,11 @@ func NewVerifier(cfg *config.Config, runner CommandRunner, registryCreds registr
 			}
 			verifiers = append(verifiers, verifier)
 		case config.ModeCosignKey:
-			return nil, fmt.Errorf("verification mode %q is not implemented yet", mode)
+			verifier, err := NewCosignKeyVerifier(runner, registryCreds, cfg.TrustedPublicKeys, cfg.IgnoreTlog)
+			if err != nil {
+				return nil, err
+			}
+			verifiers = append(verifiers, verifier)
 		default:
 			return nil, fmt.Errorf("unsupported verification mode %q", mode)
 		}
