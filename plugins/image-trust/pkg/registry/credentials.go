@@ -40,7 +40,17 @@ func LoadFromEnvironment() (Credentials, error) {
 		creds.DockerConfigDir = dir
 	}
 
+	applyDockerConfigEnv(creds)
 	return creds, nil
+}
+
+func applyDockerConfigEnv(creds Credentials) {
+	if creds.DockerConfigDir != "" {
+		_ = os.Setenv("DOCKER_CONFIG", creds.DockerConfigDir)
+	}
+	if creds.CertDir != "" {
+		_ = os.Setenv("SSL_CERT_DIR", creds.CertDir)
+	}
 }
 
 // Configured reports whether registry credentials or custom TLS settings are set.

@@ -102,3 +102,53 @@ func TestCompositeVerifierAnyMergesFailures(t *testing.T) {
 	require.Equal(t, models.StatusUnsigned, observation.Status)
 	require.Equal(t, "no matching signatures", observation.Reason)
 }
+
+func TestCompositeVerifierAllRequiresEveryMode(t *testing.T) {
+	composite, err := NewCompositeVerifier("all",
+		stubVerifier{
+			name: models.VerificationModeCosignKeyless,
+			result: models.VerificationObservation{
+				Mode:   models.VerificationModeCosignKeyless,
+				Status: models.StatusVerified,
+			},
+		},
+		stubVerifier{
+			name: models.VerificationModeCosignKey,
+			result: models.VerificationObservation{
+				Mode:   models.VerificationModeCosignKey,
+				Status: models.StatusUnsigned,
+				Reason: "no matching signatures",
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	observation, err := composite.Verify(context.Background(), models.DiscoveredImage{})
+	require.NoError(t, err)
+	require.Equal(t, models.StatusUnsigned, observation.Status)
+}
+
+func TestCompositeVerifierAllSucceedsWhenAllVerify(t *testing.T) {
+	composite, err := NewCompositeVerifier("all",
+		stubVerifier{
+			name: models.VerificationModeCosignKeyless,
+			result: models.VerificationObservation{
+				Mode:   models.VerificationModeCosignKeyless,
+				Status: models.StatusVerified,
+			},
+		},
+		stubVerifier{
+			name: models.VerificationModeCosignKey,
+			result: models.VerificationObservation{
+				Mode:   models.VerificationModeCosignKey,
+				Status: models.StatusVerified,
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	observation, err := composite.Verify(context.Background(), models.DiscoveredImage{})
+	require.NoError(t, err)
+	require.Equal(t, models.StatusVerified, observation.Status)
+	require.Contains(t, observation.Reason, "all configured verification modes succeeded")
+}

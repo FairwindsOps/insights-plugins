@@ -35,7 +35,7 @@ func TestVerifyImagesPreservesOrder(t *testing.T) {
 		{Name: "third", ID: "third@sha256:3"},
 	}
 
-	results, err := VerifyImages(context.Background(), images, verifier, 2, time.Minute)
+	results, err := VerifyImages(context.Background(), images, verifier, 2, time.Minute, 1)
 	require.NoError(t, err)
 	require.Len(t, results, 3)
 	require.Equal(t, "first", results[0].Name)

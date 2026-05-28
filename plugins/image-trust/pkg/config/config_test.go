@@ -95,6 +95,15 @@ func TestLoadFromEnvironmentWithBothModes(t *testing.T) {
 	require.Len(t, cfg.TrustedPublicKeys, 1)
 }
 
+func TestValidateAcceptsModePolicyAll(t *testing.T) {
+	setRequiredTrustPolicyEnv(t)
+	t.Setenv("IMAGE_TRUST_MODE_POLICY", "all")
+
+	cfg, err := LoadFromEnvironment()
+	require.NoError(t, err)
+	require.Equal(t, ModePolicyAll, cfg.ModePolicy)
+}
+
 func TestValidateRejectsLongTrustedSubjectRegexp(t *testing.T) {
 	setRequiredTrustPolicyEnv(t)
 	t.Setenv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS", strings.Repeat("a", MaxTrustedSubjectRegexpLen+1))

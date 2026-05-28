@@ -22,7 +22,7 @@ func NewCompositeVerifier(policy string, verifiers ...Verifier) (*CompositeVerif
 	if policy == "" {
 		policy = config.ModePolicyAny
 	}
-	if policy != config.ModePolicyAny {
+	if policy != config.ModePolicyAny && policy != config.ModePolicyAll {
 		return nil, fmt.Errorf("unsupported mode policy %q", policy)
 	}
 	return &CompositeVerifier{
@@ -39,9 +39,40 @@ func (c *CompositeVerifier) Verify(ctx context.Context, image models.DiscoveredI
 	switch c.policy {
 	case config.ModePolicyAny:
 		return c.verifyAny(ctx, image)
+	case config.ModePolicyAll:
+		return c.verifyAll(ctx, image)
 	default:
 		return models.VerificationObservation{}, fmt.Errorf("unsupported mode policy %q", c.policy)
 	}
+}
+
+func (c *CompositeVerifier) verifyAll(ctx context.Context, image models.DiscoveredImage) (models.VerificationObservation, error) {
+	attempts := make([]models.VerificationObservation, 0, len(c.verifiers))
+	for _, verifier := range c.verifiers {
+		observation, err := verifier.Verify(ctx, image)
+		if err != nil {
+			return models.VerificationObservation{}, fmt.Errorf("%s: %w", verifier.Name(), err)
+		}
+		if observation.Status != models.StatusVerified {
+			if observation.VerifiedBy == "" {
+				observation.VerifiedBy = observation.Mode
+			}
+			return observation, nil
+		}
+		attempts = append(attempts, observation)
+	}
+	if len(attempts) == 0 {
+		return models.VerificationObservation{
+			Status: models.StatusVerificationError,
+			Reason: "no verification modes produced a result",
+		}, nil
+	}
+	observation := attempts[len(attempts)-1]
+	if observation.VerifiedBy == "" {
+		observation.VerifiedBy = observation.Mode
+	}
+	observation.Reason = "all configured verification modes succeeded"
+	return observation, nil
 }
 
 func (c *CompositeVerifier) verifyAny(ctx context.Context, image models.DiscoveredImage) (models.VerificationObservation, error) {

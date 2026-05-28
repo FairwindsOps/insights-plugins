@@ -71,7 +71,7 @@ func (v *CosignKeyVerifier) verifyWithKey(ctx context.Context, ref string, key c
 	args := []string{
 		"verify",
 		"--output", "json",
-		"--key", key.Path,
+		"--key", key.Ref,
 	}
 	if v.ignoreTlog {
 		args = append(args, "--insecure-ignore-tlog")

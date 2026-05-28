@@ -13,10 +13,10 @@ func TestLoadTrustedPublicKeysFromPaths(t *testing.T) {
 	path := filepath.Join(dir, "release.pub")
 	require.NoError(t, os.WriteFile(path, []byte("-----BEGIN PUBLIC KEY-----\nabc\n-----END PUBLIC KEY-----\n"), 0o644))
 
-	keys, err := LoadTrustedPublicKeys([]string{path}, "")
+	keys, err := LoadTrustedPublicKeys([]string{path}, nil, "")
 	require.NoError(t, err)
 	require.Len(t, keys, 1)
-	require.Equal(t, path, keys[0].Path)
+	require.Equal(t, path, keys[0].Ref)
 	require.Equal(t, "release.pub", keys[0].ID)
 }
 
@@ -25,12 +25,19 @@ func TestLoadTrustedPublicKeysFromDir(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "a.pub"), []byte("a"), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "ignore.txt"), []byte("b"), 0o644))
 
-	keys, err := LoadTrustedPublicKeys(nil, dir)
+	keys, err := LoadTrustedPublicKeys(nil, nil, dir)
 	require.NoError(t, err)
 	require.Len(t, keys, 1)
 }
 
+func TestLoadTrustedPublicKeysFromRemoteRef(t *testing.T) {
+	keys, err := LoadTrustedPublicKeys(nil, []string{"gcpkms://projects/p/locations/l/keyRings/r/cryptoKeys/k/versions/1"}, "")
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+	require.Equal(t, "1", keys[0].ID)
+}
+
 func TestLoadTrustedPublicKeysRequiresInput(t *testing.T) {
-	_, err := LoadTrustedPublicKeys(nil, "")
+	_, err := LoadTrustedPublicKeys(nil, nil, "")
 	require.Error(t, err)
 }

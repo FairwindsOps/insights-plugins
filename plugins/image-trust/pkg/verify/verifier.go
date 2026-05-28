@@ -40,7 +40,14 @@ func (r ExecRunner) Run(ctx context.Context, name string, args ...string) (strin
 }
 
 // VerifyImages applies a verifier to all discovered images and returns final image results.
-func VerifyImages(ctx context.Context, images []models.DiscoveredImage, verifier Verifier, maxConcurrent int, perImageTimeout time.Duration) ([]models.ImageTrustResult, error) {
+func VerifyImages(
+	ctx context.Context,
+	images []models.DiscoveredImage,
+	verifier Verifier,
+	maxConcurrent int,
+	perImageTimeout time.Duration,
+	verifyRetries int,
+) ([]models.ImageTrustResult, error) {
 	if len(images) == 0 {
 		return nil, nil
 	}
@@ -72,7 +79,7 @@ func VerifyImages(ctx context.Context, images []models.DiscoveredImage, verifier
 			imageCtx, cancel := context.WithTimeout(ctx, perImageTimeout)
 			defer cancel()
 
-			observation, err := verifier.Verify(imageCtx, img)
+			observation, err := VerifyWithRetries(imageCtx, verifier, img, verifyRetries)
 			if err != nil {
 				if len(errCh) == 0 {
 					errCh <- fmt.Errorf("verifying image %s: %w", img.Name, err)

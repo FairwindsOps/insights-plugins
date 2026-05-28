@@ -51,7 +51,7 @@ Mount the directory in `run.sh` if you extend the docker invocation with `-v "$(
 
 ### Optional: private registry
 
-For private images, set `REGISTRY_USER` / `REGISTRY_PASSWORD_FILE` or `REGISTRY_DOCKER_CONFIG_PATH` in `env` (see plugin README).
+For private images, set `REGISTRY_USER` / `REGISTRY_PASSWORD_FILE` or `REGISTRY_DOCKER_CONFIG_PATH` in `env` (see plugin README). To reuse namespace pull credentials, set `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true` (requires RBAC to list secrets in scoped namespaces).
 
 ## Cleanup
 

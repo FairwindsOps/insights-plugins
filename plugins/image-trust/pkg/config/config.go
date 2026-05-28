@@ -25,14 +25,19 @@ type Config struct {
 	TrustedSubjects      []string
 	TrustedSubjectREs    []string
 	PublicKeyPaths       []string
+	PublicKeyRefs        []string
 	PublicKeyDir         string
 	TrustedPublicKeys    []TrustedPublicKey
 	IgnoreTlog           bool
 	SignerAllowlist      []string
 	ImageAllowlist       []string
 	RegistryAllowlist    []string
-	MaxConcurrentScans   int
-	ImageVerifyTimeout   time.Duration
+	MaxConcurrentScans     int
+	ImageVerifyTimeout     time.Duration
+	ResolveDigests         bool
+	UseImagePullSecrets    bool
+	RegistryAuthHost       string
+	VerifyRetries          int
 }
 
 // LoadFromEnvironment parses plugin configuration from environment variables.
@@ -46,13 +51,17 @@ func LoadFromEnvironment() (*Config, error) {
 		TrustedSubjects:    parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECTS"),
 		TrustedSubjectREs:  parseCSVEnv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS"),
 		PublicKeyPaths:     parseCSVEnv("IMAGE_TRUST_PUBLIC_KEY_PATHS"),
+		PublicKeyRefs:      parseCSVEnv("IMAGE_TRUST_PUBLIC_KEY_REFS"),
 		PublicKeyDir:       strings.TrimSpace(os.Getenv("IMAGE_TRUST_PUBLIC_KEY_DIR")),
 		IgnoreTlog:         parseBoolEnv("IMAGE_TRUST_IGNORE_TLOG"),
 		SignerAllowlist:    parseCSVEnv("IMAGE_TRUST_SIGNER_ALLOWLIST"),
 		ImageAllowlist:     parseCSVEnv("IMAGE_TRUST_IMAGE_ALLOWLIST"),
 		RegistryAllowlist:  parseCSVEnv("IMAGE_TRUST_REGISTRY_ALLOWLIST"),
-		MaxConcurrentScans: DefaultMaxConcurrentScans,
-		ImageVerifyTimeout: DefaultImageVerifyTimeout,
+		MaxConcurrentScans:  DefaultMaxConcurrentScans,
+		ImageVerifyTimeout:  DefaultImageVerifyTimeout,
+		ResolveDigests:      true,
+		UseImagePullSecrets: false,
+		VerifyRetries:       3,
 	}
 	if len(cfg.VerificationModes) == 0 {
 		cfg.VerificationModes = []string{ModeCosignKeyless}
@@ -86,12 +95,28 @@ func LoadFromEnvironment() (*Config, error) {
 		cfg.ImageVerifyTimeout = time.Duration(value) * time.Second
 	}
 
+	cfg.ResolveDigests = parseBoolEnvDefault("IMAGE_TRUST_RESOLVE_DIGESTS", true)
+	cfg.UseImagePullSecrets = parseBoolEnv("IMAGE_TRUST_USE_IMAGE_PULL_SECRETS")
+	cfg.RegistryAuthHost = strings.TrimSpace(os.Getenv("IMAGE_TRUST_REGISTRY_AUTH_HOST"))
+
+	retries := os.Getenv("IMAGE_TRUST_VERIFY_RETRIES")
+	if retries != "" {
+		value, err := strconv.Atoi(retries)
+		if err != nil {
+			return nil, fmt.Errorf("parsing IMAGE_TRUST_VERIFY_RETRIES: %w", err)
+		}
+		if value < 1 {
+			return nil, fmt.Errorf("IMAGE_TRUST_VERIFY_RETRIES must be at least 1")
+		}
+		cfg.VerifyRetries = value
+	}
+
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
 
 	if modeEnabled(cfg.VerificationModes, ModeCosignKey) {
-		keys, err := LoadTrustedPublicKeys(cfg.PublicKeyPaths, cfg.PublicKeyDir)
+		keys, err := LoadTrustedPublicKeys(cfg.PublicKeyPaths, cfg.PublicKeyRefs, cfg.PublicKeyDir)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +150,9 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("unsupported verification mode %q", mode)
 		}
 	}
-	if c.ModePolicy != ModePolicyAny {
+	switch c.ModePolicy {
+	case ModePolicyAny, ModePolicyAll:
+	default:
 		return fmt.Errorf("unsupported IMAGE_TRUST_MODE_POLICY %q", c.ModePolicy)
 	}
 	if modeEnabled(c.VerificationModes, ModeCosignKeyless) {
@@ -134,8 +161,8 @@ func (c *Config) Validate() error {
 		}
 	}
 	if modeEnabled(c.VerificationModes, ModeCosignKey) {
-		if len(c.PublicKeyPaths) == 0 && c.PublicKeyDir == "" {
-			return fmt.Errorf("cosign-key requires IMAGE_TRUST_PUBLIC_KEY_PATHS or IMAGE_TRUST_PUBLIC_KEY_DIR")
+		if len(c.PublicKeyPaths) == 0 && len(c.PublicKeyRefs) == 0 && c.PublicKeyDir == "" {
+			return fmt.Errorf("cosign-key requires IMAGE_TRUST_PUBLIC_KEY_PATHS, IMAGE_TRUST_PUBLIC_KEY_REFS, or IMAGE_TRUST_PUBLIC_KEY_DIR")
 		}
 	}
 	if len(c.TrustedSubjectREs) > MaxTrustedSubjectRegexpCount {
@@ -204,6 +231,16 @@ func modeEnabled(modes []string, mode string) bool {
 }
 
 func parseBoolEnv(name string) bool {
+	return parseBoolEnvDefault(name, false)
+}
+
+func parseBoolEnvDefault(name string, defaultValue bool) bool {
 	raw := strings.TrimSpace(strings.ToLower(os.Getenv(name)))
+	if raw == "" {
+		return defaultValue
+	}
+	if raw == "0" || raw == "false" || raw == "no" {
+		return false
+	}
 	return raw == "1" || raw == "true" || raw == "yes"
 }

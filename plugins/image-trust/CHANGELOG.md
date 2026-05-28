@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+* Resolve tag-only images to registry digests before verification (`IMAGE_TRUST_RESOLVE_DIGESTS`, default on).
+* Merge workload `imagePullSecrets` for registry auth (`IMAGE_TRUST_USE_IMAGE_PULL_SECRETS`).
+* Remote public key URIs for `cosign-key` (`IMAGE_TRUST_PUBLIC_KEY_REFS`, KMS URLs).
+* `IMAGE_TRUST_MODE_POLICY=all` requires every configured mode to verify.
+* Retry transient verification failures (`IMAGE_TRUST_VERIFY_RETRIES`, default 3).
+* README limitations section and trust-policy AND semantics documented.
+
 ## 0.2.0
 
 * Composite verification: multiple `IMAGE_TRUST_MODES` with OR policy (`IMAGE_TRUST_MODE_POLICY=any`, default).

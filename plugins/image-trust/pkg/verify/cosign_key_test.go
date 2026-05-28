@@ -16,7 +16,7 @@ func TestCosignKeyVerifierVerifySuccess(t *testing.T) {
 	verifier, err := NewCosignKeyVerifier(
 		runner,
 		registry.Credentials{Username: "user", Password: "pass"},
-		[]config.TrustedPublicKey{{Path: "/etc/image-trust/keys/release.pub", ID: "release.pub"}},
+		[]config.TrustedPublicKey{{Ref: "/etc/image-trust/keys/release.pub", ID: "release.pub"}},
 		true,
 	)
 	require.NoError(t, err)
@@ -46,8 +46,8 @@ func TestCosignKeyVerifierTriesNextKeyAfterUnsigned(t *testing.T) {
 		runner,
 		registry.Credentials{},
 		[]config.TrustedPublicKey{
-			{Path: "/keys/old.pub", ID: "old.pub"},
-			{Path: "/keys/current.pub", ID: "current.pub"},
+			{Ref: "/keys/old.pub", ID: "old.pub"},
+			{Ref: "/keys/current.pub", ID: "current.pub"},
 		},
 		false,
 	)
@@ -70,7 +70,7 @@ func TestCosignKeyVerifierVerifyUnsigned(t *testing.T) {
 	verifier, err := NewCosignKeyVerifier(
 		runner,
 		registry.Credentials{},
-		[]config.TrustedPublicKey{{Path: "/keys/release.pub", ID: "release.pub"}},
+		[]config.TrustedPublicKey{{Ref: "/keys/release.pub", ID: "release.pub"}},
 		false,
 	)
 	require.NoError(t, err)

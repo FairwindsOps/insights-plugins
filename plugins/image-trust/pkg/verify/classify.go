@@ -37,3 +37,26 @@ func classifyCosignFailure(message string) (models.Status, string) {
 		return models.StatusVerificationError, reason
 	}
 }
+
+// IsTransientFailure reports whether a verification_error reason is worth retrying.
+func IsTransientFailure(reason string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(reason))
+	switch {
+	case strings.Contains(normalized, "timeout"),
+		strings.Contains(normalized, "temporary failure"),
+		strings.Contains(normalized, "connection refused"),
+		strings.Contains(normalized, "connection reset"),
+		strings.Contains(normalized, "i/o timeout"),
+		strings.Contains(normalized, "tls handshake timeout"),
+		strings.Contains(normalized, "no such host"),
+		strings.Contains(normalized, "429"),
+		strings.Contains(normalized, "502"),
+		strings.Contains(normalized, "503"),
+		strings.Contains(normalized, "504"),
+		strings.Contains(normalized, "too many requests"),
+		strings.Contains(normalized, "service unavailable"):
+		return true
+	default:
+		return false
+	}
+}

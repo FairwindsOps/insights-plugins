@@ -5,4 +5,5 @@ const (
 	ModeCosignKey     = "cosign-key"
 
 	ModePolicyAny = "any"
+	ModePolicyAll = "all"
 )

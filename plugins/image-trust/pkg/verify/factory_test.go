@@ -13,7 +13,7 @@ func TestNewVerifierCompositeForBothModes(t *testing.T) {
 		VerificationModes: []string{config.ModeCosignKeyless, config.ModeCosignKey},
 		ModePolicy:        config.ModePolicyAny,
 		TrustedIssuers:    []string{"https://token.actions.githubusercontent.com"},
-		TrustedPublicKeys: []config.TrustedPublicKey{{Path: "/keys/release.pub", ID: "release.pub"}},
+		TrustedPublicKeys: []config.TrustedPublicKey{{Ref: "/keys/release.pub", ID: "release.pub"}},
 	}
 
 	verifier, err := NewVerifier(cfg, &fakeRunner{}, registry.Credentials{})
