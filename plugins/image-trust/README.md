@@ -10,7 +10,7 @@ The plugin discovers images used by workloads (including init and ephemeral cont
 - **summary**: counts by status
 - **ActionItems**: findings for non-compliant images (allowlisted images are listed but do not generate findings)
 
-Output file: `/output/image-trust.json` (via `report.sh` and the uploader).
+Output file: `/output/image-trust.json` (written atomically from `/output/image-trust-temp.json`, same pattern as `kyverno` and `rbac-reporter`; the `insights-uploader` sidecar watches this path).
 
 ## Configuration
 
@@ -72,3 +72,7 @@ docker run --network host \
 The published image runs as UID `1200`; mount kubeconfig read-only and set trust policy env vars as required.
 
 Cosign is included in the published Dockerfile with release checksum verification.
+
+## Local smoke test (kind)
+
+See [smoke/README.md](smoke/README.md) for a kind-based smoke test using public images only (`setup.sh`, `run.sh`, `assert.sh`). Report is written to `output/image-trust.json`.

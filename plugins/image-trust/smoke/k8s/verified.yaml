@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verified
+  namespace: image-trust-smoke
+  labels:
+    app: verified
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verified
+  template:
+    metadata:
+      labels:
+        app: verified
+    spec:
+      containers:
+        - name: app
+          image: cgr.dev/chainguard/busybox:latest
+          command: ["sleep", "infinity"]

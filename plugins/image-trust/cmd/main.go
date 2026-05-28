@@ -41,11 +41,11 @@ func main() {
 	}
 
 	finalReport := report.Build(results)
-	if err := output.WriteReport(output.FinalReportPath, finalReport); err != nil {
+	if err := output.WriteFinalReport(finalReport); err != nil {
 		logrus.Fatalf("writing report: %v", err)
 	}
 
-	logrus.Infof("wrote image trust report to %s", output.FinalReportPath)
+	logrus.Infof("wrote image trust report to %s", output.OutputFile)
 }
 
 func verifyImages(ctx context.Context, cfg *config.Config, registryCreds registry.Credentials, images []models.DiscoveredImage, now time.Time) ([]models.ImageTrustResult, error) {
