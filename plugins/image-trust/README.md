@@ -81,7 +81,13 @@ volumes:
       secretName: image-trust-registry
 ```
 
-One credential pair applies to all `cosign verify` calls in a run. Multiple private registries with different passwords may require a follow-up (`docker config.json` mount).
+One `REGISTRY_USER` / `REGISTRY_PASSWORD` pair applies to all `cosign verify` calls in a run.
+
+For **multiple private registries** with different credentials, mount a Docker `config.json` and set:
+
+- `REGISTRY_DOCKER_CONFIG_PATH` — path to `config.json` or its directory (sets `DOCKER_CONFIG` for cosign)
+
+When `REGISTRY_DOCKER_CONFIG_PATH` is set, username/password env vars are not passed to cosign; auth comes from `auths` in the config file.
 
 Private registry verification requires outbound access to the registry and, for keyless signatures, to Sigstore services (Fulcio, Rekor, and TUF roots).
 

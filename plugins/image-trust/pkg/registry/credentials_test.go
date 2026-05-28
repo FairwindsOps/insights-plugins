@@ -23,6 +23,22 @@ func TestLoadFromEnvironment(t *testing.T) {
 	require.Equal(t, []string{"SSL_CERT_DIR=/certs"}, creds.ExtraEnv())
 }
 
+func TestLoadFromEnvironmentDockerConfig(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"auths":{}}`), 0o600))
+
+	t.Setenv("REGISTRY_USER", "")
+	t.Setenv("REGISTRY_PASSWORD", "")
+	t.Setenv("REGISTRY_DOCKER_CONFIG_PATH", dir)
+
+	creds, err := LoadFromEnvironment()
+	require.NoError(t, err)
+	require.Equal(t, dir, creds.DockerConfigDir)
+	require.True(t, creds.Configured())
+	require.Empty(t, creds.CosignArgs())
+	require.Equal(t, []string{"DOCKER_CONFIG=" + dir}, creds.ExtraEnv())
+}
+
 func TestLoadFromEnvironmentPasswordFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "password")
