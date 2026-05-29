@@ -35,6 +35,23 @@ func TestLoadTrustedPublicKeysFromRemoteRef(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, keys, 1)
 	require.Equal(t, "1", keys[0].ID)
+	require.Equal(t, "gcpkms://projects/p/locations/l/keyRings/r/cryptoKeys/k/versions/1", keys[0].ReportKeyRef())
+}
+
+func TestTrustedPublicKeyReportKeyRefHTTPS(t *testing.T) {
+	key := TrustedPublicKey{
+		Ref: "https://artifacts.fairwinds.com/cosign-p256.pub",
+		ID:  "cosign-p256.pub",
+	}
+	require.Equal(t, key.Ref, key.ReportKeyRef())
+}
+
+func TestTrustedPublicKeyReportKeyRefLocalFile(t *testing.T) {
+	key := TrustedPublicKey{
+		Ref: "/etc/image-trust/keys/release.pub",
+		ID:  "release.pub",
+	}
+	require.Equal(t, "release.pub", key.ReportKeyRef())
 }
 
 func TestLoadTrustedPublicKeysRequiresInput(t *testing.T) {

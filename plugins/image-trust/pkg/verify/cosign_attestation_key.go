@@ -119,7 +119,7 @@ func (v *CosignAttestationKeyVerifier) verifyWithKey(
 		}, nil
 	}
 
-	signer := models.SignerDetails{KeyRef: key.ID}
+	signer := models.SignerDetails{KeyRef: key.ReportKeyRef()}
 	if len(signers) > 0 {
 		signer.Issuer = signers[0].Issuer
 		signer.Subject = signers[0].Subject
@@ -128,7 +128,7 @@ func (v *CosignAttestationKeyVerifier) verifyWithKey(
 	return models.VerificationObservation{
 		Mode:            v.Name(),
 		Status:          models.StatusVerified,
-		Reason:          fmt.Sprintf("cosign attestation verification succeeded with trusted public key %s for type %s", key.ID, attestationType),
+		Reason:          fmt.Sprintf("cosign attestation verification succeeded with trusted public key %s for type %s", key.ReportKeyRef(), attestationType),
 		AttestationType: attestationType,
 		Signer:          signer,
 		Signers:         signers,

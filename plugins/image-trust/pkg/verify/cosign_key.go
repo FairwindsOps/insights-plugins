@@ -105,7 +105,7 @@ func (v *CosignKeyVerifier) verifyWithKey(ctx context.Context, ref string, key c
 		}, nil
 	}
 
-	signer := models.SignerDetails{KeyRef: key.ID}
+	signer := models.SignerDetails{KeyRef: key.ReportKeyRef()}
 	if len(signers) > 0 {
 		signer.Issuer = signers[0].Issuer
 		signer.Subject = signers[0].Subject
@@ -114,7 +114,7 @@ func (v *CosignKeyVerifier) verifyWithKey(ctx context.Context, ref string, key c
 	return models.VerificationObservation{
 		Mode:    v.Name(),
 		Status:  models.StatusVerified,
-		Reason:  fmt.Sprintf("cosign verification succeeded with trusted public key %s", key.ID),
+		Reason:  fmt.Sprintf("cosign verification succeeded with trusted public key %s", key.ReportKeyRef()),
 		Signer:  signer,
 		Signers: signers,
 	}, nil

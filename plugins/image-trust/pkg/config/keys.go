@@ -19,6 +19,15 @@ type TrustedPublicKey struct {
 	ID  string
 }
 
+// ReportKeyRef returns the key identifier to include in verification reports.
+// Remote refs (URLs, KMS URIs) are reported verbatim; local files use the basename.
+func (k TrustedPublicKey) ReportKeyRef() string {
+	if isRemoteKeyRef(k.Ref) {
+		return k.Ref
+	}
+	return k.ID
+}
+
 func isRemoteKeyRef(ref string) bool {
 	return strings.Contains(ref, "://")
 }
