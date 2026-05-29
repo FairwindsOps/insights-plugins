@@ -21,8 +21,8 @@ fi
 : "${IMAGE_TRUST_TRUSTED_SUBJECTS:?IMAGE_TRUST_TRUSTED_SUBJECTS is required}"
 
 if ! kubectl get namespace image-trust-smoke >/dev/null 2>&1 || \
-   [[ "$(kubectl -n image-trust-smoke get deploy --no-headers 2>/dev/null | wc -l | tr -d ' ')" == "0" ]]; then
-  echo "Smoke workloads not found; running setup.sh..."
+   [[ "$(kubectl -n image-trust-smoke get deploy --no-headers 2>/dev/null | wc -l | tr -d ' ')" -lt 4 ]]; then
+  echo "Smoke workloads not found or incomplete; running setup.sh..."
   "${ROOT}/setup.sh"
 fi
 

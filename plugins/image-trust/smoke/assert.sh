@@ -69,14 +69,37 @@ expect_deployment() {
   fi
 }
 
+image_status() {
+  local pattern="$1"
+  jq -r --arg p "${pattern}" '
+    [.images[] | select(.name | contains($p))]
+    | if length == 0 then "missing" else .[0].status end
+  ' "${REPORT}"
+}
+
+expect_image() {
+  local pattern="$1"
+  local want_status="$2"
+  local actual
+  actual="$(image_status "${pattern}")"
+  if [[ "${actual}" != "${want_status}" ]]; then
+    echo "FAIL: image matching ${pattern} expected status ${want_status}, got ${actual}" >&2
+    fail=1
+  else
+    echo "OK: image matching ${pattern} status = ${actual}"
+  fi
+}
+
 check verified "${verified}" 2
 check signedUntrusted "${untrusted}" 1
 check unsigned "${unsigned}" 1
 
-expect_deployment verified verified
+expect_image 'cgr.dev/chainguard/busybox' verified
+expect_image 'us-docker.pkg.dev/fairwinds-ops/oss/polaris' verified
+expect_image 'gcr.io/projectsigstore/cosign' signed_untrusted
+expect_image 'docker.io/library/busybox' unsigned
+
 expect_deployment keyed-verified verified
-expect_deployment untrusted signed_untrusted
-expect_deployment unsigned unsigned
 
 keyed_verified_by="$(deployment_field keyed-verified verifiedBy)"
 if [[ "${keyed_verified_by}" != "cosign-key" ]]; then
