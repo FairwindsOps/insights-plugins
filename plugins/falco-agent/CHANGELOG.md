@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.21
+* Bump library github.com/falcosecurity/falcosidekick to v0.0.0-20260522154552-0eb49b80a12b
+* Bump indirect libraries dependencies
+
 ## 0.4.20
 * Bump library github.com/falcosecurity/falcosidekick to v0.0.0-20260507144355-3ec9b2d710f4
 * Bump library k8s.io/api to v0.36.1
