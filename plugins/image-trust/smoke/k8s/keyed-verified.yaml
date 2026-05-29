@@ -18,6 +18,7 @@ spec:
       containers:
         - name: app
           image: us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0
+          command: ["polaris"]
           args:
             - dashboard
             - --port=8080
