@@ -7,11 +7,13 @@ K8S="${ROOT}/k8s"
 echo "Applying smoke fixtures to kind..."
 kubectl apply -f "${K8S}/namespace.yaml"
 kubectl apply -f "${K8S}/verified.yaml"
+kubectl apply -f "${K8S}/keyed-verified.yaml"
 kubectl apply -f "${K8S}/untrusted.yaml"
 kubectl apply -f "${K8S}/unsigned.yaml"
 
 echo "Waiting for deployments..."
 kubectl -n image-trust-smoke rollout status deployment/verified --timeout=180s
+kubectl -n image-trust-smoke rollout status deployment/keyed-verified --timeout=180s
 kubectl -n image-trust-smoke rollout status deployment/untrusted --timeout=180s
 kubectl -n image-trust-smoke rollout status deployment/unsigned --timeout=180s
 

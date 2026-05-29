@@ -75,6 +75,88 @@ env:
 
 For AWS EKS use `AWS_ROLE_ARN` + `AWS_WEB_IDENTITY_TOKEN_FILE`; for Azure use federated token env vars documented in the plugin README.
 
+## Trusted public keys (`cosign-key`)
+
+Clients supply **public** keys only (never private `cosign.key`). The plugin does not ship vendor keys in the container image — you configure trust at deploy time.
+
+| Approach | Plugin env | Typical source |
+|----------|------------|----------------|
+| Directory of keys | `IMAGE_TRUST_PUBLIC_KEY_DIR` | Secret or ConfigMap mounted read-only; all `*.pub` / `*.pem` files in the directory are trusted |
+| Explicit paths | `IMAGE_TRUST_PUBLIC_KEY_PATHS` | Comma-separated paths inside mounted volumes |
+| Remote refs | `IMAGE_TRUST_PUBLIC_KEY_REFS` | KMS URIs or HTTPS URLs (cosign fetches at verify time; pod needs outbound access) |
+
+### Mount keys from a Kubernetes Secret (recommended)
+
+Create a Secret with one or more public key files (filenames become `signer.keyRef` in reports):
+
+```bash
+kubectl -n insights create secret generic image-trust-public-keys \
+  --from-file=fairwinds-cosign-p256.pub=https://artifacts.fairwinds.com/cosign-p256.pub \
+  --from-file=vendor-release.pub=./vendor-release.pub
+```
+
+Wire the Insights Agent chart (or your fork) so the image-trust container mounts the Secret and points at the directory:
+
+```yaml
+image-trust:
+  enabled: true
+  modes:
+    - cosign-keyless
+    - cosign-key
+  ignoreTlog: true   # typical for static keys not in Rekor
+  publicKeyDir: /etc/image-trust/keys
+  extraVolumeMounts:
+    - name: image-trust-public-keys
+      mountPath: /etc/image-trust/keys
+      readOnly: true
+  extraVolumes:
+    - name: image-trust-public-keys
+      secret:
+        secretName: image-trust-public-keys
+```
+
+Equivalent raw env on the plugin pod:
+
+```yaml
+env:
+  - name: IMAGE_TRUST_MODES
+    value: "cosign-keyless,cosign-key"
+  - name: IMAGE_TRUST_PUBLIC_KEY_DIR
+    value: /etc/image-trust/keys
+  - name: IMAGE_TRUST_IGNORE_TLOG
+    value: "true"
+volumeMounts:
+  - name: image-trust-public-keys
+    mountPath: /etc/image-trust/keys
+    readOnly: true
+volumes:
+  - name: image-trust-public-keys
+    secret:
+      secretName: image-trust-public-keys
+```
+
+Use `IMAGE_TRUST_PUBLIC_KEY_PATHS` when you mount keys outside a single directory or need an explicit allowlist:
+
+```yaml
+env:
+  - name: IMAGE_TRUST_PUBLIC_KEY_PATHS
+    value: /etc/image-trust/keys/fairwinds-cosign-p256.pub,/etc/image-trust/keys/vendor-release.pub
+```
+
+### Fairwinds OSS images
+
+Fairwinds OSS release images (for example `us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0+`) are signed with [cosign-p256.pub](https://artifacts.fairwinds.com/cosign-p256.pub). Mount that key from a Secret as above, or reference it directly (no volume) if the pod can reach the URL:
+
+```yaml
+env:
+  - name: IMAGE_TRUST_PUBLIC_KEY_REFS
+    value: "https://artifacts.fairwinds.com/cosign-p256.pub"
+```
+
+See [Polaris releases](https://github.com/FairwindsOps/polaris/releases) for the upstream verify commands.
+
+`plugins/image-trust/testdata/keys/` and the smoke test mount are **local fixtures only** — not used in production images.
+
 ## Attestations
 
 Enable with `attestations.enabled` and predicate types. Matching attestation modes are appended for each signature mode (`cosign-keyless` → `cosign-attestation-keyless`, `cosign-key` → `cosign-attestation-key`):

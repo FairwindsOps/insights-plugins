@@ -1,21 +1,24 @@
 # image-trust local smoke test (kind)
 
-Exercises discovery and cosign verification against a kind cluster using **public images only** (no signing).
+Exercises discovery and cosign verification against a kind cluster using **public images only** (no signing in this test).
 
-| Deployment | Image | Expected status |
-|------------|-------|-----------------|
-| `verified` | `cgr.dev/chainguard/busybox:latest` | `verified` |
-| `untrusted` | `gcr.io/projectsigstore/cosign:v2.4.0` (Sigstore signer, not Chainguard release workflow) | `signed_untrusted` |
-| `unsigned` | `docker.io/library/busybox:1.36` | `unsigned` |
+| Deployment | Image | Mode | Expected status |
+|------------|-------|------|-----------------|
+| `verified` | `cgr.dev/chainguard/busybox:latest` | keyless | `verified` |
+| `keyed-verified` | `us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0` | keyed (`cosign-key`) | `verified` |
+| `untrusted` | `gcr.io/projectsigstore/cosign:v2.4.0` (Sigstore signer, not Chainguard release workflow) | keyless | `signed_untrusted` |
+| `unsigned` | `docker.io/library/busybox:1.36` | — | `unsigned` |
 
-Trust policy trusts the Chainguard Images release workflow. The Sigstore cosign image is signed by a different identity.
+**Keyless** trust policy targets the Chainguard Images release workflow.
+
+**Keyed** verification trusts the Fairwinds OSS release public key [`cosign-p256.pub`](https://artifacts.fairwinds.com/cosign-p256.pub), committed as `testdata/keys/fairwinds-cosign-p256.pub`. Polaris v10.2.0+ documents image verification in [FairwindsOps/polaris releases](https://github.com/FairwindsOps/polaris/releases).
 
 ## Prerequisites
 
 - kind cluster with working `kubectl` context
 - Docker
 - `go`, `jq`
-- Outbound network (registries + Sigstore)
+- Outbound network (registries + Sigstore for keyless)
 
 ## Quick start
 
@@ -38,16 +41,11 @@ Copy `env.example` to `env` and adjust if needed:
 cp env.example env
 ```
 
-### Optional: keyed verification
+Default `env.example` enables both modes:
 
-To exercise `cosign-key` locally, add a vendor public key under `../testdata/keys/` and set in `env`:
-
-```bash
-export IMAGE_TRUST_MODES='cosign-keyless,cosign-key'
-export IMAGE_TRUST_PUBLIC_KEY_DIR='../testdata/keys'
-```
-
-Mount the directory in `run.sh` if you extend the docker invocation with `-v "$(pwd)/../testdata/keys:/etc/image-trust/keys:ro"` and `IMAGE_TRUST_PUBLIC_KEY_DIR=/etc/image-trust/keys`.
+- `IMAGE_TRUST_MODES=cosign-keyless,cosign-key`
+- `IMAGE_TRUST_PUBLIC_KEY_DIR=../testdata/keys` (mounted read-only in `run.sh`)
+- `IMAGE_TRUST_IGNORE_TLOG=true` (Fairwinds keyed images are not in Rekor)
 
 ### Optional: private registry
 
@@ -63,4 +61,5 @@ kubectl delete namespace image-trust-smoke
 
 - **`unknown` status** — Pod `imageID` may lack a digest; wait for rollout and re-run `./run.sh`.
 - **`signed_untrusted` for Chainguard image** — Trust env does not match; compare with [Chainguard verify docs](https://edu.chainguard.dev/chainguard/chainguard-images/how-to-use/verifying-chainguard-images-and-metadata-signatures-with-cosign/).
+- **`unsigned` for polaris** — Ensure polaris is v10.2.0+ and `fairwinds-cosign-p256.pub` is in `testdata/keys/`. Confirm manually: `cosign verify us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0 --key testdata/keys/fairwinds-cosign-p256.pub`.
 - **`verification_error`** — Registry or Sigstore unreachable from the plugin container; try `--network host` (already set in `run.sh`).

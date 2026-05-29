@@ -43,19 +43,42 @@ if [[ ! -f "${KUBECONFIG_PATH}" ]]; then
   exit 1
 fi
 
+KEY_DIR="${IMAGE_TRUST_PUBLIC_KEY_DIR:-${PLUGIN_ROOT}/testdata/keys}"
+if [[ "${IMAGE_TRUST_MODES:-}" == *cosign-key* ]]; then
+  KEY_DIR="$(cd "${KEY_DIR}" && pwd)"
+  if ! compgen -G "${KEY_DIR}/*.pub" >/dev/null && ! compgen -G "${KEY_DIR}/*.pem" >/dev/null; then
+    echo "cosign-key mode requires a .pub or .pem file in ${KEY_DIR}" >&2
+    exit 1
+  fi
+  export IMAGE_TRUST_PUBLIC_KEY_DIR=/etc/image-trust/keys
+fi
+
+DOCKER_ENV=(
+  -e KUBECONFIG=/kube/config
+  -e IMAGE_TRUST_MODES
+  -e IMAGE_TRUST_TRUSTED_ISSUERS
+  -e IMAGE_TRUST_TRUSTED_SUBJECTS
+  -e IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS
+  -e IMAGE_TRUST_PUBLIC_KEY_DIR
+  -e IMAGE_TRUST_IGNORE_TLOG
+  -e NAMESPACE_ALLOWLIST
+  -e MAX_CONCURRENT_SCANS
+  -e IMAGE_VERIFY_TIMEOUT_SECONDS
+)
+DOCKER_MOUNTS=(
+  -v "${KUBECONFIG_PATH}:/kube/config:ro"
+  -v "${OUTPUT_DIR}:/output"
+)
+if [[ "${IMAGE_TRUST_MODES:-}" == *cosign-key* ]]; then
+  DOCKER_MOUNTS+=(-v "${KEY_DIR}:/etc/image-trust/keys:ro")
+fi
+
 echo "Running plugin (report -> ${OUTPUT_DIR}/image-trust.json)..."
 docker run --rm --network host \
   --user 0:0 \
   --entrypoint /usr/local/bin/image-trust \
-  -e KUBECONFIG=/kube/config \
-  -e IMAGE_TRUST_TRUSTED_ISSUERS \
-  -e IMAGE_TRUST_TRUSTED_SUBJECTS \
-  -e IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS \
-  -e NAMESPACE_ALLOWLIST \
-  -e MAX_CONCURRENT_SCANS \
-  -e IMAGE_VERIFY_TIMEOUT_SECONDS \
-  -v "${KUBECONFIG_PATH}:/kube/config:ro" \
-  -v "${OUTPUT_DIR}:/output" \
+  "${DOCKER_ENV[@]}" \
+  "${DOCKER_MOUNTS[@]}" \
   "${IMAGE_NAME}"
 
 echo "Done. Report: ${OUTPUT_DIR}/image-trust.json"

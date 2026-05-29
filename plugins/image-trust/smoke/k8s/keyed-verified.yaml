@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keyed-verified
+  namespace: image-trust-smoke
+  labels:
+    app: keyed-verified
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keyed-verified
+  template:
+    metadata:
+      labels:
+        app: keyed-verified
+    spec:
+      containers:
+        - name: app
+          image: us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0
+          args:
+            - dashboard
+            - --port=8080
+            - --listening-address=0.0.0.0

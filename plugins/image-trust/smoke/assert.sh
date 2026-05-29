@@ -35,9 +35,69 @@ check() {
   fi
 }
 
-check verified "${verified}" 1
+deployment_status() {
+  local deploy="$1"
+  jq -r --arg d "${deploy}" '
+    [.images[]
+      | select(any(.owners[]?; .namespace == "image-trust-smoke" and .name == $d))
+    ]
+    | if length == 0 then "missing" else .[0].status end
+  ' "${REPORT}"
+}
+
+deployment_field() {
+  local deploy="$1"
+  local field="$2"
+  jq -r --arg d "${deploy}" --arg f "${field}" '
+    [.images[]
+      | select(any(.owners[]?; .namespace == "image-trust-smoke" and .name == $d))
+    ]
+    | if length == 0 then "" else .[0][$f] // "" end
+  ' "${REPORT}"
+}
+
+expect_deployment() {
+  local deploy="$1"
+  local want_status="$2"
+  local actual
+  actual="$(deployment_status "${deploy}")"
+  if [[ "${actual}" != "${want_status}" ]]; then
+    echo "FAIL: deployment ${deploy} expected status ${want_status}, got ${actual}" >&2
+    fail=1
+  else
+    echo "OK: deployment ${deploy} status = ${actual}"
+  fi
+}
+
+check verified "${verified}" 2
 check signedUntrusted "${untrusted}" 1
 check unsigned "${unsigned}" 1
+
+expect_deployment verified verified
+expect_deployment keyed-verified verified
+expect_deployment untrusted signed_untrusted
+expect_deployment unsigned unsigned
+
+keyed_verified_by="$(deployment_field keyed-verified verifiedBy)"
+if [[ "${keyed_verified_by}" != "cosign-key" ]]; then
+  echo "FAIL: deployment keyed-verified expected verifiedBy cosign-key, got ${keyed_verified_by:-<empty>}" >&2
+  fail=1
+else
+  echo "OK: deployment keyed-verified verifiedBy = cosign-key"
+fi
+
+keyed_key_ref="$(jq -r '
+  [.images[]
+    | select(any(.owners[]?; .namespace == "image-trust-smoke" and .name == "keyed-verified"))
+  ]
+  | if length == 0 then "" else .[0].signer.keyRef // "" end
+' "${REPORT}")"
+if [[ "${keyed_key_ref}" != *fairwinds-cosign-p256.pub* ]]; then
+  echo "FAIL: deployment keyed-verified expected signer.keyRef to include fairwinds-cosign-p256.pub, got ${keyed_key_ref:-<empty>}" >&2
+  fail=1
+else
+  echo "OK: deployment keyed-verified signer.keyRef = ${keyed_key_ref}"
+fi
 
 if [[ "${errors}" -ne 0 ]]; then
   echo "FAIL: expected summary.verificationError = 0, got ${errors}" >&2
@@ -52,8 +112,8 @@ echo "Per-image status:"
 jq -r '.images[] | "\(.status)\t\(.name)"' "${REPORT}" | sort
 
 smoke_images="$(jq '[.images[] | select(any(.owners[]?; .namespace == "image-trust-smoke"))] | length' "${REPORT}")"
-if [[ "${smoke_images}" -lt 3 ]]; then
-  echo "FAIL: expected at least 3 images from namespace image-trust-smoke, found ${smoke_images}" >&2
+if [[ "${smoke_images}" -lt 4 ]]; then
+  echo "FAIL: expected at least 4 images from namespace image-trust-smoke, found ${smoke_images}" >&2
   echo "Run ./setup.sh then ./run.sh (run.sh auto-runs setup when the namespace is empty)." >&2
   fail=1
 fi

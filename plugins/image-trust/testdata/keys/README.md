@@ -1,6 +1,21 @@
 # Test public keys
 
-Place Cosign **public** keys (`.pub` / PEM) here for local experiments with `cosign-key` mode:
+**Local / smoke test fixtures only.** Production and chart deployments mount trusted public keys via Kubernetes Secrets, ConfigMaps, or remote refs configured by the client — see [CHART_INTEGRATION.md](../../CHART_INTEGRATION.md#trusted-public-keys-cosign-key).
+
+## Fairwinds OSS release signing (smoke test)
+
+[`fairwinds-cosign-p256.pub`](fairwinds-cosign-p256.pub) is the P-256 release signing key published at [artifacts.fairwinds.com/cosign-p256.pub](https://artifacts.fairwinds.com/cosign-p256.pub). Fairwinds OSS container images (for example [Polaris v10.2.0+](https://github.com/FairwindsOps/polaris/releases)) are signed with this key.
+
+```bash
+cosign verify us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0 \
+  --key testdata/keys/fairwinds-cosign-p256.pub
+```
+
+The smoke test mounts this directory and sets `IMAGE_TRUST_PUBLIC_KEY_DIR` / `IMAGE_TRUST_IGNORE_TLOG=true`.
+
+## Other keys
+
+Add vendor `.pub` / PEM files here for additional keyed verification:
 
 ```bash
 export IMAGE_TRUST_MODES=cosign-keyless,cosign-key
