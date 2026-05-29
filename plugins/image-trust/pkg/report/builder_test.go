@@ -21,7 +21,7 @@ func TestBuild(t *testing.T) {
 		},
 	}
 
-	report := Build(results)
+	report := Build(results, models.ReportPolicy{})
 
 	require.Len(t, report.Images, 1)
 	require.Equal(t, models.StatusUnsigned, report.Images[0].Status)
@@ -37,6 +37,25 @@ func TestBuild(t *testing.T) {
 	data, err := json.Marshal(report)
 	require.NoError(t, err)
 	require.Contains(t, string(data), `"ActionItems"`)
+	require.Contains(t, string(data), `"policy"`)
+}
+
+func TestBuildIncludesAllowlistPolicy(t *testing.T) {
+	policy := PolicyFromAllowlists(
+		[]string{"docker.io/library/busybox:*"},
+		[]string{"ghcr.io"},
+		[]string{"https://token.actions.githubusercontent.com|https://github.com/example/**"},
+	)
+	report := Build(nil, policy)
+
+	require.Equal(t, []string{"docker.io/library/busybox:*"}, report.Policy.Allowlists.Images)
+	require.Equal(t, []string{"ghcr.io"}, report.Policy.Allowlists.Registries)
+	require.Equal(t, []string{"https://token.actions.githubusercontent.com|https://github.com/example/**"}, report.Policy.Allowlists.Signers)
+
+	data, err := json.Marshal(report)
+	require.NoError(t, err)
+	require.Contains(t, string(data), `"allowlists"`)
+	require.Contains(t, string(data), `"docker.io/library/busybox:*"`)
 }
 
 func TestBuildVerifiedProducesNoActionItems(t *testing.T) {
@@ -49,7 +68,7 @@ func TestBuildVerifiedProducesNoActionItems(t *testing.T) {
 				{Name: "api", Kind: "Deployment", Namespace: "prod"},
 			},
 		},
-	})
+	}, models.ReportPolicy{})
 
 	require.Equal(t, 1, report.Summary.Verified)
 	require.Empty(t, report.Findings)
@@ -66,7 +85,7 @@ func TestBuildSignedUntrustedProducesActionItem(t *testing.T) {
 				{Name: "api", Kind: "Deployment", Namespace: "prod"},
 			},
 		},
-	})
+	}, models.ReportPolicy{})
 
 	require.Len(t, report.Findings, 1)
 	require.Equal(t, "Container image is signed by an untrusted signer", report.Findings[0].Title)
@@ -88,7 +107,7 @@ func TestBuildSuppressesAllowlistedFindings(t *testing.T) {
 		},
 	}
 
-	report := Build(results)
+	report := Build(results, models.ReportPolicy{})
 
 	require.Len(t, report.Images, 1)
 	require.Equal(t, 1, report.Summary.VerificationError)

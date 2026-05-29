@@ -83,6 +83,30 @@
       },
       "required": ["totalImages"]
     },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "allowlists": {
+          "type": "object",
+          "properties": {
+            "images": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "registries": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "signers": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["images", "registries", "signers"]
+        }
+      },
+      "required": ["allowlists"]
+    },
     "ActionItems": {
       "type": "array",
       "items": {
@@ -110,5 +134,5 @@
       }
     }
   },
-  "required": ["images", "summary"]
+  "required": ["images", "summary", "policy"]
 }

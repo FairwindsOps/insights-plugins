@@ -51,7 +51,11 @@ func main() {
 		logrus.Fatalf("verifying images: %v", err)
 	}
 
-	finalReport := report.Build(results)
+	finalReport := report.Build(results, report.PolicyFromAllowlists(
+		cfg.ImageAllowlist,
+		cfg.RegistryAllowlist,
+		cfg.SignerAllowlist,
+	))
 	if err := output.WriteFinalReport(finalReport); err != nil {
 		logrus.Fatalf("writing report: %v", err)
 	}

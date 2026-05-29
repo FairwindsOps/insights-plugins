@@ -10,8 +10,8 @@ const (
 	nonCompliantSeverity      = 0.7
 )
 
-// Build creates an image-trust report from final image results.
-func Build(results []models.ImageTrustResult) models.Report {
+// Build creates an image-trust report from final image results and configured policy.
+func Build(results []models.ImageTrustResult, policy models.ReportPolicy) models.Report {
 	findings := make([]models.Finding, 0)
 	summary := models.Summary{TotalImages: len(results)}
 
@@ -28,7 +28,28 @@ func Build(results []models.ImageTrustResult) models.Report {
 	return models.Report{
 		Images:   results,
 		Summary:  summary,
+		Policy:   policy,
 		Findings: findings,
+	}
+}
+
+// PolicyFromAllowlists builds the policy snapshot from configured exemption patterns.
+func PolicyFromAllowlists(images, registries, signers []string) models.ReportPolicy {
+	if images == nil {
+		images = []string{}
+	}
+	if registries == nil {
+		registries = []string{}
+	}
+	if signers == nil {
+		signers = []string{}
+	}
+	return models.ReportPolicy{
+		Allowlists: models.AllowlistPolicy{
+			Images:     append([]string(nil), images...),
+			Registries: append([]string(nil), registries...),
+			Signers:    append([]string(nil), signers...),
+		},
 	}
 }
 

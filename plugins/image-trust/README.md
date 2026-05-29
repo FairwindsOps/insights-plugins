@@ -10,6 +10,7 @@ For background on how Cosign stores signatures in the registry, keyed vs keyless
 
 - **images**: trust result for every discovered image (verified, unsigned, signed_untrusted, verification_error, unknown)
 - **summary**: counts by status
+- **policy**: snapshot of exemption allowlists configured at scan time (`IMAGE_TRUST_IMAGE_ALLOWLIST`, `IMAGE_TRUST_REGISTRY_ALLOWLIST`, `IMAGE_TRUST_SIGNER_ALLOWLIST`); pair with per-image `allowlisted` / `allowlistReason` to see which images matched
 - **ActionItems**: findings for non-compliant images (allowlisted images are listed but do not generate findings)
 
 Output file: `/output/image-trust.json` (written atomically from `/output/image-trust-temp.json`, same pattern as `kyverno` and `rbac-reporter`; the `insights-uploader` sidecar watches this path).

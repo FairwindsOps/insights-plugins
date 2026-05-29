@@ -50,6 +50,18 @@ type Finding struct {
 	Category          string  `json:"Category"`
 }
 
+// AllowlistPolicy captures exemption patterns configured at scan time.
+type AllowlistPolicy struct {
+	Images     []string `json:"images"`
+	Registries []string `json:"registries"`
+	Signers    []string `json:"signers"`
+}
+
+// ReportPolicy captures trust-related configuration applied when the report was generated.
+type ReportPolicy struct {
+	Allowlists AllowlistPolicy `json:"allowlists"`
+}
+
 // Summary aggregates image-trust statuses across all images in the report.
 type Summary struct {
 	TotalImages       int `json:"totalImages"`
@@ -65,5 +77,6 @@ type Summary struct {
 type Report struct {
 	Images   []ImageTrustResult `json:"images"`
 	Summary  Summary            `json:"summary"`
+	Policy   ReportPolicy       `json:"policy"`
 	Findings []Finding          `json:"ActionItems,omitempty"`
 }
