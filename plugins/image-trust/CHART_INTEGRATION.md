@@ -12,8 +12,6 @@ When `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true`, the plugin lists `kubernetes.io/
 image-trust:
   enabled: true
   useImagePullSecrets: true
-  rbac:
-    create: true
 ```
 
 | Resource | Verbs | Used for |
@@ -27,10 +25,11 @@ image-trust:
 
 | Chart value / env | Plugin env |
 |-------------------|------------|
-| `privateImages.registryAuths` | `IMAGE_TRUST_REGISTRY_AUTHS` or `IMAGE_TRUST_REGISTRY_AUTHS_FILE` (JSON array) |
+| `privateImages.registryAuthsSecret` | `IMAGE_TRUST_REGISTRY_AUTHS_FILE` (JSON array in mounted secret) |
 | `privateImages.dockerConfigSecret` | `REGISTRY_DOCKER_CONFIG_PATH` |
-| `privateImages.username` / `passwordSecret` | `REGISTRY_USER` + `REGISTRY_PASSWORD_FILE` |
-| `privateImages.certDirs` | `IMAGE_TRUST_REGISTRY_CERT_DIRS` or `IMAGE_TRUST_REGISTRY_CERT_DIRS_FILE` |
+| `privateImages.registryUser` / `registryPasswordSecret` | `REGISTRY_USER` + `REGISTRY_PASSWORD_FILE` |
+| `registryCertDirs` | `IMAGE_TRUST_REGISTRY_CERT_DIRS` |
+| `registryMirrors` | `IMAGE_TRUST_REGISTRY_MIRRORS` |
 
 Prefer **password files** and **docker config** so credentials are not passed on the cosign command line.
 
@@ -56,20 +55,16 @@ env:
 
 ## Private Sigstore
 
-Mount trust roots and set env on the image-trust container (or use `IMAGE_TRUST_SIGSTORE_ENV_FILE`):
+Use `sigstore.env` for individual env vars, `sigstore.envFileSecret` for a mounted `KEY=VALUE` file, and `sigstore.trustBundleSecret` for `SIGSTORE_ROOT_FILE`:
 
 ```yaml
-env:
-  - name: SIGSTORE_ROOT_FILE
-    value: /etc/sigstore/root.pem
-  - name: FULCIO_URL
-    value: https://fulcio.internal.example
-  - name: REKOR_URL
-    value: https://rekor.internal.example
-volumeMounts:
-  - name: sigstore-trust
-    mountPath: /etc/sigstore
-    readOnly: true
+image-trust:
+  sigstore:
+    env:
+      FULCIO_URL: https://fulcio.internal.example
+      REKOR_URL: https://rekor.internal.example
+    trustBundleSecret: sigstore-trust
+    trustBundleSecretKey: root.pem
 ```
 
 ## KMS public keys (`cosign-key`)
@@ -116,16 +111,11 @@ image-trust:
     - cosign-keyless
     - cosign-key
   ignoreTlog: true   # typical for static keys not in Rekor
-  publicKeyDir: /etc/image-trust/keys
-  extraVolumeMounts:
-    - name: image-trust-public-keys
-      mountPath: /etc/image-trust/keys
-      readOnly: true
-  extraVolumes:
-    - name: image-trust-public-keys
-      secret:
-        secretName: image-trust-public-keys
+  publicKeys:
+    secretName: image-trust-public-keys
 ```
+
+The chart mounts `publicKeys.secretName` at `/etc/image-trust/keys` and sets `IMAGE_TRUST_PUBLIC_KEY_DIR`.
 
 Equivalent raw env on the plugin pod:
 
@@ -175,6 +165,7 @@ Enable with `attestations.enabled` and predicate types. Matching attestation mod
 
 ```yaml
 image-trust:
+  enabled: true
   modes:
     - cosign-keyless
   attestations:
@@ -202,4 +193,8 @@ image-trust:
     - cosign-keyless
     - cosign-key
   modePolicy: any
+  publicKeys:
+    refs:
+      - https://artifacts.fairwinds.com/cosign-p256.pub
+  ignoreTlog: true
 ```
