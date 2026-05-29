@@ -31,9 +31,8 @@ var wellKnownEnvVars = []string{
 
 // ExtraEnv returns Sigstore-related variables to forward to cosign subprocesses.
 // Set IMAGE_TRUST_SIGSTORE_ENV_FILE for additional KEY=VALUE lines (one per line).
-func ExtraEnv() ([]string, error) {
+func ExtraEnv() (env []string, err error) {
 	seen := map[string]struct{}{}
-	var env []string
 
 	appendVar := func(key, value string) {
 		if value == "" {
@@ -58,7 +57,11 @@ func ExtraEnv() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
