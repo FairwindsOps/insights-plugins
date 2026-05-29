@@ -89,6 +89,35 @@ func TestCosignVerifierVerifySignedUntrusted(t *testing.T) {
 	require.Equal(t, "https://github.com/other/repo/.github/workflows/build.yml@refs/heads/main", observation.Signer.Subject)
 }
 
+func TestCosignVerifierVerifySuccessPicksTrustedSignerAmongCandidates(t *testing.T) {
+	runner := &fakeRunner{stdout: `[
+		{"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/other/repo/.github/workflows/build.yml@refs/heads/main"}},
+		{"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main"}}
+	]`}
+	verifier, err := NewCosignVerifier(
+		runner,
+		registry.Credentials{},
+		[]string{"https://token.actions.githubusercontent.com"},
+		nil,
+		[]string{"https://github.com/example/.+"},
+	)
+	require.NoError(t, err)
+
+	observation, err := verifier.Verify(context.Background(), models.DiscoveredImage{
+		Name: "ghcr.io/example/api:1.0.0",
+		ID:   "ghcr.io/example/api@sha256:abc",
+	})
+	require.NoError(t, err)
+	require.Equal(t, models.StatusVerified, observation.Status)
+	require.Equal(t, "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main", observation.Signer.Subject)
+
+	require.Len(t, observation.Signers, 2)
+	require.Equal(t, "https://github.com/other/repo/.github/workflows/build.yml@refs/heads/main", observation.Signers[0].Subject)
+	require.Equal(t, "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main", observation.Signers[1].Subject)
+	require.NotEqual(t, observation.Signer.Subject, observation.Signers[0].Subject)
+	require.Equal(t, observation.Signer, observation.Signers[1])
+}
+
 func TestCosignVerifierVerifyUnknownWhenDigestMissing(t *testing.T) {
 	runner := &fakeRunner{}
 	verifier, err := NewCosignVerifier(runner, registry.Credentials{}, []string{"https://token.actions.githubusercontent.com"}, nil, nil)
@@ -119,4 +148,15 @@ func TestExtractCosignSigners(t *testing.T) {
 	require.Equal(t, "https://token.actions.githubusercontent.com", signers[0].Issuer)
 	require.Equal(t, "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main", signers[0].Subject)
 	require.Equal(t, "abc123", signers[0].KeyRef)
+}
+
+func TestExtractCosignSignersMultipleRecords(t *testing.T) {
+	signers, err := extractCosignSigners(`[
+		{"optional":{"Issuer":"https://accounts.google.com","Subject":"other@example.com"}},
+		{"optional":{"Issuer":"https://token.actions.githubusercontent.com","Subject":"https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main"}}
+	]`)
+	require.NoError(t, err)
+	require.Len(t, signers, 2)
+	require.Equal(t, "other@example.com", signers[0].Subject)
+	require.Contains(t, signers[1].Subject, "github.com/example")
 }

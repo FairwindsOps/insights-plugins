@@ -44,3 +44,55 @@ func TestVerifyImagesPreservesOrder(t *testing.T) {
 	require.Equal(t, "third", results[2].Name)
 	require.Equal(t, int32(3), atomic.LoadInt32(&verifier.calls))
 }
+
+type multiSignerVerifier struct{}
+
+func (multiSignerVerifier) Name() models.VerificationMode {
+	return models.VerificationModeCosignKeyless
+}
+
+func (multiSignerVerifier) Verify(context.Context, models.DiscoveredImage) (models.VerificationObservation, error) {
+	trusted := models.SignerDetails{
+		Issuer:  "https://token.actions.githubusercontent.com",
+		Subject: "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main",
+	}
+	untrusted := models.SignerDetails{
+		Issuer:  "https://accounts.google.com",
+		Subject: "keyless@projectsigstore.iam.gserviceaccount.com",
+	}
+	return models.VerificationObservation{
+		Mode:   models.VerificationModeCosignKeyless,
+		Status: models.StatusVerified,
+		Signer: trusted,
+		Signers: []models.SignerDetails{
+			untrusted,
+			trusted,
+		},
+	}, nil
+}
+
+func TestVerifyImagesMapsSignerAndCandidateSignersSeparately(t *testing.T) {
+	images := []models.DiscoveredImage{
+		{Name: "ghcr.io/example/api:1.0.0", ID: "ghcr.io/example/api@sha256:abc"},
+	}
+
+	results, err := VerifyImages(
+		context.Background(),
+		images,
+		registry.Credentials{},
+		multiSignerVerifier{},
+		1,
+		time.Minute,
+		time.Second,
+		false,
+		1,
+	)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	require.Equal(t, "https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main", results[0].Signer.Subject)
+	require.Len(t, results[0].CandidateSigners, 2)
+	require.Equal(t, "keyless@projectsigstore.iam.gserviceaccount.com", results[0].CandidateSigners[0].Subject)
+	require.Equal(t, results[0].Signer.Subject, results[0].CandidateSigners[1].Subject)
+	require.NotEqual(t, results[0].Signer.Subject, results[0].CandidateSigners[0].Subject)
+}
