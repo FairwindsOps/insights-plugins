@@ -11,7 +11,7 @@ cosign verify us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0 \
   --key testdata/keys/fairwinds-cosign-p256.pub
 ```
 
-The smoke test mounts this directory and sets `IMAGE_TRUST_PUBLIC_KEY_DIR` / `IMAGE_TRUST_IGNORE_TLOG=true`.
+The smoke test defaults to `IMAGE_TRUST_PUBLIC_KEY_REFS=https://artifacts.fairwinds.com/cosign-p256.pub`. This file is kept for local `cosign verify --key` and optional `IMAGE_TRUST_PUBLIC_KEY_DIR` overrides.
 
 ## Other keys
 

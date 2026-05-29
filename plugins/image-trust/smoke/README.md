@@ -11,7 +11,7 @@ Exercises discovery and cosign verification against a kind cluster using **publi
 
 **Keyless** trust policy targets the Chainguard Images release workflow.
 
-**Keyed** verification trusts the Fairwinds OSS release public key [`cosign-p256.pub`](https://artifacts.fairwinds.com/cosign-p256.pub), committed as `testdata/keys/fairwinds-cosign-p256.pub`. Polaris v10.2.0+ documents image verification in [FairwindsOps/polaris releases](https://github.com/FairwindsOps/polaris/releases).
+**Keyed** verification fetches the Fairwinds OSS release public key from [`https://artifacts.fairwinds.com/cosign-p256.pub`](https://artifacts.fairwinds.com/cosign-p256.pub) via `IMAGE_TRUST_PUBLIC_KEY_REFS` (full URL appears in `signer.keyRef`). Polaris v10.2.0+ documents image verification in [FairwindsOps/polaris releases](https://github.com/FairwindsOps/polaris/releases).
 
 ## Prerequisites
 
@@ -44,7 +44,7 @@ cp env.example env
 Default `env.example` enables both modes:
 
 - `IMAGE_TRUST_MODES=cosign-keyless,cosign-key`
-- `IMAGE_TRUST_PUBLIC_KEY_DIR=../testdata/keys` (mounted read-only in `run.sh`)
+- `IMAGE_TRUST_PUBLIC_KEY_REFS=https://artifacts.fairwinds.com/cosign-p256.pub`
 - `IMAGE_TRUST_IGNORE_TLOG=true` (Fairwinds keyed images are not in Rekor)
 
 ### Optional: private registry
@@ -61,5 +61,5 @@ kubectl delete namespace image-trust-smoke
 
 - **`unknown` status** — Pod `imageID` may lack a digest; wait for rollout and re-run `./run.sh`.
 - **`signed_untrusted` for Chainguard image** — Trust env does not match; compare with [Chainguard verify docs](https://edu.chainguard.dev/chainguard/chainguard-images/how-to-use/verifying-chainguard-images-and-metadata-signatures-with-cosign/).
-- **`unsigned` for polaris** — Ensure polaris is v10.2.0+ and `fairwinds-cosign-p256.pub` is in `testdata/keys/`. Confirm manually: `cosign verify us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0 --key testdata/keys/fairwinds-cosign-p256.pub`.
+- **`unsigned` for polaris** — Ensure polaris is v10.2.0+ and the plugin can reach `https://artifacts.fairwinds.com/cosign-p256.pub`. Confirm manually: `cosign verify us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0 --key https://artifacts.fairwinds.com/cosign-p256.pub --insecure-ignore-tlog`.
 - **`verification_error`** — Registry or Sigstore unreachable from the plugin container; try `--network host` (already set in `run.sh`).

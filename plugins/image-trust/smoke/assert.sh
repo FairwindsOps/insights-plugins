@@ -115,8 +115,8 @@ keyed_key_ref="$(jq -r '
   ]
   | if length == 0 then "" else .[0].signer.keyRef // "" end
 ' "${REPORT}")"
-if [[ "${keyed_key_ref}" != *fairwinds-cosign-p256.pub* ]]; then
-  echo "FAIL: deployment keyed-verified expected signer.keyRef to include fairwinds-cosign-p256.pub, got ${keyed_key_ref:-<empty>}" >&2
+if [[ "${keyed_key_ref}" != 'https://artifacts.fairwinds.com/cosign-p256.pub' ]]; then
+  echo "FAIL: deployment keyed-verified expected signer.keyRef https://artifacts.fairwinds.com/cosign-p256.pub, got ${keyed_key_ref:-<empty>}" >&2
   fail=1
 else
   echo "OK: deployment keyed-verified signer.keyRef = ${keyed_key_ref}"
