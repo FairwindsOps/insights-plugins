@@ -2,9 +2,11 @@
 
 The Fairwinds Insights Agent chart lives in [FairwindsOps/charts](https://github.com/FairwindsOps/charts). Wire these values when enabling image-trust.
 
-## RBAC (required for pull secrets)
+## RBAC
 
-When `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true`, bind the ClusterRole in [deploy/rbac.yaml](deploy/rbac.yaml) to the image-trust ServiceAccount. Example chart fragment:
+When `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true`, the plugin lists `kubernetes.io/dockerconfigjson` secrets in scoped namespaces. Minimum rules for that feature: `secrets` and `namespaces` **list/get** cluster-wide (or scoped via Role + namespace list if you fork the chart).
+
+[deploy/rbac.yaml](deploy/rbac.yaml) also grants `pods` and `jobs` **list/get** for orphan-pod and active-job discovery paths. Bind that ClusterRole to the image-trust ServiceAccount (or merge equivalent rules into your chart RBAC). Example chart fragment:
 
 ```yaml
 image-trust:
@@ -14,16 +16,21 @@ image-trust:
     create: true
 ```
 
-Minimum rules: `secrets` and `namespaces` **list/get** cluster-wide (or scoped via Role + namespace list if you fork the chart).
+| Resource | Verbs | Used for |
+|----------|-------|----------|
+| `secrets` | get, list | Pull-secret merge (`IMAGE_TRUST_USE_IMAGE_PULL_SECRETS`) |
+| `namespaces` | get, list | Namespace scoping for pull secrets and discovery |
+| `pods` | get, list | Orphan running pods not owned by a top-level controller |
+| `jobs` | get, list | Active Jobs and their pods |
 
 ## Registry credentials
 
 | Chart value / env | Plugin env |
 |-------------------|------------|
-| `privateImages.registryAuths` | `IMAGE_TRUST_REGISTRY_AUTHS` (JSON array) |
+| `privateImages.registryAuths` | `IMAGE_TRUST_REGISTRY_AUTHS` or `IMAGE_TRUST_REGISTRY_AUTHS_FILE` (JSON array) |
 | `privateImages.dockerConfigSecret` | `REGISTRY_DOCKER_CONFIG_PATH` |
 | `privateImages.username` / `passwordSecret` | `REGISTRY_USER` + `REGISTRY_PASSWORD_FILE` |
-| `privateImages.certDirs` | `IMAGE_TRUST_REGISTRY_CERT_DIRS` |
+| `privateImages.certDirs` | `IMAGE_TRUST_REGISTRY_CERT_DIRS` or `IMAGE_TRUST_REGISTRY_CERT_DIRS_FILE` |
 
 Prefer **password files** and **docker config** so credentials are not passed on the cosign command line.
 
@@ -38,6 +45,8 @@ Prefer **password files** and **docker config** so credentials are not passed on
 ```
 
 ## Registry mirrors
+
+Set `IMAGE_TRUST_REGISTRY_MIRRORS` or `IMAGE_TRUST_REGISTRY_MIRRORS_FILE` (comma-separated `mirror=upstream` pairs):
 
 ```yaml
 env:
@@ -90,10 +99,13 @@ Clients supply **public** keys only (never private `cosign.key`). The plugin doe
 Create a Secret with one or more public key files (filenames become `signer.keyRef` in reports):
 
 ```bash
+curl -fsSL -o fairwinds-cosign-p256.pub https://artifacts.fairwinds.com/cosign-p256.pub
 kubectl -n insights create secret generic image-trust-public-keys \
-  --from-file=fairwinds-cosign-p256.pub=https://artifacts.fairwinds.com/cosign-p256.pub \
+  --from-file=fairwinds-cosign-p256.pub \
   --from-file=vendor-release.pub=./vendor-release.pub
 ```
+
+Alternatively, skip the Secret and set `IMAGE_TRUST_PUBLIC_KEY_REFS=https://artifacts.fairwinds.com/cosign-p256.pub` if the pod can reach the URL.
 
 Wire the Insights Agent chart (or your fork) so the image-trust container mounts the Secret and points at the directory:
 
@@ -174,7 +186,7 @@ image-trust:
 
 Setting `attestations.types` alone (without `enabled`) also activates attestations. The plugin sets `attestationType` on verified images. Multiple predicate types are OR (any one match passes).
 
-Use `modePolicy: all` when an image must pass **both** signature and attestation verification.
+`modePolicy: all` requires **every** mode in `IMAGE_TRUST_MODES` to return `verified` — including `cosign-keyless` and `cosign-key` when both are enabled, and attestation modes when those are appended. With the recommended defaults (`modes: [cosign-keyless, cosign-key], modePolicy: any`), an image passes if **either** signature mode verifies. Use `all` only when you intentionally require multiple modes (for example keyless signature **and** a matching attestation).
 
 ## Recommended defaults
 

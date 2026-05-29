@@ -84,7 +84,7 @@ func TestAllowlistBySignerPattern(t *testing.T) {
 }
 
 func TestRegistryFromReference(t *testing.T) {
-	require.Equal(t, "docker.io", registryFromReference("library/busybox:latest"))
+	require.Equal(t, "docker.io", registryFromReference("library/busybox:1.36"))
 	require.Equal(t, "ghcr.io", registryFromReference("ghcr.io/example/api:1.0.0"))
 	require.Equal(t, "us-docker.pkg.dev", registryFromReference("us-docker.pkg.dev/org/proj/image@sha256:abc"))
 }

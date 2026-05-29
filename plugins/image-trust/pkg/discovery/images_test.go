@@ -54,13 +54,13 @@ func TestContainerStatusesFromPod(t *testing.T) {
 	pod := corev1.Pod{
 		Status: corev1.PodStatus{
 			ContainerStatuses: []corev1.ContainerStatus{
-				{Name: "app", Image: "app:latest"},
+				{Name: "app", Image: "app:1.0.0"},
 			},
 			InitContainerStatuses: []corev1.ContainerStatus{
-				{Name: "init", Image: "init:latest"},
+				{Name: "init", Image: "init:1.0.0"},
 			},
 			EphemeralContainerStatuses: []corev1.ContainerStatus{
-				{Name: "debug", Image: "debug:latest"},
+				{Name: "debug", Image: "debug:1.0.0"},
 			},
 		},
 	}

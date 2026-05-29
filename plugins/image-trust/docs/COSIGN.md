@@ -189,8 +189,8 @@ Attestation keyed mode tries each **(key, attestation type)** pair from `IMAGE_T
 
 With several modes in `IMAGE_TRUST_MODES`:
 
-- `IMAGE_TRUST_MODE_POLICY=any` (default): first mode that returns `verified` wins.
-- `IMAGE_TRUST_MODE_POLICY=all`: every mode must return `verified`; the first failure is returned. On success, metadata is merged across verifiers (for example `attestationType` from attestation modes and signer from signature modes).
+- `IMAGE_TRUST_MODE_POLICY=any` (default): first mode in `IMAGE_TRUST_MODES` list order that returns `verified` wins.
+- `IMAGE_TRUST_MODE_POLICY=all`: every configured mode must return `verified`; the first failure is returned. On success, metadata is merged across verifiers (for example `attestationType` from attestation modes and signer from signature modes). With both `cosign-keyless` and `cosign-key` enabled, `all` requires both to pass.
 
 When merging failed attempts, priority is: `signed_untrusted` → `unsigned` → `verification_error` → `unknown` (`pkg/verify/composite.go`).
 

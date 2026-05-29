@@ -1,5 +1,7 @@
-# RBAC for IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true
+# RBAC for image-trust (pull secrets + supplemental discovery).
 # Apply in the Fairwinds Insights Agent namespace and bind to the image-trust ServiceAccount.
+# secrets/namespaces: IMAGE_TRUST_USE_IMAGE_PULL_SECRETS
+# pods/jobs: orphan running pods and active Jobs not covered by top-level controller discovery
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

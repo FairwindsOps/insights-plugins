@@ -23,7 +23,7 @@ Namespace scope:
 
 Verification:
 
-- `IMAGE_TRUST_MODES` — comma-separated modes (default `cosign-keyless`). Supported: `cosign-keyless`, `cosign-key`, `cosign-attestation-keyless`, `cosign-attestation-key`. When multiple modes are set, an image is **verified** if **any** mode succeeds (`IMAGE_TRUST_MODE_POLICY=any`, default), or **all** modes succeed when `IMAGE_TRUST_MODE_POLICY=all`.
+- `IMAGE_TRUST_MODES` — comma-separated modes (default `cosign-keyless`). Supported: `cosign-keyless`, `cosign-key`, `cosign-attestation-keyless`, `cosign-attestation-key`. When multiple modes are set, an image is **verified** if **any** mode succeeds (`IMAGE_TRUST_MODE_POLICY=any`, default), or **all** modes succeed when `IMAGE_TRUST_MODE_POLICY=all`. With `any`, the first successful mode in list order wins.
 - `IMAGE_TRUST_ATTESTATION_TYPES` — predicate types for attestation modes (e.g. `slsaprovenance1`, `spdxjson`, `cyclonedx`; comma-separated). When multiple types are configured, **any one** matching type satisfies attestation verification (OR).
 - `IMAGE_TRUST_ATTESTATIONS_ENABLED` — when `true` (or types are set), matching attestation modes are appended for each enabled signature mode (`cosign-keyless` → `cosign-attestation-keyless`, `cosign-key` → `cosign-attestation-key`)
 - `IMAGE_TRUST_MODE_POLICY` — `any` (default) or `all`
@@ -87,9 +87,9 @@ Credentials are **always** written to a docker `config.json` for cosign (passwor
 ]
 ```
 
-**Registry mirrors** (signatures on upstream): `IMAGE_TRUST_REGISTRY_MIRRORS=mirror.corp=registry.io`
+**Registry mirrors** (signatures on upstream): `IMAGE_TRUST_REGISTRY_MIRRORS` or `IMAGE_TRUST_REGISTRY_MIRRORS_FILE` (comma-separated `mirror=upstream` pairs)
 
-**Per-registry TLS**: `IMAGE_TRUST_REGISTRY_CERT_DIRS=registry.example=/certs/a,ghcr.io=/certs/b`
+**Per-registry TLS**: `IMAGE_TRUST_REGISTRY_CERT_DIRS` or `IMAGE_TRUST_REGISTRY_CERT_DIRS_FILE` (comma-separated `host=/path` pairs)
 
 **Pull secrets**: `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true` — requires RBAC; see [deploy/rbac.yaml](deploy/rbac.yaml) and [CHART_INTEGRATION.md](CHART_INTEGRATION.md).
 
@@ -163,7 +163,7 @@ docker run --network host \
 
 The published image runs as UID `1200`; mount kubeconfig read-only and set trust policy env vars as required.
 
-Cosign is included in the published Dockerfile with release checksum verification.
+Cosign **v3.0.6** is included in the published Dockerfile with release checksum verification.
 
 ## Local smoke test (kind)
 
