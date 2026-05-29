@@ -3,7 +3,6 @@ package registry
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
@@ -45,13 +44,6 @@ func ResolveDigest(ctx context.Context, creds Credentials, image models.Discover
 		return "", fmt.Errorf("image %q is not a tag reference", image.Name)
 	}
 	ref = RemapMirror(ref, creds.Mirrors)
-
-	if creds.CertDir != "" {
-		_ = os.Setenv("SSL_CERT_DIR", creds.CertDir)
-	}
-	if creds.DockerConfigDir != "" {
-		_ = os.Setenv("DOCKER_CONFIG", creds.DockerConfigDir)
-	}
 
 	parsed, err := name.ParseReference(ref, name.WeakValidation)
 	if err != nil {

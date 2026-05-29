@@ -5,6 +5,8 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNamespaceIsBlocked(t *testing.T) {
@@ -48,6 +50,22 @@ func TestNamespaceIsBlocked(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHasControllerOwner(t *testing.T) {
+	trueVal := true
+	falseVal := false
+
+	require.True(t, hasControllerOwner([]metav1.OwnerReference{
+		{Controller: &trueVal},
+	}))
+	require.False(t, hasControllerOwner([]metav1.OwnerReference{
+		{Controller: &falseVal},
+	}))
+	require.False(t, hasControllerOwner([]metav1.OwnerReference{
+		{Kind: "ReplicaSet", Name: "api-123"},
+	}))
+	require.False(t, hasControllerOwner(nil))
 }
 
 func TestContainerStatusesFromPod(t *testing.T) {

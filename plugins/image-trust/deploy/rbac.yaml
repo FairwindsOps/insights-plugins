@@ -12,7 +12,10 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
-    verbs: ["get", "list"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get"]
   - apiGroups: [""]
     resources: ["namespaces"]
     verbs: ["get", "list"]

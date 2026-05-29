@@ -5,7 +5,6 @@ import (
 )
 
 // Keychain returns an authenticator chain for registry API calls (digest resolution).
-// When DockerConfigDir is set, DOCKER_CONFIG must already point at that directory (see applyDockerConfigEnv).
 func (c Credentials) Keychain() (authn.Keychain, error) {
 	var chains []authn.Keychain
 
@@ -17,7 +16,7 @@ func (c Credentials) Keychain() (authn.Keychain, error) {
 	}
 
 	if c.DockerConfigDir != "" {
-		chains = append(chains, authn.DefaultKeychain)
+		chains = append(chains, dockerConfigDirKeychain{dir: c.DockerConfigDir})
 	}
 
 	if len(chains) == 0 {

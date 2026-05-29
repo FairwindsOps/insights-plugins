@@ -62,7 +62,14 @@ func VerifyImages(
 	results := make([]models.ImageTrustResult, len(images))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrent)
-	errCh := make(chan error, 1)
+	var once sync.Once
+	var firstErr error
+
+	recordErr := func(err error) {
+		once.Do(func() {
+			firstErr = err
+		})
+	}
 
 	for i, image := range images {
 		wg.Add(1)
@@ -71,13 +78,9 @@ func VerifyImages(
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			select {
-			case <-ctx.Done():
-				if len(errCh) == 0 {
-					errCh <- ctx.Err()
-				}
+			if err := ctx.Err(); err != nil {
+				recordErr(err)
 				return
-			default:
 			}
 
 			imageCtx, cancel := context.WithTimeout(ctx, perImageTimeout)
@@ -87,14 +90,11 @@ func VerifyImages(
 			var err error
 			if preflight, stop := Preflight(img, creds); stop {
 				observation = preflight
-				observation.Mode = verifier.Name()
 			} else {
 				observation, err = VerifyWithRetries(imageCtx, verifier, img, verifyRetries, retryBackoff, retryJitter)
 			}
 			if err != nil {
-				if len(errCh) == 0 {
-					errCh <- fmt.Errorf("verifying image %s: %w", img.Name, err)
-				}
+				recordErr(fmt.Errorf("verifying image %s: %w", img.Name, err))
 				return
 			}
 			verifiedBy := string(observation.VerifiedBy)
@@ -107,7 +107,7 @@ func VerifyImages(
 				PullRef:            img.PullRef,
 				Status:             observation.Status,
 				Reason:             observation.Reason,
-				VerificationMode:   string(observation.Mode),
+				VerificationMode:   verificationModeFromObservation(observation),
 				VerifiedBy:         verifiedBy,
 				AttestationType:    observation.AttestationType,
 				Allowlisted:        false,
@@ -120,14 +120,23 @@ func VerifyImages(
 	}
 
 	wg.Wait()
-	close(errCh)
 
-	if err := <-errCh; err != nil {
-		return nil, err
+	if firstErr != nil {
+		return nil, firstErr
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
 	return results, nil
+}
+
+func verificationModeFromObservation(observation models.VerificationObservation) string {
+	if observation.VerifiedBy != "" {
+		return string(observation.VerifiedBy)
+	}
+	if observation.Mode != "" {
+		return string(observation.Mode)
+	}
+	return ""
 }

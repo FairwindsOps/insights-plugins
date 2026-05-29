@@ -92,7 +92,7 @@ Credentials are **always** written to a docker `config.json` for cosign (passwor
 
 **Per-registry TLS**: `IMAGE_TRUST_REGISTRY_CERT_DIRS` or `IMAGE_TRUST_REGISTRY_CERT_DIRS_FILE` (comma-separated `host=/path` pairs)
 
-**Pull secrets**: `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true` — requires RBAC; see [deploy/rbac.yaml](deploy/rbac.yaml) and [CHART_INTEGRATION.md](CHART_INTEGRATION.md).
+**Pull secrets**: `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true` merges `imagePullSecrets` from discovered pod specs and their service accounts (not every dockerconfigjson secret in the namespace). Requires RBAC; see [deploy/rbac.yaml](deploy/rbac.yaml) and [CHART_INTEGRATION.md](CHART_INTEGRATION.md).
 
 Example:
 
@@ -131,7 +131,7 @@ Use `IMAGE_TRUST_PUBLIC_KEY_REFS` with cloud credentials on the pod (`GOOGLE_APP
 |-------|----------|
 | Signature types | OCI Cosign signatures in the registry only (not Notary v1, GPG, or offline bundles) |
 | Attestations | In-toto attestations via `cosign verify-attestation` when enabled; report includes `attestationType`; predicate **type** only (not SLSA level, builder, or SBOM content); multiple configured types are OR (any match passes); no custom Rego/CUE policy files |
-| Discovery | Top-level controllers, orphan running pods, and active Jobs (not completed/historical workloads) |
+| Discovery | Top-level controllers, orphan running pods (no controller owner), and active Jobs (not completed/historical workloads) |
 | Digest | Failed registry lookup → `verification_error` with `digestResolveError`; tag-only without lookup → `unknown` |
 | Registry mirrors | Configure `IMAGE_TRUST_REGISTRY_MIRRORS` when signatures live on upstream hosts |
 

@@ -36,7 +36,7 @@ func TestPrepareMaterializesDockerConfigWithoutCLIPassword(t *testing.T) {
 	creds, err := LoadFromEnvironment()
 	require.NoError(t, err)
 
-	prepared, err := Prepare(t.Context(), cfg, nil)
+	prepared, err := Prepare(t.Context(), cfg, nil, nil)
 	require.NoError(t, err)
 	defer prepared.Cleanup()
 

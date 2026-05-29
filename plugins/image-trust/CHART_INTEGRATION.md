@@ -4,7 +4,7 @@ The Fairwinds Insights Agent chart lives in [FairwindsOps/charts](https://github
 
 ## RBAC
 
-When `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true`, the plugin lists `kubernetes.io/dockerconfigjson` secrets in scoped namespaces. Minimum rules for that feature: `secrets` and `namespaces` **list/get** cluster-wide (or scoped via Role + namespace list if you fork the chart).
+When `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true`, the plugin loads only `kubernetes.io/dockerconfigjson` secrets referenced by discovered pod `imagePullSecrets` and the pod service account's `imagePullSecrets`. Minimum rules for that feature: `secrets` **get**, `serviceaccounts` **get**, and `namespaces` **get/list** (namespace list is used for discovery scoping).
 
 [deploy/rbac.yaml](deploy/rbac.yaml) also grants `pods` and `jobs` **list/get** for orphan-pod and active-job discovery paths. Bind that ClusterRole to the image-trust ServiceAccount (or merge equivalent rules into your chart RBAC). Example chart fragment:
 
@@ -16,8 +16,9 @@ image-trust:
 
 | Resource | Verbs | Used for |
 |----------|-------|----------|
-| `secrets` | get, list | Pull-secret merge (`IMAGE_TRUST_USE_IMAGE_PULL_SECRETS`) |
-| `namespaces` | get, list | Namespace scoping for pull secrets and discovery |
+| `secrets` | get | Referenced imagePullSecrets (`IMAGE_TRUST_USE_IMAGE_PULL_SECRETS`) |
+| `serviceaccounts` | get | Service account imagePullSecrets for discovered pods |
+| `namespaces` | get, list | Namespace scoping for discovery |
 | `pods` | get, list | Orphan running pods not owned by a top-level controller |
 | `jobs` | get, list | Active Jobs and their pods |
 

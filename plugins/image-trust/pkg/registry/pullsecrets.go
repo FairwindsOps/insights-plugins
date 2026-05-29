@@ -3,7 +3,6 @@ package registry
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,85 +11,40 @@ import (
 
 const dockerConfigSecretType = "kubernetes.io/dockerconfigjson"
 
-// CollectPullSecretConfigs reads dockerconfigjson secrets from namespaces in scope.
+// CollectPullSecretConfigs reads dockerconfigjson secrets referenced by discovered workloads.
 func CollectPullSecretConfigs(
 	ctx context.Context,
 	client kubernetes.Interface,
-	namespaceAllowlist, namespaceBlocklist []string,
+	refs []PullSecretRef,
 ) ([]dockerConfig, error) {
-	namespaces, err := listNamespaces(ctx, client, namespaceAllowlist, namespaceBlocklist)
-	if err != nil {
-		return nil, err
-	}
+	configs := make([]dockerConfig, 0, len(refs))
+	seen := make(map[PullSecretRef]struct{}, len(refs))
 
-	configs := make([]dockerConfig, 0)
-	for _, namespace := range namespaces {
-		secrets, err := client.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("listing secrets in namespace %s: %w", namespace, err)
-		}
-		for _, secret := range secrets.Items {
-			if secret.Type != dockerConfigSecretType {
-				continue
-			}
-			raw, ok := secret.Data[corev1.DockerConfigJsonKey]
-			if !ok || len(raw) == 0 {
-				continue
-			}
-			cfg, err := parseDockerConfig(raw)
-			if err != nil {
-				return nil, fmt.Errorf("secret %s/%s: %w", namespace, secret.Name, err)
-			}
-			configs = append(configs, cfg)
-		}
-	}
-	return configs, nil
-}
-
-func listNamespaces(
-	ctx context.Context,
-	client kubernetes.Interface,
-	namespaceAllowlist, namespaceBlocklist []string,
-) ([]string, error) {
-	if len(namespaceAllowlist) > 0 {
-		namespaces := make([]string, 0, len(namespaceAllowlist))
-		for _, ns := range namespaceAllowlist {
-			if namespaceIsBlocked(strings.ToLower(ns), namespaceBlocklist, namespaceAllowlist) {
-				continue
-			}
-			namespaces = append(namespaces, ns)
-		}
-		return namespaces, nil
-	}
-
-	list, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("listing namespaces: %w", err)
-	}
-	namespaces := make([]string, 0, len(list.Items))
-	for _, item := range list.Items {
-		ns := strings.ToLower(item.Name)
-		if namespaceIsBlocked(ns, namespaceBlocklist, namespaceAllowlist) {
+	for _, ref := range refs {
+		if ref.Namespace == "" || ref.Name == "" {
 			continue
 		}
-		namespaces = append(namespaces, item.Name)
-	}
-	return namespaces, nil
-}
+		if _, ok := seen[ref]; ok {
+			continue
+		}
+		seen[ref] = struct{}{}
 
-func namespaceIsBlocked(namespace string, namespaceBlocklist, namespaceAllowlist []string) bool {
-	for _, blocked := range namespaceBlocklist {
-		if namespace == strings.ToLower(blocked) {
-			return true
+		secret, err := client.CoreV1().Secrets(ref.Namespace).Get(ctx, ref.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("getting pull secret %s/%s: %w", ref.Namespace, ref.Name, err)
 		}
-	}
-	if len(namespaceAllowlist) == 0 {
-		return false
-	}
-	for _, allowed := range namespaceAllowlist {
-		if namespace == strings.ToLower(allowed) {
-			return false
+		if secret.Type != dockerConfigSecretType {
+			continue
 		}
+		raw, ok := secret.Data[corev1.DockerConfigJsonKey]
+		if !ok || len(raw) == 0 {
+			continue
+		}
+		cfg, err := parseDockerConfig(raw)
+		if err != nil {
+			return nil, fmt.Errorf("secret %s/%s: %w", ref.Namespace, ref.Name, err)
+		}
+		configs = append(configs, cfg)
 	}
-	return true
+	return configs, nil
 }

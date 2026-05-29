@@ -33,6 +33,16 @@ func TestClassifyCosignFailure(t *testing.T) {
 			message: "Error: context deadline exceeded",
 			want:    models.StatusVerificationError,
 		},
+		{
+			name:    "does not treat unrelated issuer text as untrusted",
+			message: "Error: failed to reach issuer metadata endpoint: connection reset",
+			want:    models.StatusVerificationError,
+		},
+		{
+			name:    "does not treat unrelated 403 substring as auth failure",
+			message: "Error: policy rule 4031 rejected the request",
+			want:    models.StatusVerificationError,
+		},
 	}
 
 	for _, tt := range tests {

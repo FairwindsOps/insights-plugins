@@ -2,6 +2,7 @@ package verify
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -95,4 +96,74 @@ func TestVerifyImagesMapsSignerAndCandidateSignersSeparately(t *testing.T) {
 	require.Equal(t, "keyless@projectsigstore.iam.gserviceaccount.com", results[0].CandidateSigners[0].Subject)
 	require.Equal(t, results[0].Signer.Subject, results[0].CandidateSigners[1].Subject)
 	require.NotEqual(t, results[0].Signer.Subject, results[0].CandidateSigners[0].Subject)
+}
+
+type failingVerifier struct {
+	name models.VerificationMode
+}
+
+func (f failingVerifier) Name() models.VerificationMode {
+	return f.name
+}
+
+func (f failingVerifier) Verify(context.Context, models.DiscoveredImage) (models.VerificationObservation, error) {
+	return models.VerificationObservation{}, fmt.Errorf("boom")
+}
+
+func TestVerifyImagesRecordsFirstConcurrentError(t *testing.T) {
+	images := []models.DiscoveredImage{
+		{Name: "first", ID: "first@sha256:1"},
+		{Name: "second", ID: "second@sha256:2"},
+	}
+
+	_, err := VerifyImages(
+		context.Background(),
+		images,
+		registry.Credentials{},
+		failingVerifier{name: models.VerificationModeCosignKeyless},
+		2,
+		time.Minute,
+		time.Second,
+		false,
+		1,
+	)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "verifying image")
+}
+
+func TestVerificationModeFromObservationPrefersVerifiedBy(t *testing.T) {
+	composite, err := NewCompositeVerifier("any",
+		stubVerifier{
+			name: models.VerificationModeCosignKeyless,
+			result: models.VerificationObservation{
+				Mode:   models.VerificationModeCosignKeyless,
+				Status: models.StatusUnsigned,
+			},
+		},
+		stubVerifier{
+			name: models.VerificationModeCosignKey,
+			result: models.VerificationObservation{
+				Mode:       models.VerificationModeCosignKey,
+				Status:     models.StatusVerified,
+				VerifiedBy: models.VerificationModeCosignKey,
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	results, err := VerifyImages(
+		context.Background(),
+		[]models.DiscoveredImage{{Name: "ghcr.io/example/api:1.0.0", ID: "ghcr.io/example/api@sha256:abc"}},
+		registry.Credentials{},
+		composite,
+		1,
+		time.Minute,
+		time.Second,
+		false,
+		1,
+	)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, "cosign-key", results[0].VerificationMode)
+	require.Equal(t, "cosign-key", results[0].VerifiedBy)
 }

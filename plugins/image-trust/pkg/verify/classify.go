@@ -1,6 +1,7 @@
 package verify
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
@@ -24,20 +25,29 @@ func classifyCosignFailure(message string) (models.Status, string) {
 		return models.StatusUnsigned, reason
 	case strings.Contains(normalized, "unauthorized"),
 		strings.Contains(normalized, "authentication required"),
-		strings.Contains(normalized, "401"),
-		strings.Contains(normalized, "403"),
-		strings.Contains(normalized, "denied"),
+		containsHTTPStatus(normalized, 401),
+		containsHTTPStatus(normalized, 403),
+		strings.Contains(normalized, "access denied"),
+		strings.Contains(normalized, "denied: access forbidden"),
 		strings.Contains(normalized, "forbidden"):
 		return models.StatusVerificationError, reason
 	case strings.Contains(normalized, "certificate identity"),
-		strings.Contains(normalized, "oidc issuer"),
-		strings.Contains(normalized, "expected identities"),
-		strings.Contains(normalized, "subject"),
-		strings.Contains(normalized, "issuer"):
+		strings.Contains(normalized, "certificate oidc issuer"),
+		strings.Contains(normalized, "oidc issuer did not match"),
+		strings.Contains(normalized, "expected identities"):
 		return models.StatusSignedUntrusted, reason
 	default:
 		return models.StatusVerificationError, reason
 	}
+}
+
+func containsHTTPStatus(message string, code int) bool {
+	codeStr := strconv.Itoa(code)
+	return strings.Contains(message, " "+codeStr) ||
+		strings.Contains(message, ":"+codeStr) ||
+		strings.Contains(message, "status "+codeStr) ||
+		strings.Contains(message, "status code: "+codeStr) ||
+		strings.Contains(message, "http "+codeStr)
 }
 
 // IsTransientFailure reports whether a verification_error reason is worth retrying.
@@ -51,10 +61,10 @@ func IsTransientFailure(reason string) bool {
 		strings.Contains(normalized, "i/o timeout"),
 		strings.Contains(normalized, "tls handshake timeout"),
 		strings.Contains(normalized, "no such host"),
-		strings.Contains(normalized, "429"),
-		strings.Contains(normalized, "502"),
-		strings.Contains(normalized, "503"),
-		strings.Contains(normalized, "504"),
+		containsHTTPStatus(normalized, 429),
+		containsHTTPStatus(normalized, 502),
+		containsHTTPStatus(normalized, 503),
+		containsHTTPStatus(normalized, 504),
 		strings.Contains(normalized, "too many requests"),
 		strings.Contains(normalized, "service unavailable"):
 		return true

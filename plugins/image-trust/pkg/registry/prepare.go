@@ -28,7 +28,7 @@ func (p PreparedCredentials) Cleanup() {
 }
 
 // Prepare loads credentials, merges auth sources into docker config, and prepares TLS bundles.
-func Prepare(ctx context.Context, cfg *config.Config, client kubernetes.Interface) (PreparedCredentials, error) {
+func Prepare(ctx context.Context, cfg *config.Config, client kubernetes.Interface, pullSecretRefs []PullSecretRef) (PreparedCredentials, error) {
 	creds, err := LoadFromEnvironment()
 	if err != nil {
 		return PreparedCredentials{}, err
@@ -38,7 +38,7 @@ func Prepare(ctx context.Context, cfg *config.Config, client kubernetes.Interfac
 
 	prepared := PreparedCredentials{Credentials: creds}
 
-	if err := prepared.materializeDockerConfig(ctx, cfg, client); err != nil {
+	if err := prepared.materializeDockerConfig(ctx, cfg, client, pullSecretRefs); err != nil {
 		prepared.Cleanup()
 		return PreparedCredentials{}, err
 	}
@@ -51,7 +51,7 @@ func Prepare(ctx context.Context, cfg *config.Config, client kubernetes.Interfac
 	return prepared, nil
 }
 
-func (p *PreparedCredentials) materializeDockerConfig(ctx context.Context, cfg *config.Config, client kubernetes.Interface) error {
+func (p *PreparedCredentials) materializeDockerConfig(ctx context.Context, cfg *config.Config, client kubernetes.Interface, pullSecretRefs []PullSecretRef) error {
 	creds := &p.Credentials
 	needsConfig := cfg.UseImagePullSecrets ||
 		creds.DockerConfigDir != "" ||
@@ -69,12 +69,12 @@ func (p *PreparedCredentials) materializeDockerConfig(ctx context.Context, cfg *
 		if client == nil {
 			return fmt.Errorf("kubernetes client is required when IMAGE_TRUST_USE_IMAGE_PULL_SECRETS is enabled")
 		}
-		pullConfigs, err := CollectPullSecretConfigs(ctx, client, cfg.NamespaceAllowlist, cfg.NamespaceBlocklist)
+		pullConfigs, err := CollectPullSecretConfigs(ctx, client, pullSecretRefs)
 		if err != nil {
 			return err
 		}
 		configs = append(configs, pullConfigs...)
-		logrus.Infof("loaded docker config from %d imagePullSecret sources", len(pullConfigs))
+		logrus.Infof("loaded docker config from %d referenced imagePullSecret sources", len(pullConfigs))
 	}
 
 	if creds.DockerConfigDir != "" {

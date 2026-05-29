@@ -29,10 +29,10 @@ type kubeClientResources struct {
 }
 
 // ListImages returns images used by workloads and additional running pods in scope.
-func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []string) ([]models.DiscoveredImage, error) {
+func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []string) (Result, error) {
 	kubeResources, err := createKubeClientResources()
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
 
 	client := fwControllerUtils.Client{
@@ -43,12 +43,14 @@ func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []st
 
 	controllers, err := client.GetAllTopControllersWithPods("")
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve top controllers with pods: %w", err)
+		return Result{}, fmt.Errorf("could not retrieve top controllers with pods: %w", err)
 	}
 
 	keyToImage := map[string]models.DiscoveredImage{}
 	imageOwners := map[string]map[models.Resource]struct{}{}
 	seenPods := map[string]struct{}{}
+	pullSecrets := newPullSecretSet()
+	serviceAccounts := map[string]struct{}{}
 
 	for _, controller := range controllers {
 		namespace := strings.ToLower(controller.TopController.GetNamespace())
@@ -70,6 +72,7 @@ func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []st
 				continue
 			}
 			markPodSeen(seenPods, pod.Namespace, pod.Name)
+			collectPullSecretRefs(ctx, kubeResources.KubeClient, pod, pullSecrets, serviceAccounts)
 
 			for _, status := range containerStatusesFromPod(pod) {
 				recordContainerImage(status, owner, keyToImage, imageOwners)
@@ -79,13 +82,13 @@ func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []st
 
 	namespaces, err := listScopedNamespaces(ctx, kubeResources.KubeClient, namespaceAllowlist, namespaceBlocklist)
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
-	if err := recordOrphanPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
-		return nil, err
+	if err := recordOrphanPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners, pullSecrets, serviceAccounts); err != nil {
+		return Result{}, err
 	}
-	if err := recordJobPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
-		return nil, err
+	if err := recordJobPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners, pullSecrets, serviceAccounts); err != nil {
+		return Result{}, err
 	}
 
 	for key, image := range keyToImage {
@@ -95,7 +98,10 @@ func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []st
 		}
 	}
 
-	return lo.Values(keyToImage), nil
+	return Result{
+		Images:         lo.Values(keyToImage),
+		PullSecretRefs: pullSecrets.refs(),
+	}, nil
 }
 
 func markPodSeen(seen map[string]struct{}, namespace, name string) {
@@ -113,6 +119,8 @@ func recordOrphanPods(
 	seenPods map[string]struct{},
 	keyToImage map[string]models.DiscoveredImage,
 	imageOwners map[string]map[models.Resource]struct{},
+	pullSecrets pullSecretSet,
+	serviceAccounts map[string]struct{},
 ) error {
 	for _, namespace := range namespaces {
 		pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{FieldSelector: "status.phase=Running"})
@@ -132,6 +140,7 @@ func recordOrphanPods(
 				Name:      pod.Name,
 			}
 			markPodSeen(seenPods, pod.Namespace, pod.Name)
+			collectPullSecretRefs(ctx, client, pod, pullSecrets, serviceAccounts)
 			for _, status := range containerStatusesFromPod(pod) {
 				recordContainerImage(status, owner, keyToImage, imageOwners)
 			}
@@ -147,6 +156,8 @@ func recordJobPods(
 	seenPods map[string]struct{},
 	keyToImage map[string]models.DiscoveredImage,
 	imageOwners map[string]map[models.Resource]struct{},
+	pullSecrets pullSecretSet,
+	serviceAccounts map[string]struct{},
 ) error {
 	for _, namespace := range namespaces {
 		jobs, err := client.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
@@ -180,6 +191,7 @@ func recordJobPods(
 					continue
 				}
 				markPodSeen(seenPods, pod.Namespace, pod.Name)
+				collectPullSecretRefs(ctx, client, pod, pullSecrets, serviceAccounts)
 				for _, status := range containerStatusesFromPod(pod) {
 					recordContainerImage(status, owner, keyToImage, imageOwners)
 				}
@@ -199,7 +211,7 @@ func hasControllerOwner(owners []metav1.OwnerReference) bool {
 			return true
 		}
 	}
-	return len(owners) > 0
+	return false
 }
 
 func listScopedNamespaces(

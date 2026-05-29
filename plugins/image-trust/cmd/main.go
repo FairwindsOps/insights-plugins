@@ -32,19 +32,19 @@ func main() {
 		logrus.Fatalf("creating kubernetes client: %v", err)
 	}
 
-	prepared, err := registry.Prepare(ctx, cfg, kubeClient)
+	discoveryResult, err := discovery.ListImages(ctx, cfg.NamespaceBlocklist, cfg.NamespaceAllowlist)
+	if err != nil {
+		logrus.Fatalf("discovering images: %v", err)
+	}
+
+	prepared, err := registry.Prepare(ctx, cfg, kubeClient, discoveryResult.PullSecretRefs)
 	if err != nil {
 		logrus.Fatalf("preparing registry credentials: %v", err)
 	}
 	defer prepared.Cleanup()
 
-	images, err := discovery.ListImages(ctx, cfg.NamespaceBlocklist, cfg.NamespaceAllowlist)
-	if err != nil {
-		logrus.Fatalf("discovering images: %v", err)
-	}
-
-	logrus.Infof("discovered %d images", len(images))
-	images = resolve.Images(ctx, prepared.Credentials, images, cfg.ResolveDigests)
+	logrus.Infof("discovered %d images", len(discoveryResult.Images))
+	images := resolve.Images(ctx, prepared.Credentials, discoveryResult.Images, cfg.ResolveDigests, cfg.MaxConcurrentScans)
 
 	results, err := verifyImages(ctx, cfg, prepared.Credentials, images, time.Now())
 	if err != nil {
