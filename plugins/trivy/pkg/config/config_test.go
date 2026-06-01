@@ -26,8 +26,8 @@ func TestLoadFromEnvironment(t *testing.T) {
 	t.Setenv("MAX_SCANS", "88")
 	t.Setenv("IGNORE_UNFIXED", "true")
 	t.Setenv("OFFLINE", "true")
-	t.Setenv("IMAGE_TRUST_NAMESPACE_BLOCKLIST", "kube-system,kube-public")
-	t.Setenv("IMAGE_TRUST_NAMESPACE_ALLOWLIST", "default,fw-insights")
+	t.Setenv("NAMESPACE_BLOCKLIST", "kube-system,kube-public")
+	t.Setenv("NAMESPACE_ALLOWLIST", "default,fw-insights")
 	t.Setenv("IMAGES_TO_SCAN", "nginx:latest,redis:alpine")
 
 	cfg, err := LoadFromEnvironment()
