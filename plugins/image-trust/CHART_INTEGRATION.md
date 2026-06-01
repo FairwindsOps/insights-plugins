@@ -4,13 +4,15 @@ The Fairwinds Insights Agent chart lives in [FairwindsOps/charts](https://github
 
 ## RBAC
 
-Discovery uses the Kubernetes API only (no registry login). Minimum rules for image discovery:
+Discovery uses the Kubernetes API only (no registry login). The primary path lists top-level controllers and their pods via `controller-utils` (`GetAllTopControllersWithPods`), which requires **list/get on pods and workload controller types** across scoped namespaces — the same broad cluster read model as the Trivy and workloads plugins. Supplemental discovery also lists:
 
 | Resource | Verbs | Used for |
 |----------|-------|----------|
-| `namespaces` | get, list | Namespace scoping for discovery |
+| `namespaces` | get, list | Namespace scoping |
 | `pods` | get, list | Orphan running pods not owned by a top-level controller |
 | `jobs` | get, list | Active Jobs and their running pods |
+
+Use the Insights Agent chart’s cluster-reader / `insights-agent` ServiceAccount RBAC (or equivalent) rather than only the table above. The chart typically grants list/get on common workload APIs cluster-wide.
 
 Registry credentials are supplied via chart values / mounted secrets (`IMAGE_TRUST_REGISTRY_AUTHS`, `REGISTRY_PASSWORD_FILE`, etc.) — not from workload `imagePullSecrets`.
 
@@ -190,6 +192,8 @@ Setting `attestations.types` alone (without `enabled`) also activates attestatio
 
 ## Recommended defaults
 
+Keyless mode requires issuer and/or subject trust policy — the plugin fails startup validation without it.
+
 ```yaml
 image-trust:
   enabled: true
@@ -203,8 +207,14 @@ image-trust:
     - cosign-keyless
     - cosign-key
   modePolicy: any
+  trustedIssuers:
+    - https://token.actions.githubusercontent.com
+  trustedSubjectRegexps:
+    - https://github.com/my-org/.+
   publicKeys:
     refs:
       - https://artifacts.fairwinds.com/cosign-p256.pub
   ignoreTlog: true
 ```
+
+Replace `trustedIssuers` / `trustedSubjectRegexps` with identities that match your signed images. Chart value names may differ — map them to `IMAGE_TRUST_TRUSTED_ISSUERS` and `IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS` on the plugin pod.

@@ -44,8 +44,8 @@ When both **issuer** and **subject** policy are set, a signer must match **both*
 
 When `cosign-key` is enabled:
 
-- `IMAGE_TRUST_PUBLIC_KEY_PATHS` — comma-separated paths to `.pub` / PEM files (or `scheme://` URIs understood by cosign)
-- `IMAGE_TRUST_PUBLIC_KEY_REFS` — comma-separated remote key URIs (for example `gcpkms://`, `azurekms://`, `awskms://`)
+- `IMAGE_TRUST_PUBLIC_KEY_PATHS` — comma-separated local paths to `.pub` / PEM files
+- `IMAGE_TRUST_PUBLIC_KEY_REFS` — comma-separated remote key URIs (for example `https://`, `gcpkms://`, `azurekms://`, `awskms://`)
 - `IMAGE_TRUST_PUBLIC_KEY_DIR` — directory of public keys (e.g. `/etc/image-trust/keys` from a mounted Secret)
 - `IMAGE_TRUST_IGNORE_TLOG` — set to `true` for keyed signatures without Rekor (`cosign` `--insecure-ignore-tlog`)
 
@@ -96,6 +96,8 @@ Example (single registry via password file):
 
 ```yaml
 env:
+  - name: REGISTRY_USER
+    value: robot
   - name: REGISTRY_PASSWORD_FILE
     value: /etc/registry/password
 volumeMounts:
@@ -159,7 +161,9 @@ Progress is logged during verification (`processed image trust checks for N/M im
 Build from the repository root so GoReleaser artifacts line up with other plugins:
 
 ```bash
-docker build -t fw-image-trust -f plugins/image-trust/Dockerfile plugins/image-trust
+cd plugins/image-trust
+CGO_ENABLED=0 GOOS=linux GOARCH="$(go env GOARCH)" go build -o image-trust ./cmd
+docker build -t fw-image-trust .
 docker run --network host \
   --user 0:0 \
   -e KUBECONFIG=/kube/config \

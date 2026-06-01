@@ -8,7 +8,8 @@
 
 ```bash
 cosign verify us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0 \
-  --key testdata/keys/fairwinds-cosign-p256.pub
+  --key testdata/keys/fairwinds-cosign-p256.pub \
+  --insecure-ignore-tlog
 ```
 
 The smoke test defaults to `IMAGE_TRUST_PUBLIC_KEY_REFS=https://artifacts.fairwinds.com/cosign-p256.pub`. This file is kept for local `cosign verify --key` and optional `IMAGE_TRUST_PUBLIC_KEY_DIR` overrides.

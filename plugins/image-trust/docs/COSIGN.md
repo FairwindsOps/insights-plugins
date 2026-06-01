@@ -175,7 +175,7 @@ For `cosign-keyless` and `cosign-attestation-keyless`, cosign is invoked with pe
 At least one of these must be set when a keyless mode is enabled (`pkg/config/config.go`).
 
 - Multiple issuers or subjects in a list are **OR** within that dimension (regex alternation).
-- When **both** issuer and subject matchers are configured, a signer must match **both** (AND) — see `isTrustedSigner` in `pkg/verify/cosign.go`.
+- When **both** issuer and subject matchers are configured, a signer must match **both** (AND) — see `isTrustedSigner` in `pkg/verify/cosign_keyless.go`.
 - If cosign succeeds but no signer matches → `signed_untrusted`.
 - If cosign succeeds with no parseable signer identity → `verification_error`.
 
