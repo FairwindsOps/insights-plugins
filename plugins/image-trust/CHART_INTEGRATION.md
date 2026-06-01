@@ -6,7 +6,7 @@ The Fairwinds Insights Agent chart lives in [FairwindsOps/charts](https://github
 
 When `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true`, the plugin loads only `kubernetes.io/dockerconfigjson` secrets referenced by discovered pod `imagePullSecrets` and the pod service account's `imagePullSecrets`. Minimum rules for that feature: `secrets` **get**, `serviceaccounts` **get**, and `namespaces` **get/list** (namespace list is used for discovery scoping).
 
-[deploy/rbac.yaml](deploy/rbac.yaml) also grants `pods` and `jobs` **list/get** for orphan-pod and active-job discovery paths. Bind that ClusterRole to the image-trust ServiceAccount (or merge equivalent rules into your chart RBAC). Example chart fragment:
+Also grants `pods` and `jobs` **list/get** for orphan-pod and active-job discovery paths. Bind that ClusterRole to the image-trust ServiceAccount (or merge equivalent rules into your chart RBAC). Example chart fragment:
 
 ```yaml
 image-trust:
