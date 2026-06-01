@@ -9,54 +9,54 @@ import (
 )
 
 const (
-	DefaultMaxConcurrentScans   = 5
-	DefaultImageVerifyTimeout   = 3 * time.Minute
-	MaxTrustedSubjectRegexpLen  = 512
+	DefaultMaxConcurrentScans    = 5
+	DefaultImageVerifyTimeout    = 3 * time.Minute
+	MaxTrustedSubjectRegexpLen   = 512
 	MaxTrustedSubjectRegexpCount = 32
 )
 
 // Config holds runtime configuration for the image-trust plugin.
 type Config struct {
-	NamespaceAllowlist   []string
-	NamespaceBlocklist   []string
-	VerificationModes    []string
-	ModePolicy           string
-	TrustedIssuers       []string
-	TrustedSubjects      []string
-	TrustedSubjectREs    []string
-	PublicKeyPaths       []string
-	PublicKeyRefs        []string
-	PublicKeyDir         string
-	TrustedPublicKeys    []TrustedPublicKey
-	IgnoreTlog           bool
-	SignerAllowlist      []string
-	ImageAllowlist       []string
-	RegistryAllowlist    []string
-	MaxConcurrentScans     int
-	ImageVerifyTimeout     time.Duration
-	ResolveDigests         bool
-	RegistryAuthHost       string
-	RegistryAuths          []RegistryAuth
-	RegistryMirrors        map[string]string
-	RegistryCertDirs       map[string]string
-	RegistryUser           string
-	RegistryPassword       string
-	RegistryCertDir        string
+	NamespaceAllowlist      []string
+	NamespaceBlocklist      []string
+	VerificationModes       []string
+	ModePolicy              string
+	TrustedIssuers          []string
+	TrustedSubjects         []string
+	TrustedSubjectREs       []string
+	PublicKeyPaths          []string
+	PublicKeyRefs           []string
+	PublicKeyDir            string
+	TrustedPublicKeys       []TrustedPublicKey
+	IgnoreTlog              bool
+	SignerAllowlist         []string
+	ImageAllowlist          []string
+	RegistryAllowlist       []string
+	MaxConcurrentScans      int
+	ImageVerifyTimeout      time.Duration
+	ResolveDigests          bool
+	RegistryAuthHost        string
+	RegistryAuths           []RegistryAuth
+	RegistryMirrors         map[string]string
+	RegistryCertDirs        map[string]string
+	RegistryUser            string
+	RegistryPassword        string
+	RegistryCertDir         string
 	RegistryDockerConfigDir string
-	AttestationTypes       []string
-	AttestationsEnabled    bool
-	VerifyRetries          int
-	VerifyRetryBackoff     time.Duration
-	VerifyRetryJitter      bool
-	SigstoreEnvFile        string
-	SigstoreEnv            []string
+	AttestationTypes        []string
+	AttestationsEnabled     bool
+	VerifyRetries           int
+	VerifyRetryBackoff      time.Duration
+	VerifyRetryJitter       bool
+	SigstoreEnvFile         string
+	SigstoreEnv             []string
 }
 
 // LoadFromEnvironment parses plugin configuration from environment variables.
 func LoadFromEnvironment() (*Config, error) {
 	cfg := &Config{
-		NamespaceAllowlist: parseLowerCSVEnv("NAMESPACE_ALLOWLIST"),
-		NamespaceBlocklist: parseLowerCSVEnv("NAMESPACE_BLOCKLIST"),
+		NamespaceAllowlist: parseLowerCSVEnv("IMAGE_TRUST_NAMESPACE_ALLOWLIST"),
+		NamespaceBlocklist: parseLowerCSVEnv("IMAGE_TRUST_NAMESPACE_BLOCKLIST"),
 		VerificationModes:  parseCSVEnv("IMAGE_TRUST_MODES"),
 		ModePolicy:         strings.ToLower(strings.TrimSpace(os.Getenv("IMAGE_TRUST_MODE_POLICY"))),
 		TrustedIssuers:     parseCSVEnv("IMAGE_TRUST_TRUSTED_ISSUERS"),
@@ -70,12 +70,12 @@ func LoadFromEnvironment() (*Config, error) {
 		SignerAllowlist:    parseCSVEnv("IMAGE_TRUST_SIGNER_ALLOWLIST"),
 		ImageAllowlist:     parseCSVEnv("IMAGE_TRUST_IMAGE_ALLOWLIST"),
 		RegistryAllowlist:  parseCSVEnv("IMAGE_TRUST_REGISTRY_ALLOWLIST"),
-		MaxConcurrentScans:  DefaultMaxConcurrentScans,
-		ImageVerifyTimeout:  DefaultImageVerifyTimeout,
-		ResolveDigests:      true,
-		VerifyRetries:       3,
-		VerifyRetryBackoff:  2 * time.Second,
-		VerifyRetryJitter:   true,
+		MaxConcurrentScans: DefaultMaxConcurrentScans,
+		ImageVerifyTimeout: DefaultImageVerifyTimeout,
+		ResolveDigests:     true,
+		VerifyRetries:      3,
+		VerifyRetryBackoff: 2 * time.Second,
+		VerifyRetryJitter:  true,
 	}
 	if len(cfg.VerificationModes) == 0 {
 		cfg.VerificationModes = []string{ModeCosignKeyless}

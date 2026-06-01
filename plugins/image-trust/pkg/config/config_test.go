@@ -16,8 +16,8 @@ func setRequiredTrustPolicyEnv(t *testing.T) {
 
 func TestParseCSVEnvAndValidation(t *testing.T) {
 	setRequiredTrustPolicyEnv(t)
-	t.Setenv("NAMESPACE_ALLOWLIST", "Prod, staging , ,TEAM-A")
-	t.Setenv("NAMESPACE_BLOCKLIST", "kube-system")
+	t.Setenv("IMAGE_TRUST_NAMESPACE_ALLOWLIST", "Prod, staging , ,TEAM-A")
+	t.Setenv("IMAGE_TRUST_NAMESPACE_BLOCKLIST", "kube-system")
 	t.Setenv("IMAGE_TRUST_TRUSTED_SUBJECT_REGEXPS", "https://github.com/example/.+")
 	t.Setenv("IMAGE_TRUST_SIGNER_ALLOWLIST", "https://token.actions.githubusercontent.com|https://github.com/example/repo/.github/workflows/build.yml@refs/heads/main")
 	t.Setenv("IMAGE_TRUST_IMAGE_ALLOWLIST", "ghcr.io/example/*,docker.io/library/busybox:*")
@@ -41,8 +41,8 @@ func TestParseCSVEnvAndValidation(t *testing.T) {
 
 func TestValidateRejectsOverlap(t *testing.T) {
 	setRequiredTrustPolicyEnv(t)
-	t.Setenv("NAMESPACE_ALLOWLIST", "prod")
-	t.Setenv("NAMESPACE_BLOCKLIST", "prod,kube-system")
+	t.Setenv("IMAGE_TRUST_NAMESPACE_ALLOWLIST", "prod")
+	t.Setenv("IMAGE_TRUST_NAMESPACE_BLOCKLIST", "prod,kube-system")
 
 	_, err := LoadFromEnvironment()
 	require.Error(t, err)

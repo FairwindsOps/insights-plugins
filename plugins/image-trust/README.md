@@ -19,8 +19,8 @@ Output file: `/output/image-trust.json` (written atomically from `/output/image-
 
 Namespace scope:
 
-- `NAMESPACE_ALLOWLIST`
-- `NAMESPACE_BLOCKLIST`
+- `IMAGE_TRUST_NAMESPACE_ALLOWLIST`
+- `IMAGE_TRUST_NAMESPACE_BLOCKLIST`
 
 Verification:
 
