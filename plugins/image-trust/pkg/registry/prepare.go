@@ -25,18 +25,14 @@ func (p PreparedCredentials) Cleanup() {
 	}
 }
 
-// Prepare loads credentials, merges auth sources into docker config, and prepares TLS bundles.
+// Prepare merges configured registry credentials into docker config and prepares TLS bundles.
 func Prepare(ctx context.Context, cfg *config.Config) (PreparedCredentials, error) {
 	_ = ctx
-
-	creds, err := LoadFromEnvironment()
-	if err != nil {
-		return PreparedCredentials{}, err
+	if cfg == nil {
+		return PreparedCredentials{}, fmt.Errorf("config is required")
 	}
-	creds.Mirrors = cfg.RegistryMirrors
-	creds.PerRegistryCertDirs = cfg.RegistryCertDirs
 
-	prepared := PreparedCredentials{Credentials: creds}
+	prepared := PreparedCredentials{Credentials: credentialsFromConfig(cfg)}
 
 	if err := prepared.materializeDockerConfig(cfg); err != nil {
 		prepared.Cleanup()
@@ -49,6 +45,17 @@ func Prepare(ctx context.Context, cfg *config.Config) (PreparedCredentials, erro
 
 	applyDockerConfigEnv(prepared.Credentials)
 	return prepared, nil
+}
+
+func credentialsFromConfig(cfg *config.Config) Credentials {
+	return Credentials{
+		Username:            cfg.RegistryUser,
+		Password:            cfg.RegistryPassword,
+		CertDir:             cfg.RegistryCertDir,
+		DockerConfigDir:     cfg.RegistryDockerConfigDir,
+		Mirrors:             cfg.RegistryMirrors,
+		PerRegistryCertDirs: cfg.RegistryCertDirs,
+	}
 }
 
 func (p *PreparedCredentials) materializeDockerConfig(cfg *config.Config) error {

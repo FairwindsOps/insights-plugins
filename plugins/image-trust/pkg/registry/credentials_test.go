@@ -9,32 +9,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoadFromEnvironment(t *testing.T) {
-	t.Setenv("REGISTRY_USER", "user")
-	t.Setenv("REGISTRY_PASSWORD", "pass")
-	t.Setenv("REGISTRY_CERT_DIR", "/certs")
-
-	creds, err := LoadFromEnvironment()
-	require.NoError(t, err)
-	require.Equal(t, "user", creds.Username)
-	require.Equal(t, "pass", creds.Password)
-	require.Equal(t, "/certs", creds.CertDir)
-	require.True(t, creds.Configured())
-	require.Empty(t, creds.CosignArgs())
-}
-
 func TestPrepareMaterializesDockerConfigWithoutCLIPassword(t *testing.T) {
 	cfg := &config.Config{
 		RegistryAuthHost: "https://index.docker.io/v1/",
 		RegistryAuths: []config.RegistryAuth{
 			{Host: "https://registry.example/v1/", Username: "robot", Password: "secret"},
 		},
+		RegistryUser:     "docker-user",
+		RegistryPassword: "docker-pass",
 	}
-	t.Setenv("REGISTRY_USER", "docker-user")
-	t.Setenv("REGISTRY_PASSWORD", "docker-pass")
-
-	creds, err := LoadFromEnvironment()
-	require.NoError(t, err)
 
 	prepared, err := Prepare(t.Context(), cfg)
 	require.NoError(t, err)
@@ -49,33 +32,20 @@ func TestPrepareMaterializesDockerConfigWithoutCLIPassword(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(data), "registry.example")
 	require.Contains(t, string(data), "docker-user")
-	_ = creds
 }
 
-func TestLoadFromEnvironmentDockerConfig(t *testing.T) {
-	dir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{"auths":{}}`), 0o600))
+func TestCredentialsFromConfigUsesInjectedValues(t *testing.T) {
+	cfg := &config.Config{
+		RegistryUser:     "user",
+		RegistryPassword: "pass",
+		RegistryCertDir:  "/certs",
+		RegistryMirrors:  map[string]string{"mirror.example": "upstream.example"},
+		RegistryCertDirs: map[string]string{"ghcr.io": "/certs/ghcr"},
+	}
 
-	t.Setenv("REGISTRY_USER", "")
-	t.Setenv("REGISTRY_PASSWORD", "")
-	t.Setenv("REGISTRY_DOCKER_CONFIG_PATH", dir)
-
-	creds, err := LoadFromEnvironment()
-	require.NoError(t, err)
-	require.Equal(t, dir, creds.DockerConfigDir)
-	require.Empty(t, creds.CosignArgs())
-}
-
-func TestLoadFromEnvironmentPasswordFile(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "password")
-	require.NoError(t, os.WriteFile(path, []byte("from-file\n"), 0o600))
-
-	t.Setenv("REGISTRY_USER", "user")
-	t.Setenv("REGISTRY_PASSWORD", "")
-	t.Setenv("REGISTRY_PASSWORD_FILE", path)
-
-	creds, err := LoadFromEnvironment()
-	require.NoError(t, err)
-	require.Equal(t, "from-file", creds.Password)
+	creds := credentialsFromConfig(cfg)
+	require.Equal(t, "user", creds.Username)
+	require.Equal(t, "pass", creds.Password)
+	require.Equal(t, "/certs", creds.CertDir)
+	require.True(t, creds.Configured())
 }

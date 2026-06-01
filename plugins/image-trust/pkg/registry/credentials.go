@@ -1,9 +1,7 @@
 package registry
 
 import (
-	"fmt"
 	"os"
-	"strings"
 )
 
 // Credentials holds registry authentication and TLS settings for registry API and cosign.
@@ -14,35 +12,6 @@ type Credentials struct {
 	DockerConfigDir     string
 	PerRegistryCertDirs map[string]string
 	Mirrors             map[string]string
-}
-
-// LoadFromEnvironment reads registry credentials from environment variables.
-func LoadFromEnvironment() (Credentials, error) {
-	creds := Credentials{
-		Username: os.Getenv("REGISTRY_USER"),
-		Password: os.Getenv("REGISTRY_PASSWORD"),
-		CertDir:  os.Getenv("REGISTRY_CERT_DIR"),
-	}
-
-	passwordFile := os.Getenv("REGISTRY_PASSWORD_FILE")
-	if passwordFile != "" {
-		content, err := os.ReadFile(passwordFile)
-		if err != nil {
-			return Credentials{}, fmt.Errorf("reading registry password file: %w", err)
-		}
-		creds.Password = strings.TrimSpace(string(content))
-	}
-
-	dockerConfigPath := strings.TrimSpace(os.Getenv("REGISTRY_DOCKER_CONFIG_PATH"))
-	if dockerConfigPath != "" {
-		dir, err := resolveDockerConfigDir(dockerConfigPath)
-		if err != nil {
-			return Credentials{}, err
-		}
-		creds.DockerConfigDir = dir
-	}
-
-	return creds, nil
 }
 
 func applyDockerConfigEnv(creds Credentials) {

@@ -13,7 +13,6 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/report"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/resolve"
-	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/sigstore"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/verify"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
@@ -74,11 +73,7 @@ func kubernetesClient() (kubernetes.Interface, error) {
 }
 
 func verifyImages(ctx context.Context, cfg *config.Config, registryCreds registry.Credentials, images []models.DiscoveredImage, now time.Time) ([]models.ImageTrustResult, error) {
-	sigstoreEnv, err := sigstore.ExtraEnv()
-	if err != nil {
-		return nil, err
-	}
-	runner := verify.ExecRunner{ExtraEnv: registryCreds.ExtraEnv(sigstoreEnv...)}
+	runner := verify.ExecRunner{ExtraEnv: registryCreds.ExtraEnv(cfg.SigstoreEnv...)}
 	verifier, err := verify.NewVerifier(cfg, runner, registryCreds)
 	if err != nil {
 		return nil, err

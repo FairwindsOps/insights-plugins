@@ -21,18 +21,18 @@ type SignerDetails struct {
 
 // ImageTrustResult is the final per-image trust state sent to Insights.
 type ImageTrustResult struct {
-	Name             string          `json:"name"`
-	ID               string          `json:"id"`
-	PullRef          string          `json:"pullRef"`
-	Status           Status          `json:"status"`
-	Reason           string          `json:"reason,omitempty"`
+	Name               string          `json:"name"`
+	ID                 string          `json:"id"`
+	PullRef            string          `json:"pullRef"`
+	Status             Status          `json:"status"`
+	Reason             string          `json:"reason,omitempty"`
 	VerificationMode   string          `json:"verificationMode,omitempty"`
 	VerifiedBy         string          `json:"verifiedBy,omitempty"`
 	AttestationType    string          `json:"attestationType,omitempty"`
 	Allowlisted        bool            `json:"allowlisted"`
-	AllowlistReason  string          `json:"allowlistReason,omitempty"`
-	Owners           []Resource      `json:"owners"`
-	Signer           SignerDetails   `json:"signer"`
+	AllowlistReason    string          `json:"allowlistReason,omitempty"`
+	Owners             []Resource      `json:"owners"`
+	Signer             SignerDetails   `json:"signer"`
 	CandidateSigners   []SignerDetails `json:"candidateSigners,omitempty"`
 	DigestResolveError string          `json:"digestResolveError,omitempty"`
 	LastCheckedAt      time.Time       `json:"lastCheckedAt"`
@@ -40,15 +40,15 @@ type ImageTrustResult struct {
 
 // Finding is a derived action item for non-compliant images.
 type Finding struct {
-	ResourceNamespace string  `json:"ResourceNamespace"`
-	ResourceKind      string  `json:"ResourceKind"`
-	ResourceName      string  `json:"ResourceName"`
-	ResourceContainer string  `json:"ResourceContainer,omitempty"`
-	Title             string  `json:"Title"`
-	Description       string  `json:"Description"`
-	Remediation       string  `json:"Remediation"`
-	Severity          float64 `json:"Severity"`
-	Category          string  `json:"Category"`
+	ResourceNamespace string  `json:"resourceNamespace"`
+	ResourceKind      string  `json:"resourceKind"`
+	ResourceName      string  `json:"resourceName"`
+	ResourceContainer string  `json:"resourceContainer,omitempty"`
+	Title             string  `json:"title"`
+	Description       string  `json:"description"`
+	Remediation       string  `json:"remediation"`
+	Severity          float64 `json:"severity"`
+	Category          string  `json:"category"`
 }
 
 // AllowlistPolicy captures exemption patterns configured at scan time.
@@ -79,5 +79,5 @@ type Report struct {
 	Images   []ImageTrustResult `json:"images"`
 	Summary  Summary            `json:"summary"`
 	Policy   ReportPolicy       `json:"policy"`
-	Findings []Finding          `json:"ActionItems,omitempty"`
+	Findings []Finding          `json:"findings,omitempty"`
 }

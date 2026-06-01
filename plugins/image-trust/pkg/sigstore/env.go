@@ -29,9 +29,9 @@ var wellKnownEnvVars = []string{
 	"AZURE_FEDERATED_TOKEN_FILE",
 }
 
-// ExtraEnv returns Sigstore-related variables to forward to cosign subprocesses.
+// LoadFromEnvironment reads Sigstore-related variables to forward to cosign subprocesses.
 // Set IMAGE_TRUST_SIGSTORE_ENV_FILE for additional KEY=VALUE lines (one per line).
-func ExtraEnv() (env []string, err error) {
+func LoadFromEnvironment() (env []string, err error) {
 	seen := map[string]struct{}{}
 
 	appendVar := func(key, value string) {

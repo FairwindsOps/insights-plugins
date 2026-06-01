@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/sigstore"
 )
 
 const (
@@ -39,11 +41,16 @@ type Config struct {
 	RegistryAuths          []RegistryAuth
 	RegistryMirrors        map[string]string
 	RegistryCertDirs       map[string]string
+	RegistryUser           string
+	RegistryPassword       string
+	RegistryCertDir        string
+	RegistryDockerConfigDir string
 	AttestationTypes       []string
 	AttestationsEnabled    bool
 	VerifyRetries          int
 	VerifyRetryBackoff     time.Duration
 	VerifyRetryJitter      bool
+	SigstoreEnv            []string
 }
 
 // LoadFromEnvironment parses plugin configuration from environment variables.
@@ -134,23 +141,23 @@ func LoadFromEnvironment() (*Config, error) {
 
 	cfg.ResolveVerificationModes()
 
-	registryAuths, err := LoadRegistryAuths()
+	registry, err := loadRegistrySettings()
 	if err != nil {
 		return nil, err
 	}
-	cfg.RegistryAuths = registryAuths
+	cfg.RegistryAuths = registry.Auths
+	cfg.RegistryMirrors = registry.Mirrors
+	cfg.RegistryCertDirs = registry.CertDirs
+	cfg.RegistryUser = registry.User
+	cfg.RegistryPassword = registry.Password
+	cfg.RegistryCertDir = registry.CertDir
+	cfg.RegistryDockerConfigDir = registry.DockerConfigDir
 
-	registryMirrors, err := LoadRegistryMirrors()
+	sigstoreEnv, err := sigstore.LoadFromEnvironment()
 	if err != nil {
 		return nil, err
 	}
-	cfg.RegistryMirrors = registryMirrors
-
-	registryCertDirs, err := LoadRegistryCertDirs()
-	if err != nil {
-		return nil, err
-	}
-	cfg.RegistryCertDirs = registryCertDirs
+	cfg.SigstoreEnv = sigstoreEnv
 
 	if err := cfg.Validate(); err != nil {
 		return nil, err
