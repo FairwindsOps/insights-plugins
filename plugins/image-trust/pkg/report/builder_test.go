@@ -37,7 +37,7 @@ func TestBuild(t *testing.T) {
 
 	data, err := json.Marshal(report)
 	require.NoError(t, err)
-	require.Contains(t, string(data), `"ActionItems"`)
+	require.Contains(t, string(data), `"findings"`)
 	require.Contains(t, string(data), `"policy"`)
 }
 

@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/config"
 )
 
 const defaultRegistryAuthHost = "https://index.docker.io/v1/"
@@ -25,16 +23,11 @@ func (p PreparedCredentials) Cleanup() {
 	}
 }
 
-// Prepare merges configured registry credentials into docker config and prepares TLS bundles.
-func Prepare(ctx context.Context, cfg *config.Config) (PreparedCredentials, error) {
-	_ = ctx
-	if cfg == nil {
-		return PreparedCredentials{}, fmt.Errorf("config is required")
-	}
+// Prepare merges injected registry credentials into docker config and prepares TLS bundles.
+func Prepare(_ context.Context, creds Credentials) (PreparedCredentials, error) {
+	prepared := PreparedCredentials{Credentials: creds}
 
-	prepared := PreparedCredentials{Credentials: credentialsFromConfig(cfg)}
-
-	if err := prepared.materializeDockerConfig(cfg); err != nil {
+	if err := prepared.materializeDockerConfig(); err != nil {
 		prepared.Cleanup()
 		return PreparedCredentials{}, err
 	}
@@ -47,23 +40,12 @@ func Prepare(ctx context.Context, cfg *config.Config) (PreparedCredentials, erro
 	return prepared, nil
 }
 
-func credentialsFromConfig(cfg *config.Config) Credentials {
-	return Credentials{
-		Username:            cfg.RegistryUser,
-		Password:            cfg.RegistryPassword,
-		CertDir:             cfg.RegistryCertDir,
-		DockerConfigDir:     cfg.RegistryDockerConfigDir,
-		Mirrors:             cfg.RegistryMirrors,
-		PerRegistryCertDirs: cfg.RegistryCertDirs,
-	}
-}
-
-func (p *PreparedCredentials) materializeDockerConfig(cfg *config.Config) error {
+func (p *PreparedCredentials) materializeDockerConfig() error {
 	creds := &p.Credentials
 	needsConfig := creds.DockerConfigDir != "" ||
 		creds.Username != "" ||
 		creds.Password != "" ||
-		len(cfg.RegistryAuths) > 0
+		len(creds.Auths) > 0
 
 	if !needsConfig {
 		return nil
@@ -79,14 +61,14 @@ func (p *PreparedCredentials) materializeDockerConfig(cfg *config.Config) error 
 		configs = append(configs, envCfg)
 	}
 
-	for _, auth := range cfg.RegistryAuths {
+	for _, auth := range creds.Auths {
 		host := normalizeAuthHost(auth.Host)
 		configs = append(configs, dockerConfig{}.withBasicAuth(host, auth.Username, auth.Password))
 	}
 
 	merged := mergeDockerConfigs(configs...)
 	if creds.Username != "" || creds.Password != "" {
-		host := strings.TrimSpace(cfg.RegistryAuthHost)
+		host := strings.TrimSpace(creds.AuthHost)
 		if host == "" {
 			host = defaultRegistryAuthHost
 		}

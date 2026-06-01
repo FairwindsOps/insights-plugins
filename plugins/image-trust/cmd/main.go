@@ -38,7 +38,7 @@ func main() {
 		logrus.Fatalf("discovering images: %v", err)
 	}
 
-	prepared, err := registry.Prepare(ctx, cfg)
+	prepared, err := registry.Prepare(ctx, registry.CredentialsFromConfig(cfg))
 	if err != nil {
 		logrus.Fatalf("preparing registry credentials: %v", err)
 	}

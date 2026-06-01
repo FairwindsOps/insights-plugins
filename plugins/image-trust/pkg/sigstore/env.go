@@ -29,9 +29,20 @@ var wellKnownEnvVars = []string{
 	"AZURE_FEDERATED_TOKEN_FILE",
 }
 
-// LoadFromEnvironment reads Sigstore-related variables to forward to cosign subprocesses.
-// Set IMAGE_TRUST_SIGSTORE_ENV_FILE for additional KEY=VALUE lines (one per line).
-func LoadFromEnvironment() (env []string, err error) {
+// EnvInput holds Sigstore-related values loaded from plugin configuration.
+type EnvInput struct {
+	EnvFile string
+	Vars    map[string]string
+}
+
+// WellKnownEnvVarKeys returns the process environment keys forwarded to cosign subprocesses.
+func WellKnownEnvVarKeys() []string {
+	return append([]string(nil), wellKnownEnvVars...)
+}
+
+// LoadEnv builds Sigstore-related KEY=VALUE pairs to forward to cosign subprocesses.
+// EnvFile may contain additional KEY=VALUE lines (one per line).
+func LoadEnv(input EnvInput) (env []string, err error) {
 	seen := map[string]struct{}{}
 
 	appendVar := func(key, value string) {
@@ -46,10 +57,13 @@ func LoadFromEnvironment() (env []string, err error) {
 	}
 
 	for _, key := range wellKnownEnvVars {
-		appendVar(key, os.Getenv(key))
+		if input.Vars == nil {
+			continue
+		}
+		appendVar(key, input.Vars[key])
 	}
 
-	file := strings.TrimSpace(os.Getenv("IMAGE_TRUST_SIGSTORE_ENV_FILE"))
+	file := strings.TrimSpace(input.EnvFile)
 	if file == "" {
 		return env, nil
 	}

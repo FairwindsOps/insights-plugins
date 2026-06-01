@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/sigstore"
 )
 
 const (
@@ -50,6 +48,7 @@ type Config struct {
 	VerifyRetries          int
 	VerifyRetryBackoff     time.Duration
 	VerifyRetryJitter      bool
+	SigstoreEnvFile        string
 	SigstoreEnv            []string
 }
 
@@ -153,10 +152,11 @@ func LoadFromEnvironment() (*Config, error) {
 	cfg.RegistryCertDir = registry.CertDir
 	cfg.RegistryDockerConfigDir = registry.DockerConfigDir
 
-	sigstoreEnv, err := sigstore.LoadFromEnvironment()
+	sigstoreEnvFile, sigstoreEnv, err := loadSigstoreSettings()
 	if err != nil {
 		return nil, err
 	}
+	cfg.SigstoreEnvFile = sigstoreEnvFile
 	cfg.SigstoreEnv = sigstoreEnv
 
 	if err := cfg.Validate(); err != nil {
