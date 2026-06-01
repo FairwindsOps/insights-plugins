@@ -43,6 +43,7 @@ type Finding struct {
 	ResourceNamespace string  `json:"ResourceNamespace"`
 	ResourceKind      string  `json:"ResourceKind"`
 	ResourceName      string  `json:"ResourceName"`
+	ResourceContainer string  `json:"ResourceContainer,omitempty"`
 	Title             string  `json:"Title"`
 	Description       string  `json:"Description"`
 	Remediation       string  `json:"Remediation"`

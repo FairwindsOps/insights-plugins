@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/config"
@@ -26,13 +27,14 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("loading config: %v", err)
 	}
+	logrus.Infof("verification modes: %s (policy=%s)", strings.Join(cfg.VerificationModes, ","), cfg.ModePolicy)
 
 	kubeClient, err := kubernetesClient()
 	if err != nil {
 		logrus.Fatalf("creating kubernetes client: %v", err)
 	}
 
-	discoveryResult, err := discovery.ListImages(ctx, cfg.NamespaceBlocklist, cfg.NamespaceAllowlist)
+	discoveryResult, err := discovery.ListImages(ctx, kubeClient, cfg.NamespaceBlocklist, cfg.NamespaceAllowlist)
 	if err != nil {
 		logrus.Fatalf("discovering images: %v", err)
 	}

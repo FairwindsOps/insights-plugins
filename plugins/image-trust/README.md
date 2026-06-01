@@ -125,13 +125,23 @@ Private registry verification requires outbound access to the registry and, for 
 
 Use `IMAGE_TRUST_PUBLIC_KEY_REFS` with cloud credentials on the pod (`GOOGLE_APPLICATION_CREDENTIALS`, `AWS_ROLE_ARN` + `AWS_WEB_IDENTITY_TOKEN_FILE`, Azure federated token env vars). See [CHART_INTEGRATION.md](CHART_INTEGRATION.md).
 
+## Scan duration
+
+Wall time scales with the number of unique images, configured verification modes (including attestation modes appended when enabled), and registry latency. A rough upper bound per pass is:
+
+`(unique_images × modes_per_image / MAX_CONCURRENT_SCANS) × IMAGE_VERIFY_TIMEOUT_SECONDS`
+
+With defaults (`MAX_CONCURRENT_SCANS=5`, `IMAGE_VERIFY_TIMEOUT_SECONDS=180`), 100 unique images and two modes can take up to ~2 hours if every check hits the per-image timeout. Increase `MAX_CONCURRENT_SCANS`, lower `IMAGE_VERIFY_TIMEOUT_SECONDS`, or scope namespaces for large clusters.
+
+Progress is logged during verification (`processed image trust checks for N/M images`). The on-demand job runner timeout for `image-trust` is 20 minutes (same as Trivy); align CronJob `activeDeadlineSeconds` with expected cluster size.
+
 ## Limitations (Cosign-only)
 
 | Topic | Behavior |
 |-------|----------|
 | Signature types | OCI Cosign signatures in the registry only (not Notary v1, GPG, or offline bundles) |
 | Attestations | In-toto attestations via `cosign verify-attestation` when enabled; report includes `attestationType`; predicate **type** only (not SLSA level, builder, or SBOM content); multiple configured types are OR (any match passes); no custom Rego/CUE policy files |
-| Discovery | Top-level controllers, orphan running pods (no controller owner), and active Jobs (not completed/historical workloads) |
+| Discovery | Top-level controllers, orphan running pods (no controller owner), and active Jobs with **running** pods (not completed/historical workloads or pending pods) |
 | Digest | Failed registry lookup → `verification_error` with `digestResolveError`; tag-only without lookup → `unknown` |
 | Registry mirrors | Configure `IMAGE_TRUST_REGISTRY_MIRRORS` when signatures live on upstream hosts |
 

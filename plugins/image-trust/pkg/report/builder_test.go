@@ -29,6 +29,7 @@ func TestBuild(t *testing.T) {
 	require.Equal(t, 1, report.Summary.Unsigned)
 	require.Len(t, report.Findings, 1)
 	require.Equal(t, "prod", report.Findings[0].ResourceNamespace)
+	require.Equal(t, "api", report.Findings[0].ResourceContainer)
 	require.Equal(t, "Container image is unsigned", report.Findings[0].Title)
 	require.Contains(t, report.Findings[0].Description, "ghcr.io/example/api@sha256:abc")
 	require.Equal(t, findingsCategory, report.Findings[0].Category)

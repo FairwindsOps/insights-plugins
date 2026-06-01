@@ -29,8 +29,12 @@ type kubeClientResources struct {
 }
 
 // ListImages returns images used by workloads and additional running pods in scope.
-func ListImages(ctx context.Context, namespaceBlocklist, namespaceAllowlist []string) (Result, error) {
-	kubeResources, err := createKubeClientResources()
+func ListImages(ctx context.Context, kubeClient kubernetes.Interface, namespaceBlocklist, namespaceAllowlist []string) (Result, error) {
+	if kubeClient == nil {
+		return Result{}, fmt.Errorf("kubernetes client is required")
+	}
+
+	kubeResources, err := kubeClientResourcesFrom(kubeClient)
 	if err != nil {
 		return Result{}, err
 	}
@@ -187,7 +191,7 @@ func recordJobPods(
 				Name:      job.Name,
 			}
 			for _, pod := range pods.Items {
-				if pod.Status.Phase != corev1.PodRunning && pod.Status.Phase != corev1.PodPending {
+				if pod.Status.Phase != corev1.PodRunning {
 					continue
 				}
 				markPodSeen(seenPods, pod.Namespace, pod.Name)
@@ -299,15 +303,10 @@ func namespaceIsBlocked(namespace string, namespaceBlocklist, namespaceAllowlist
 	return true
 }
 
-func createKubeClientResources() (*kubeClientResources, error) {
+func kubeClientResourcesFrom(kubeClient kubernetes.Interface) (*kubeClientResources, error) {
 	kubeConfig, err := ctrl.GetConfig()
 	if err != nil {
 		return nil, fmt.Errorf("fetching kube config: %w", err)
-	}
-
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(kubeConfig)

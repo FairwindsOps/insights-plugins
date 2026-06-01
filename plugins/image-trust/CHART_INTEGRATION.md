@@ -20,7 +20,13 @@ image-trust:
 | `serviceaccounts` | get | Service account imagePullSecrets for discovered pods |
 | `namespaces` | get, list | Namespace scoping for discovery |
 | `pods` | get, list | Orphan running pods not owned by a top-level controller |
-| `jobs` | get, list | Active Jobs and their pods |
+| `jobs` | get, list | Active Jobs and their running pods |
+
+### Pull-secret RBAC blast radius
+
+When `useImagePullSecrets: true`, the bundled ClusterRole grants **`secrets` get cluster-wide**. The plugin only reads `kubernetes.io/dockerconfigjson` secrets referenced by discovered pod `imagePullSecrets` and service accounts, but Kubernetes RBAC cannot express that constraint — any Secret in any namespace could be read by the image-trust ServiceAccount if an attacker knows the name.
+
+Prefer dedicated registry credentials (`IMAGE_TRUST_REGISTRY_AUTHS`, `REGISTRY_PASSWORD_FILE`) when possible and leave `useImagePullSecrets: false`. If pull-secret merge is required, treat the image-trust ServiceAccount as sensitive and restrict who can exec into the pod or read its environment.
 
 ## Registry credentials
 

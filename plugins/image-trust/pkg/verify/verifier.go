@@ -3,14 +3,15 @@ package verify
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
+	"github.com/sirupsen/logrus"
 )
 
 // Verifier checks trust evidence for an immutable image reference.
@@ -62,13 +63,13 @@ func VerifyImages(
 	results := make([]models.ImageTrustResult, len(images))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrent)
-	var once sync.Once
-	var firstErr error
+	var processed atomic.Int32
+	total := len(images)
 
-	recordErr := func(err error) {
-		once.Do(func() {
-			firstErr = err
-		})
+	logProgress := func(completed int) {
+		if completed == total || completed%10 == 0 || total <= 10 {
+			logrus.Infof("processed image trust checks for %d/%d images", completed, total)
+		}
 	}
 
 	for i, image := range images {
@@ -77,9 +78,12 @@ func VerifyImages(
 		go func(index int, img models.DiscoveredImage) {
 			defer wg.Done()
 			defer func() { <-sem }()
+			defer func() {
+				logProgress(int(processed.Add(1)))
+			}()
 
 			if err := ctx.Err(); err != nil {
-				recordErr(err)
+				results[index] = imageTrustResultFromError(img, err)
 				return
 			}
 
@@ -94,41 +98,55 @@ func VerifyImages(
 				observation, err = VerifyWithRetries(imageCtx, verifier, img, verifyRetries, retryBackoff, retryJitter)
 			}
 			if err != nil {
-				recordErr(fmt.Errorf("verifying image %s: %w", img.Name, err))
+				results[index] = imageTrustResultFromError(img, err)
 				return
 			}
-			verifiedBy := string(observation.VerifiedBy)
-			if verifiedBy == "" {
-				verifiedBy = string(observation.Mode)
-			}
-			results[index] = models.ImageTrustResult{
-				Name:               img.Name,
-				ID:                 img.ID,
-				PullRef:            img.PullRef,
-				Status:             observation.Status,
-				Reason:             observation.Reason,
-				VerificationMode:   verificationModeFromObservation(observation),
-				VerifiedBy:         verifiedBy,
-				AttestationType:    observation.AttestationType,
-				Allowlisted:        false,
-				Owners:             img.Owners,
-				Signer:             observation.Signer,
-				CandidateSigners:   append([]models.SignerDetails(nil), observation.Signers...),
-				DigestResolveError: img.DigestResolveError,
-			}
+			results[index] = imageTrustResultFromObservation(img, observation)
 		}(i, image)
 	}
 
 	wg.Wait()
 
-	if firstErr != nil {
-		return nil, firstErr
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-
 	return results, nil
+}
+
+func imageTrustResultFromObservation(img models.DiscoveredImage, observation models.VerificationObservation) models.ImageTrustResult {
+	verifiedBy := string(observation.VerifiedBy)
+	if verifiedBy == "" {
+		verifiedBy = string(observation.Mode)
+	}
+	return models.ImageTrustResult{
+		Name:               img.Name,
+		ID:                 img.ID,
+		PullRef:            img.PullRef,
+		Status:             observation.Status,
+		Reason:             observation.Reason,
+		VerificationMode:   verificationModeFromObservation(observation),
+		VerifiedBy:         verifiedBy,
+		AttestationType:    observation.AttestationType,
+		Allowlisted:        false,
+		Owners:             img.Owners,
+		Signer:             observation.Signer,
+		CandidateSigners:   append([]models.SignerDetails(nil), observation.Signers...),
+		DigestResolveError: img.DigestResolveError,
+	}
+}
+
+func imageTrustResultFromError(img models.DiscoveredImage, err error) models.ImageTrustResult {
+	reason := err.Error()
+	if reason == "" {
+		reason = "image trust verification failed"
+	}
+	return models.ImageTrustResult{
+		Name:               img.Name,
+		ID:                 img.ID,
+		PullRef:            img.PullRef,
+		Status:             models.StatusVerificationError,
+		Reason:             reason,
+		Allowlisted:        false,
+		Owners:             img.Owners,
+		DigestResolveError: img.DigestResolveError,
+	}
 }
 
 func verificationModeFromObservation(observation models.VerificationObservation) string {

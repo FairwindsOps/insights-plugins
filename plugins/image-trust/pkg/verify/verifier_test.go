@@ -110,13 +110,13 @@ func (f failingVerifier) Verify(context.Context, models.DiscoveredImage) (models
 	return models.VerificationObservation{}, fmt.Errorf("boom")
 }
 
-func TestVerifyImagesRecordsFirstConcurrentError(t *testing.T) {
+func TestVerifyImagesRecordsPerImageVerificationError(t *testing.T) {
 	images := []models.DiscoveredImage{
 		{Name: "first", ID: "first@sha256:1"},
 		{Name: "second", ID: "second@sha256:2"},
 	}
 
-	_, err := VerifyImages(
+	results, err := VerifyImages(
 		context.Background(),
 		images,
 		registry.Credentials{},
@@ -127,8 +127,11 @@ func TestVerifyImagesRecordsFirstConcurrentError(t *testing.T) {
 		false,
 		1,
 	)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "verifying image")
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	require.Equal(t, models.StatusVerificationError, results[0].Status)
+	require.Equal(t, models.StatusVerificationError, results[1].Status)
+	require.Contains(t, results[0].Reason, "boom")
 }
 
 func TestVerificationModeFromObservationPrefersVerifiedBy(t *testing.T) {

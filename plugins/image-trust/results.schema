@@ -21,14 +21,8 @@
             ]
           },
           "reason": { "type": "string" },
-          "verificationMode": {
-            "type": "string",
-            "enum": ["cosign-keyless", "cosign-key", "cosign-attestation-keyless", "cosign-attestation-key"]
-          },
-          "verifiedBy": {
-            "type": "string",
-            "enum": ["cosign-keyless", "cosign-key", "cosign-attestation-keyless", "cosign-attestation-key"]
-          },
+          "verificationMode": { "type": "string" },
+          "verifiedBy": { "type": "string" },
           "attestationType": { "type": "string" },
           "allowlisted": { "type": "boolean" },
           "allowlistReason": { "type": "string" },
@@ -115,6 +109,7 @@
           "ResourceNamespace": { "type": "string" },
           "ResourceKind": { "type": "string" },
           "ResourceName": { "type": "string" },
+          "ResourceContainer": { "type": "string" },
           "Title": { "type": "string" },
           "Description": { "type": "string" },
           "Remediation": { "type": "string" },

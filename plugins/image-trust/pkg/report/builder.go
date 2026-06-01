@@ -77,6 +77,7 @@ func buildFinding(owner models.Resource, result models.ImageTrustResult) models.
 		ResourceNamespace: owner.Namespace,
 		ResourceKind:      owner.Kind,
 		ResourceName:      owner.Name,
+		ResourceContainer: owner.Container,
 		Title:             title,
 		Description:       description,
 		Remediation:       remediation,
