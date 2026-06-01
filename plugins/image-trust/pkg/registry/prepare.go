@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/config"
-	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/kubernetes"
 )
 
 const defaultRegistryAuthHost = "https://index.docker.io/v1/"
@@ -28,7 +26,9 @@ func (p PreparedCredentials) Cleanup() {
 }
 
 // Prepare loads credentials, merges auth sources into docker config, and prepares TLS bundles.
-func Prepare(ctx context.Context, cfg *config.Config, client kubernetes.Interface, pullSecretRefs []PullSecretRef) (PreparedCredentials, error) {
+func Prepare(ctx context.Context, cfg *config.Config) (PreparedCredentials, error) {
+	_ = ctx
+
 	creds, err := LoadFromEnvironment()
 	if err != nil {
 		return PreparedCredentials{}, err
@@ -38,7 +38,7 @@ func Prepare(ctx context.Context, cfg *config.Config, client kubernetes.Interfac
 
 	prepared := PreparedCredentials{Credentials: creds}
 
-	if err := prepared.materializeDockerConfig(ctx, cfg, client, pullSecretRefs); err != nil {
+	if err := prepared.materializeDockerConfig(cfg); err != nil {
 		prepared.Cleanup()
 		return PreparedCredentials{}, err
 	}
@@ -51,10 +51,9 @@ func Prepare(ctx context.Context, cfg *config.Config, client kubernetes.Interfac
 	return prepared, nil
 }
 
-func (p *PreparedCredentials) materializeDockerConfig(ctx context.Context, cfg *config.Config, client kubernetes.Interface, pullSecretRefs []PullSecretRef) error {
+func (p *PreparedCredentials) materializeDockerConfig(cfg *config.Config) error {
 	creds := &p.Credentials
-	needsConfig := cfg.UseImagePullSecrets ||
-		creds.DockerConfigDir != "" ||
+	needsConfig := creds.DockerConfigDir != "" ||
 		creds.Username != "" ||
 		creds.Password != "" ||
 		len(cfg.RegistryAuths) > 0
@@ -64,18 +63,6 @@ func (p *PreparedCredentials) materializeDockerConfig(ctx context.Context, cfg *
 	}
 
 	configs := make([]dockerConfig, 0)
-
-	if cfg.UseImagePullSecrets {
-		if client == nil {
-			return fmt.Errorf("kubernetes client is required when IMAGE_TRUST_USE_IMAGE_PULL_SECRETS is enabled")
-		}
-		pullConfigs, err := CollectPullSecretConfigs(ctx, client, pullSecretRefs)
-		if err != nil {
-			return err
-		}
-		configs = append(configs, pullConfigs...)
-		logrus.Infof("loaded docker config from %d referenced imagePullSecret sources", len(pullConfigs))
-	}
 
 	if creds.DockerConfigDir != "" {
 		envCfg, err := readDockerConfigDir(creds.DockerConfigDir)

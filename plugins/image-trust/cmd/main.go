@@ -39,7 +39,7 @@ func main() {
 		logrus.Fatalf("discovering images: %v", err)
 	}
 
-	prepared, err := registry.Prepare(ctx, cfg, kubeClient, discoveryResult.PullSecretRefs)
+	prepared, err := registry.Prepare(ctx, cfg)
 	if err != nil {
 		logrus.Fatalf("preparing registry credentials: %v", err)
 	}

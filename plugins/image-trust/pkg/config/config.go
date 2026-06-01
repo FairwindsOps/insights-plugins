@@ -35,7 +35,6 @@ type Config struct {
 	MaxConcurrentScans     int
 	ImageVerifyTimeout     time.Duration
 	ResolveDigests         bool
-	UseImagePullSecrets    bool
 	RegistryAuthHost       string
 	RegistryAuths          []RegistryAuth
 	RegistryMirrors        map[string]string
@@ -68,7 +67,6 @@ func LoadFromEnvironment() (*Config, error) {
 		MaxConcurrentScans:  DefaultMaxConcurrentScans,
 		ImageVerifyTimeout:  DefaultImageVerifyTimeout,
 		ResolveDigests:      true,
-		UseImagePullSecrets: false,
 		VerifyRetries:       3,
 		VerifyRetryBackoff:  2 * time.Second,
 		VerifyRetryJitter:   true,
@@ -106,7 +104,6 @@ func LoadFromEnvironment() (*Config, error) {
 	}
 
 	cfg.ResolveDigests = parseBoolEnvDefault("IMAGE_TRUST_RESOLVE_DIGESTS", true)
-	cfg.UseImagePullSecrets = parseBoolEnv("IMAGE_TRUST_USE_IMAGE_PULL_SECRETS")
 	cfg.RegistryAuthHost = strings.TrimSpace(os.Getenv("IMAGE_TRUST_REGISTRY_AUTH_HOST"))
 
 	retries := os.Getenv("IMAGE_TRUST_VERIFY_RETRIES")

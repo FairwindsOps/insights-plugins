@@ -103,7 +103,7 @@ func detailsForStatus(result models.ImageTrustResult) (title, description, remed
 		if result.DigestResolveError != "" {
 			return "Container image digest could not be resolved",
 				"The image-trust plugin could not resolve image " + imageRef + " to a digest before signature verification: " + result.DigestResolveError,
-				"Fix registry authentication (IMAGE_TRUST_REGISTRY_AUTHS or pull secrets), network access, and mirror mapping (IMAGE_TRUST_REGISTRY_MIRRORS).",
+				"Fix registry authentication (IMAGE_TRUST_REGISTRY_AUTHS or REGISTRY_PASSWORD_FILE), network access, and mirror mapping (IMAGE_TRUST_REGISTRY_MIRRORS).",
 				verificationErrorSeverity
 		}
 		return "Container image trust could not be verified",

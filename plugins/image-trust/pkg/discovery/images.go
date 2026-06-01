@@ -53,8 +53,6 @@ func ListImages(ctx context.Context, kubeClient kubernetes.Interface, namespaceB
 	keyToImage := map[string]models.DiscoveredImage{}
 	imageOwners := map[string]map[models.Resource]struct{}{}
 	seenPods := map[string]struct{}{}
-	pullSecrets := newPullSecretSet()
-	serviceAccounts := map[string]struct{}{}
 
 	for _, controller := range controllers {
 		namespace := strings.ToLower(controller.TopController.GetNamespace())
@@ -76,7 +74,6 @@ func ListImages(ctx context.Context, kubeClient kubernetes.Interface, namespaceB
 				continue
 			}
 			markPodSeen(seenPods, pod.Namespace, pod.Name)
-			collectPullSecretRefs(ctx, kubeResources.KubeClient, pod, pullSecrets, serviceAccounts)
 
 			for _, status := range containerStatusesFromPod(pod) {
 				recordContainerImage(status, owner, keyToImage, imageOwners)
@@ -88,10 +85,10 @@ func ListImages(ctx context.Context, kubeClient kubernetes.Interface, namespaceB
 	if err != nil {
 		return Result{}, err
 	}
-	if err := recordOrphanPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners, pullSecrets, serviceAccounts); err != nil {
+	if err := recordOrphanPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
 		return Result{}, err
 	}
-	if err := recordJobPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners, pullSecrets, serviceAccounts); err != nil {
+	if err := recordJobPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
 		return Result{}, err
 	}
 
@@ -103,8 +100,7 @@ func ListImages(ctx context.Context, kubeClient kubernetes.Interface, namespaceB
 	}
 
 	return Result{
-		Images:         lo.Values(keyToImage),
-		PullSecretRefs: pullSecrets.refs(),
+		Images: lo.Values(keyToImage),
 	}, nil
 }
 
@@ -123,8 +119,6 @@ func recordOrphanPods(
 	seenPods map[string]struct{},
 	keyToImage map[string]models.DiscoveredImage,
 	imageOwners map[string]map[models.Resource]struct{},
-	pullSecrets pullSecretSet,
-	serviceAccounts map[string]struct{},
 ) error {
 	for _, namespace := range namespaces {
 		pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{FieldSelector: "status.phase=Running"})
@@ -144,7 +138,6 @@ func recordOrphanPods(
 				Name:      pod.Name,
 			}
 			markPodSeen(seenPods, pod.Namespace, pod.Name)
-			collectPullSecretRefs(ctx, client, pod, pullSecrets, serviceAccounts)
 			for _, status := range containerStatusesFromPod(pod) {
 				recordContainerImage(status, owner, keyToImage, imageOwners)
 			}
@@ -160,8 +153,6 @@ func recordJobPods(
 	seenPods map[string]struct{},
 	keyToImage map[string]models.DiscoveredImage,
 	imageOwners map[string]map[models.Resource]struct{},
-	pullSecrets pullSecretSet,
-	serviceAccounts map[string]struct{},
 ) error {
 	for _, namespace := range namespaces {
 		jobs, err := client.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
@@ -195,7 +186,6 @@ func recordJobPods(
 					continue
 				}
 				markPodSeen(seenPods, pod.Namespace, pod.Name)
-				collectPullSecretRefs(ctx, client, pod, pullSecrets, serviceAccounts)
 				for _, status := range containerStatusesFromPod(pod) {
 					recordContainerImage(status, owner, keyToImage, imageOwners)
 				}

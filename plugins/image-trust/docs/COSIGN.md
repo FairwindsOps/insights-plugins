@@ -148,7 +148,7 @@ sequenceDiagram
 1. **Discover** images from running workloads (pod `image` / `imageID` via the Kubernetes API; no registry login at this step).
 2. **Resolve digests** when `IMAGE_TRUST_RESOLVE_DIGESTS=true` (default): tag-only references are looked up with the registry API (`go-containerregistry`). Failures set `digestResolveError` on the image.
 3. **Preflight**: if there is no `image@sha256:…` reference and no digest resolve error, status is `unknown` without calling cosign. If digest lookup failed, status is `verification_error` without calling cosign.
-4. **Verify** via `cosign` subprocess with registry auth from docker config (`REGISTRY_*`, `IMAGE_TRUST_REGISTRY_AUTHS`, optional pull secrets).
+4. **Verify** via `cosign` subprocess with registry auth from docker config (`REGISTRY_*`, `IMAGE_TRUST_REGISTRY_AUTHS`, `REGISTRY_DOCKER_CONFIG_PATH`).
 5. **Allowlists** (`IMAGE_TRUST_*_ALLOWLIST`) suppress findings but do not change reported status.
 
 Sigstore endpoints and trust roots are forwarded to cosign from the plugin process environment (`FULCIO_URL`, `REKOR_URL`, `SIGSTORE_ROOT_FILE`, etc.) and optional `IMAGE_TRUST_SIGSTORE_ENV_FILE` — see `pkg/sigstore/env.go`.

@@ -4,29 +4,22 @@ The Fairwinds Insights Agent chart lives in [FairwindsOps/charts](https://github
 
 ## RBAC
 
-When `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true`, the plugin loads only `kubernetes.io/dockerconfigjson` secrets referenced by discovered pod `imagePullSecrets` and the pod service account's `imagePullSecrets`. Minimum rules for that feature: `secrets` **get**, `serviceaccounts` **get**, and `namespaces` **get/list** (namespace list is used for discovery scoping).
-
-Also grants `pods` and `jobs` **list/get** for orphan-pod and active-job discovery paths. Bind that ClusterRole to the image-trust ServiceAccount (or merge equivalent rules into your chart RBAC). Example chart fragment:
-
-```yaml
-image-trust:
-  enabled: true
-  useImagePullSecrets: true
-```
+Discovery uses the Kubernetes API only (no registry login). Minimum rules for image discovery:
 
 | Resource | Verbs | Used for |
 |----------|-------|----------|
-| `secrets` | get | Referenced imagePullSecrets (`IMAGE_TRUST_USE_IMAGE_PULL_SECRETS`) |
-| `serviceaccounts` | get | Service account imagePullSecrets for discovered pods |
 | `namespaces` | get, list | Namespace scoping for discovery |
 | `pods` | get, list | Orphan running pods not owned by a top-level controller |
 | `jobs` | get, list | Active Jobs and their running pods |
 
-### Pull-secret RBAC blast radius
+Registry credentials are supplied via chart values / mounted secrets (`IMAGE_TRUST_REGISTRY_AUTHS`, `REGISTRY_PASSWORD_FILE`, etc.) — not from workload `imagePullSecrets`.
 
-When `useImagePullSecrets: true`, the bundled ClusterRole grants **`secrets` get cluster-wide**. The plugin only reads `kubernetes.io/dockerconfigjson` secrets referenced by discovered pod `imagePullSecrets` and service accounts, but Kubernetes RBAC cannot express that constraint — any Secret in any namespace could be read by the image-trust ServiceAccount if an attacker knows the name.
+Example chart fragment:
 
-Prefer dedicated registry credentials (`IMAGE_TRUST_REGISTRY_AUTHS`, `REGISTRY_PASSWORD_FILE`) when possible and leave `useImagePullSecrets: false`. If pull-secret merge is required, treat the image-trust ServiceAccount as sensitive and restrict who can exec into the pod or read its environment.
+```yaml
+image-trust:
+  enabled: true
+```
 
 ## Registry credentials
 
@@ -38,7 +31,7 @@ Prefer dedicated registry credentials (`IMAGE_TRUST_REGISTRY_AUTHS`, `REGISTRY_P
 | `registryCertDirs` | `IMAGE_TRUST_REGISTRY_CERT_DIRS` |
 | `registryMirrors` | `IMAGE_TRUST_REGISTRY_MIRRORS` |
 
-Prefer **password files** and **docker config** so credentials are not passed on the cosign command line.
+Prefer **`IMAGE_TRUST_REGISTRY_AUTHS`** (or `_FILE`) for multi-registry clusters. Use password files and docker config so credentials are not passed on the cosign command line.
 
 ## Multi-registry example (`IMAGE_TRUST_REGISTRY_AUTHS`)
 
@@ -48,6 +41,15 @@ Prefer **password files** and **docker config** so credentials are not passed on
   {"host": "https://ghcr.io", "username": "user", "password": "token"},
   {"host": "https://registry.example.com/v1/", "username": "robot", "password": "secret"}
 ]
+```
+
+Mount as a Secret and set `IMAGE_TRUST_REGISTRY_AUTHS_FILE`:
+
+```yaml
+image-trust:
+  enabled: true
+  privateImages:
+    registryAuthsSecret: image-trust-registry-auths
 ```
 
 ## Registry mirrors
@@ -195,7 +197,8 @@ image-trust:
   verifyRetries: 3
   verifyRetryBackoffSeconds: 2
   verifyRetryJitter: true
-  useImagePullSecrets: true
+  privateImages:
+    registryAuthsSecret: image-trust-registry-auths
   modes:
     - cosign-keyless
     - cosign-key

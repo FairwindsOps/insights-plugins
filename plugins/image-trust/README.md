@@ -71,7 +71,7 @@ Allowlists (glob patterns; findings suppressed when matched):
 
 ## Private registries
 
-Discovery uses in-cluster pod status (no registry login). **Verification** calls the registry API to fetch signatures, so the image-trust pod needs credentials that can **read** the repository (robot account or token). This is separate from workload `imagePullSecrets` unless you enable the option below.
+Discovery uses in-cluster pod status (no registry login). **Verification** calls the registry API to fetch signatures, so the image-trust pod needs credentials that can **read** the repository (robot account or token). Configure dedicated registry credentials on the image-trust pod — workload `imagePullSecrets` are not used.
 
 Use the same variables as the Trivy plugin:
 
@@ -79,7 +79,7 @@ Use the same variables as the Trivy plugin:
 
 Credentials are **always** written to a docker `config.json` for cosign (passwords are never passed on the command line). Prefer `REGISTRY_PASSWORD_FILE` over `REGISTRY_PASSWORD`.
 
-**Multi-registry auth** — `IMAGE_TRUST_REGISTRY_AUTHS` (JSON array) or `IMAGE_TRUST_REGISTRY_AUTHS_FILE`:
+**Multi-registry auth (recommended)** — `IMAGE_TRUST_REGISTRY_AUTHS` (JSON array) or `IMAGE_TRUST_REGISTRY_AUTHS_FILE`:
 
 ```json
 [
@@ -92,9 +92,7 @@ Credentials are **always** written to a docker `config.json` for cosign (passwor
 
 **Per-registry TLS**: `IMAGE_TRUST_REGISTRY_CERT_DIRS` or `IMAGE_TRUST_REGISTRY_CERT_DIRS_FILE` (comma-separated `host=/path` pairs)
 
-**Pull secrets**: `IMAGE_TRUST_USE_IMAGE_PULL_SECRETS=true` merges `imagePullSecrets` from discovered pod specs and their service accounts (not every dockerconfigjson secret in the namespace). Requires RBAC; see [deploy/rbac.yaml](deploy/rbac.yaml) and [CHART_INTEGRATION.md](CHART_INTEGRATION.md).
-
-Example:
+Example (single registry via password file):
 
 ```yaml
 env:
@@ -112,7 +110,7 @@ volumes:
 
 Legacy single-registry env vars (`REGISTRY_USER` / `REGISTRY_PASSWORD`) are merged into docker config for `IMAGE_TRUST_REGISTRY_AUTH_HOST` (default `https://index.docker.io/v1/`).
 
-- `REGISTRY_DOCKER_CONFIG_PATH` — existing `config.json` merged with auths above and pull secrets
+- `REGISTRY_DOCKER_CONFIG_PATH` — existing `config.json` merged with `IMAGE_TRUST_REGISTRY_AUTHS` and legacy `REGISTRY_*` env vars
 
 Private registry verification requires outbound access to the registry and, for keyless signatures, to Sigstore services (Fulcio, Rekor, and TUF roots).
 
