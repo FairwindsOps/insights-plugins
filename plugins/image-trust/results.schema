@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "id": { "type": "string" },
+          "pullRef": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "unsigned",
+              "signed_untrusted",
+              "verification_error",
+              "unknown"
+            ]
+          },
+          "reason": { "type": "string" },
+          "verificationMode": { "type": "string" },
+          "verifiedBy": { "type": "string" },
+          "attestationType": { "type": "string" },
+          "allowlisted": { "type": "boolean" },
+          "allowlistReason": { "type": "string" },
+          "owners": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "kind": { "type": "string" },
+                "namespace": { "type": "string" },
+                "container": { "type": "string" }
+              },
+              "required": ["name", "kind", "namespace"]
+            }
+          },
+          "signer": {
+            "type": "object",
+            "properties": {
+              "issuer": { "type": "string" },
+              "subject": { "type": "string" },
+              "keyRef": { "type": "string" }
+            }
+          },
+          "candidateSigners": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issuer": { "type": "string" },
+                "subject": { "type": "string" },
+                "keyRef": { "type": "string" }
+              }
+            }
+          },
+          "digestResolveError": { "type": "string" },
+          "lastCheckedAt": { "type": "string" }
+        },
+        "required": ["name", "status", "allowlisted", "owners", "lastCheckedAt"]
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "totalImages": { "type": "integer" },
+        "verified": { "type": "integer" },
+        "unsigned": { "type": "integer" },
+        "signedUntrusted": { "type": "integer" },
+        "verificationError": { "type": "integer" },
+        "unknown": { "type": "integer" },
+        "allowlisted": { "type": "integer" }
+      },
+      "required": ["totalImages"]
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "allowlists": {
+          "type": "object",
+          "properties": {
+            "images": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "registries": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "signers": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["images", "registries", "signers"]
+        }
+      },
+      "required": ["allowlists"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "resourceNamespace": { "type": "string" },
+          "resourceKind": { "type": "string" },
+          "resourceName": { "type": "string" },
+          "resourceContainer": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "remediation": { "type": "string" },
+          "severity": { "type": "number" },
+          "category": { "type": "string" }
+        },
+        "required": [
+          "resourceNamespace",
+          "resourceKind",
+          "resourceName",
+          "title",
+          "description",
+          "remediation",
+          "severity",
+          "category"
+        ]
+      }
+    }
+  },
+  "required": ["images", "summary", "policy"]
+}

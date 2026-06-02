@@ -20,6 +20,7 @@ type JobConfig struct {
 
 var reportTypeJobConfigMap = map[string]JobConfig{
 	"trivy":               {cronJobName: "trivy", timeout: 20 * time.Minute},
+	"image-trust":         {cronJobName: "image-trust", timeout: 20 * time.Minute},
 	"cloudcosts":          {cronJobName: "cloudcosts", timeout: 5 * time.Minute},
 	"falco":               {cronJobName: "falco", timeout: 5 * time.Minute},
 	"nova":                {cronJobName: "nova", timeout: 5 * time.Minute},

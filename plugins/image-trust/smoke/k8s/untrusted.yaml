@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: untrusted
+  namespace: image-trust-smoke
+  labels:
+    app: untrusted
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: untrusted
+  template:
+    metadata:
+      labels:
+        app: untrusted
+    spec:
+      initContainers:
+        - name: sigstore-cosign
+          image: gcr.io/projectsigstore/cosign:v2.4.0
+          command: ["cosign", "version"]
+      containers:
+        - name: app
+          image: docker.io/library/busybox:1.36
+          command: ["sleep", "infinity"]

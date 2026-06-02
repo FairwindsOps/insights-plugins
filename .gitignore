@@ -31,5 +31,7 @@ plugins/*/.goreleaser.yml
 
 # Plugin binaries
 /plugins/ci/insights-ci
+plugins/image-trust/image-trust
+plugins/image-trust/output/
 .tool-versions
 plugins/on-demand-job-runner/config.yaml

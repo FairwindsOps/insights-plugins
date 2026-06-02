@@ -1,0 +1,150 @@
+package verify
+
+import (
+	"context"
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/models"
+	"github.com/fairwindsops/insights-plugins/plugins/image-trust/pkg/registry"
+)
+
+type CosignVerifier struct {
+	runner                CommandRunner
+	registryCreds         registry.Credentials
+	trustedIssuerMatcher  *regexp.Regexp
+	trustedSubjectMatcher *regexp.Regexp
+}
+
+func NewCosignVerifier(runner CommandRunner, registryCreds registry.Credentials, trustedIssuers, trustedSubjects, trustedSubjectREs []string) (*CosignVerifier, error) {
+	issuerRE, err := buildAlternationRegex(trustedIssuers, nil)
+	if err != nil {
+		return nil, fmt.Errorf("building issuer regex: %w", err)
+	}
+	subjectRE, err := buildAlternationRegex(trustedSubjects, trustedSubjectREs)
+	if err != nil {
+		return nil, fmt.Errorf("building subject regex: %w", err)
+	}
+
+	var issuerMatcher *regexp.Regexp
+	if issuerRE != "" {
+		issuerMatcher, err = regexp.Compile(issuerRE)
+		if err != nil {
+			return nil, fmt.Errorf("compiling issuer regex: %w", err)
+		}
+	}
+
+	var subjectMatcher *regexp.Regexp
+	if subjectRE != "" {
+		subjectMatcher, err = regexp.Compile(subjectRE)
+		if err != nil {
+			return nil, fmt.Errorf("compiling subject regex: %w", err)
+		}
+	}
+
+	return &CosignVerifier{
+		runner:                runner,
+		registryCreds:         registryCreds,
+		trustedIssuerMatcher:  issuerMatcher,
+		trustedSubjectMatcher: subjectMatcher,
+	}, nil
+}
+
+func (v *CosignVerifier) Name() models.VerificationMode {
+	return models.VerificationModeCosignKeyless
+}
+
+func (v *CosignVerifier) Verify(ctx context.Context, image models.DiscoveredImage) (models.VerificationObservation, error) {
+	ref := v.registryCreds.VerificationReference(image.VerificationReference())
+	if ref == "" {
+		return models.VerificationObservation{
+			Mode:   v.Name(),
+			Status: models.StatusUnknown,
+			Reason: "image could not be resolved to an immutable digest reference",
+		}, nil
+	}
+
+	args := []string{
+		"verify",
+		"--output", "json",
+		"--certificate-identity-regexp", ".*",
+		"--certificate-oidc-issuer-regexp", ".*",
+	}
+	args = append(args, v.registryCreds.CosignArgs()...)
+	args = append(args, ref)
+
+	stdout, stderr, err := v.runner.Run(ctx, "cosign", args...)
+	if err != nil {
+		if strings.Contains(err.Error(), "executable file not found") {
+			return models.VerificationObservation{
+				Mode:   v.Name(),
+				Status: models.StatusVerificationError,
+				Reason: "cosign binary not available",
+			}, nil
+		}
+		status, reason := classifyCosignFailure(firstNonEmpty(stderr, stdout, err.Error()))
+		return models.VerificationObservation{
+			Mode:   v.Name(),
+			Status: status,
+			Reason: reason,
+		}, nil
+	}
+
+	signers, err := extractCosignSigners(stdout)
+	if err != nil {
+		return models.VerificationObservation{
+			Mode:   v.Name(),
+			Status: models.StatusVerificationError,
+			Reason: fmt.Sprintf("cosign verification succeeded but signer data could not be parsed: %v", err),
+		}, nil
+	}
+
+	if !v.hasTrustPolicy() {
+		return models.VerificationObservation{
+			Mode:   v.Name(),
+			Status: models.StatusVerificationError,
+			Reason: "trusted issuer or subject policy is not configured",
+		}, nil
+	}
+
+	if len(signers) == 0 {
+		return models.VerificationObservation{
+			Mode:   v.Name(),
+			Status: models.StatusVerificationError,
+			Reason: "cosign verification succeeded but signer identity could not be determined",
+		}, nil
+	}
+	for _, signer := range signers {
+		if v.isTrustedSigner(signer) {
+			return models.VerificationObservation{
+				Mode:    v.Name(),
+				Status:  models.StatusVerified,
+				Reason:  "cosign verification succeeded",
+				Signer:  signer,
+				Signers: signers,
+			}, nil
+		}
+	}
+	return models.VerificationObservation{
+		Mode:    v.Name(),
+		Status:  models.StatusSignedUntrusted,
+		Reason:  "signature was verified but no signer matched the configured trust policy",
+		Signer:  signers[0],
+		Signers: signers,
+	}, nil
+}
+
+func (v *CosignVerifier) hasTrustPolicy() bool {
+	return v.trustedIssuerMatcher != nil || v.trustedSubjectMatcher != nil
+}
+
+func (v *CosignVerifier) isTrustedSigner(signer models.SignerDetails) bool {
+	if v.trustedIssuerMatcher != nil && !v.trustedIssuerMatcher.MatchString(signer.Issuer) {
+		return false
+	}
+	if v.trustedSubjectMatcher != nil && !v.trustedSubjectMatcher.MatchString(signer.Subject) {
+		return false
+	}
+	return true
+}
