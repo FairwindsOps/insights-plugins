@@ -5,6 +5,7 @@ use (
 	./plugins/ci
 	./plugins/event-watcher
 	./plugins/falco-agent
+	./plugins/image-trust
 	./plugins/kube-bench
 	./plugins/kube-bench-aggregator
 	./plugins/kyverno

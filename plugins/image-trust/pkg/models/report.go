@@ -1,0 +1,83 @@
+package models
+
+import "time"
+
+type Status string
+
+const (
+	StatusVerified          Status = "verified"
+	StatusUnsigned          Status = "unsigned"
+	StatusSignedUntrusted   Status = "signed_untrusted"
+	StatusVerificationError Status = "verification_error"
+	StatusUnknown           Status = "unknown"
+)
+
+// SignerDetails captures signer information when available.
+type SignerDetails struct {
+	Issuer  string `json:"issuer,omitempty"`
+	Subject string `json:"subject,omitempty"`
+	KeyRef  string `json:"keyRef,omitempty"`
+}
+
+// ImageTrustResult is the final per-image trust state sent to Insights.
+type ImageTrustResult struct {
+	Name               string          `json:"name"`
+	ID                 string          `json:"id"`
+	PullRef            string          `json:"pullRef"`
+	Status             Status          `json:"status"`
+	Reason             string          `json:"reason,omitempty"`
+	VerificationMode   string          `json:"verificationMode,omitempty"`
+	VerifiedBy         string          `json:"verifiedBy,omitempty"`
+	AttestationType    string          `json:"attestationType,omitempty"`
+	Allowlisted        bool            `json:"allowlisted"`
+	AllowlistReason    string          `json:"allowlistReason,omitempty"`
+	Owners             []Resource      `json:"owners"`
+	Signer             SignerDetails   `json:"signer"`
+	CandidateSigners   []SignerDetails `json:"candidateSigners,omitempty"`
+	DigestResolveError string          `json:"digestResolveError,omitempty"`
+	LastCheckedAt      time.Time       `json:"lastCheckedAt"`
+}
+
+// Finding is a derived action item for non-compliant images.
+type Finding struct {
+	ResourceNamespace string  `json:"resourceNamespace"`
+	ResourceKind      string  `json:"resourceKind"`
+	ResourceName      string  `json:"resourceName"`
+	ResourceContainer string  `json:"resourceContainer,omitempty"`
+	Title             string  `json:"title"`
+	Description       string  `json:"description"`
+	Remediation       string  `json:"remediation"`
+	Severity          float64 `json:"severity"`
+	Category          string  `json:"category"`
+}
+
+// AllowlistPolicy captures exemption patterns configured at scan time.
+type AllowlistPolicy struct {
+	Images     []string `json:"images"`
+	Registries []string `json:"registries"`
+	Signers    []string `json:"signers"`
+}
+
+// ReportPolicy captures trust-related configuration applied when the report was generated.
+type ReportPolicy struct {
+	Allowlists AllowlistPolicy `json:"allowlists"`
+}
+
+// Summary aggregates image-trust statuses across all images in the report.
+type Summary struct {
+	TotalImages       int `json:"totalImages"`
+	Verified          int `json:"verified"`
+	Unsigned          int `json:"unsigned"`
+	SignedUntrusted   int `json:"signedUntrusted"`
+	VerificationError int `json:"verificationError"`
+	Unknown           int `json:"unknown"`
+	Allowlisted       int `json:"allowlisted"`
+}
+
+// Report is the top-level image-trust report payload.
+type Report struct {
+	Images   []ImageTrustResult `json:"images"`
+	Summary  Summary            `json:"summary"`
+	Policy   ReportPolicy       `json:"policy"`
+	Findings []Finding          `json:"findings,omitempty"`
+}
