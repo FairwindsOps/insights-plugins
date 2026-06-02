@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.6
+* Bump indirect libraries dependencies
+
 ## 2.3.5
 * Bump library golang.org/x/mod to v0.36.0
 * Bump library k8s.io/api to v0.36.1
