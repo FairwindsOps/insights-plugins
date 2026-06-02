@@ -7,7 +7,6 @@ import (
 	"github.com/fairwindsops/polaris/pkg/mutation"
 	polariswebhook "github.com/fairwindsops/polaris/pkg/webhook"
 	"github.com/sirupsen/logrus"
-	"gomodules.xyz/jsonpatch/v3"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 )
@@ -27,41 +26,37 @@ func (m *Mutator) InjectConfig(c models.Configuration) error {
 	return nil
 }
 
-func (m *Mutator) mutate(ctx context.Context, req admission.Request) ([]jsonpatch.Operation, error) {
+func (m *Mutator) mutate(ctx context.Context, req admission.Request) (original, mutated []byte, err error) {
 	if m == nil {
-		return []jsonpatch.Operation{}, nil
+		return nil, nil, nil
 	}
 	if m.config == nil || m.config.Polaris == nil {
-		return []jsonpatch.Operation{}, nil
+		return nil, nil, nil
 	}
 	results, kubeResources, err := polariswebhook.GetValidatedResults(ctx, req.AdmissionRequest.Kind.Kind, m.decoder, req, *m.config.Polaris)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if results == nil || len(results.Results) == 0 {
-		return []jsonpatch.Operation{}, nil
+		return nil, nil, nil
 	}
 	patches := mutation.GetMutationsFromResult(results)
 	if len(patches) == 0 {
-		return []jsonpatch.Operation{}, nil
+		return nil, nil, nil
 	}
 	originalYaml, err := yaml.JSONToYAML(kubeResources.OriginalObjectJSON)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	mutatedYamlStr, err := mutation.ApplyAllMutations(string(originalYaml), patches)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	mutatedJson, err := yaml.YAMLToJSON([]byte(mutatedYamlStr))
+	mutatedJSON, err := yaml.YAMLToJSON([]byte(mutatedYamlStr))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	returnPatch, err := jsonpatch.CreatePatch(kubeResources.OriginalObjectJSON, mutatedJson)
-	if err != nil {
-		return nil, err
-	}
-	return returnPatch, err
+	return kubeResources.OriginalObjectJSON, mutatedJSON, nil
 }
 
 // Handle for Validator to run validation checks.
@@ -79,14 +74,13 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 		req.RequestKind.Kind,
 		req.Name,
 		req.Namespace)
-	patches, err := m.mutate(ctx, req)
+	original, mutated, err := m.mutate(ctx, req)
 	if err != nil {
 		logrus.Errorf("got an error getting patches: %v", err)
 		return admission.Errored(403, err)
 	}
-	if len(patches) == 0 {
+	if original == nil {
 		return admission.Allowed("Allowed")
 	}
-	return admission.Patched("", patches...)
-
+	return admission.PatchResponseFromRaw(original, mutated)
 }
