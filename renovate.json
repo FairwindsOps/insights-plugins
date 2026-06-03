@@ -18,7 +18,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": ["ENV trivyVersion=(?<currentValue>[\\d.]+)"],
       "depNameTemplate": "aquasecurity/trivy",
       "datasourceTemplate": "github-releases",
@@ -26,7 +28,9 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": ["ENV polarisVersion=(?<currentValue>[\\d.]+)"],
       "depNameTemplate": "FairwindsOps/polaris",
       "datasourceTemplate": "github-releases",
@@ -34,7 +38,9 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": ["ENV plutoVersion=(?<currentValue>[\\d.]+)"],
       "depNameTemplate": "FairwindsOps/pluto",
       "datasourceTemplate": "github-releases",
@@ -42,7 +48,9 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": ["ENV helmVersion=(?<currentValue>[\\d.]+)"],
       "depNameTemplate": "helm/helm",
       "datasourceTemplate": "github-releases",
@@ -50,7 +58,9 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": ["ENV kubectlVersion=(?<currentValue>[\\d.]+)"],
       "depNameTemplate": "kubernetes/kubernetes",
       "datasourceTemplate": "github-releases",
@@ -58,14 +68,18 @@
     },
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": ["ENV CLOUD_SDK_VERSION=(?<currentValue>[\\d.]+)"],
       "depNameTemplate": "google/cloud-sdk",
       "datasourceTemplate": "docker"
     },
     {
       "customType": "regex",
-      "fileMatch": ["(^|/)Dockerfile$"],
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/"
+      ],
       "matchStrings": ["ENV PG_PARTMAN_VERSION=(?<currentValue>v[\\d.]+)"],
       "depNameTemplate": "pgpartman/pg_partman",
       "datasourceTemplate": "github-releases"
@@ -73,7 +87,9 @@
     {
       "customType": "regex",
       "description": "Kind node image for rok8s-scripts kubernetes_e2e_tests (orb job parameter)",
-      "fileMatch": ["(^|/)\\.circleci/config\\.yml$"],
+      "managerFilePatterns": [
+        "/(^|/)\\.circleci/config\\.yml$/"
+      ],
       "matchStrings": [
         "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^@\"]+)@sha256:(?<currentDigest>[a-f0-9]+)\""
       ],
@@ -83,7 +99,9 @@
     {
       "customType": "regex",
       "description": "golangci-lint version in CircleCI test job",
-      "fileMatch": ["(^|/)\\.circleci/config\\.yml$"],
+      "managerFilePatterns": [
+        "/(^|/)\\.circleci/config\\.yml$/"
+      ],
       "matchStrings": [
         "golangci/golangci-lint/v2/cmd/golangci-lint@(?<currentValue>v[0-9.]+)"
       ],
