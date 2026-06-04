@@ -104,7 +104,7 @@
         "/(^|/)\\.circleci/config\\.yml$/"
       ],
       "matchStrings": [
-        "golangci/golangci-lint/v2/cmd/golangci-lint@(?<currentValue>v[0-9.]+)"
+        "golangci/golangci-lint/v2/cmd/golangci-lint@v(?<currentValue>[0-9.]+)"
       ],
       "depNameTemplate": "golangci/golangci-lint",
       "datasourceTemplate": "github-releases",
