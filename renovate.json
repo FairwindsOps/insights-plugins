@@ -173,6 +173,12 @@
       "groupName": "CircleCI config regex major updates"
     },
     {
+      "description": "kindest/node: version and digest updates collide on kind_node_image in one PR",
+      "matchDepNames": ["kindest/node"],
+      "matchUpdateTypes": ["digest"],
+      "enabled": false
+    },
+    {
       "description": "Every upgrade: upstream release must be at least 7 days old",
       "matchManagers": ["gomod", "dockerfile", "circleci", "custom.regex"],
       "minimumReleaseAge": "7 days"
