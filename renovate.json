@@ -40,11 +40,11 @@
       "description": "Kind node image for rok8s-scripts kubernetes_e2e_tests (orb job parameter)",
       "managerFilePatterns": ["(^|/)\\.circleci/config\\.yml$"],
       "matchStrings": [
-        "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^@\"\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})\""
+        "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^\"\\s]+)\""
       ],
       "depNameTemplate": "kindest/node",
       "datasourceTemplate": "docker",
-      "autoReplaceStringTemplate": "kind_node_image: \"kindest/node:{{{newValue}}}@{{{newDigest}}}\""
+      "autoReplaceStringTemplate": "kind_node_image: \"kindest/node:{{{newValue}}}\""
     },
     {
       "customType": "regex",
@@ -103,21 +103,15 @@
     },
     {
       "matchManagers": ["custom.regex"],
+      "matchDepNames": ["golangci/golangci-lint"],
       "matchFileNames": [".circleci/config.yml"],
-      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "groupName": "CircleCI config regex non-major updates"
+      "groupName": "golangci-lint"
     },
     {
       "matchManagers": ["custom.regex"],
-      "matchFileNames": [".circleci/config.yml"],
-      "matchUpdateTypes": ["major"],
-      "groupName": "CircleCI config regex major updates"
-    },
-    {
-      "description": "kindest/node: version and digest updates collide on kind_node_image in one PR",
       "matchDepNames": ["kindest/node"],
-      "matchUpdateTypes": ["digest"],
-      "enabled": false
+      "matchFileNames": [".circleci/config.yml"],
+      "groupName": "kindest/node"
     }
   ]
 }
