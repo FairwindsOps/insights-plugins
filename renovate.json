@@ -91,10 +91,11 @@
         "/(^|/)\\.circleci/config\\.yml$/"
       ],
       "matchStrings": [
-        "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^@\"]+)@sha256:(?<currentDigest>[a-f0-9]+)\""
+        "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^@\"\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})\""
       ],
       "depNameTemplate": "kindest/node",
-      "datasourceTemplate": "docker"
+      "datasourceTemplate": "docker",
+      "autoReplaceStringTemplate": "kind_node_image: \"kindest/node:{{{newValue}}}@{{{newDigest}}}\""
     },
     {
       "customType": "regex",
@@ -107,7 +108,8 @@
       ],
       "depNameTemplate": "golangci/golangci-lint",
       "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v?(?<version>.*)$"
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "autoReplaceStringTemplate": "golangci/golangci-lint/v2/cmd/golangci-lint@v{{{newValue}}}"
     }
   ],
   "packageRules": [
