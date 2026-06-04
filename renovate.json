@@ -100,18 +100,6 @@
       "matchManagers": ["circleci"],
       "matchUpdateTypes": ["major"],
       "groupName": "CircleCI major updates"
-    },
-    {
-      "matchManagers": ["custom.regex"],
-      "matchDepNames": ["golangci/golangci-lint"],
-      "matchFileNames": [".circleci/config.yml"],
-      "groupName": "golangci-lint"
-    },
-    {
-      "matchManagers": ["custom.regex"],
-      "matchDepNames": ["kindest/node"],
-      "matchFileNames": [".circleci/config.yml"],
-      "groupName": "kindest/node"
     }
   ]
 }
