@@ -92,16 +92,26 @@
       "groupName": "Dockerfile major updates"
     },
     {
-      "matchManagers": ["circleci", "custom.regex"],
-      "matchFileNames": [".circleci/config.yml"],
+      "matchManagers": ["circleci"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "CircleCI non-major updates"
     },
     {
-      "matchManagers": ["circleci", "custom.regex"],
-      "matchFileNames": [".circleci/config.yml"],
+      "matchManagers": ["circleci"],
       "matchUpdateTypes": ["major"],
       "groupName": "CircleCI major updates"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [".circleci/config.yml"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "CircleCI config regex non-major updates"
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [".circleci/config.yml"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "CircleCI config regex major updates"
     },
     {
       "description": "kindest/node: version and digest updates collide on kind_node_image in one PR",
