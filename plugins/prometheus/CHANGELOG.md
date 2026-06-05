@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.4
+* Bump library github.com/prometheus/common to v0.68.0
+
 ## 1.9.3
 * Bump library k8s.io/api to v0.36.1
 * Bump library k8s.io/apimachinery to v0.36.1
