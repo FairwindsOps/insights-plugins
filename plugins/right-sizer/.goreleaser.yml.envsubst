@@ -8,7 +8,7 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
-  - GOTOOLCHAIN=go1.26.2
+  - GOTOOLCHAIN=go1.26.3
 builds:
 - main: cmd/main.go
   # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,

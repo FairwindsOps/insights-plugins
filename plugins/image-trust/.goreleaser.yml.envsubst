@@ -7,7 +7,7 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
-  - GOTOOLCHAIN=go1.26.2
+  - GOTOOLCHAIN=go1.26.3
 builds:
 - main: ./cmd/main.go
   goarch:
