@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.1
+* Build with Go 1.26.3 (stdlib CVE-2026-42501, CVE-2026-39825, CVE-2026-39826, CVE-2026-39823) via module `go` version and `GOTOOLCHAIN=go1.26.3` in release builds.
+
 ## 0.1.0
 * Initial `image-trust` plugin: workload image discovery (controllers, orphan pods, active Jobs), digest resolution, and Insights report upload (`/data/image-trust`).
 * Cosign verification modes: `cosign-keyless`, `cosign-key`, and composite `IMAGE_TRUST_MODE_POLICY` (`any` / `all`).
