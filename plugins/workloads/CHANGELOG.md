@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.10.0
+* **Cluster inventory:** top-level **`Images[]`** lists every running container image (regular, init, ephemeral) with workload owners. Runtime discovery via controller, orphan-pod, and active-job sweeps; entries without a normalized **`ID`** are skipped.
+
 ## 2.9.8
 * Build with Go 1.26.3 (stdlib CVE-2026-42501, CVE-2026-39825, CVE-2026-39826, CVE-2026-39823) via module `go` version and `GOTOOLCHAIN=go1.26.3` in release builds.
 

@@ -279,6 +279,59 @@
         }
       ]
     },
+    "Images": {
+      "type": "array",
+      "items": [
+        {
+          "type": "object",
+          "properties": {
+            "Name": {
+              "type": "string"
+            },
+            "ID": {
+              "type": "string"
+            },
+            "PullRef": {
+              "type": "string"
+            },
+            "Owners": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "Namespace": {
+                      "type": "string"
+                    },
+                    "Kind": {
+                      "type": "string"
+                    },
+                    "Name": {
+                      "type": "string"
+                    },
+                    "Container": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "Namespace",
+                    "Kind",
+                    "Name",
+                    "Container"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "Name",
+            "ID",
+            "PullRef",
+            "Owners"
+          ]
+        }
+      ]
+    },
     "Controllers": {
       "type": "array",
       "items": [
