@@ -10,6 +10,8 @@ use (
 	./plugins/kube-bench-aggregator
 	./plugins/kyverno
 	./plugins/kyverno-policy-sync
+	./plugins/network-flow
+	./plugins/network-flow-aggregator
 	./plugins/on-demand-job-runner
 	./plugins/opa
 	./plugins/prometheus
