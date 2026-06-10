@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
-	github.com/falcosecurity/falcosidekick v0.0.0-20260522154552-0eb49b80a12b
+	github.com/falcosecurity/falcosidekick v0.0.0-20260603140136-03364bc26b22
 	github.com/gorilla/mux v1.8.1
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/afero v1.15.0
