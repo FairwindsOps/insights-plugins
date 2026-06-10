@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: demo-traffic
+  labels:
+    app: demo-traffic
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: demo-traffic
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: traffic
+          image: curlimages/curl:8.11.1
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              echo "generating TCP flows to demo-server..."
+              for i in $(seq 1 30); do
+                curl -sf "http://demo-server:8080/" >/dev/null
+                sleep 0.3
+              done
+              echo "done"
