@@ -1,0 +1,76 @@
+# The .goreleaser.yml.envsubst file is processed by ../../scripts/goreleaser.sh
+version: 2
+project_name: network-flow
+release:
+  disable: true
+archives:
+- format: binary
+env:
+  - CGO_ENABLED=0
+  - GOTOOLCHAIN=go1.26.3
+builds:
+- id: network-flow
+  main: ./pkg/main.go
+  goarch:
+  - amd64
+  - arm64
+  goos:
+  - linux
+- id: entrypoint
+  main: ./cmd/entrypoint/main.go
+  goarch:
+  - amd64
+  - arm64
+  goos:
+  - linux
+dockers:
+- image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  use: buildx
+  ids:
+  - network-flow
+  - entrypoint
+  build_flag_templates:
+  - "--platform=linux/amd64"
+  - "--build-arg=IG_VERSION=v0.52.0"
+- image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+  use: buildx
+  goarch: arm64
+  goos: linux
+  ids:
+  - network-flow
+  - entrypoint
+  build_flag_templates:
+  - "--platform=linux/arm64"
+  - "--build-arg=IG_VERSION=v0.52.0"
+docker_manifests:
+- name_template: quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}
+  image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/fw-network-flow:{{ .Env.feature_docker_tag }}
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/fw-network-flow:latest
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/fw-network-flow:{{ .Tag }}
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/fw-network-flow:{{ .Major }}
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/fw-network-flow:{{ .Major }}.{{ .Minor }}
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
