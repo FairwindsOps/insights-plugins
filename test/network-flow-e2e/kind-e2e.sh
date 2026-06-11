@@ -30,7 +30,7 @@ docker_build() {
   local arch tmpdir
   arch="$(go env GOARCH)"
   tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' RETURN
+  trap "rm -rf '${tmpdir}'" RETURN
 
   echo "Building network-flow binaries (${arch})..."
   CGO_ENABLED=0 GOOS=linux GOARCH="${arch}" go build -o "${tmpdir}/network-flow" ./plugins/network-flow/pkg
@@ -110,7 +110,7 @@ kind_verify() {
        else
          ($e.dst_addr // $e.key.DstName)
        end) as $dst
-    | "\($src) -> \($dst):\($e.key.DstPort)  count=\($e.count)  pod=\($e.src_pod // "-")"
+    | "\($src) -> \($dst):\($e.key.DstPort)  count=\($e.count)  sent=\($e.bytes_sent)  rcvd=\($e.bytes_received)  pod=\($e.src_pod // "-")"
   ' || true)"
 
   demo_edges="$(curl -sf http://127.0.0.1:18080/api/v1/servicemap | jq -r '
@@ -127,7 +127,7 @@ kind_verify() {
            ($e.dst_addr // $e.key.DstName)
          end) as $dst
       | {
-          line: "\($src) -> \($dst):\($e.key.DstPort)  count=\($e.count)  pod=\($e.src_pod // "-")",
+          line: "\($src) -> \($dst):\($e.key.DstPort)  count=\($e.count)  sent=\($e.bytes_sent)  rcvd=\($e.bytes_received)  pod=\($e.src_pod // "-")",
           priority: (if $e.key.SrcWorkloadName == "demo-traffic" then 0 else 1 end)
         }
     ]
