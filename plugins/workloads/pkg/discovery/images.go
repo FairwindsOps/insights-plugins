@@ -3,56 +3,56 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
-	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/restmapper"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const dockerIOPrefix = "index.docker.io/"
 
-type kubeClientResources struct {
-	DynamicClient dynamic.Interface
-	RESTMapper    meta.RESTMapper
-	KubeClient    kubernetes.Interface
-}
-
 // ListRunningImages returns images from running containers across the full cluster.
-func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface) (Result, error) {
+// controllers should be the result of GetAllTopControllersWithPods when available,
+// to avoid a duplicate controller walk.
+func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface, controllers []fwControllerUtils.Workload) (Result, error) {
 	if kubeClient == nil {
 		return Result{}, fmt.Errorf("kubernetes client is required")
-	}
-
-	kubeResources, err := kubeClientResourcesFrom(kubeClient)
-	if err != nil {
-		return Result{}, err
-	}
-
-	client := fwControllerUtils.Client{
-		Context:    ctx,
-		Dynamic:    kubeResources.DynamicClient,
-		RESTMapper: kubeResources.RESTMapper,
-	}
-
-	controllers, err := client.GetAllTopControllersWithPods("")
-	if err != nil {
-		return Result{}, fmt.Errorf("could not retrieve top controllers with pods: %w", err)
 	}
 
 	keyToImage := map[string]ImageResult{}
 	imageOwners := map[string]map[OwnerResult]struct{}{}
 	seenPods := map[string]struct{}{}
 
+	recordControllerPods(controllers, seenPods, keyToImage, imageOwners)
+
+	namespaces, err := listAllNamespaces(ctx, kubeClient)
+	if err != nil {
+		return Result{}, err
+	}
+	if err := recordOrphanPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
+		return Result{}, err
+	}
+	if err := recordJobPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
+		return Result{}, err
+	}
+
+	return Result{
+		Images: finalizeImages(keyToImage, imageOwners),
+	}, nil
+}
+
+func recordControllerPods(
+	controllers []fwControllerUtils.Workload,
+	seenPods map[string]struct{},
+	keyToImage map[string]ImageResult,
+	imageOwners map[string]map[OwnerResult]struct{},
+) {
 	for _, controller := range controllers {
 		owner := OwnerResult{
 			Namespace: controller.TopController.GetNamespace(),
@@ -76,28 +76,43 @@ func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface) (Re
 			}
 		}
 	}
+}
 
-	namespaces, err := listAllNamespaces(ctx, kubeResources.KubeClient)
-	if err != nil {
-		return Result{}, err
-	}
-	if err := recordOrphanPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
-		return Result{}, err
-	}
-	if err := recordJobPods(ctx, kubeResources.KubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
-		return Result{}, err
-	}
-
+func finalizeImages(keyToImage map[string]ImageResult, imageOwners map[string]map[OwnerResult]struct{}) []ImageResult {
+	images := make([]ImageResult, 0, len(keyToImage))
 	for key, image := range keyToImage {
 		if owners, ok := imageOwners[key]; ok {
-			image.Owners = lo.Keys(owners)
-			keyToImage[key] = image
+			image.Owners = sortedOwners(owners)
 		}
+		images = append(images, image)
 	}
+	sort.Slice(images, func(i, j int) bool {
+		if images[i].Name != images[j].Name {
+			return images[i].Name < images[j].Name
+		}
+		return images[i].ID < images[j].ID
+	})
+	return images
+}
 
-	return Result{
-		Images: lo.Values(keyToImage),
-	}, nil
+func sortedOwners(owners map[OwnerResult]struct{}) []OwnerResult {
+	result := make([]OwnerResult, 0, len(owners))
+	for owner := range owners {
+		result = append(result, owner)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Namespace != result[j].Namespace {
+			return result[i].Namespace < result[j].Namespace
+		}
+		if result[i].Kind != result[j].Kind {
+			return result[i].Kind < result[j].Kind
+		}
+		if result[i].Name != result[j].Name {
+			return result[i].Name < result[j].Name
+		}
+		return result[i].Container < result[j].Container
+	})
+	return result
 }
 
 func markPodSeen(seen map[string]struct{}, namespace, name string) {
@@ -268,27 +283,4 @@ func recordContainerImage(
 		ID:      imageID,
 		PullRef: imagePullRef,
 	}
-}
-
-func kubeClientResourcesFrom(kubeClient kubernetes.Interface) (*kubeClientResources, error) {
-	kubeConfig, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("fetching kube config: %w", err)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(kubeConfig)
-	if err != nil {
-		return nil, fmt.Errorf("creating dynamic client: %w", err)
-	}
-
-	groupResources, err := restmapper.GetAPIGroupResources(kubeClient.Discovery())
-	if err != nil {
-		return nil, fmt.Errorf("getting API group resources: %w", err)
-	}
-
-	return &kubeClientResources{
-		DynamicClient: dynamicClient,
-		RESTMapper:    restmapper.NewDiscoveryRESTMapper(groupResources),
-		KubeClient:    kubeClient,
-	}, nil
 }

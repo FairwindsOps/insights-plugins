@@ -8,6 +8,7 @@ import (
 	"github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/fairwindsops/insights-plugins/plugins/workloads/pkg/discovery"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,22 +99,6 @@ type NodeSummary struct {
 	IsControlPlaneNode bool
 }
 
-// ImageOwnerResult identifies a workload that runs a container image.
-type ImageOwnerResult struct {
-	Namespace string
-	Kind      string
-	Name      string
-	Container string
-}
-
-// ImageResult is a running container image with workload owners.
-type ImageResult struct {
-	Name    string
-	ID      string
-	PullRef string
-	Owners  []ImageOwnerResult
-}
-
 // ClusterWorkloadReport contains k8s workload resources report structure
 type ClusterWorkloadReport struct {
 	ServerVersion string
@@ -124,7 +109,7 @@ type ClusterWorkloadReport struct {
 	Namespaces    []corev1.Namespace
 	Controllers   []ControllerResult
 	Ingresses     []Ingress
-	Images        []ImageResult
+	Images        []discovery.ImageResult
 }
 
 func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
@@ -284,9 +269,12 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		}
 	}
 
-	imageDiscovery, err := discovery.ListRunningImages(ctx, kube)
+	images := []discovery.ImageResult{}
+	imageDiscovery, err := discovery.ListRunningImages(ctx, kube, workloads)
 	if err != nil {
-		return nil, fmt.Errorf("error listing running images: %v", err)
+		logrus.Warnf("error listing running images, continuing with empty Images: %v", err)
+	} else {
+		images = imageDiscovery.Images
 	}
 
 	clusterWorkloadReport := ClusterWorkloadReport{
@@ -298,31 +286,9 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		Namespaces:    namespaces.Items,
 		Controllers:   interfaces,
 		Ingresses:     ingresses,
-		Images:        mapDiscoveryImages(imageDiscovery.Images),
+		Images:        images,
 	}
 	return &clusterWorkloadReport, nil
-}
-
-func mapDiscoveryImages(images []discovery.ImageResult) []ImageResult {
-	result := make([]ImageResult, 0, len(images))
-	for _, img := range images {
-		owners := make([]ImageOwnerResult, 0, len(img.Owners))
-		for _, o := range img.Owners {
-			owners = append(owners, ImageOwnerResult{
-				Namespace: o.Namespace,
-				Kind:      o.Kind,
-				Name:      o.Name,
-				Container: o.Container,
-			})
-		}
-		result = append(result, ImageResult{
-			Name:    img.Name,
-			ID:      img.ID,
-			PullRef: img.PullRef,
-			Owners:  owners,
-		})
-	}
-	return result
 }
 
 func checkIfNodeIsControlPlane(labels map[string]string) bool {

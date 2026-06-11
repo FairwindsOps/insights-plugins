@@ -1,11 +1,17 @@
 package discovery
 
 import (
+	"context"
 	"testing"
 
+	fwControllerUtils "github.com/fairwindsops/controller-utils/pkg/controller"
 	"github.com/stretchr/testify/require"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestHasControllerOwner(t *testing.T) {
@@ -90,6 +96,26 @@ func TestRecordContainerImageStripsDockerPullablePrefix(t *testing.T) {
 	}
 }
 
+func TestRecordContainerImageUsesImageIDWhenImageIsSha256Digest(t *testing.T) {
+	keyToImage := map[string]ImageResult{}
+	imageOwners := map[string]map[OwnerResult]struct{}{}
+
+	status := corev1.ContainerStatus{
+		Name:    "app",
+		Image:   "sha256:deadbeef",
+		ImageID: "docker-pullable://registry.example.io/app@sha256:deadbeef",
+	}
+	owner := OwnerResult{Namespace: "default", Kind: "Deployment", Name: "api"}
+
+	recordContainerImage(status, owner, keyToImage, imageOwners)
+
+	require.Len(t, keyToImage, 1)
+	for _, img := range keyToImage {
+		require.Equal(t, "registry.example.io/app@sha256:deadbeef", img.Name)
+		require.Equal(t, "registry.example.io/app@sha256:deadbeef", img.ID)
+	}
+}
+
 func TestRecordContainerImageIncludesInitContainer(t *testing.T) {
 	pod := corev1.Pod{
 		Status: corev1.PodStatus{
@@ -171,4 +197,145 @@ func TestOrphanPodHasPodOwnerKind(t *testing.T) {
 			require.Equal(t, "standalone", o.Name)
 		}
 	}
+}
+
+func TestFinalizeImagesSortsDeterministically(t *testing.T) {
+	keyToImage := map[string]ImageResult{
+		"b/b-id": {Name: "b", ID: "b-id"},
+		"a/a-id": {Name: "a", ID: "a-id"},
+	}
+	imageOwners := map[string]map[OwnerResult]struct{}{
+		"a/a-id": {
+			{Namespace: "prod", Kind: "Deployment", Name: "z", Container: "app"}: {},
+			{Namespace: "prod", Kind: "Deployment", Name: "a", Container: "app"}: {},
+		},
+	}
+
+	images := finalizeImages(keyToImage, imageOwners)
+
+	require.Len(t, images, 2)
+	require.Equal(t, "a", images[0].Name)
+	require.Equal(t, "b", images[1].Name)
+	require.Equal(t, "a", images[0].Owners[0].Name)
+	require.Equal(t, "z", images[0].Owners[1].Name)
+}
+
+func TestListRunningImagesControllerPass(t *testing.T) {
+	pod := runningPod("default", "api-abc", corev1.ContainerStatus{
+		Name:    "app",
+		Image:   "nginx:1.25",
+		ImageID: "docker-pullable://nginx@sha256:controller",
+	})
+	podUnstructured, err := podToUnstructured(pod)
+	require.NoError(t, err)
+
+	controllers := []fwControllerUtils.Workload{
+		{
+			TopController: unstructured.Unstructured{
+				Object: map[string]any{
+					"kind": "Deployment",
+					"metadata": map[string]any{
+						"name":      "api",
+						"namespace": "default",
+					},
+				},
+			},
+			Pods: []unstructured.Unstructured{*podUnstructured},
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+	)
+
+	result, err := ListRunningImages(context.Background(), client, controllers)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "Deployment", result.Images[0].Owners[0].Kind)
+	require.Equal(t, "api", result.Images[0].Owners[0].Name)
+}
+
+func TestListRunningImagesOrphanPodPass(t *testing.T) {
+	pod := runningPod("default", "standalone", corev1.ContainerStatus{
+		Name:    "app",
+		Image:   "nginx:1.25",
+		ImageID: "docker-pullable://nginx@sha256:orphan",
+	})
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+		pod,
+	)
+
+	result, err := ListRunningImages(context.Background(), client, nil)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "Pod", result.Images[0].Owners[0].Kind)
+	require.Equal(t, "standalone", result.Images[0].Owners[0].Name)
+}
+
+func TestListRunningImagesActiveJobPass(t *testing.T) {
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "batch",
+			Namespace: "default",
+		},
+		Spec: batchv1.JobSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"job-name": "batch"},
+			},
+		},
+		Status: batchv1.JobStatus{Active: 1},
+	}
+	trueVal := true
+	pod := runningPod("default", "batch-abc", corev1.ContainerStatus{
+		Name:    "worker",
+		Image:   "worker:1.0",
+		ImageID: "docker-pullable://worker@sha256:job",
+	})
+	pod.Labels = map[string]string{"job-name": "batch"}
+	pod.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion: "batch/v1",
+			Kind:       "Job",
+			Name:       "batch",
+			Controller: &trueVal,
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+		job,
+		pod,
+	)
+
+	result, err := ListRunningImages(context.Background(), client, nil)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "Job", result.Images[0].Owners[0].Kind)
+	require.Equal(t, "batch", result.Images[0].Owners[0].Name)
+	require.Equal(t, "worker", result.Images[0].Owners[0].Container)
+}
+
+func runningPod(namespace, name string, status corev1.ContainerStatus) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
+				status,
+			},
+		},
+	}
+}
+
+func podToUnstructured(pod *corev1.Pod) (*unstructured.Unstructured, error) {
+	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
+	if err != nil {
+		return nil, err
+	}
+	return &unstructured.Unstructured{Object: raw}, nil
 }
