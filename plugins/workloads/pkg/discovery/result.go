@@ -15,12 +15,14 @@ type ImageResult struct {
 
 // OwnerResult identifies a Kubernetes workload that runs an image.
 type OwnerResult struct {
-	Namespace      string
-	Kind           string
-	Name           string
-	Container      string
-	Labels         map[string]string
-	Annotations    map[string]string
-	PodLabels      map[string]string
-	PodAnnotations map[string]string
+	Namespace string
+	Kind      string
+	Name      string
+	Container string
+	// Labels/Annotations/PodLabels/PodAnnotations are set only for supplemental owners
+	// (orphan Pod, active Job) that do not appear in Controllers[].
+	Labels         map[string]string `json:",omitempty"`
+	Annotations    map[string]string `json:",omitempty"`
+	PodLabels      map[string]string `json:",omitempty"`
+	PodAnnotations map[string]string `json:",omitempty"`
 }

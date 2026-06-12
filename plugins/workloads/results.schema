@@ -313,16 +313,20 @@
                       "type": "string"
                     },
                     "Labels": {
-                      "type": "object"
+                      "type": "object",
+                      "description": "Present for supplemental owners (orphan Pod, active Job) only; omitted for top controllers (see Controllers[])."
                     },
                     "Annotations": {
-                      "type": "object"
+                      "type": "object",
+                      "description": "Present for supplemental owners only."
                     },
                     "PodLabels": {
-                      "type": "object"
+                      "type": "object",
+                      "description": "Present for supplemental owners only."
                     },
                     "PodAnnotations": {
-                      "type": "object"
+                      "type": "object",
+                      "description": "Present for supplemental owners only."
                     }
                   },
                   "required": [

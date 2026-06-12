@@ -267,10 +267,10 @@ func TestListRunningImagesControllerPass(t *testing.T) {
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Deployment", result.Images[0].Owners[0].Kind)
 	require.Equal(t, "api", result.Images[0].Owners[0].Name)
-	require.Equal(t, "api", result.Images[0].Owners[0].Labels["app"])
-	require.Equal(t, "ci", result.Images[0].Owners[0].Annotations["deployed-by"])
-	require.Equal(t, "abc123", result.Images[0].Owners[0].PodLabels["pod-template-hash"])
-	require.Equal(t, "1", result.Images[0].Owners[0].PodAnnotations["config/version"])
+	require.Empty(t, result.Images[0].Owners[0].Labels)
+	require.Empty(t, result.Images[0].Owners[0].Annotations)
+	require.Empty(t, result.Images[0].Owners[0].PodLabels)
+	require.Empty(t, result.Images[0].Owners[0].PodAnnotations)
 }
 
 func TestListRunningImagesOrphanPodPass(t *testing.T) {
@@ -279,6 +279,8 @@ func TestListRunningImagesOrphanPodPass(t *testing.T) {
 		Image:   "nginx:1.25",
 		ImageID: "docker-pullable://nginx@sha256:orphan",
 	})
+	pod.Labels = map[string]string{"app": "standalone"}
+	pod.Annotations = map[string]string{"note": "orphan"}
 
 	client := fake.NewSimpleClientset(
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
@@ -290,6 +292,8 @@ func TestListRunningImagesOrphanPodPass(t *testing.T) {
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Pod", result.Images[0].Owners[0].Kind)
 	require.Equal(t, "standalone", result.Images[0].Owners[0].Name)
+	require.Equal(t, "standalone", result.Images[0].Owners[0].Labels["app"])
+	require.Equal(t, "orphan", result.Images[0].Owners[0].Annotations["note"])
 }
 
 func TestListRunningImagesActiveJobPass(t *testing.T) {

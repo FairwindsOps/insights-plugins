@@ -78,19 +78,14 @@ func recordControllerPods(
 	return seenPods, keyToImage, imageOwners
 }
 
+// ownerFromController identifies a top-controller owner. Label maps are omitted because
+// the workloads report Controllers[] section is the canonical source for controller metadata.
 func ownerFromController(controller fwControllerUtils.Workload) OwnerResult {
-	owner := OwnerResult{
-		Namespace:   controller.TopController.GetNamespace(),
-		Kind:        controller.TopController.GetKind(),
-		Name:        controller.TopController.GetName(),
-		Labels:      controller.TopController.GetLabels(),
-		Annotations: controller.TopController.GetAnnotations(),
+	return OwnerResult{
+		Namespace: controller.TopController.GetNamespace(),
+		Kind:      controller.TopController.GetKind(),
+		Name:      controller.TopController.GetName(),
 	}
-	if controller.PodMetadata != nil {
-		owner.PodLabels = controller.PodMetadata.Labels
-		owner.PodAnnotations = controller.PodMetadata.Annotations
-	}
-	return owner
 }
 
 func ownerKey(owner OwnerResult) string {
