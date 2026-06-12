@@ -35,7 +35,7 @@ func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface, con
 	if err != nil {
 		return Result{}, err
 	}
-	seenPods, keyToImage, imageOwners, err = recordJobPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners)
+	_, keyToImage, imageOwners, err = recordJobPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners)
 	if err != nil {
 		return Result{}, err
 	}
