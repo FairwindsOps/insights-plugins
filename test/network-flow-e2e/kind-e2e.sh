@@ -21,7 +21,7 @@ Usage: $(basename "$0") [up|down|load|deploy|traffic|verify|all]
   load     Build and load local images into kind nodes
   deploy   Apply e2e manifests
   traffic  Run demo-traffic job
-  verify   Check servicemap for demo-client -> demo-server edge
+  verify   Check flows API for demo-traffic connect + traffic events
   all      up + load + deploy + wait + traffic + verify
 EOF
 }
@@ -89,7 +89,7 @@ kind_traffic() {
 }
 
 kind_verify() {
-  local edges demo_edges
+  local flows demo_flows
   kubectl -n insights port-forward svc/network-flow-aggregator 18080:8080 >/dev/null 2>&1 &
   PF_PID=$!
   trap '[[ -n "${PF_PID:-}" ]] && kill "${PF_PID}" 2>/dev/null || true' EXIT
@@ -101,60 +101,64 @@ kind_verify() {
     sleep 1
   done
 
-  edges="$(curl -sf http://127.0.0.1:18080/api/v1/servicemap | jq -r '
-    .edges[]?
+  flows="$(curl -sf http://127.0.0.1:18080/api/v1/flows | jq -r '
+    .events[]?
     | . as $e
-    | ($e.key.SrcNamespace + "/" + $e.key.SrcWorkloadKind + "/" + $e.key.SrcWorkloadName) as $src
-    | (if ($e.key.DstKind // "") != "" then
-         $e.key.DstNamespace + "/" + $e.key.DstKind + "/" + $e.key.DstName
+    | ($e.src.namespace + "/" + ($e.srcWorkload.kind // "Pod") + "/" + ($e.srcWorkload.name // $e.src.pod)) as $src
+    | (if ($e.dstRef.kind // "") != "" then
+         $e.dstRef.namespace + "/" + $e.dstRef.kind + "/" + $e.dstRef.name
        else
-         ($e.dst_addr // $e.key.DstName)
+         ($e.dst.addr // "?")
        end) as $dst
-    | "\($src) -> \($dst):\($e.key.DstPort)  count=\($e.count)  sent=\($e.bytes_sent)  rcvd=\($e.bytes_received)  pod=\($e.src_pod // "-")"
+    | "\($e.eventKind) \($src) -> \($dst):\($e.dst.port) sent=\($e.bytesSent // 0) rcvd=\($e.bytesReceived // 0)"
   ' || true)"
 
-  demo_edges="$(curl -sf http://127.0.0.1:18080/api/v1/servicemap | jq -r '
-    [.edges[]?
+  demo_flows="$(curl -sf 'http://127.0.0.1:18080/api/v1/flows?namespace=insights' | jq -r '
+    [.events[]?
       | select(
-          .key.SrcWorkloadName == "demo-traffic"
-          or (.key.DstName == "demo-server" and (.key.DstKind // "") != "")
+          (.srcWorkload.name // "") == "demo-traffic"
+          or (.dstRef.name // "") == "demo-server"
         )
       | . as $e
-      | ($e.key.SrcNamespace + "/" + $e.key.SrcWorkloadKind + "/" + $e.key.SrcWorkloadName) as $src
-      | (if ($e.key.DstKind // "") != "" then
-           $e.key.DstNamespace + "/" + $e.key.DstKind + "/" + $e.key.DstName
+      | ($e.src.namespace + "/" + ($e.srcWorkload.kind // "Pod") + "/" + ($e.srcWorkload.name // $e.src.pod)) as $src
+      | (if ($e.dstRef.kind // "") != "" then
+           $e.dstRef.namespace + "/" + $e.dstRef.kind + "/" + $e.dstRef.name
          else
-           ($e.dst_addr // $e.key.DstName)
+           ($e.dst.addr // "?")
          end) as $dst
       | {
-          line: "\($src) -> \($dst):\($e.key.DstPort)  count=\($e.count)  sent=\($e.bytes_sent)  rcvd=\($e.bytes_received)  pod=\($e.src_pod // "-")",
-          priority: (if $e.key.SrcWorkloadName == "demo-traffic" then 0 else 1 end)
+          line: "\($e.eventKind) \($src) -> \($dst):\($e.dst.port) sent=\($e.bytesSent // 0) rcvd=\($e.bytesReceived // 0)",
+          kind: ($e.eventKind // "")
         }
     ]
-    | sort_by(.priority)
+    | sort_by(.kind)
     | .[].line
   ' || true)"
 
-  if [[ -n "$demo_edges" ]]; then
-    echo "demo workload edges:"
-    echo "$demo_edges"
+  if [[ -n "$demo_flows" ]]; then
+    echo "demo workload events:"
+    echo "$demo_flows"
   else
-    echo "servicemap edges (all):"
-    echo "$edges"
+    echo "flow events (all):"
+    echo "$flows"
   fi
 
-  if echo "$demo_edges" | grep -q 'insights/Job/demo-traffic.*insights/Service/demo-server'; then
-    echo "e2e verify: found demo-traffic -> demo-server edge with top-controller enrichment"
+  local has_connect has_traffic
+  has_connect="$(curl -sf 'http://127.0.0.1:18080/api/v1/flows?namespace=insights&event_kind=CONNECT' | jq '[.events[]? | select(.srcWorkload.name == "demo-traffic" and .dstRef.name == "demo-server")] | length')"
+  has_traffic="$(curl -sf 'http://127.0.0.1:18080/api/v1/flows?namespace=insights&event_kind=TRAFFIC' | jq '[.events[]? | select(.srcWorkload.name == "demo-traffic" and .dstRef.name == "demo-server" and ((.bytesSent // 0) > 0 or (.bytesReceived // 0) > 0))] | length')"
+
+  if [[ "$has_connect" -ge 1 && "$has_traffic" -ge 1 ]]; then
+    echo "e2e verify: found CONNECT and TRAFFIC events for demo-traffic -> demo-server"
     return 0
   fi
 
-  if echo "$demo_edges" | grep -qi 'demo-server'; then
-    echo "e2e verify: found demo-server edge(s), but missing Job/demo-traffic -> Service/demo-server"
+  if echo "$demo_flows" | grep -qi 'demo-server'; then
+    echo "e2e verify: found demo-server events, but missing CONNECT ($has_connect) or TRAFFIC ($has_traffic) with bytes"
     return 1
   fi
 
-  echo "e2e verify: no demo edges yet; sample raw edges:"
-  curl -sf http://127.0.0.1:18080/api/v1/servicemap | jq '[.edges[] | select(.key.SrcWorkloadName == "demo-traffic" or .key.DstName == "demo-server")][0:3] // .edges[0:3]'
+  echo "e2e verify: no demo events yet; sample raw events:"
+  curl -sf http://127.0.0.1:18080/api/v1/flows | jq '[.events[]? | select(.srcWorkload.name == "demo-traffic" or .dstRef.name == "demo-server")][0:3] // .events[0:3]'
   return 1
 }
 

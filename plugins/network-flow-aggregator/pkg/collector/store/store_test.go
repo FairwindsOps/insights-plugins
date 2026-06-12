@@ -7,149 +7,71 @@ import (
 	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
 )
 
-func TestIngestBatchAggregatesEdges(t *testing.T) {
-	st := NewStore(time.Minute)
-	batch := &flowv1.FlowBatch{
-		Flows: []*flowv1.NetworkFlow{
-			{
-				Type:              flowv1.FlowType_FLOW_TYPE_TCP,
-				TimestampUnixNano: 100,
-				Src:               &flowv1.WorkloadEndpoint{Namespace: "default", Pod: "a"},
-				Dst:               &flowv1.NetworkEndpoint{Addr: "10.0.0.1", Port: 80},
-			},
-			{
-				Type:              flowv1.FlowType_FLOW_TYPE_TCP,
-				TimestampUnixNano: 200,
-				Src:               &flowv1.WorkloadEndpoint{Namespace: "default", Pod: "a"},
-				Dst:               &flowv1.NetworkEndpoint{Addr: "10.0.0.1", Port: 80},
-			},
+func TestAppendBatchDoesNotMerge(t *testing.T) {
+	st := NewStore(1000, time.Hour)
+	now := time.Now().UnixNano()
+	batch := &flowv1.FlowEventBatch{
+		NodeName: "node-a",
+		AgentId:  "agent-a",
+		Events: []*flowv1.FlowEvent{
+			sampleEvent(now, 0, 0),
+			sampleEvent(now+1, 0, 0),
 		},
 	}
 
-	enrich := func(f *flowv1.NetworkFlow) Enrichment {
+	enrich := func(_ *flowv1.FlowEvent) Enrichment {
 		return Enrichment{
-			SrcNamespace:    f.GetSrc().GetNamespace(),
+			SrcNamespace:    "default",
 			SrcWorkloadKind: "Deployment",
 			SrcWorkloadName: "payments",
-			DstAddr:         f.GetDst().GetAddr(),
 		}
 	}
 
-	if got := st.IngestBatch(batch, enrich); got != 2 {
+	if got := st.AppendBatch(batch, enrich); got != 2 {
 		t.Fatalf("accepted = %d", got)
 	}
-	edges := st.ListEdges()
-	if len(edges) != 1 {
-		t.Fatalf("edges = %d", len(edges))
-	}
-	if edges[0].Count != 2 {
-		t.Fatalf("count = %d", edges[0].Count)
-	}
-	if edges[0].Key.SrcWorkloadKind != "Deployment" || edges[0].Key.SrcWorkloadName != "payments" {
-		t.Fatalf("workload key = %#v", edges[0].Key)
-	}
-	if edges[0].FirstSeenUnixNano != 100 || edges[0].LastSeenUnixNano != 200 {
-		t.Fatalf("seen range = %d..%d", edges[0].FirstSeenUnixNano, edges[0].LastSeenUnixNano)
+	if st.Count() != 2 {
+		t.Fatalf("events = %d", st.Count())
 	}
 }
 
-func TestIngestBatchSumsBytes(t *testing.T) {
-	st := NewStore(time.Minute)
-	batch := &flowv1.FlowBatch{
-		Flows: []*flowv1.NetworkFlow{
+func TestAppendBatchPreservesBytes(t *testing.T) {
+	st := NewStore(1000, time.Hour)
+	now := time.Now().UnixNano()
+	batch := &flowv1.FlowEventBatch{
+		Events: []*flowv1.FlowEvent{
+			sampleEvent(now, 100, 200),
+			sampleEvent(now+1, 50, 60),
+		},
+	}
+
+	if got := st.AppendBatch(batch, nil); got != 2 {
+		t.Fatalf("accepted = %d", got)
+	}
+	events := st.ListEvents(ListOpts{})
+	if events[0].GetBytesSent() != 100 || events[0].GetBytesReceived() != 200 {
+		t.Fatalf("first bytes = sent:%d recv:%d", events[0].GetBytesSent(), events[0].GetBytesReceived())
+	}
+	if events[1].GetBytesSent() != 50 || events[1].GetBytesReceived() != 60 {
+		t.Fatalf("second bytes = sent:%d recv:%d", events[1].GetBytesSent(), events[1].GetBytesReceived())
+	}
+}
+
+func TestAppendBatchEnrichment(t *testing.T) {
+	st := NewStore(1000, time.Hour)
+	batch := &flowv1.FlowEventBatch{
+		Events: []*flowv1.FlowEvent{
 			{
-				Type:              flowv1.FlowType_FLOW_TYPE_TCP,
-				TimestampUnixNano: 100,
-				Src:               &flowv1.WorkloadEndpoint{Namespace: "default", Pod: "a"},
-				Dst:               &flowv1.NetworkEndpoint{Addr: "10.0.0.1", Port: 80},
-				BytesSent:         100,
-				BytesReceived:     200,
-			},
-			{
-				Type:              flowv1.FlowType_FLOW_TYPE_TCP,
-				TimestampUnixNano: 200,
-				Src:               &flowv1.WorkloadEndpoint{Namespace: "default", Pod: "a"},
-				Dst:               &flowv1.NetworkEndpoint{Addr: "10.0.0.1", Port: 80},
-				BytesSent:         50,
-				BytesReceived:     60,
+				EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+				Protocol:          flowv1.Protocol_PROTOCOL_TCP,
+				TimestampUnixNano: time.Now().UnixNano(),
+				Src:               &flowv1.WorkloadRef{Namespace: "prod", Pod: "payments-abc"},
+				Dst:               &flowv1.Endpoint{Addr: "10.96.0.10", Port: 5432},
 			},
 		},
 	}
 
-	enrich := func(f *flowv1.NetworkFlow) Enrichment {
-		return Enrichment{
-			SrcNamespace:    f.GetSrc().GetNamespace(),
-			SrcWorkloadKind: "Deployment",
-			SrcWorkloadName: "payments",
-			DstAddr:         f.GetDst().GetAddr(),
-		}
-	}
-
-	if got := st.IngestBatch(batch, enrich); got != 2 {
-		t.Fatalf("accepted = %d", got)
-	}
-	edges := st.ListEdges()
-	if len(edges) != 1 {
-		t.Fatalf("edges = %d", len(edges))
-	}
-	if edges[0].BytesSent != 150 || edges[0].BytesReceived != 260 {
-		t.Fatalf("bytes = sent:%d recv:%d", edges[0].BytesSent, edges[0].BytesReceived)
-	}
-	if edges[0].Count != 0 {
-		t.Fatalf("count = %d, want 0 for byte-only flows", edges[0].Count)
-	}
-}
-
-func TestIngestBatchBucketsByTimestamp(t *testing.T) {
-	st := NewStore(time.Minute)
-	bucket := int64(time.Minute)
-	batch := &flowv1.FlowBatch{
-		Flows: []*flowv1.NetworkFlow{
-			{
-				Type:              flowv1.FlowType_FLOW_TYPE_TCP,
-				TimestampUnixNano: bucket + 10,
-				Src:               &flowv1.WorkloadEndpoint{Namespace: "default", Pod: "a"},
-				Dst:               &flowv1.NetworkEndpoint{Addr: "10.0.0.1", Port: 80},
-			},
-			{
-				Type:              flowv1.FlowType_FLOW_TYPE_TCP,
-				TimestampUnixNano: bucket*2 + 10,
-				Src:               &flowv1.WorkloadEndpoint{Namespace: "default", Pod: "a"},
-				Dst:               &flowv1.NetworkEndpoint{Addr: "10.0.0.1", Port: 80},
-			},
-		},
-	}
-
-	enrich := func(f *flowv1.NetworkFlow) Enrichment {
-		return Enrichment{
-			SrcNamespace:    f.GetSrc().GetNamespace(),
-			SrcWorkloadKind: "Pod",
-			SrcWorkloadName: f.GetSrc().GetPod(),
-			DstAddr:         f.GetDst().GetAddr(),
-		}
-	}
-
-	if got := st.IngestBatch(batch, enrich); got != 2 {
-		t.Fatalf("accepted = %d", got)
-	}
-	if len(st.ListEdges()) != 2 {
-		t.Fatalf("expected separate buckets")
-	}
-}
-
-func TestIngestBatchResolvesDstServiceKey(t *testing.T) {
-	st := NewStore(time.Minute)
-	batch := &flowv1.FlowBatch{
-		Flows: []*flowv1.NetworkFlow{
-			{
-				Type: flowv1.FlowType_FLOW_TYPE_TCP,
-				Src:  &flowv1.WorkloadEndpoint{Namespace: "prod", Pod: "payments-abc"},
-				Dst:  &flowv1.NetworkEndpoint{Addr: "10.96.0.10", Port: 5432},
-			},
-		},
-	}
-
-	enrich := func(f *flowv1.NetworkFlow) Enrichment {
+	enrich := func(_ *flowv1.FlowEvent) Enrichment {
 		return Enrichment{
 			SrcNamespace:    "prod",
 			SrcWorkloadKind: "Deployment",
@@ -157,19 +79,89 @@ func TestIngestBatchResolvesDstServiceKey(t *testing.T) {
 			DstNamespace:    "prod",
 			DstKind:         "Service",
 			DstName:         "postgres",
-			DstAddr:         f.GetDst().GetAddr(),
 		}
 	}
 
-	if got := st.IngestBatch(batch, enrich); got != 1 {
+	if got := st.AppendBatch(batch, enrich); got != 1 {
 		t.Fatalf("accepted = %d", got)
 	}
-	edges := st.ListEdges()
-	if len(edges) != 1 {
-		t.Fatalf("edges = %d", len(edges))
+	events := st.ListEvents(ListOpts{})
+	if events[0].GetSrcWorkload().GetKind() != "Deployment" {
+		t.Fatalf("src workload = %#v", events[0].GetSrcWorkload())
 	}
-	key := edges[0].Key
-	if key.DstKind != "Service" || key.DstName != "postgres" || key.DstNamespace != "prod" {
-		t.Fatalf("dst key = %#v", key)
+	if events[0].GetDstRef().GetKind() != "Service" || events[0].GetDstRef().GetName() != "postgres" {
+		t.Fatalf("dst ref = %#v", events[0].GetDstRef())
+	}
+}
+
+func TestStoreEnforcesMaxEvents(t *testing.T) {
+	st := NewStore(2, time.Hour)
+	now := time.Now().UnixNano()
+	batch := &flowv1.FlowEventBatch{
+		Events: []*flowv1.FlowEvent{
+			sampleEvent(now, 0, 0),
+			sampleEvent(now+1, 0, 0),
+			sampleEvent(now+2, 0, 0),
+		},
+	}
+	st.AppendBatch(batch, nil)
+	events := st.ListEvents(ListOpts{})
+	if len(events) != 2 {
+		t.Fatalf("events = %d", len(events))
+	}
+	if events[0].GetTimestampUnixNano() != now+1 || events[1].GetTimestampUnixNano() != now+2 {
+		t.Fatalf("unexpected retained events: %+v", events)
+	}
+}
+
+func TestListEventsFilters(t *testing.T) {
+	st := NewStore(1000, time.Hour)
+	now := time.Now().UnixNano()
+	st.AppendBatch(&flowv1.FlowEventBatch{
+		Events: []*flowv1.FlowEvent{
+			{
+				EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+				TimestampUnixNano: now,
+				Src:               &flowv1.WorkloadRef{Namespace: "insights", Pod: "a"},
+				Dst:               &flowv1.Endpoint{Addr: "10.0.0.1", Port: 80},
+			},
+			{
+				EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+				TimestampUnixNano: now + int64(time.Second),
+				Src:               &flowv1.WorkloadRef{Namespace: "kube-system", Pod: "b"},
+				Dst:               &flowv1.Endpoint{Addr: "10.0.0.2", Port: 443},
+				BytesSent:         10,
+			},
+		},
+	}, func(event *flowv1.FlowEvent) Enrichment {
+		if event.GetEventKind() == flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT {
+			return Enrichment{SrcNamespace: "insights", SrcWorkloadKind: "Job", SrcWorkloadName: "demo-traffic", DstNamespace: "insights", DstKind: "Service", DstName: "demo-server"}
+		}
+		return Enrichment{SrcNamespace: "kube-system", SrcWorkloadKind: "Pod", SrcWorkloadName: "b"}
+	})
+
+	connectEvents := st.ListEvents(ListOpts{EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT})
+	if len(connectEvents) != 1 {
+		t.Fatalf("connect events = %d", len(connectEvents))
+	}
+	if connectEvents[0].GetSrcWorkload().GetKind() != "Job" {
+		t.Fatalf("src workload kind = %q", connectEvents[0].GetSrcWorkload().GetKind())
+	}
+
+	sinceEvents := st.ListEvents(ListOpts{Since: now + int64(time.Millisecond)})
+	if len(sinceEvents) != 1 || sinceEvents[0].GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
+		t.Fatalf("since filter = %+v", sinceEvents)
+	}
+}
+
+func sampleEvent(ts int64, sent, received uint64) *flowv1.FlowEvent {
+	return &flowv1.FlowEvent{
+		EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+		Protocol:          flowv1.Protocol_PROTOCOL_TCP,
+		TimestampUnixNano: ts,
+		Src:               &flowv1.WorkloadRef{Namespace: "default", Pod: "a"},
+		Dst:               &flowv1.Endpoint{Addr: "10.0.0.1", Port: 80},
+		BytesSent:         sent,
+		BytesReceived:     received,
 	}
 }

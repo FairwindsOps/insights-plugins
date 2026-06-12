@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/datasource"
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/operators"
@@ -49,8 +50,8 @@ func (r *TopTCPRunner) Run(ctx context.Context) error {
 				return err
 			}
 			ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
-				flow := r.mapSnapshot(fields.extract(data))
-				r.client.Enqueue(flow)
+				event := r.mapSnapshot(fields.extract(data))
+				r.client.Enqueue(event)
 				return nil
 			}, opPriority)
 		}
@@ -58,7 +59,7 @@ func (r *TopTCPRunner) Run(ctx context.Context) error {
 	}, nil)
 }
 
-func (r *TopTCPRunner) mapSnapshot(fields TCPFields) *flowv1.NetworkFlow {
+func (r *TopTCPRunner) mapSnapshot(fields TCPFields) *flowv1.FlowEvent {
 	if fields.Pod == "" || fields.DstAddr == "" {
 		return nil
 	}
@@ -78,15 +79,24 @@ func (r *TopTCPRunner) mapSnapshot(fields TCPFields) *flowv1.NetworkFlow {
 		return nil
 	}
 
-	return MapTCP(TCPFields{
+	ts := fields.Timestamp
+	if ts == 0 {
+		// top_tcp is a polling gadget; its datasource has no timestamp field.
+		ts = time.Now().UnixNano()
+	}
+
+	return MapFlowEvent(TCPFields{
 		Namespace:     fields.Namespace,
 		Pod:           fields.Pod,
 		Container:     fields.Container,
+		SrcAddr:       fields.SrcAddr,
+		SrcPort:       fields.SrcPort,
 		DstAddr:       fields.DstAddr,
 		DstPort:       fields.DstPort,
-		Timestamp:     fields.Timestamp,
+		Timestamp:     ts,
 		BytesSent:     sent,
 		BytesReceived: received,
+		EventKind:     flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
 	})
 }
 
@@ -97,7 +107,6 @@ type topTCPFields struct {
 	dstAddr, dstPort, dstEp   datasource.FieldAccessor
 	sent, received            datasource.FieldAccessor
 	pid                       datasource.FieldAccessor
-	timestamp                 datasource.FieldAccessor
 }
 
 func (f *topTCPFields) init() error {
@@ -113,7 +122,6 @@ func (f *topTCPFields) init() error {
 	f.sent = f.ds.GetField("sent_raw")
 	f.received = f.ds.GetField("received_raw")
 	f.pid = f.ds.GetField("pid")
-	f.timestamp = f.ds.GetField("timestamp_raw")
 	if f.pod == nil {
 		return fmt.Errorf("missing k8s.podName field")
 	}
@@ -136,10 +144,6 @@ func (f *topTCPFields) extract(data datasource.Data) TCPFields {
 	}
 	if f.container != nil {
 		out.Container, _ = f.container.String(data)
-	}
-	if f.timestamp != nil {
-		ts, _ := f.timestamp.Int64(data)
-		out.Timestamp = ts
 	}
 	if f.srcAddr != nil {
 		out.SrcAddr, _ = f.srcAddr.String(data)

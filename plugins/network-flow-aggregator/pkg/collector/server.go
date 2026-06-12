@@ -26,40 +26,39 @@ func NewServer(st *store.Store, enricher *kube.Enricher, log *slog.Logger) *Serv
 	return &Server{store: st, enricher: enricher, log: log}
 }
 
-func (s *Server) PushFlows(stream flowv1.FlowIngest_PushFlowsServer) error {
+func (s *Server) PushEvents(stream flowv1.FlowIngest_PushEventsServer) error {
 	var total int64
 	for {
 		batch, err := stream.Recv()
 		if err == io.EOF {
-			return stream.SendAndClose(&flowv1.PushAck{AcceptedFlows: total})
+			return stream.SendAndClose(&flowv1.PushAck{AcceptedEvents: total})
 		}
 		if err != nil {
 			return status.Errorf(codes.Internal, "recv batch: %v", err)
 		}
 
-		accepted := s.store.IngestBatch(batch, s.enrichFlow)
+		accepted := s.store.AppendBatch(batch, s.enrichEvent)
 		total += accepted
 		s.log.Debug("ingested batch",
 			"node", batch.GetNodeName(),
 			"agent", batch.GetAgentId(),
-			"flows", len(batch.GetFlows()),
+			"events", len(batch.GetEvents()),
 			"accepted", accepted,
 		)
 	}
 }
 
-func (s *Server) enrichFlow(f *flowv1.NetworkFlow) store.Enrichment {
+func (s *Server) enrichEvent(event *flowv1.FlowEvent) store.Enrichment {
 	if s.enricher == nil {
 		return store.Enrichment{
-			SrcNamespace:    f.GetSrc().GetNamespace(),
+			SrcNamespace:    event.GetSrc().GetNamespace(),
 			SrcWorkloadKind: "Pod",
-			SrcWorkloadName: f.GetSrc().GetPod(),
-			DstAddr:         f.GetDst().GetAddr(),
+			SrcWorkloadName: event.GetSrc().GetPod(),
 		}
 	}
 
-	src := s.enricher.ResolveSrcWorkload(f.GetSrc().GetNamespace(), f.GetSrc().GetPod())
-	dst := s.enricher.ResolveDst(f.GetDst().GetAddr(), f.GetDst().GetPort())
+	src := s.enricher.ResolveSrcWorkload(event.GetSrc().GetNamespace(), event.GetSrc().GetPod())
+	dst := s.enricher.ResolveDst(event.GetDst().GetAddr(), event.GetDst().GetPort())
 
 	return store.Enrichment{
 		SrcNamespace:    src.Namespace,
@@ -68,6 +67,5 @@ func (s *Server) enrichFlow(f *flowv1.NetworkFlow) store.Enrichment {
 		DstNamespace:    dst.Namespace,
 		DstKind:         dst.Kind,
 		DstName:         dst.Name,
-		DstAddr:         dst.Addr,
 	}
 }

@@ -19,21 +19,27 @@ type TCPFields struct {
 	Timestamp     int64
 	BytesSent     uint64
 	BytesReceived uint64
+	EventKind     flowv1.FlowEventKind
 }
 
-func MapTCP(fields TCPFields) *flowv1.NetworkFlow {
+func MapFlowEvent(fields TCPFields) *flowv1.FlowEvent {
 	if fields.Pod == "" || fields.DstAddr == "" {
 		return nil
 	}
-	return &flowv1.NetworkFlow{
-		Type:              flowv1.FlowType_FLOW_TYPE_TCP,
+	return &flowv1.FlowEvent{
+		EventKind:         fields.EventKind,
+		Protocol:          flowv1.Protocol_PROTOCOL_TCP,
 		TimestampUnixNano: fields.Timestamp,
-		Src: &flowv1.WorkloadEndpoint{
+		Src: &flowv1.WorkloadRef{
 			Namespace: fields.Namespace,
 			Pod:       fields.Pod,
 			Container: fields.Container,
 		},
-		Dst: &flowv1.NetworkEndpoint{
+		SrcEndpoint: &flowv1.Endpoint{
+			Addr: fields.SrcAddr,
+			Port: fields.SrcPort,
+		},
+		Dst: &flowv1.Endpoint{
 			Addr: fields.DstAddr,
 			Port: fields.DstPort,
 		},

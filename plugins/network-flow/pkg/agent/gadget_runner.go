@@ -9,6 +9,8 @@ import (
 
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/datasource"
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/operators"
+
+	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
 )
 
 type GadgetConfig struct {
@@ -46,8 +48,10 @@ func (r *TraceTCPRunner) Run(ctx context.Context) error {
 				return err
 			}
 			ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
-				flow := MapTCP(fields.extract(data))
-				r.client.Enqueue(flow)
+				raw := fields.extract(data)
+				raw.EventKind = flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT
+				event := MapFlowEvent(raw)
+				r.client.Enqueue(event)
 				return nil
 			}, opPriority)
 		}
@@ -58,16 +62,20 @@ func (r *TraceTCPRunner) Run(ctx context.Context) error {
 }
 
 type traceTCPFields struct {
-	ds                       datasource.DataSource
-	namespace, pod, container  datasource.FieldAccessor
-	dstAddr, dstPort, dstEp    datasource.FieldAccessor
-	timestamp                  datasource.FieldAccessor
+	ds                        datasource.DataSource
+	namespace, pod, container datasource.FieldAccessor
+	srcAddr, srcPort, srcEp   datasource.FieldAccessor
+	dstAddr, dstPort, dstEp   datasource.FieldAccessor
+	timestamp                 datasource.FieldAccessor
 }
 
 func (f *traceTCPFields) init() error {
 	f.namespace = f.ds.GetField("k8s.namespace")
 	f.pod = f.ds.GetField("k8s.podName")
 	f.container = f.ds.GetField("k8s.containerName")
+	f.srcAddr = f.ds.GetField("src.addr")
+	f.srcPort = f.ds.GetField("src.port")
+	f.srcEp = f.ds.GetField("src.endpoint")
 	f.dstAddr = f.ds.GetField("dst.addr")
 	f.dstPort = f.ds.GetField("dst.port")
 	f.dstEp = f.ds.GetField("dst.endpoint")
@@ -95,6 +103,17 @@ func (f *traceTCPFields) extract(data datasource.Data) TCPFields {
 	if f.timestamp != nil {
 		ts, _ := f.timestamp.Int64(data)
 		out.Timestamp = ts
+	}
+	if f.srcAddr != nil {
+		out.SrcAddr, _ = f.srcAddr.String(data)
+	}
+	if f.srcPort != nil {
+		port, _ := f.srcPort.Uint16(data)
+		out.SrcPort = uint32(port)
+	}
+	if out.SrcAddr == "" && f.srcEp != nil {
+		endpoint, _ := f.srcEp.String(data)
+		out.SrcAddr, out.SrcPort = splitEndpoint(endpoint)
 	}
 	if f.dstAddr != nil {
 		out.DstAddr, _ = f.dstAddr.String(data)

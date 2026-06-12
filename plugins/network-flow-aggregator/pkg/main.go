@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -24,11 +25,12 @@ func main() {
 	httpAddr := flag.String("http-addr", envOr("HTTP_ADDR", ":8080"), "debug HTTP listen address")
 	kubeconfig := flag.String("kubeconfig", envOr("KUBECONFIG", ""), "path to kubeconfig; in-cluster config is used when empty")
 	disableKube := flag.Bool("disable-kube", envOr("DISABLE_KUBE", "") == "true", "skip kubernetes enrichment")
-	bucketInterval := flag.Duration("bucket-interval", parseDurationEnv("BUCKET_INTERVAL", time.Minute), "edge aggregation time bucket")
+	maxEvents := flag.Int("max-events", parseIntEnv("MAX_EVENTS", 100_000), "maximum in-memory flow events")
+	maxAge := flag.Duration("max-age", parseDurationEnv("MAX_AGE", 15*time.Minute), "maximum age of retained flow events")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	st := store.NewStore(*bucketInterval)
+	st := store.NewStore(*maxEvents, *maxAge)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -56,7 +58,7 @@ func main() {
 	}
 
 	go func() {
-		log.Info("flow-collector gRPC listening", "addr", *grpcAddr, "bucket_interval", st.BucketInterval())
+		log.Info("flow-collector gRPC listening", "addr", *grpcAddr, "max_events", *maxEvents, "max_age", *maxAge)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Error("grpc serve", "err", err)
 			stop()
@@ -95,6 +97,15 @@ func parseDurationEnv(key string, fallback time.Duration) time.Duration {
 	if v := os.Getenv(key); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
 			return d
+		}
+	}
+	return fallback
+}
+
+func parseIntEnv(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
 		}
 	}
 	return fallback

@@ -27,7 +27,7 @@ type Client struct {
 	cfg     ClientConfig
 	log     *slog.Logger
 	mu      sync.Mutex
-	flows   []*flowv1.NetworkFlow
+	events  []*flowv1.FlowEvent
 	flushCh chan struct{}
 }
 
@@ -54,13 +54,13 @@ func NewClient(cfg ClientConfig, log *slog.Logger) *Client {
 	}
 }
 
-func (c *Client) Enqueue(flow *flowv1.NetworkFlow) {
-	if flow == nil {
+func (c *Client) Enqueue(event *flowv1.FlowEvent) {
+	if event == nil {
 		return
 	}
 	c.mu.Lock()
-	c.flows = append(c.flows, flow)
-	shouldFlush := len(c.flows) >= c.cfg.BatchSize
+	c.events = append(c.events, event)
+	shouldFlush := len(c.events) >= c.cfg.BatchSize
 	c.mu.Unlock()
 	if shouldFlush {
 		c.signalFlush()
@@ -131,7 +131,7 @@ func (c *Client) Run(ctx context.Context) error {
 	}
 }
 
-func (c *Client) runConnected(ctx context.Context, stream flowv1.FlowIngest_PushFlowsClient, ticker *time.Ticker) error {
+func (c *Client) runConnected(ctx context.Context, stream flowv1.FlowIngest_PushEventsClient, ticker *time.Ticker) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -148,7 +148,7 @@ func (c *Client) runConnected(ctx context.Context, stream flowv1.FlowIngest_Push
 	}
 }
 
-func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowIngest_PushFlowsClient, error) {
+func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowIngest_PushEventsClient, error) {
 	conn, err := grpc.NewClient(
 		c.cfg.CollectorAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -158,7 +158,7 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowI
 	}
 
 	client := flowv1.NewFlowIngestClient(conn)
-	stream, err := client.PushFlows(ctx)
+	stream, err := client.PushEvents(ctx)
 	if err != nil {
 		conn.Close()
 		return nil, nil, err
@@ -166,25 +166,25 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowI
 	return conn, stream, nil
 }
 
-func (c *Client) drainLocked() *flowv1.FlowBatch {
-	if len(c.flows) == 0 {
+func (c *Client) drainLocked() *flowv1.FlowEventBatch {
+	if len(c.events) == 0 {
 		return nil
 	}
-	batch := &flowv1.FlowBatch{
+	batch := &flowv1.FlowEventBatch{
 		NodeName: c.cfg.NodeName,
 		AgentId:  c.cfg.AgentID,
-		Flows:    c.flows,
+		Events:   c.events,
 	}
-	c.flows = nil
+	c.events = nil
 	return batch
 }
 
-func (c *Client) sendPending(stream flowv1.FlowIngest_PushFlowsClient) error {
+func (c *Client) sendPending(stream flowv1.FlowIngest_PushEventsClient) error {
 	c.mu.Lock()
 	batch := c.drainLocked()
 	c.mu.Unlock()
 
-	if batch == nil || len(batch.GetFlows()) == 0 {
+	if batch == nil || len(batch.GetEvents()) == 0 {
 		return nil
 	}
 
@@ -193,26 +193,26 @@ func (c *Client) sendPending(stream flowv1.FlowIngest_PushFlowsClient) error {
 		return err
 	}
 
-	c.log.Debug("batch sent", "flows", len(batch.GetFlows()))
+	c.log.Debug("batch sent", "events", len(batch.GetEvents()))
 	return nil
 }
 
-func (c *Client) requeue(batch *flowv1.FlowBatch) {
-	if batch == nil || len(batch.GetFlows()) == 0 {
+func (c *Client) requeue(batch *flowv1.FlowEventBatch) {
+	if batch == nil || len(batch.GetEvents()) == 0 {
 		return
 	}
 	c.mu.Lock()
-	c.flows = append(batch.GetFlows(), c.flows...)
+	c.events = append(batch.GetEvents(), c.events...)
 	c.mu.Unlock()
 }
 
-func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream flowv1.FlowIngest_PushFlowsClient) {
+func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream flowv1.FlowIngest_PushEventsClient) {
 	if stream != nil {
 		ack, err := stream.CloseAndRecv()
 		if err != nil && err != io.EOF {
 			c.log.Warn("close stream", "err", err)
 		} else if ack != nil {
-			c.log.Debug("stream closed", "accepted", ack.GetAcceptedFlows())
+			c.log.Debug("stream closed", "accepted", ack.GetAcceptedEvents())
 		}
 	}
 	if conn != nil {

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.35.0
-// source: api/proto/flow/v1/flow.proto
+// source: flow/v1/flow.proto
 
 package flowv1
 
@@ -21,59 +21,154 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type FlowType int32
+type FlowEventKind int32
 
 const (
-	FlowType_FLOW_TYPE_UNSPECIFIED FlowType = 0
-	FlowType_FLOW_TYPE_TCP         FlowType = 1
-	FlowType_FLOW_TYPE_DNS         FlowType = 2
-	FlowType_FLOW_TYPE_HTTP        FlowType = 3
+	FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED FlowEventKind = 0
+	FlowEventKind_FLOW_EVENT_KIND_CONNECT     FlowEventKind = 1
+	FlowEventKind_FLOW_EVENT_KIND_TRAFFIC     FlowEventKind = 2
 )
 
-// Enum value maps for FlowType.
+// Enum value maps for FlowEventKind.
 var (
-	FlowType_name = map[int32]string{
-		0: "FLOW_TYPE_UNSPECIFIED",
-		1: "FLOW_TYPE_TCP",
-		2: "FLOW_TYPE_DNS",
-		3: "FLOW_TYPE_HTTP",
+	FlowEventKind_name = map[int32]string{
+		0: "FLOW_EVENT_KIND_UNSPECIFIED",
+		1: "FLOW_EVENT_KIND_CONNECT",
+		2: "FLOW_EVENT_KIND_TRAFFIC",
 	}
-	FlowType_value = map[string]int32{
-		"FLOW_TYPE_UNSPECIFIED": 0,
-		"FLOW_TYPE_TCP":         1,
-		"FLOW_TYPE_DNS":         2,
-		"FLOW_TYPE_HTTP":        3,
+	FlowEventKind_value = map[string]int32{
+		"FLOW_EVENT_KIND_UNSPECIFIED": 0,
+		"FLOW_EVENT_KIND_CONNECT":     1,
+		"FLOW_EVENT_KIND_TRAFFIC":     2,
 	}
 )
 
-func (x FlowType) Enum() *FlowType {
-	p := new(FlowType)
+func (x FlowEventKind) Enum() *FlowEventKind {
+	p := new(FlowEventKind)
 	*p = x
 	return p
 }
 
-func (x FlowType) String() string {
+func (x FlowEventKind) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (FlowType) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_flow_v1_flow_proto_enumTypes[0].Descriptor()
+func (FlowEventKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_flow_v1_flow_proto_enumTypes[0].Descriptor()
 }
 
-func (FlowType) Type() protoreflect.EnumType {
-	return &file_api_proto_flow_v1_flow_proto_enumTypes[0]
+func (FlowEventKind) Type() protoreflect.EnumType {
+	return &file_flow_v1_flow_proto_enumTypes[0]
 }
 
-func (x FlowType) Number() protoreflect.EnumNumber {
+func (x FlowEventKind) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use FlowType.Descriptor instead.
-func (FlowType) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use FlowEventKind.Descriptor instead.
+func (FlowEventKind) EnumDescriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{0}
 }
 
-type WorkloadEndpoint struct {
+type Protocol int32
+
+const (
+	Protocol_PROTOCOL_UNSPECIFIED Protocol = 0
+	Protocol_PROTOCOL_TCP         Protocol = 1
+)
+
+// Enum value maps for Protocol.
+var (
+	Protocol_name = map[int32]string{
+		0: "PROTOCOL_UNSPECIFIED",
+		1: "PROTOCOL_TCP",
+	}
+	Protocol_value = map[string]int32{
+		"PROTOCOL_UNSPECIFIED": 0,
+		"PROTOCOL_TCP":         1,
+	}
+)
+
+func (x Protocol) Enum() *Protocol {
+	p := new(Protocol)
+	*p = x
+	return p
+}
+
+func (x Protocol) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Protocol) Descriptor() protoreflect.EnumDescriptor {
+	return file_flow_v1_flow_proto_enumTypes[1].Descriptor()
+}
+
+func (Protocol) Type() protoreflect.EnumType {
+	return &file_flow_v1_flow_proto_enumTypes[1]
+}
+
+func (x Protocol) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Protocol.Descriptor instead.
+func (Protocol) EnumDescriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{1}
+}
+
+type Endpoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Addr          string                 `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Endpoint) Reset() {
+	*x = Endpoint{}
+	mi := &file_flow_v1_flow_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Endpoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Endpoint) ProtoMessage() {}
+
+func (x *Endpoint) ProtoReflect() protoreflect.Message {
+	mi := &file_flow_v1_flow_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Endpoint.ProtoReflect.Descriptor instead.
+func (*Endpoint) Descriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Endpoint) GetAddr() string {
+	if x != nil {
+		return x.Addr
+	}
+	return ""
+}
+
+func (x *Endpoint) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
+type WorkloadRef struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Namespace     string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	Pod           string                 `protobuf:"bytes,2,opt,name=pod,proto3" json:"pod,omitempty"`
@@ -82,21 +177,21 @@ type WorkloadEndpoint struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *WorkloadEndpoint) Reset() {
-	*x = WorkloadEndpoint{}
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[0]
+func (x *WorkloadRef) Reset() {
+	*x = WorkloadRef{}
+	mi := &file_flow_v1_flow_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *WorkloadEndpoint) String() string {
+func (x *WorkloadRef) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*WorkloadEndpoint) ProtoMessage() {}
+func (*WorkloadRef) ProtoMessage() {}
 
-func (x *WorkloadEndpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[0]
+func (x *WorkloadRef) ProtoReflect() protoreflect.Message {
+	mi := &file_flow_v1_flow_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -107,55 +202,56 @@ func (x *WorkloadEndpoint) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use WorkloadEndpoint.ProtoReflect.Descriptor instead.
-func (*WorkloadEndpoint) Descriptor() ([]byte, []int) {
-	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use WorkloadRef.ProtoReflect.Descriptor instead.
+func (*WorkloadRef) Descriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *WorkloadEndpoint) GetNamespace() string {
+func (x *WorkloadRef) GetNamespace() string {
 	if x != nil {
 		return x.Namespace
 	}
 	return ""
 }
 
-func (x *WorkloadEndpoint) GetPod() string {
+func (x *WorkloadRef) GetPod() string {
 	if x != nil {
 		return x.Pod
 	}
 	return ""
 }
 
-func (x *WorkloadEndpoint) GetContainer() string {
+func (x *WorkloadRef) GetContainer() string {
 	if x != nil {
 		return x.Container
 	}
 	return ""
 }
 
-type NetworkEndpoint struct {
+type KubernetesRef struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Addr          string                 `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	Namespace     string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Kind          string                 `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *NetworkEndpoint) Reset() {
-	*x = NetworkEndpoint{}
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[1]
+func (x *KubernetesRef) Reset() {
+	*x = KubernetesRef{}
+	mi := &file_flow_v1_flow_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *NetworkEndpoint) String() string {
+func (x *KubernetesRef) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*NetworkEndpoint) ProtoMessage() {}
+func (*KubernetesRef) ProtoMessage() {}
 
-func (x *NetworkEndpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[1]
+func (x *KubernetesRef) ProtoReflect() protoreflect.Message {
+	mi := &file_flow_v1_flow_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -166,53 +262,61 @@ func (x *NetworkEndpoint) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use NetworkEndpoint.ProtoReflect.Descriptor instead.
-func (*NetworkEndpoint) Descriptor() ([]byte, []int) {
-	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use KubernetesRef.ProtoReflect.Descriptor instead.
+func (*KubernetesRef) Descriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *NetworkEndpoint) GetAddr() string {
+func (x *KubernetesRef) GetNamespace() string {
 	if x != nil {
-		return x.Addr
+		return x.Namespace
 	}
 	return ""
 }
 
-func (x *NetworkEndpoint) GetPort() uint32 {
+func (x *KubernetesRef) GetKind() string {
 	if x != nil {
-		return x.Port
+		return x.Kind
 	}
-	return 0
+	return ""
 }
 
-type NetworkFlow struct {
+func (x *KubernetesRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type FlowEvent struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
-	Type              FlowType               `protobuf:"varint,1,opt,name=type,proto3,enum=flow.v1.FlowType" json:"type,omitempty"`
-	TimestampUnixNano int64                  `protobuf:"varint,2,opt,name=timestamp_unix_nano,json=timestampUnixNano,proto3" json:"timestamp_unix_nano,omitempty"`
-	Src               *WorkloadEndpoint      `protobuf:"bytes,3,opt,name=src,proto3" json:"src,omitempty"`
-	Dst               *NetworkEndpoint       `protobuf:"bytes,4,opt,name=dst,proto3" json:"dst,omitempty"`
-	Metadata          map[string]string      `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	BytesSent         uint64                 `protobuf:"varint,6,opt,name=bytes_sent,json=bytesSent,proto3" json:"bytes_sent,omitempty"`
-	BytesReceived     uint64                 `protobuf:"varint,7,opt,name=bytes_received,json=bytesReceived,proto3" json:"bytes_received,omitempty"`
+	EventKind         FlowEventKind          `protobuf:"varint,1,opt,name=event_kind,json=eventKind,proto3,enum=flow.v1.FlowEventKind" json:"event_kind,omitempty"`
+	Protocol          Protocol               `protobuf:"varint,2,opt,name=protocol,proto3,enum=flow.v1.Protocol" json:"protocol,omitempty"`
+	TimestampUnixNano int64                  `protobuf:"varint,3,opt,name=timestamp_unix_nano,json=timestampUnixNano,proto3" json:"timestamp_unix_nano,omitempty"`
+	Src               *WorkloadRef           `protobuf:"bytes,4,opt,name=src,proto3" json:"src,omitempty"`
+	SrcEndpoint       *Endpoint              `protobuf:"bytes,5,opt,name=src_endpoint,json=srcEndpoint,proto3" json:"src_endpoint,omitempty"`
+	Dst               *Endpoint              `protobuf:"bytes,6,opt,name=dst,proto3" json:"dst,omitempty"`
+	BytesSent         uint64                 `protobuf:"varint,7,opt,name=bytes_sent,json=bytesSent,proto3" json:"bytes_sent,omitempty"`
+	BytesReceived     uint64                 `protobuf:"varint,8,opt,name=bytes_received,json=bytesReceived,proto3" json:"bytes_received,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *NetworkFlow) Reset() {
-	*x = NetworkFlow{}
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[2]
+func (x *FlowEvent) Reset() {
+	*x = FlowEvent{}
+	mi := &file_flow_v1_flow_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *NetworkFlow) String() string {
+func (x *FlowEvent) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*NetworkFlow) ProtoMessage() {}
+func (*FlowEvent) ProtoMessage() {}
 
-func (x *NetworkFlow) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[2]
+func (x *FlowEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_flow_v1_flow_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,84 +327,91 @@ func (x *NetworkFlow) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use NetworkFlow.ProtoReflect.Descriptor instead.
-func (*NetworkFlow) Descriptor() ([]byte, []int) {
-	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use FlowEvent.ProtoReflect.Descriptor instead.
+func (*FlowEvent) Descriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *NetworkFlow) GetType() FlowType {
+func (x *FlowEvent) GetEventKind() FlowEventKind {
 	if x != nil {
-		return x.Type
+		return x.EventKind
 	}
-	return FlowType_FLOW_TYPE_UNSPECIFIED
+	return FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED
 }
 
-func (x *NetworkFlow) GetTimestampUnixNano() int64 {
+func (x *FlowEvent) GetProtocol() Protocol {
+	if x != nil {
+		return x.Protocol
+	}
+	return Protocol_PROTOCOL_UNSPECIFIED
+}
+
+func (x *FlowEvent) GetTimestampUnixNano() int64 {
 	if x != nil {
 		return x.TimestampUnixNano
 	}
 	return 0
 }
 
-func (x *NetworkFlow) GetSrc() *WorkloadEndpoint {
+func (x *FlowEvent) GetSrc() *WorkloadRef {
 	if x != nil {
 		return x.Src
 	}
 	return nil
 }
 
-func (x *NetworkFlow) GetDst() *NetworkEndpoint {
+func (x *FlowEvent) GetSrcEndpoint() *Endpoint {
+	if x != nil {
+		return x.SrcEndpoint
+	}
+	return nil
+}
+
+func (x *FlowEvent) GetDst() *Endpoint {
 	if x != nil {
 		return x.Dst
 	}
 	return nil
 }
 
-func (x *NetworkFlow) GetMetadata() map[string]string {
-	if x != nil {
-		return x.Metadata
-	}
-	return nil
-}
-
-func (x *NetworkFlow) GetBytesSent() uint64 {
+func (x *FlowEvent) GetBytesSent() uint64 {
 	if x != nil {
 		return x.BytesSent
 	}
 	return 0
 }
 
-func (x *NetworkFlow) GetBytesReceived() uint64 {
+func (x *FlowEvent) GetBytesReceived() uint64 {
 	if x != nil {
 		return x.BytesReceived
 	}
 	return 0
 }
 
-type FlowBatch struct {
+type FlowEventBatch struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NodeName      string                 `protobuf:"bytes,1,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
 	AgentId       string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	Flows         []*NetworkFlow         `protobuf:"bytes,3,rep,name=flows,proto3" json:"flows,omitempty"`
+	Events        []*FlowEvent           `protobuf:"bytes,3,rep,name=events,proto3" json:"events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *FlowBatch) Reset() {
-	*x = FlowBatch{}
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[3]
+func (x *FlowEventBatch) Reset() {
+	*x = FlowEventBatch{}
+	mi := &file_flow_v1_flow_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *FlowBatch) String() string {
+func (x *FlowEventBatch) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*FlowBatch) ProtoMessage() {}
+func (*FlowEventBatch) ProtoMessage() {}
 
-func (x *FlowBatch) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[3]
+func (x *FlowEventBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_flow_v1_flow_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -311,42 +422,174 @@ func (x *FlowBatch) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FlowBatch.ProtoReflect.Descriptor instead.
-func (*FlowBatch) Descriptor() ([]byte, []int) {
-	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{3}
+// Deprecated: Use FlowEventBatch.ProtoReflect.Descriptor instead.
+func (*FlowEventBatch) Descriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *FlowBatch) GetNodeName() string {
+func (x *FlowEventBatch) GetNodeName() string {
 	if x != nil {
 		return x.NodeName
 	}
 	return ""
 }
 
-func (x *FlowBatch) GetAgentId() string {
+func (x *FlowEventBatch) GetAgentId() string {
 	if x != nil {
 		return x.AgentId
 	}
 	return ""
 }
 
-func (x *FlowBatch) GetFlows() []*NetworkFlow {
+func (x *FlowEventBatch) GetEvents() []*FlowEvent {
 	if x != nil {
-		return x.Flows
+		return x.Events
 	}
 	return nil
 }
 
+type EnrichedFlowEvent struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	NodeName          string                 `protobuf:"bytes,1,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	AgentId           string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	EventKind         FlowEventKind          `protobuf:"varint,3,opt,name=event_kind,json=eventKind,proto3,enum=flow.v1.FlowEventKind" json:"event_kind,omitempty"`
+	Protocol          Protocol               `protobuf:"varint,4,opt,name=protocol,proto3,enum=flow.v1.Protocol" json:"protocol,omitempty"`
+	TimestampUnixNano int64                  `protobuf:"varint,5,opt,name=timestamp_unix_nano,json=timestampUnixNano,proto3" json:"timestamp_unix_nano,omitempty"`
+	Src               *WorkloadRef           `protobuf:"bytes,6,opt,name=src,proto3" json:"src,omitempty"`
+	SrcWorkload       *KubernetesRef         `protobuf:"bytes,7,opt,name=src_workload,json=srcWorkload,proto3" json:"src_workload,omitempty"`
+	SrcEndpoint       *Endpoint              `protobuf:"bytes,8,opt,name=src_endpoint,json=srcEndpoint,proto3" json:"src_endpoint,omitempty"`
+	Dst               *Endpoint              `protobuf:"bytes,9,opt,name=dst,proto3" json:"dst,omitempty"`
+	DstRef            *KubernetesRef         `protobuf:"bytes,10,opt,name=dst_ref,json=dstRef,proto3" json:"dst_ref,omitempty"`
+	BytesSent         uint64                 `protobuf:"varint,11,opt,name=bytes_sent,json=bytesSent,proto3" json:"bytes_sent,omitempty"`
+	BytesReceived     uint64                 `protobuf:"varint,12,opt,name=bytes_received,json=bytesReceived,proto3" json:"bytes_received,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *EnrichedFlowEvent) Reset() {
+	*x = EnrichedFlowEvent{}
+	mi := &file_flow_v1_flow_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnrichedFlowEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnrichedFlowEvent) ProtoMessage() {}
+
+func (x *EnrichedFlowEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_flow_v1_flow_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnrichedFlowEvent.ProtoReflect.Descriptor instead.
+func (*EnrichedFlowEvent) Descriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *EnrichedFlowEvent) GetNodeName() string {
+	if x != nil {
+		return x.NodeName
+	}
+	return ""
+}
+
+func (x *EnrichedFlowEvent) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *EnrichedFlowEvent) GetEventKind() FlowEventKind {
+	if x != nil {
+		return x.EventKind
+	}
+	return FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED
+}
+
+func (x *EnrichedFlowEvent) GetProtocol() Protocol {
+	if x != nil {
+		return x.Protocol
+	}
+	return Protocol_PROTOCOL_UNSPECIFIED
+}
+
+func (x *EnrichedFlowEvent) GetTimestampUnixNano() int64 {
+	if x != nil {
+		return x.TimestampUnixNano
+	}
+	return 0
+}
+
+func (x *EnrichedFlowEvent) GetSrc() *WorkloadRef {
+	if x != nil {
+		return x.Src
+	}
+	return nil
+}
+
+func (x *EnrichedFlowEvent) GetSrcWorkload() *KubernetesRef {
+	if x != nil {
+		return x.SrcWorkload
+	}
+	return nil
+}
+
+func (x *EnrichedFlowEvent) GetSrcEndpoint() *Endpoint {
+	if x != nil {
+		return x.SrcEndpoint
+	}
+	return nil
+}
+
+func (x *EnrichedFlowEvent) GetDst() *Endpoint {
+	if x != nil {
+		return x.Dst
+	}
+	return nil
+}
+
+func (x *EnrichedFlowEvent) GetDstRef() *KubernetesRef {
+	if x != nil {
+		return x.DstRef
+	}
+	return nil
+}
+
+func (x *EnrichedFlowEvent) GetBytesSent() uint64 {
+	if x != nil {
+		return x.BytesSent
+	}
+	return 0
+}
+
+func (x *EnrichedFlowEvent) GetBytesReceived() uint64 {
+	if x != nil {
+		return x.BytesReceived
+	}
+	return 0
+}
+
 type PushAck struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AcceptedFlows int64                  `protobuf:"varint,1,opt,name=accepted_flows,json=acceptedFlows,proto3" json:"accepted_flows,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AcceptedEvents int64                  `protobuf:"varint,1,opt,name=accepted_events,json=acceptedEvents,proto3" json:"accepted_events,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PushAck) Reset() {
 	*x = PushAck{}
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[4]
+	mi := &file_flow_v1_flow_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -358,7 +601,7 @@ func (x *PushAck) String() string {
 func (*PushAck) ProtoMessage() {}
 
 func (x *PushAck) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[4]
+	mi := &file_flow_v1_flow_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -371,114 +614,146 @@ func (x *PushAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushAck.ProtoReflect.Descriptor instead.
 func (*PushAck) Descriptor() ([]byte, []int) {
-	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{4}
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *PushAck) GetAcceptedFlows() int64 {
+func (x *PushAck) GetAcceptedEvents() int64 {
 	if x != nil {
-		return x.AcceptedFlows
+		return x.AcceptedEvents
 	}
 	return 0
 }
 
-var File_api_proto_flow_v1_flow_proto protoreflect.FileDescriptor
+var File_flow_v1_flow_proto protoreflect.FileDescriptor
 
-const file_api_proto_flow_v1_flow_proto_rawDesc = "" +
+const file_flow_v1_flow_proto_rawDesc = "" +
 	"\n" +
-	"\x1capi/proto/flow/v1/flow.proto\x12\aflow.v1\"`\n" +
-	"\x10WorkloadEndpoint\x12\x1c\n" +
+	"\x12flow/v1/flow.proto\x12\aflow.v1\"2\n" +
+	"\bEndpoint\x12\x12\n" +
+	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x12\n" +
+	"\x04port\x18\x02 \x01(\rR\x04port\"[\n" +
+	"\vWorkloadRef\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x10\n" +
 	"\x03pod\x18\x02 \x01(\tR\x03pod\x12\x1c\n" +
-	"\tcontainer\x18\x03 \x01(\tR\tcontainer\"9\n" +
-	"\x0fNetworkEndpoint\x12\x12\n" +
-	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x12\n" +
-	"\x04port\x18\x02 \x01(\rR\x04port\"\x80\x03\n" +
-	"\vNetworkFlow\x12%\n" +
-	"\x04type\x18\x01 \x01(\x0e2\x11.flow.v1.FlowTypeR\x04type\x12.\n" +
-	"\x13timestamp_unix_nano\x18\x02 \x01(\x03R\x11timestampUnixNano\x12+\n" +
-	"\x03src\x18\x03 \x01(\v2\x19.flow.v1.WorkloadEndpointR\x03src\x12*\n" +
-	"\x03dst\x18\x04 \x01(\v2\x18.flow.v1.NetworkEndpointR\x03dst\x12>\n" +
-	"\bmetadata\x18\x05 \x03(\v2\".flow.v1.NetworkFlow.MetadataEntryR\bmetadata\x12\x1d\n" +
+	"\tcontainer\x18\x03 \x01(\tR\tcontainer\"U\n" +
+	"\rKubernetesRef\x12\x1c\n" +
+	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
+	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\xea\x02\n" +
+	"\tFlowEvent\x125\n" +
 	"\n" +
-	"bytes_sent\x18\x06 \x01(\x04R\tbytesSent\x12%\n" +
-	"\x0ebytes_received\x18\a \x01(\x04R\rbytesReceived\x1a;\n" +
-	"\rMetadataEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"o\n" +
-	"\tFlowBatch\x12\x1b\n" +
+	"event_kind\x18\x01 \x01(\x0e2\x16.flow.v1.FlowEventKindR\teventKind\x12-\n" +
+	"\bprotocol\x18\x02 \x01(\x0e2\x11.flow.v1.ProtocolR\bprotocol\x12.\n" +
+	"\x13timestamp_unix_nano\x18\x03 \x01(\x03R\x11timestampUnixNano\x12&\n" +
+	"\x03src\x18\x04 \x01(\v2\x14.flow.v1.WorkloadRefR\x03src\x124\n" +
+	"\fsrc_endpoint\x18\x05 \x01(\v2\x11.flow.v1.EndpointR\vsrcEndpoint\x12#\n" +
+	"\x03dst\x18\x06 \x01(\v2\x11.flow.v1.EndpointR\x03dst\x12\x1d\n" +
+	"\n" +
+	"bytes_sent\x18\a \x01(\x04R\tbytesSent\x12%\n" +
+	"\x0ebytes_received\x18\b \x01(\x04R\rbytesReceived\"t\n" +
+	"\x0eFlowEventBatch\x12\x1b\n" +
 	"\tnode_name\x18\x01 \x01(\tR\bnodeName\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12*\n" +
-	"\x05flows\x18\x03 \x03(\v2\x14.flow.v1.NetworkFlowR\x05flows\"0\n" +
-	"\aPushAck\x12%\n" +
-	"\x0eaccepted_flows\x18\x01 \x01(\x03R\racceptedFlows*_\n" +
-	"\bFlowType\x12\x19\n" +
-	"\x15FLOW_TYPE_UNSPECIFIED\x10\x00\x12\x11\n" +
-	"\rFLOW_TYPE_TCP\x10\x01\x12\x11\n" +
-	"\rFLOW_TYPE_DNS\x10\x02\x12\x12\n" +
-	"\x0eFLOW_TYPE_HTTP\x10\x032A\n" +
+	"\x06events\x18\x03 \x03(\v2\x12.flow.v1.FlowEventR\x06events\"\x96\x04\n" +
+	"\x11EnrichedFlowEvent\x12\x1b\n" +
+	"\tnode_name\x18\x01 \x01(\tR\bnodeName\x12\x19\n" +
+	"\bagent_id\x18\x02 \x01(\tR\aagentId\x125\n" +
 	"\n" +
-	"FlowIngest\x123\n" +
-	"\tPushFlows\x12\x12.flow.v1.FlowBatch\x1a\x10.flow.v1.PushAck(\x01BRZPgithub.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1;flowv1b\x06proto3"
+	"event_kind\x18\x03 \x01(\x0e2\x16.flow.v1.FlowEventKindR\teventKind\x12-\n" +
+	"\bprotocol\x18\x04 \x01(\x0e2\x11.flow.v1.ProtocolR\bprotocol\x12.\n" +
+	"\x13timestamp_unix_nano\x18\x05 \x01(\x03R\x11timestampUnixNano\x12&\n" +
+	"\x03src\x18\x06 \x01(\v2\x14.flow.v1.WorkloadRefR\x03src\x129\n" +
+	"\fsrc_workload\x18\a \x01(\v2\x16.flow.v1.KubernetesRefR\vsrcWorkload\x124\n" +
+	"\fsrc_endpoint\x18\b \x01(\v2\x11.flow.v1.EndpointR\vsrcEndpoint\x12#\n" +
+	"\x03dst\x18\t \x01(\v2\x11.flow.v1.EndpointR\x03dst\x12/\n" +
+	"\adst_ref\x18\n" +
+	" \x01(\v2\x16.flow.v1.KubernetesRefR\x06dstRef\x12\x1d\n" +
+	"\n" +
+	"bytes_sent\x18\v \x01(\x04R\tbytesSent\x12%\n" +
+	"\x0ebytes_received\x18\f \x01(\x04R\rbytesReceived\"2\n" +
+	"\aPushAck\x12'\n" +
+	"\x0faccepted_events\x18\x01 \x01(\x03R\x0eacceptedEvents*j\n" +
+	"\rFlowEventKind\x12\x1f\n" +
+	"\x1bFLOW_EVENT_KIND_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17FLOW_EVENT_KIND_CONNECT\x10\x01\x12\x1b\n" +
+	"\x17FLOW_EVENT_KIND_TRAFFIC\x10\x02*6\n" +
+	"\bProtocol\x12\x18\n" +
+	"\x14PROTOCOL_UNSPECIFIED\x10\x00\x12\x10\n" +
+	"\fPROTOCOL_TCP\x10\x012G\n" +
+	"\n" +
+	"FlowIngest\x129\n" +
+	"\n" +
+	"PushEvents\x12\x17.flow.v1.FlowEventBatch\x1a\x10.flow.v1.PushAck(\x01BRZPgithub.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1;flowv1b\x06proto3"
 
 var (
-	file_api_proto_flow_v1_flow_proto_rawDescOnce sync.Once
-	file_api_proto_flow_v1_flow_proto_rawDescData []byte
+	file_flow_v1_flow_proto_rawDescOnce sync.Once
+	file_flow_v1_flow_proto_rawDescData []byte
 )
 
-func file_api_proto_flow_v1_flow_proto_rawDescGZIP() []byte {
-	file_api_proto_flow_v1_flow_proto_rawDescOnce.Do(func() {
-		file_api_proto_flow_v1_flow_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_flow_v1_flow_proto_rawDesc), len(file_api_proto_flow_v1_flow_proto_rawDesc)))
+func file_flow_v1_flow_proto_rawDescGZIP() []byte {
+	file_flow_v1_flow_proto_rawDescOnce.Do(func() {
+		file_flow_v1_flow_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_flow_v1_flow_proto_rawDesc), len(file_flow_v1_flow_proto_rawDesc)))
 	})
-	return file_api_proto_flow_v1_flow_proto_rawDescData
+	return file_flow_v1_flow_proto_rawDescData
 }
 
-var file_api_proto_flow_v1_flow_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_proto_flow_v1_flow_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
-var file_api_proto_flow_v1_flow_proto_goTypes = []any{
-	(FlowType)(0),            // 0: flow.v1.FlowType
-	(*WorkloadEndpoint)(nil), // 1: flow.v1.WorkloadEndpoint
-	(*NetworkEndpoint)(nil),  // 2: flow.v1.NetworkEndpoint
-	(*NetworkFlow)(nil),      // 3: flow.v1.NetworkFlow
-	(*FlowBatch)(nil),        // 4: flow.v1.FlowBatch
-	(*PushAck)(nil),          // 5: flow.v1.PushAck
-	nil,                      // 6: flow.v1.NetworkFlow.MetadataEntry
+var file_flow_v1_flow_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_flow_v1_flow_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_flow_v1_flow_proto_goTypes = []any{
+	(FlowEventKind)(0),        // 0: flow.v1.FlowEventKind
+	(Protocol)(0),             // 1: flow.v1.Protocol
+	(*Endpoint)(nil),          // 2: flow.v1.Endpoint
+	(*WorkloadRef)(nil),       // 3: flow.v1.WorkloadRef
+	(*KubernetesRef)(nil),     // 4: flow.v1.KubernetesRef
+	(*FlowEvent)(nil),         // 5: flow.v1.FlowEvent
+	(*FlowEventBatch)(nil),    // 6: flow.v1.FlowEventBatch
+	(*EnrichedFlowEvent)(nil), // 7: flow.v1.EnrichedFlowEvent
+	(*PushAck)(nil),           // 8: flow.v1.PushAck
 }
-var file_api_proto_flow_v1_flow_proto_depIdxs = []int32{
-	0, // 0: flow.v1.NetworkFlow.type:type_name -> flow.v1.FlowType
-	1, // 1: flow.v1.NetworkFlow.src:type_name -> flow.v1.WorkloadEndpoint
-	2, // 2: flow.v1.NetworkFlow.dst:type_name -> flow.v1.NetworkEndpoint
-	6, // 3: flow.v1.NetworkFlow.metadata:type_name -> flow.v1.NetworkFlow.MetadataEntry
-	3, // 4: flow.v1.FlowBatch.flows:type_name -> flow.v1.NetworkFlow
-	4, // 5: flow.v1.FlowIngest.PushFlows:input_type -> flow.v1.FlowBatch
-	5, // 6: flow.v1.FlowIngest.PushFlows:output_type -> flow.v1.PushAck
-	6, // [6:7] is the sub-list for method output_type
-	5, // [5:6] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+var file_flow_v1_flow_proto_depIdxs = []int32{
+	0,  // 0: flow.v1.FlowEvent.event_kind:type_name -> flow.v1.FlowEventKind
+	1,  // 1: flow.v1.FlowEvent.protocol:type_name -> flow.v1.Protocol
+	3,  // 2: flow.v1.FlowEvent.src:type_name -> flow.v1.WorkloadRef
+	2,  // 3: flow.v1.FlowEvent.src_endpoint:type_name -> flow.v1.Endpoint
+	2,  // 4: flow.v1.FlowEvent.dst:type_name -> flow.v1.Endpoint
+	5,  // 5: flow.v1.FlowEventBatch.events:type_name -> flow.v1.FlowEvent
+	0,  // 6: flow.v1.EnrichedFlowEvent.event_kind:type_name -> flow.v1.FlowEventKind
+	1,  // 7: flow.v1.EnrichedFlowEvent.protocol:type_name -> flow.v1.Protocol
+	3,  // 8: flow.v1.EnrichedFlowEvent.src:type_name -> flow.v1.WorkloadRef
+	4,  // 9: flow.v1.EnrichedFlowEvent.src_workload:type_name -> flow.v1.KubernetesRef
+	2,  // 10: flow.v1.EnrichedFlowEvent.src_endpoint:type_name -> flow.v1.Endpoint
+	2,  // 11: flow.v1.EnrichedFlowEvent.dst:type_name -> flow.v1.Endpoint
+	4,  // 12: flow.v1.EnrichedFlowEvent.dst_ref:type_name -> flow.v1.KubernetesRef
+	6,  // 13: flow.v1.FlowIngest.PushEvents:input_type -> flow.v1.FlowEventBatch
+	8,  // 14: flow.v1.FlowIngest.PushEvents:output_type -> flow.v1.PushAck
+	14, // [14:15] is the sub-list for method output_type
+	13, // [13:14] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_flow_v1_flow_proto_init() }
-func file_api_proto_flow_v1_flow_proto_init() {
-	if File_api_proto_flow_v1_flow_proto != nil {
+func init() { file_flow_v1_flow_proto_init() }
+func file_flow_v1_flow_proto_init() {
+	if File_flow_v1_flow_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_flow_v1_flow_proto_rawDesc), len(file_api_proto_flow_v1_flow_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   6,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flow_v1_flow_proto_rawDesc), len(file_flow_v1_flow_proto_rawDesc)),
+			NumEnums:      2,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_flow_v1_flow_proto_goTypes,
-		DependencyIndexes: file_api_proto_flow_v1_flow_proto_depIdxs,
-		EnumInfos:         file_api_proto_flow_v1_flow_proto_enumTypes,
-		MessageInfos:      file_api_proto_flow_v1_flow_proto_msgTypes,
+		GoTypes:           file_flow_v1_flow_proto_goTypes,
+		DependencyIndexes: file_flow_v1_flow_proto_depIdxs,
+		EnumInfos:         file_flow_v1_flow_proto_enumTypes,
+		MessageInfos:      file_flow_v1_flow_proto_msgTypes,
 	}.Build()
-	File_api_proto_flow_v1_flow_proto = out.File
-	file_api_proto_flow_v1_flow_proto_goTypes = nil
-	file_api_proto_flow_v1_flow_proto_depIdxs = nil
+	File_flow_v1_flow_proto = out.File
+	file_flow_v1_flow_proto_goTypes = nil
+	file_flow_v1_flow_proto_depIdxs = nil
 }

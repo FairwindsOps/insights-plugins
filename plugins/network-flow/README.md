@@ -1,6 +1,11 @@
 # network-flow
 
-DaemonSet plugin that captures Kubernetes network flows via Inspektor Gadget and forwards raw `NetworkFlow` batches to `network-flow-aggregator` over gRPC.
+DaemonSet plugin that captures Kubernetes network observations via Inspektor Gadget and forwards `FlowEventBatch` messages to `network-flow-aggregator` over gRPC.
+
+Two event kinds are emitted per TCP connection:
+
+- **CONNECT** — from `trace_tcp` (connect/disconnect lifecycle)
+- **TRAFFIC** — from `top_tcp` (byte delta snapshots for active connections)
 
 ## Running locally
 

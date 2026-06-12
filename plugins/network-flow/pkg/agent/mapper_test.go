@@ -6,39 +6,67 @@ import (
 	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
 )
 
-func TestMapTCP(t *testing.T) {
-	flow := MapTCP(TCPFields{
+func TestMapFlowEventConnect(t *testing.T) {
+	event := MapFlowEvent(TCPFields{
+		Namespace: "default",
+		Pod:       "frontend",
+		Container: "app",
+		SrcAddr:   "10.0.0.2",
+		SrcPort:   45678,
+		DstAddr:   "10.0.0.5",
+		DstPort:   443,
+		Timestamp: 123,
+		EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+	})
+	if event == nil {
+		t.Fatal("expected event")
+	}
+	if event.GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT {
+		t.Fatalf("event_kind = %v", event.GetEventKind())
+	}
+	if event.GetProtocol() != flowv1.Protocol_PROTOCOL_TCP {
+		t.Fatalf("protocol = %v", event.GetProtocol())
+	}
+	if event.GetSrc().GetPod() != "frontend" {
+		t.Fatalf("pod = %q", event.GetSrc().GetPod())
+	}
+	if event.GetSrcEndpoint().GetPort() != 45678 {
+		t.Fatalf("src port = %d", event.GetSrcEndpoint().GetPort())
+	}
+	if event.GetDst().GetPort() != 443 {
+		t.Fatalf("dst port = %d", event.GetDst().GetPort())
+	}
+}
+
+func TestMapFlowEventTraffic(t *testing.T) {
+	event := MapFlowEvent(TCPFields{
 		Namespace:     "default",
 		Pod:           "frontend",
-		Container:     "app",
+		SrcAddr:       "10.0.0.2",
+		SrcPort:       45678,
 		DstAddr:       "10.0.0.5",
 		DstPort:       443,
 		Timestamp:     123,
 		BytesSent:     10,
 		BytesReceived: 20,
+		EventKind:     flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
 	})
-	if flow == nil {
-		t.Fatal("expected flow")
+	if event == nil {
+		t.Fatal("expected event")
 	}
-	if flow.GetType() != flowv1.FlowType_FLOW_TYPE_TCP {
-		t.Fatalf("type = %v", flow.GetType())
+	if event.GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
+		t.Fatalf("event_kind = %v", event.GetEventKind())
 	}
-	if flow.GetSrc().GetPod() != "frontend" {
-		t.Fatalf("pod = %q", flow.GetSrc().GetPod())
-	}
-	if flow.GetDst().GetPort() != 443 {
-		t.Fatalf("port = %d", flow.GetDst().GetPort())
-	}
-	if flow.GetBytesSent() != 10 || flow.GetBytesReceived() != 20 {
-		t.Fatalf("bytes = sent:%d recv:%d", flow.GetBytesSent(), flow.GetBytesReceived())
+	if event.GetBytesSent() != 10 || event.GetBytesReceived() != 20 {
+		t.Fatalf("bytes = sent:%d recv:%d", event.GetBytesSent(), event.GetBytesReceived())
 	}
 }
 
-func TestMapTCPSkipsIncomplete(t *testing.T) {
-	if MapTCP(TCPFields{Pod: "x"}) != nil {
+func TestMapFlowEventSkipsIncomplete(t *testing.T) {
+	if MapFlowEvent(TCPFields{Pod: "x", EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT}) != nil {
 		t.Fatal("expected nil without dst")
 	}
-	if MapTCP(TCPFields{DstAddr: "1.1.1.1"}) != nil {
+	if MapFlowEvent(TCPFields{DstAddr: "1.1.1.1", EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT}) != nil {
 		t.Fatal("expected nil without pod")
 	}
 }
