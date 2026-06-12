@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/fairwindsops/controller-utils/pkg/controller"
+	"github.com/fairwindsops/insights-plugins/plugins/workloads/pkg/discovery"
 	"github.com/samber/lo"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,6 +109,7 @@ type ClusterWorkloadReport struct {
 	Namespaces    []corev1.Namespace
 	Controllers   []ControllerResult
 	Ingresses     []Ingress
+	Images        []discovery.ImageResult
 }
 
 func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
@@ -266,6 +269,14 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		}
 	}
 
+	images := []discovery.ImageResult{}
+	imageDiscovery, err := discovery.ListRunningImages(ctx, kube, workloads)
+	if err != nil {
+		logrus.Warnf("error listing running images, continuing with empty Images: %v", err)
+	} else {
+		images = imageDiscovery.Images
+	}
+
 	clusterWorkloadReport := ClusterWorkloadReport{
 		ServerVersion: serverVersion.Major + "." + serverVersion.Minor,
 		SourceType:    "Cluster",
@@ -275,6 +286,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		Namespaces:    namespaces.Items,
 		Controllers:   interfaces,
 		Ingresses:     ingresses,
+		Images:        images,
 	}
 	return &clusterWorkloadReport, nil
 }
