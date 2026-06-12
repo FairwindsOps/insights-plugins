@@ -60,10 +60,10 @@ func TestRecordContainerImageDedupesOwners(t *testing.T) {
 	}
 
 	owner1 := OwnerResult{Namespace: "prod", Kind: "Deployment", Name: "api"}
-	recordContainerImage(status, owner1, keyToImage, imageOwners)
+	keyToImage, imageOwners = recordContainerImage(status, owner1, keyToImage, imageOwners)
 
 	owner2 := OwnerResult{Namespace: "prod", Kind: "Deployment", Name: "api-backup"}
-	recordContainerImage(status, owner2, keyToImage, imageOwners)
+	keyToImage, imageOwners = recordContainerImage(status, owner2, keyToImage, imageOwners)
 
 	require.Len(t, keyToImage, 1)
 	require.Len(t, imageOwners, 1)
@@ -87,7 +87,7 @@ func TestRecordContainerImageStripsDockerPullablePrefix(t *testing.T) {
 	}
 	owner := OwnerResult{Namespace: "insights-agent", Kind: "Deployment", Name: "goldilocks"}
 
-	recordContainerImage(status, owner, keyToImage, imageOwners)
+	keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 
 	require.Len(t, keyToImage, 1)
 	for _, img := range keyToImage {
@@ -107,7 +107,7 @@ func TestRecordContainerImageUsesImageIDWhenImageIsSha256Digest(t *testing.T) {
 	}
 	owner := OwnerResult{Namespace: "default", Kind: "Deployment", Name: "api"}
 
-	recordContainerImage(status, owner, keyToImage, imageOwners)
+	keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 
 	require.Len(t, keyToImage, 1)
 	for _, img := range keyToImage {
@@ -134,7 +134,7 @@ func TestRecordContainerImageIncludesInitContainer(t *testing.T) {
 	owner := OwnerResult{Namespace: "default", Kind: "Pod", Name: "orphan"}
 
 	for _, status := range containerStatusesFromPod(pod) {
-		recordContainerImage(status, owner, keyToImage, imageOwners)
+		keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 	}
 
 	require.Len(t, keyToImage, 1)
@@ -153,7 +153,7 @@ func TestRecordContainerImageSkipsEmptyImageID(t *testing.T) {
 	}
 	owner := OwnerResult{Namespace: "default", Kind: "Deployment", Name: "api"}
 
-	recordContainerImage(status, owner, keyToImage, imageOwners)
+	keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 
 	require.Empty(t, keyToImage)
 	require.Empty(t, imageOwners)
@@ -187,7 +187,7 @@ func TestOrphanPodHasPodOwnerKind(t *testing.T) {
 		Name:      pod.Name,
 	}
 	for _, status := range containerStatusesFromPod(pod) {
-		recordContainerImage(status, owner, keyToImage, imageOwners)
+		keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 	}
 
 	require.Len(t, keyToImage, 1)

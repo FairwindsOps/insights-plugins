@@ -31,10 +31,12 @@ func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface, con
 	if err != nil {
 		return Result{}, err
 	}
-	if err := recordOrphanPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
+	seenPods, keyToImage, imageOwners, err = recordOrphanPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners)
+	if err != nil {
 		return Result{}, err
 	}
-	if err := recordJobPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners); err != nil {
+	seenPods, keyToImage, imageOwners, err = recordJobPods(ctx, kubeClient, namespaces, seenPods, keyToImage, imageOwners)
+	if err != nil {
 		return Result{}, err
 	}
 
@@ -70,10 +72,10 @@ func recordControllerPods(
 			if pod.Status.Phase != corev1.PodRunning {
 				continue
 			}
-			markPodSeen(seenPods, pod.Namespace, pod.Name)
+			seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 
 			for _, status := range containerStatusesFromPod(pod) {
-				recordContainerImage(status, owner, keyToImage, imageOwners)
+				keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 			}
 		}
 	}
@@ -117,8 +119,9 @@ func sortedOwners(owners map[OwnerResult]struct{}) []OwnerResult {
 	return result
 }
 
-func markPodSeen(seen map[string]struct{}, namespace, name string) {
+func markPodSeen(seen map[string]struct{}, namespace, name string) map[string]struct{} {
 	seen[podKey(namespace, name)] = struct{}{}
+	return seen
 }
 
 func podKey(namespace, name string) string {
@@ -132,11 +135,16 @@ func recordOrphanPods(
 	seenPods map[string]struct{},
 	keyToImage map[string]ImageResult,
 	imageOwners map[string]map[OwnerResult]struct{},
-) error {
+) (
+	map[string]struct{},
+	map[string]ImageResult,
+	map[string]map[OwnerResult]struct{},
+	error,
+) {
 	for _, namespace := range namespaces {
 		pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{FieldSelector: "status.phase=Running"})
 		if err != nil {
-			return fmt.Errorf("listing pods in namespace %s: %w", namespace, err)
+			return seenPods, keyToImage, imageOwners, fmt.Errorf("listing pods in namespace %s: %w", namespace, err)
 		}
 		for _, pod := range pods.Items {
 			if _, ok := seenPods[podKey(pod.Namespace, pod.Name)]; ok {
@@ -150,13 +158,13 @@ func recordOrphanPods(
 				Kind:      "Pod",
 				Name:      pod.Name,
 			}
-			markPodSeen(seenPods, pod.Namespace, pod.Name)
+			seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 			for _, status := range containerStatusesFromPod(pod) {
-				recordContainerImage(status, owner, keyToImage, imageOwners)
+				keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 			}
 		}
 	}
-	return nil
+	return seenPods, keyToImage, imageOwners, nil
 }
 
 func recordJobPods(
@@ -166,11 +174,16 @@ func recordJobPods(
 	seenPods map[string]struct{},
 	keyToImage map[string]ImageResult,
 	imageOwners map[string]map[OwnerResult]struct{},
-) error {
+) (
+	map[string]struct{},
+	map[string]ImageResult,
+	map[string]map[OwnerResult]struct{},
+	error,
+) {
 	for _, namespace := range namespaces {
 		jobs, err := client.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			return fmt.Errorf("listing jobs in namespace %s: %w", namespace, err)
+			return seenPods, keyToImage, imageOwners, fmt.Errorf("listing jobs in namespace %s: %w", namespace, err)
 		}
 		for _, job := range jobs.Items {
 			if !jobHasActivePods(job) {
@@ -187,7 +200,7 @@ func recordJobPods(
 				LabelSelector: selector.String(),
 			})
 			if err != nil {
-				return fmt.Errorf("listing job pods in namespace %s: %w", namespace, err)
+				return seenPods, keyToImage, imageOwners, fmt.Errorf("listing job pods in namespace %s: %w", namespace, err)
 			}
 			owner := OwnerResult{
 				Namespace: job.Namespace,
@@ -201,14 +214,14 @@ func recordJobPods(
 				if _, ok := seenPods[podKey(pod.Namespace, pod.Name)]; ok {
 					continue
 				}
-				markPodSeen(seenPods, pod.Namespace, pod.Name)
+				seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 				for _, status := range containerStatusesFromPod(pod) {
-					recordContainerImage(status, owner, keyToImage, imageOwners)
+					keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
 				}
 			}
 		}
 	}
-	return nil
+	return seenPods, keyToImage, imageOwners, nil
 }
 
 func jobHasActivePods(job batchv1.Job) bool {
@@ -250,7 +263,7 @@ func recordContainerImage(
 	owner OwnerResult,
 	keyToImage map[string]ImageResult,
 	imageOwners map[string]map[OwnerResult]struct{},
-) {
+) (map[string]ImageResult, map[string]map[OwnerResult]struct{}) {
 	imageName := status.Image
 	if strings.HasPrefix(status.Image, "sha256") {
 		imageName = strings.TrimPrefix(status.ImageID, "docker-pullable://")
@@ -268,7 +281,7 @@ func recordContainerImage(
 
 	if imageID == "" {
 		logrus.Warnf("skipping container %s image %s: empty ImageID after normalization", status.Name, status.Image)
-		return
+		return keyToImage, imageOwners
 	}
 
 	key := imageName + "/" + imageID
@@ -277,7 +290,7 @@ func recordContainerImage(
 	}
 	imageOwners[key][owner] = struct{}{}
 	if _, found := keyToImage[key]; found {
-		return
+		return keyToImage, imageOwners
 	}
 
 	keyToImage[key] = ImageResult{
@@ -285,4 +298,5 @@ func recordContainerImage(
 		ID:      imageID,
 		PullRef: imagePullRef,
 	}
+	return keyToImage, imageOwners
 }
