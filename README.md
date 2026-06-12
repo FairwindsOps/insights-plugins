@@ -1,5 +1,9 @@
 <div align="center" class="no-border">
-  <img src="logo.png" alt="Insights Logo" width="650">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="logo-light.png">
+    <img src="logo-light.png" alt="Insights Logo" width="650">
+  </picture>
   <br>
   <h3>Report Plugins for Fairwinds Insights</h3>
   <a href="https://opensource.org/licenses/Apache-2.0">
