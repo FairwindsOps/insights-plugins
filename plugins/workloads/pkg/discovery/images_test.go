@@ -51,7 +51,7 @@ func TestContainerStatusesFromPod(t *testing.T) {
 
 func TestRecordContainerImageDedupesOwners(t *testing.T) {
 	keyToImage := map[string]ImageResult{}
-	imageOwners := map[string]map[OwnerResult]struct{}{}
+	imageOwners := map[string]map[string]OwnerResult{}
 
 	status := corev1.ContainerStatus{
 		Name:    "app",
@@ -78,7 +78,7 @@ func TestRecordContainerImageDedupesOwners(t *testing.T) {
 
 func TestRecordContainerImageStripsDockerPullablePrefix(t *testing.T) {
 	keyToImage := map[string]ImageResult{}
-	imageOwners := map[string]map[OwnerResult]struct{}{}
+	imageOwners := map[string]map[string]OwnerResult{}
 
 	status := corev1.ContainerStatus{
 		Name:    "app",
@@ -98,7 +98,7 @@ func TestRecordContainerImageStripsDockerPullablePrefix(t *testing.T) {
 
 func TestRecordContainerImageUsesImageIDWhenImageIsSha256Digest(t *testing.T) {
 	keyToImage := map[string]ImageResult{}
-	imageOwners := map[string]map[OwnerResult]struct{}{}
+	imageOwners := map[string]map[string]OwnerResult{}
 
 	status := corev1.ContainerStatus{
 		Name:    "app",
@@ -130,7 +130,7 @@ func TestRecordContainerImageIncludesInitContainer(t *testing.T) {
 	}
 
 	keyToImage := map[string]ImageResult{}
-	imageOwners := map[string]map[OwnerResult]struct{}{}
+	imageOwners := map[string]map[string]OwnerResult{}
 	owner := OwnerResult{Namespace: "default", Kind: "Pod", Name: "orphan"}
 
 	for _, status := range containerStatusesFromPod(pod) {
@@ -145,7 +145,7 @@ func TestRecordContainerImageIncludesInitContainer(t *testing.T) {
 
 func TestRecordContainerImageSkipsEmptyImageID(t *testing.T) {
 	keyToImage := map[string]ImageResult{}
-	imageOwners := map[string]map[OwnerResult]struct{}{}
+	imageOwners := map[string]map[string]OwnerResult{}
 
 	status := corev1.ContainerStatus{
 		Name:  "app",
@@ -180,7 +180,7 @@ func TestOrphanPodHasPodOwnerKind(t *testing.T) {
 	require.False(t, hasControllerOwner(pod.OwnerReferences))
 
 	keyToImage := map[string]ImageResult{}
-	imageOwners := map[string]map[OwnerResult]struct{}{}
+	imageOwners := map[string]map[string]OwnerResult{}
 	owner := OwnerResult{
 		Namespace: pod.Namespace,
 		Kind:      "Pod",
@@ -192,7 +192,7 @@ func TestOrphanPodHasPodOwnerKind(t *testing.T) {
 
 	require.Len(t, keyToImage, 1)
 	for _, owners := range imageOwners {
-		for o := range owners {
+		for _, o := range owners {
 			require.Equal(t, "Pod", o.Kind)
 			require.Equal(t, "standalone", o.Name)
 		}
@@ -204,10 +204,10 @@ func TestFinalizeImagesSortsDeterministically(t *testing.T) {
 		"b/b-id": {Name: "b", ID: "b-id"},
 		"a/a-id": {Name: "a", ID: "a-id"},
 	}
-	imageOwners := map[string]map[OwnerResult]struct{}{
+	imageOwners := map[string]map[string]OwnerResult{
 		"a/a-id": {
-			{Namespace: "prod", Kind: "Deployment", Name: "z", Container: "app"}: {},
-			{Namespace: "prod", Kind: "Deployment", Name: "a", Container: "app"}: {},
+			"prod/Deployment/a/app": {Namespace: "prod", Kind: "Deployment", Name: "a", Container: "app"},
+			"prod/Deployment/z/app": {Namespace: "prod", Kind: "Deployment", Name: "z", Container: "app"},
 		},
 	}
 
@@ -237,7 +237,21 @@ func TestListRunningImagesControllerPass(t *testing.T) {
 					"metadata": map[string]any{
 						"name":      "api",
 						"namespace": "default",
+						"labels": map[string]any{
+							"app": "api",
+						},
+						"annotations": map[string]any{
+							"deployed-by": "ci",
+						},
 					},
+				},
+			},
+			PodMetadata: &metav1.ObjectMeta{
+				Labels: map[string]string{
+					"pod-template-hash": "abc123",
+				},
+				Annotations: map[string]string{
+					"config/version": "1",
 				},
 			},
 			Pods: []unstructured.Unstructured{*podUnstructured},
@@ -253,6 +267,10 @@ func TestListRunningImagesControllerPass(t *testing.T) {
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Deployment", result.Images[0].Owners[0].Kind)
 	require.Equal(t, "api", result.Images[0].Owners[0].Name)
+	require.Equal(t, "api", result.Images[0].Owners[0].Labels["app"])
+	require.Equal(t, "ci", result.Images[0].Owners[0].Annotations["deployed-by"])
+	require.Equal(t, "abc123", result.Images[0].Owners[0].PodLabels["pod-template-hash"])
+	require.Equal(t, "1", result.Images[0].Owners[0].PodAnnotations["config/version"])
 }
 
 func TestListRunningImagesOrphanPodPass(t *testing.T) {

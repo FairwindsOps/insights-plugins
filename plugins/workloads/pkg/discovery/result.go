@@ -15,8 +15,12 @@ type ImageResult struct {
 
 // OwnerResult identifies a Kubernetes workload that runs an image.
 type OwnerResult struct {
-	Namespace string
-	Kind      string
-	Name      string
-	Container string
+	Namespace      string
+	Kind           string
+	Name           string
+	Container      string
+	Labels         map[string]string
+	Annotations    map[string]string
+	PodLabels      map[string]string
+	PodAnnotations map[string]string
 }

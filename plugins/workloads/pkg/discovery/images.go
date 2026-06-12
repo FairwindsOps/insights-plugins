@@ -50,18 +50,14 @@ func recordControllerPods(
 ) (
 	seenPods map[string]struct{},
 	keyToImage map[string]ImageResult,
-	imageOwners map[string]map[OwnerResult]struct{},
+	imageOwners map[string]map[string]OwnerResult,
 ) {
 	seenPods = map[string]struct{}{}
 	keyToImage = map[string]ImageResult{}
-	imageOwners = map[string]map[OwnerResult]struct{}{}
+	imageOwners = map[string]map[string]OwnerResult{}
 
 	for _, controller := range controllers {
-		owner := OwnerResult{
-			Namespace: controller.TopController.GetNamespace(),
-			Kind:      controller.TopController.GetKind(),
-			Name:      controller.TopController.GetName(),
-		}
+		owner := ownerFromController(controller)
 
 		for _, podObj := range controller.Pods {
 			var pod corev1.Pod
@@ -82,7 +78,26 @@ func recordControllerPods(
 	return seenPods, keyToImage, imageOwners
 }
 
-func finalizeImages(keyToImage map[string]ImageResult, imageOwners map[string]map[OwnerResult]struct{}) []ImageResult {
+func ownerFromController(controller fwControllerUtils.Workload) OwnerResult {
+	owner := OwnerResult{
+		Namespace:   controller.TopController.GetNamespace(),
+		Kind:        controller.TopController.GetKind(),
+		Name:        controller.TopController.GetName(),
+		Labels:      controller.TopController.GetLabels(),
+		Annotations: controller.TopController.GetAnnotations(),
+	}
+	if controller.PodMetadata != nil {
+		owner.PodLabels = controller.PodMetadata.Labels
+		owner.PodAnnotations = controller.PodMetadata.Annotations
+	}
+	return owner
+}
+
+func ownerKey(owner OwnerResult) string {
+	return owner.Namespace + "/" + owner.Kind + "/" + owner.Name + "/" + owner.Container
+}
+
+func finalizeImages(keyToImage map[string]ImageResult, imageOwners map[string]map[string]OwnerResult) []ImageResult {
 	images := make([]ImageResult, 0, len(keyToImage))
 	for key, image := range keyToImage {
 		if owners, ok := imageOwners[key]; ok {
@@ -99,9 +114,9 @@ func finalizeImages(keyToImage map[string]ImageResult, imageOwners map[string]ma
 	return images
 }
 
-func sortedOwners(owners map[OwnerResult]struct{}) []OwnerResult {
+func sortedOwners(owners map[string]OwnerResult) []OwnerResult {
 	result := make([]OwnerResult, 0, len(owners))
-	for owner := range owners {
+	for _, owner := range owners {
 		result = append(result, owner)
 	}
 	sort.Slice(result, func(i, j int) bool {
@@ -134,11 +149,11 @@ func recordOrphanPods(
 	namespaces []string,
 	seenPods map[string]struct{},
 	keyToImage map[string]ImageResult,
-	imageOwners map[string]map[OwnerResult]struct{},
+	imageOwners map[string]map[string]OwnerResult,
 ) (
 	map[string]struct{},
 	map[string]ImageResult,
-	map[string]map[OwnerResult]struct{},
+	map[string]map[string]OwnerResult,
 	error,
 ) {
 	for _, namespace := range namespaces {
@@ -154,9 +169,13 @@ func recordOrphanPods(
 				continue
 			}
 			owner := OwnerResult{
-				Namespace: pod.Namespace,
-				Kind:      "Pod",
-				Name:      pod.Name,
+				Namespace:      pod.Namespace,
+				Kind:           "Pod",
+				Name:           pod.Name,
+				Labels:         pod.Labels,
+				Annotations:    pod.Annotations,
+				PodLabels:      pod.Labels,
+				PodAnnotations: pod.Annotations,
 			}
 			seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 			for _, status := range containerStatusesFromPod(pod) {
@@ -173,11 +192,11 @@ func recordJobPods(
 	namespaces []string,
 	seenPods map[string]struct{},
 	keyToImage map[string]ImageResult,
-	imageOwners map[string]map[OwnerResult]struct{},
+	imageOwners map[string]map[string]OwnerResult,
 ) (
 	map[string]struct{},
 	map[string]ImageResult,
-	map[string]map[OwnerResult]struct{},
+	map[string]map[string]OwnerResult,
 	error,
 ) {
 	for _, namespace := range namespaces {
@@ -203,9 +222,13 @@ func recordJobPods(
 				return seenPods, keyToImage, imageOwners, fmt.Errorf("listing job pods in namespace %s: %w", namespace, err)
 			}
 			owner := OwnerResult{
-				Namespace: job.Namespace,
-				Kind:      "Job",
-				Name:      job.Name,
+				Namespace:      job.Namespace,
+				Kind:           "Job",
+				Name:           job.Name,
+				Labels:         job.Labels,
+				Annotations:    job.Annotations,
+				PodLabels:      job.Spec.Template.Labels,
+				PodAnnotations: job.Spec.Template.Annotations,
 			}
 			for _, pod := range pods.Items {
 				if pod.Status.Phase != corev1.PodRunning {
@@ -262,8 +285,8 @@ func recordContainerImage(
 	status corev1.ContainerStatus,
 	owner OwnerResult,
 	keyToImage map[string]ImageResult,
-	imageOwners map[string]map[OwnerResult]struct{},
-) (map[string]ImageResult, map[string]map[OwnerResult]struct{}) {
+	imageOwners map[string]map[string]OwnerResult,
+) (map[string]ImageResult, map[string]map[string]OwnerResult) {
 	imageName := status.Image
 	if strings.HasPrefix(status.Image, "sha256") {
 		imageName = strings.TrimPrefix(status.ImageID, "docker-pullable://")
@@ -286,9 +309,9 @@ func recordContainerImage(
 
 	key := imageName + "/" + imageID
 	if imageOwners[key] == nil {
-		imageOwners[key] = map[OwnerResult]struct{}{}
+		imageOwners[key] = map[string]OwnerResult{}
 	}
-	imageOwners[key][owner] = struct{}{}
+	imageOwners[key][ownerKey(owner)] = owner
 	if _, found := keyToImage[key]; found {
 		return keyToImage, imageOwners
 	}

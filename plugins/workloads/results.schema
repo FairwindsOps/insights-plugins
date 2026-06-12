@@ -311,6 +311,18 @@
                     },
                     "Container": {
                       "type": "string"
+                    },
+                    "Labels": {
+                      "type": "object"
+                    },
+                    "Annotations": {
+                      "type": "object"
+                    },
+                    "PodLabels": {
+                      "type": "object"
+                    },
+                    "PodAnnotations": {
+                      "type": "object"
                     }
                   },
                   "required": [
