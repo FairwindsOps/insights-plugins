@@ -25,11 +25,7 @@ func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface, con
 		return Result{}, fmt.Errorf("kubernetes client is required")
 	}
 
-	keyToImage := map[string]ImageResult{}
-	imageOwners := map[string]map[OwnerResult]struct{}{}
-	seenPods := map[string]struct{}{}
-
-	recordControllerPods(controllers, seenPods, keyToImage, imageOwners)
+	seenPods, keyToImage, imageOwners := recordControllerPods(controllers)
 
 	namespaces, err := listAllNamespaces(ctx, kubeClient)
 	if err != nil {
@@ -49,10 +45,15 @@ func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface, con
 
 func recordControllerPods(
 	controllers []fwControllerUtils.Workload,
+) (
 	seenPods map[string]struct{},
 	keyToImage map[string]ImageResult,
 	imageOwners map[string]map[OwnerResult]struct{},
 ) {
+	seenPods = map[string]struct{}{}
+	keyToImage = map[string]ImageResult{}
+	imageOwners = map[string]map[OwnerResult]struct{}{}
+
 	for _, controller := range controllers {
 		owner := OwnerResult{
 			Namespace: controller.TopController.GetNamespace(),
@@ -76,6 +77,7 @@ func recordControllerPods(
 			}
 		}
 	}
+	return seenPods, keyToImage, imageOwners
 }
 
 func finalizeImages(keyToImage map[string]ImageResult, imageOwners map[string]map[OwnerResult]struct{}) []ImageResult {
