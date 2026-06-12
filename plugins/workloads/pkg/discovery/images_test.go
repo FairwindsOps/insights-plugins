@@ -87,7 +87,7 @@ func TestRecordContainerImageStripsDockerPullablePrefix(t *testing.T) {
 	}
 	owner := OwnerResult{Namespace: "insights-agent", Kind: "Deployment", Name: "goldilocks"}
 
-	keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+	keyToImage, _ = recordContainerImage(status, owner, keyToImage, imageOwners)
 
 	require.Len(t, keyToImage, 1)
 	for _, img := range keyToImage {
@@ -107,7 +107,7 @@ func TestRecordContainerImageUsesImageIDWhenImageIsSha256Digest(t *testing.T) {
 	}
 	owner := OwnerResult{Namespace: "default", Kind: "Deployment", Name: "api"}
 
-	keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+	keyToImage, _ = recordContainerImage(status, owner, keyToImage, imageOwners)
 
 	require.Len(t, keyToImage, 1)
 	for _, img := range keyToImage {
