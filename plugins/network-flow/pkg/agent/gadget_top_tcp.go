@@ -49,33 +49,35 @@ func (r *TopTCPRunner) Run(ctx context.Context) error {
 			if err := fields.init(); err != nil {
 				return err
 			}
-			ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
-				event := r.mapSnapshot(fields.extract(data))
-				r.client.Enqueue(event)
+			if err := ds.SubscribeArray(func(_ datasource.DataSource, data datasource.DataArray) error {
+				r.tracker.BeginPoll()
+				for i := 0; i < data.Len(); i++ {
+					if delta, ok := r.tracker.Observe(fields.extract(data.Get(i))); ok {
+						if event := r.mapTrafficDelta(delta); event != nil {
+							r.client.Enqueue(event)
+						}
+					}
+				}
+				for _, delta := range r.tracker.EndPoll() {
+					if event := r.mapTrafficDelta(delta); event != nil {
+						r.client.Enqueue(event)
+					}
+				}
 				return nil
-			}, opPriority)
+			}, opPriority); err != nil {
+				return err
+			}
 		}
 		return nil
 	}, nil)
 }
 
-func (r *TopTCPRunner) mapSnapshot(fields TCPFields) *flowv1.FlowEvent {
+func (r *TopTCPRunner) mapTrafficDelta(delta ByteDelta) *flowv1.FlowEvent {
+	fields := delta.Fields
 	if fields.Pod == "" || fields.DstAddr == "" {
 		return nil
 	}
-
-	key := connKey{
-		Namespace: fields.Namespace,
-		Pod:       fields.Pod,
-		Container: fields.Container,
-		SrcAddr:   fields.SrcAddr,
-		SrcPort:   fields.SrcPort,
-		DstAddr:   fields.DstAddr,
-		DstPort:   fields.DstPort,
-		PID:       fields.PID,
-	}
-	sent, received, ok := r.tracker.Delta(key, fields.BytesSent, fields.BytesReceived)
-	if !ok {
+	if delta.Sent == 0 && delta.Received == 0 {
 		return nil
 	}
 
@@ -94,8 +96,8 @@ func (r *TopTCPRunner) mapSnapshot(fields TCPFields) *flowv1.FlowEvent {
 		DstAddr:       fields.DstAddr,
 		DstPort:       fields.DstPort,
 		Timestamp:     ts,
-		BytesSent:     sent,
-		BytesReceived: received,
+		BytesSent:     delta.Sent,
+		BytesReceived: delta.Received,
 		EventKind:     flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
 	})
 }
