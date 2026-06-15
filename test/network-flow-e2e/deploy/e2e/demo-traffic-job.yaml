@@ -21,9 +21,11 @@ spec:
             - -c
             - |
               set -eu
-              echo "generating TCP flows to demo-server..."
-              for i in $(seq 1 30); do
-                curl -sf "http://demo-server:8080/" >/dev/null
-                sleep 0.3
+              echo "generating TCP flows with bytes to demo-server..."
+              payload="$(head -c 65536 /dev/zero | tr '\0' 'A')"
+              for i in $(seq 1 80); do
+                curl -sf "http://demo-server:8080/" -o /dev/null
+                curl -sf -X POST -d "$payload" "http://demo-server:8080/" -o /dev/null
+                sleep 0.25
               done
               echo "done"

@@ -84,8 +84,9 @@ kind_deploy() {
 kind_traffic() {
   kubectl -n insights delete job demo-traffic --ignore-not-found
   kubectl apply -k "$DEPLOY_DIR"
-  kubectl -n insights wait --for=condition=complete job/demo-traffic --timeout=90s
-  sleep 5
+  kubectl -n insights wait --for=condition=ready pod -l app=demo-traffic --timeout=60s
+  kubectl -n insights wait --for=condition=complete job/demo-traffic --timeout=120s
+  sleep 10
 }
 
 kind_verify() {
