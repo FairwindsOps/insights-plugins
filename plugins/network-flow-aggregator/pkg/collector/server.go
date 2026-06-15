@@ -9,6 +9,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
+	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/upstream"
 	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
 )
 
@@ -16,14 +17,15 @@ type Server struct {
 	flowv1.UnimplementedFlowIngestServer
 	store    *store.Store
 	enricher *kube.Enricher
+	upstream *upstream.Client
 	log      *slog.Logger
 }
 
-func NewServer(st *store.Store, enricher *kube.Enricher, log *slog.Logger) *Server {
+func NewServer(st *store.Store, enricher *kube.Enricher, upstreamClient *upstream.Client, log *slog.Logger) *Server {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Server{store: st, enricher: enricher, log: log}
+	return &Server{store: st, enricher: enricher, upstream: upstreamClient, log: log}
 }
 
 func (s *Server) PushEvents(stream flowv1.FlowIngest_PushEventsServer) error {
@@ -37,7 +39,10 @@ func (s *Server) PushEvents(stream flowv1.FlowIngest_PushEventsServer) error {
 			return status.Errorf(codes.Internal, "recv batch: %v", err)
 		}
 
-		accepted := s.store.AppendBatch(batch, s.enrichEvent)
+		accepted, enriched := s.store.AppendBatch(batch, s.enrichEvent)
+		if s.upstream != nil && len(enriched) > 0 {
+			s.upstream.Enqueue(batch.GetNodeName(), batch.GetAgentId(), enriched)
+		}
 		total += accepted
 		s.log.Debug("ingested batch",
 			"node", batch.GetNodeName(),

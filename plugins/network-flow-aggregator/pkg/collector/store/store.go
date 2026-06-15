@@ -51,15 +51,16 @@ func (s *Store) MaxAge() time.Duration {
 	return s.maxAge
 }
 
-func (s *Store) AppendBatch(batch *flowv1.FlowEventBatch, enrich func(*flowv1.FlowEvent) Enrichment) int64 {
+func (s *Store) AppendBatch(batch *flowv1.FlowEventBatch, enrich func(*flowv1.FlowEvent) Enrichment) (int64, []*flowv1.EnrichedFlowEvent) {
 	if batch == nil {
-		return 0
+		return 0, nil
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	var accepted int64
+	enriched := make([]*flowv1.EnrichedFlowEvent, 0, len(batch.GetEvents()))
 	for _, event := range batch.GetEvents() {
 		if event == nil || event.GetSrc().GetPod() == "" || event.GetDst().GetAddr() == "" {
 			continue
@@ -76,13 +77,15 @@ func (s *Store) AppendBatch(batch *flowv1.FlowEventBatch, enrich func(*flowv1.Fl
 			}
 		}
 
-		s.events = append(s.events, enrichedFromEvent(batch.GetNodeName(), batch.GetAgentId(), event, enrichment))
+		row := enrichedFromEvent(batch.GetNodeName(), batch.GetAgentId(), event, enrichment)
+		s.events = append(s.events, row)
+		enriched = append(enriched, row)
 		accepted++
 	}
 
 	s.pruneLocked()
 	s.enforceMaxLocked()
-	return accepted
+	return accepted, enriched
 }
 
 func enrichedFromEvent(nodeName, agentID string, event *flowv1.FlowEvent, enrich Enrichment) *flowv1.EnrichedFlowEvent {

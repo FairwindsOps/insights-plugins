@@ -580,6 +580,82 @@ func (x *EnrichedFlowEvent) GetBytesReceived() uint64 {
 	return 0
 }
 
+type EnrichedFlowEventBatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Organization  string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`
+	Cluster       string                 `protobuf:"bytes,2,opt,name=cluster,proto3" json:"cluster,omitempty"`
+	NodeName      string                 `protobuf:"bytes,3,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
+	AgentId       string                 `protobuf:"bytes,4,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	Events        []*EnrichedFlowEvent   `protobuf:"bytes,5,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnrichedFlowEventBatch) Reset() {
+	*x = EnrichedFlowEventBatch{}
+	mi := &file_flow_v1_flow_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnrichedFlowEventBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnrichedFlowEventBatch) ProtoMessage() {}
+
+func (x *EnrichedFlowEventBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_flow_v1_flow_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnrichedFlowEventBatch.ProtoReflect.Descriptor instead.
+func (*EnrichedFlowEventBatch) Descriptor() ([]byte, []int) {
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *EnrichedFlowEventBatch) GetOrganization() string {
+	if x != nil {
+		return x.Organization
+	}
+	return ""
+}
+
+func (x *EnrichedFlowEventBatch) GetCluster() string {
+	if x != nil {
+		return x.Cluster
+	}
+	return ""
+}
+
+func (x *EnrichedFlowEventBatch) GetNodeName() string {
+	if x != nil {
+		return x.NodeName
+	}
+	return ""
+}
+
+func (x *EnrichedFlowEventBatch) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *EnrichedFlowEventBatch) GetEvents() []*EnrichedFlowEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
 type PushAck struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	AcceptedEvents int64                  `protobuf:"varint,1,opt,name=accepted_events,json=acceptedEvents,proto3" json:"accepted_events,omitempty"`
@@ -589,7 +665,7 @@ type PushAck struct {
 
 func (x *PushAck) Reset() {
 	*x = PushAck{}
-	mi := &file_flow_v1_flow_proto_msgTypes[6]
+	mi := &file_flow_v1_flow_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -601,7 +677,7 @@ func (x *PushAck) String() string {
 func (*PushAck) ProtoMessage() {}
 
 func (x *PushAck) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[6]
+	mi := &file_flow_v1_flow_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -614,7 +690,7 @@ func (x *PushAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushAck.ProtoReflect.Descriptor instead.
 func (*PushAck) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{6}
+	return file_flow_v1_flow_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PushAck) GetAcceptedEvents() int64 {
@@ -670,7 +746,13 @@ const file_flow_v1_flow_proto_rawDesc = "" +
 	" \x01(\v2\x16.flow.v1.KubernetesRefR\x06dstRef\x12\x1d\n" +
 	"\n" +
 	"bytes_sent\x18\v \x01(\x04R\tbytesSent\x12%\n" +
-	"\x0ebytes_received\x18\f \x01(\x04R\rbytesReceived\"2\n" +
+	"\x0ebytes_received\x18\f \x01(\x04R\rbytesReceived\"\xc2\x01\n" +
+	"\x16EnrichedFlowEventBatch\x12\"\n" +
+	"\forganization\x18\x01 \x01(\tR\forganization\x12\x18\n" +
+	"\acluster\x18\x02 \x01(\tR\acluster\x12\x1b\n" +
+	"\tnode_name\x18\x03 \x01(\tR\bnodeName\x12\x19\n" +
+	"\bagent_id\x18\x04 \x01(\tR\aagentId\x122\n" +
+	"\x06events\x18\x05 \x03(\v2\x1a.flow.v1.EnrichedFlowEventR\x06events\"2\n" +
 	"\aPushAck\x12'\n" +
 	"\x0faccepted_events\x18\x01 \x01(\x03R\x0eacceptedEvents*j\n" +
 	"\rFlowEventKind\x12\x1f\n" +
@@ -679,11 +761,12 @@ const file_flow_v1_flow_proto_rawDesc = "" +
 	"\x17FLOW_EVENT_KIND_TRAFFIC\x10\x02*6\n" +
 	"\bProtocol\x12\x18\n" +
 	"\x14PROTOCOL_UNSPECIFIED\x10\x00\x12\x10\n" +
-	"\fPROTOCOL_TCP\x10\x012G\n" +
+	"\fPROTOCOL_TCP\x10\x012\x92\x01\n" +
 	"\n" +
 	"FlowIngest\x129\n" +
 	"\n" +
-	"PushEvents\x12\x17.flow.v1.FlowEventBatch\x1a\x10.flow.v1.PushAck(\x01BRZPgithub.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1;flowv1b\x06proto3"
+	"PushEvents\x12\x17.flow.v1.FlowEventBatch\x1a\x10.flow.v1.PushAck(\x01\x12I\n" +
+	"\x12PushEnrichedEvents\x12\x1f.flow.v1.EnrichedFlowEventBatch\x1a\x10.flow.v1.PushAck(\x01BRZPgithub.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1;flowv1b\x06proto3"
 
 var (
 	file_flow_v1_flow_proto_rawDescOnce sync.Once
@@ -698,17 +781,18 @@ func file_flow_v1_flow_proto_rawDescGZIP() []byte {
 }
 
 var file_flow_v1_flow_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_flow_v1_flow_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_flow_v1_flow_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_flow_v1_flow_proto_goTypes = []any{
-	(FlowEventKind)(0),        // 0: flow.v1.FlowEventKind
-	(Protocol)(0),             // 1: flow.v1.Protocol
-	(*Endpoint)(nil),          // 2: flow.v1.Endpoint
-	(*WorkloadRef)(nil),       // 3: flow.v1.WorkloadRef
-	(*KubernetesRef)(nil),     // 4: flow.v1.KubernetesRef
-	(*FlowEvent)(nil),         // 5: flow.v1.FlowEvent
-	(*FlowEventBatch)(nil),    // 6: flow.v1.FlowEventBatch
-	(*EnrichedFlowEvent)(nil), // 7: flow.v1.EnrichedFlowEvent
-	(*PushAck)(nil),           // 8: flow.v1.PushAck
+	(FlowEventKind)(0),             // 0: flow.v1.FlowEventKind
+	(Protocol)(0),                  // 1: flow.v1.Protocol
+	(*Endpoint)(nil),               // 2: flow.v1.Endpoint
+	(*WorkloadRef)(nil),            // 3: flow.v1.WorkloadRef
+	(*KubernetesRef)(nil),          // 4: flow.v1.KubernetesRef
+	(*FlowEvent)(nil),              // 5: flow.v1.FlowEvent
+	(*FlowEventBatch)(nil),         // 6: flow.v1.FlowEventBatch
+	(*EnrichedFlowEvent)(nil),      // 7: flow.v1.EnrichedFlowEvent
+	(*EnrichedFlowEventBatch)(nil), // 8: flow.v1.EnrichedFlowEventBatch
+	(*PushAck)(nil),                // 9: flow.v1.PushAck
 }
 var file_flow_v1_flow_proto_depIdxs = []int32{
 	0,  // 0: flow.v1.FlowEvent.event_kind:type_name -> flow.v1.FlowEventKind
@@ -724,13 +808,16 @@ var file_flow_v1_flow_proto_depIdxs = []int32{
 	2,  // 10: flow.v1.EnrichedFlowEvent.src_endpoint:type_name -> flow.v1.Endpoint
 	2,  // 11: flow.v1.EnrichedFlowEvent.dst:type_name -> flow.v1.Endpoint
 	4,  // 12: flow.v1.EnrichedFlowEvent.dst_ref:type_name -> flow.v1.KubernetesRef
-	6,  // 13: flow.v1.FlowIngest.PushEvents:input_type -> flow.v1.FlowEventBatch
-	8,  // 14: flow.v1.FlowIngest.PushEvents:output_type -> flow.v1.PushAck
-	14, // [14:15] is the sub-list for method output_type
-	13, // [13:14] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	7,  // 13: flow.v1.EnrichedFlowEventBatch.events:type_name -> flow.v1.EnrichedFlowEvent
+	6,  // 14: flow.v1.FlowIngest.PushEvents:input_type -> flow.v1.FlowEventBatch
+	8,  // 15: flow.v1.FlowIngest.PushEnrichedEvents:input_type -> flow.v1.EnrichedFlowEventBatch
+	9,  // 16: flow.v1.FlowIngest.PushEvents:output_type -> flow.v1.PushAck
+	9,  // 17: flow.v1.FlowIngest.PushEnrichedEvents:output_type -> flow.v1.PushAck
+	16, // [16:18] is the sub-list for method output_type
+	14, // [14:16] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_flow_v1_flow_proto_init() }
@@ -744,7 +831,7 @@ func file_flow_v1_flow_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flow_v1_flow_proto_rawDesc), len(file_flow_v1_flow_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

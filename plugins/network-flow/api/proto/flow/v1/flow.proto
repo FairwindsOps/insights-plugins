@@ -64,10 +64,19 @@ message EnrichedFlowEvent {
   uint64 bytes_received = 12;
 }
 
+message EnrichedFlowEventBatch {
+  string organization = 1;
+  string cluster = 2;
+  string node_name = 3;
+  string agent_id = 4;
+  repeated EnrichedFlowEvent events = 5;
+}
+
 message PushAck {
   int64 accepted_events = 1;
 }
 
 service FlowIngest {
   rpc PushEvents(stream FlowEventBatch) returns (PushAck);
+  rpc PushEnrichedEvents(stream EnrichedFlowEventBatch) returns (PushAck);
 }

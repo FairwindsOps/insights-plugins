@@ -17,6 +17,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
+	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/upstream"
 	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
 )
 
@@ -27,6 +28,10 @@ func main() {
 	disableKube := flag.Bool("disable-kube", envOr("DISABLE_KUBE", "") == "true", "skip kubernetes enrichment")
 	maxEvents := flag.Int("max-events", parseIntEnv("MAX_EVENTS", 100_000), "maximum in-memory flow events")
 	maxAge := flag.Duration("max-age", parseDurationEnv("MAX_AGE", 15*time.Minute), "maximum age of retained flow events")
+	insightsAddr := flag.String("insights-grpc-addr", envOr("INSIGHTS_GRPC_ADDR", ""), "Insights network flow gRPC address; disabled when empty")
+	organization := flag.String("organization", envOr("ORGANIZATION", ""), "Insights organization slug")
+	cluster := flag.String("cluster", envOr("CLUSTER", ""), "Insights cluster name")
+	authToken := flag.String("auth-token", envOr("AUTH_TOKEN", ""), "Insights cluster auth token")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -48,8 +53,28 @@ func main() {
 		}
 	}
 
+	var upstreamClient *upstream.Client
+	if *insightsAddr != "" {
+		if *organization == "" || *cluster == "" || *authToken == "" {
+			log.Error("insights upstream requires organization, cluster, and auth-token")
+			os.Exit(1)
+		}
+		upstreamClient = upstream.NewClient(upstream.Config{
+			InsightsAddr: *insightsAddr,
+			Organization: *organization,
+			Cluster:      *cluster,
+			AuthToken:    *authToken,
+		}, log)
+		go func() {
+			if err := upstreamClient.Run(ctx); err != nil && ctx.Err() == nil {
+				log.Error("insights upstream client stopped", "err", err)
+				stop()
+			}
+		}()
+	}
+
 	grpcServer := grpc.NewServer()
-	flowv1.RegisterFlowIngestServer(grpcServer, collector.NewServer(st, enricher, log))
+	flowv1.RegisterFlowIngestServer(grpcServer, collector.NewServer(st, enricher, upstreamClient, log))
 
 	lis, err := net.Listen("tcp", *grpcAddr)
 	if err != nil {

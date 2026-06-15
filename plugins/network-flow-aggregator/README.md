@@ -32,6 +32,19 @@ Response: `{ "events": [EnrichedFlowEvent...], "count": N }`
 
 A future backend should poll this API (or replace it with Timescale ingestion) and own all aggregation — servicemap edges, analytics, long-term retention.
 
+## Insights upstream
+
+When configured, the collector forwards enriched events to the Insights API over gRPC after local enrichment.
+
+| Flag | Env | Description |
+|---|---|---|
+| `-insights-grpc-addr` | `INSIGHTS_GRPC_ADDR` | Insights network flow gRPC address |
+| `-organization` | `ORGANIZATION` | Insights organization slug |
+| `-cluster` | `CLUSTER` | Insights cluster name |
+| `-auth-token` | `AUTH_TOKEN` | Insights cluster auth token |
+
+All four upstream settings are required when `INSIGHTS_GRPC_ADDR` is set.
+
 ### Retention flags
 
 | Flag | Env | Default | Description |

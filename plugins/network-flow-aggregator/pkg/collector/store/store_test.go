@@ -27,7 +27,7 @@ func TestAppendBatchDoesNotMerge(t *testing.T) {
 		}
 	}
 
-	if got := st.AppendBatch(batch, enrich); got != 2 {
+	if got, _ := st.AppendBatch(batch, enrich); got != 2 {
 		t.Fatalf("accepted = %d", got)
 	}
 	if st.Count() != 2 {
@@ -45,7 +45,7 @@ func TestAppendBatchPreservesBytes(t *testing.T) {
 		},
 	}
 
-	if got := st.AppendBatch(batch, nil); got != 2 {
+	if got, _ := st.AppendBatch(batch, nil); got != 2 {
 		t.Fatalf("accepted = %d", got)
 	}
 	events := st.ListEvents(ListOpts{})
@@ -82,7 +82,7 @@ func TestAppendBatchEnrichment(t *testing.T) {
 		}
 	}
 
-	if got := st.AppendBatch(batch, enrich); got != 1 {
+	if got, _ := st.AppendBatch(batch, enrich); got != 1 {
 		t.Fatalf("accepted = %d", got)
 	}
 	events := st.ListEvents(ListOpts{})

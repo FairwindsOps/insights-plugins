@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FlowIngest_PushEvents_FullMethodName = "/flow.v1.FlowIngest/PushEvents"
+	FlowIngest_PushEvents_FullMethodName         = "/flow.v1.FlowIngest/PushEvents"
+	FlowIngest_PushEnrichedEvents_FullMethodName = "/flow.v1.FlowIngest/PushEnrichedEvents"
 )
 
 // FlowIngestClient is the client API for FlowIngest service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FlowIngestClient interface {
 	PushEvents(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FlowEventBatch, PushAck], error)
+	PushEnrichedEvents(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[EnrichedFlowEventBatch, PushAck], error)
 }
 
 type flowIngestClient struct {
@@ -50,11 +52,25 @@ func (c *flowIngestClient) PushEvents(ctx context.Context, opts ...grpc.CallOpti
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type FlowIngest_PushEventsClient = grpc.ClientStreamingClient[FlowEventBatch, PushAck]
 
+func (c *flowIngestClient) PushEnrichedEvents(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[EnrichedFlowEventBatch, PushAck], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &FlowIngest_ServiceDesc.Streams[1], FlowIngest_PushEnrichedEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[EnrichedFlowEventBatch, PushAck]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type FlowIngest_PushEnrichedEventsClient = grpc.ClientStreamingClient[EnrichedFlowEventBatch, PushAck]
+
 // FlowIngestServer is the server API for FlowIngest service.
 // All implementations must embed UnimplementedFlowIngestServer
 // for forward compatibility.
 type FlowIngestServer interface {
 	PushEvents(grpc.ClientStreamingServer[FlowEventBatch, PushAck]) error
+	PushEnrichedEvents(grpc.ClientStreamingServer[EnrichedFlowEventBatch, PushAck]) error
 	mustEmbedUnimplementedFlowIngestServer()
 }
 
@@ -67,6 +83,9 @@ type UnimplementedFlowIngestServer struct{}
 
 func (UnimplementedFlowIngestServer) PushEvents(grpc.ClientStreamingServer[FlowEventBatch, PushAck]) error {
 	return status.Error(codes.Unimplemented, "method PushEvents not implemented")
+}
+func (UnimplementedFlowIngestServer) PushEnrichedEvents(grpc.ClientStreamingServer[EnrichedFlowEventBatch, PushAck]) error {
+	return status.Error(codes.Unimplemented, "method PushEnrichedEvents not implemented")
 }
 func (UnimplementedFlowIngestServer) mustEmbedUnimplementedFlowIngestServer() {}
 func (UnimplementedFlowIngestServer) testEmbeddedByValue()                    {}
@@ -96,6 +115,13 @@ func _FlowIngest_PushEvents_Handler(srv interface{}, stream grpc.ServerStream) e
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type FlowIngest_PushEventsServer = grpc.ClientStreamingServer[FlowEventBatch, PushAck]
 
+func _FlowIngest_PushEnrichedEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(FlowIngestServer).PushEnrichedEvents(&grpc.GenericServerStream[EnrichedFlowEventBatch, PushAck]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type FlowIngest_PushEnrichedEventsServer = grpc.ClientStreamingServer[EnrichedFlowEventBatch, PushAck]
+
 // FlowIngest_ServiceDesc is the grpc.ServiceDesc for FlowIngest service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -107,6 +133,11 @@ var FlowIngest_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "PushEvents",
 			Handler:       _FlowIngest_PushEvents_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "PushEnrichedEvents",
+			Handler:       _FlowIngest_PushEnrichedEvents_Handler,
 			ClientStreams: true,
 		},
 	},

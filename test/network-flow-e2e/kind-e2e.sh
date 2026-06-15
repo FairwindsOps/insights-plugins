@@ -11,6 +11,13 @@ AGENT_IMAGE="${AGENT_IMAGE:-fw-network-flow:local}"
 AGGREGATOR_IMAGE="${AGGREGATOR_IMAGE:-fw-network-flow-aggregator:local}"
 DEPLOY_DIR="${DEPLOY_DIR:-test/network-flow-e2e/deploy/e2e}"
 DEMO_NAMESPACES="${DEMO_NAMESPACES:-insights shop payments analytics}"
+INSIGHTS_GRPC_ADDR="${INSIGHTS_GRPC_ADDR:-}"
+INSIGHTS_GRPC_PORT="${INSIGHTS_GRPC_PORT:-4318}"
+INSIGHTS_HOST="${INSIGHTS_HOST:-}"
+ORGANIZATION="${ORGANIZATION:-ci-co}"
+CLUSTER="${CLUSTER:-k8test}"
+AUTH_TOKEN="${AUTH_TOKEN:-}"
+ENABLE_INSIGHTS_UPSTREAM="${ENABLE_INSIGHTS_UPSTREAM:-0}"
 PF_PID=""
 KEEP_GOING=0
 WATCH_INTERVAL="${WATCH_INTERVAL:-3}"
@@ -49,9 +56,116 @@ Usage: $(basename "$0") [options] [up|down|load|deploy|traffic|traffic-continuou
 
 Options:
   --keep-going, -k   With 'all': run continuous traffic and stream flows until Ctrl+C
+  --with-insights-upstream
+                     Forward enriched flows to a local Insights API (see env vars below)
   WATCH_INTERVAL     Poll interval in seconds for watch mode (default: 3)
   DEMO_NAMESPACES    Space-separated demo namespaces (default: insights shop payments analytics)
+
+Insights upstream (Insights API on your host, aggregator in kind):
+  ENABLE_INSIGHTS_UPSTREAM=1   Enable upstream forwarding
+  INSIGHTS_GRPC_ADDR           Host API gRPC address (default: host.docker.internal:4318)
+  INSIGHTS_GRPC_PORT           Host API gRPC port when addr omitted (default: 4318)
+  INSIGHTS_HOST                Hostname/IP reachable from kind pods (auto-detected when unset)
+  ORGANIZATION                 Insights organization slug (default: ci-co)
+  CLUSTER                      Insights cluster name (default: k8test)
+  AUTH_TOKEN                   Insights cluster auth token (required when upstream enabled)
+
+Example (Insights API on host: NETWORK_FLOW_GRPC_ADDR=:4318 go run cmd/api/main.go):
+  AUTH_TOKEN=<cluster-token> ENABLE_INSIGHTS_UPSTREAM=1 ./test/network-flow-e2e/kind-e2e.sh all
 EOF
+}
+
+insights_upstream_enabled() {
+  case "${ENABLE_INSIGHTS_UPSTREAM:-}" in
+    1|true|yes|TRUE|True|YES|Yes) return 0 ;;
+  esac
+  [[ -n "$INSIGHTS_GRPC_ADDR" ]]
+}
+
+normalize_insights_grpc_addr() {
+  local addr="${1:-}"
+  addr="${addr#http://}"
+  addr="${addr#https://}"
+  echo "$addr"
+}
+
+prepare_insights_upstream_config() {
+  local normalized host_part port_part host
+  normalized="$(normalize_insights_grpc_addr "$INSIGHTS_GRPC_ADDR")"
+
+  if [[ -n "$normalized" && "$normalized" == *:* ]]; then
+    host_part="${normalized%:*}"
+    port_part="${normalized##*:}"
+    if [[ "$port_part" =~ ^[0-9]+$ ]]; then
+      INSIGHTS_GRPC_PORT="$port_part"
+    fi
+    if [[ -n "$host_part" && "$host_part" != "insights-api" ]]; then
+      INSIGHTS_HOST="${INSIGHTS_HOST:-$host_part}"
+    fi
+  fi
+
+  host="$(resolve_insights_host)"
+  # Aggregator runs in kind; Insights API runs on the host.
+  INSIGHTS_GRPC_ADDR="${host}:${INSIGHTS_GRPC_PORT}"
+}
+
+resolve_insights_host() {
+  if [[ -n "$INSIGHTS_HOST" ]]; then
+    echo "$INSIGHTS_HOST"
+    return
+  fi
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "host.docker.internal"
+    return
+  fi
+  docker network inspect kind -f '{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || true
+}
+
+apply_insights_upstream() {
+  if ! insights_upstream_enabled; then
+    return 0
+  fi
+
+  if [[ -z "$AUTH_TOKEN" ]]; then
+    echo "AUTH_TOKEN is required when Insights upstream is enabled" >&2
+    exit 1
+  fi
+
+  prepare_insights_upstream_config
+
+  local aggregator_patch
+  echo "Configuring Insights upstream (host API -> in-cluster aggregator):"
+  echo "  INSIGHTS_GRPC_ADDR=${INSIGHTS_GRPC_ADDR}"
+  echo "  ORGANIZATION=${ORGANIZATION}"
+  echo "  CLUSTER=${CLUSTER}"
+
+  kubectl -n insights create secret generic network-flow-insights-upstream \
+    --from-literal=auth-token="$AUTH_TOKEN" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+  kubectl -n insights patch deployment network-flow-aggregator --type=strategic --patch "$(cat <<EOF
+spec:
+  template:
+    spec:
+      containers:
+        - name: network-flow-aggregator
+          env:
+            - name: INSIGHTS_GRPC_ADDR
+              value: "${INSIGHTS_GRPC_ADDR}"
+            - name: ORGANIZATION
+              value: "${ORGANIZATION}"
+            - name: CLUSTER
+              value: "${CLUSTER}"
+            - name: AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: network-flow-insights-upstream
+                  key: auth-token
+EOF
+)"
+
+  kubectl -n insights rollout restart deployment/network-flow-aggregator
+  kubectl -n insights rollout status deployment/network-flow-aggregator --timeout=120s
 }
 
 docker_build() {
@@ -81,12 +195,21 @@ docker_build() {
     "${tmpdir}"
 }
 
+ensure_kubectl_context() {
+  if ! kind get clusters 2>/dev/null | grep -qx "$KIND_CLUSTER"; then
+    echo "kind cluster '$KIND_CLUSTER' does not exist; run '$(basename "$0") up' first" >&2
+    exit 1
+  fi
+  kind export kubeconfig --name "$KIND_CLUSTER"
+}
+
 kind_up() {
   if kind get clusters 2>/dev/null | grep -qx "$KIND_CLUSTER"; then
     echo "kind cluster '$KIND_CLUSTER' already exists"
-    return
+  else
+    kind create cluster --name "$KIND_CLUSTER" --config "$KIND_CONFIG"
   fi
-  kind create cluster --name "$KIND_CLUSTER" --config "$KIND_CONFIG"
+  ensure_kubectl_context
 }
 
 kind_down() {
@@ -126,9 +249,11 @@ apply_demo_workloads() {
 }
 
 kind_deploy() {
+  ensure_kubectl_context
   apply_demo_namespaces
   apply_demo_workloads
   kubectl apply -k "$DEPLOY_DIR"
+  apply_insights_upstream
   kubectl -n insights rollout status deployment/network-flow-aggregator --timeout=120s
   kubectl -n insights rollout status daemonset/network-flow --timeout=180s
   for_each_demo_namespace wait_demo_server
@@ -136,6 +261,7 @@ kind_deploy() {
 }
 
 kind_traffic() {
+  ensure_kubectl_context
   for_each_demo_namespace delete_demo_traffic
   apply_demo_workloads
   kubectl apply -k "$DEPLOY_DIR"
@@ -145,6 +271,7 @@ kind_traffic() {
 }
 
 kind_traffic_continuous() {
+  ensure_kubectl_context
   for_each_demo_namespace delete_demo_traffic
   kubectl apply -f "${DEPLOY_DIR}/demo-traffic-continuous.yaml"
   for_each_demo_namespace wait_demo_traffic_rollout
@@ -216,6 +343,7 @@ verify_demo_namespaces() {
 }
 
 kind_watch() {
+  ensure_kubectl_context
   local interval="$WATCH_INTERVAL"
   local since=0
   local verified_namespaces=""
@@ -265,6 +393,7 @@ kind_watch() {
 }
 
 kind_verify() {
+  ensure_kubectl_context
   local flows demo_flows
   kubectl -n insights port-forward svc/network-flow-aggregator 18080:8080 >/dev/null 2>&1 &
   PF_PID=$!
@@ -328,6 +457,7 @@ shift || true
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --keep-going|-k) KEEP_GOING=1 ;;
+    --with-insights-upstream) ENABLE_INSIGHTS_UPSTREAM=1 ;;
     -h|--help|help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage; exit 1 ;;
   esac
