@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.9
+* Bump dependencies
+
+## 2.3.8
+* Bump library golang.org/x/mod to v0.37.0
+
 ## 2.3.7
 * Build with Go 1.26.3 (stdlib CVE-2026-42501, CVE-2026-39825, CVE-2026-39826, CVE-2026-39823) via module `go` version and `GOTOOLCHAIN=go1.26.3` in release builds.
 

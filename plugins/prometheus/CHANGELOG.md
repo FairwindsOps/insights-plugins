@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.7
+* Bump dependencies
+
 ## 1.9.6
 * Bump library github.com/prometheus/common to v0.68.1
 
