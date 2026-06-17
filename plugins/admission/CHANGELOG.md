@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.9
+* Bump dependencies
+
 ## 2.3.8
 * Bump library golang.org/x/mod to v0.37.0
 
