@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.10.1
+* Bump dependencies
+
 ## 2.10.0
 * **Cluster inventory:** top-level **`Images[]`** lists every running container image (regular, init, ephemeral) with workload owners. Runtime discovery via controller, orphan-pod, and active-job sweeps; entries without a normalized **`ID`** are skipped. Reuses the controller list from the main report pass; image discovery failures are logged and the rest of the report is still emitted.
 * **Owner labels:** controller owners in **`Images[].Owners[]`** omit label/annotation maps (same data lives on **`Controllers[]`**). Orphan **`Pod`** and active **`Job`** owners include label maps for backends that cannot link to a controller row.

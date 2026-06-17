@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.21.9
+* Bump dependencies
+
 ## 0.21.8
 * Bump bundled `kubectl` to v1.35.4 (addresses stdlib and `moby/spdystream` findings in the client binary).
 

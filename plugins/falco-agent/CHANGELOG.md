@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.24
+* Bump dependencies
+
 ## 0.4.23
 * Bump library github.com/falcosecurity/falcosidekick to v0.0.0-20260603140136-03364bc26b22
 
