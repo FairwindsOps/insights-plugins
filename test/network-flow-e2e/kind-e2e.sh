@@ -228,10 +228,6 @@ wait_demo_server() {
   kubectl -n "$1" rollout status deployment/demo-server --timeout=60s
 }
 
-wait_demo_traffic_ready() {
-  kubectl -n "$1" wait --for=condition=ready pod -l app=demo-traffic --timeout=60s
-}
-
 wait_demo_traffic_complete() {
   kubectl -n "$1" wait --for=condition=complete job/demo-traffic --timeout=120s
 }
@@ -265,7 +261,6 @@ kind_traffic() {
   for_each_demo_namespace delete_demo_traffic
   apply_demo_workloads
   kubectl apply -k "$DEPLOY_DIR"
-  for_each_demo_namespace wait_demo_traffic_ready
   for_each_demo_namespace wait_demo_traffic_complete
   sleep 10
 }
@@ -287,7 +282,12 @@ format_flow_event() {
        else
          ($e.dst.addr // "?")
        end) as $dst
-    | "\($e.eventKind) \($src) -> \($dst):\($e.dst.port) sent=\($e.bytesSent // 0) rcvd=\($e.bytesReceived // 0)"
+    | (if $e.eventKind == "FLOW_EVENT_KIND_TRAFFIC" then
+         " sent=\($e.bytesSent // 0) rcvd=\($e.bytesReceived // 0)"
+       else
+         ""
+       end) as $bytes
+    | "\($e.eventKind) \($src) -> \($dst):\($e.dst.port)\($bytes)"
   '
 }
 
@@ -427,11 +427,22 @@ kind_verify() {
              ($e.dst.addr // "?")
            end) as $dst
         | {
-            line: "\($e.eventKind) \($src) -> \($dst):\($e.dst.port) sent=\($e.bytesSent // 0) rcvd=\($e.bytesReceived // 0)",
-            kind: ($e.eventKind // "")
+            line: (
+              (if $e.eventKind == "FLOW_EVENT_KIND_TRAFFIC" then
+                 " sent=\($e.bytesSent // 0) rcvd=\($e.bytesReceived // 0)"
+               else
+                 ""
+               end) as $bytes
+              | "\($e.eventKind) \($src) -> \($dst):\($e.dst.port)\($bytes)"
+            ),
+            kind: ($e.eventKind // ""),
+            has_bytes: (
+              $e.eventKind == "FLOW_EVENT_KIND_TRAFFIC"
+              and (($e.bytesSent // 0) > 0 or ($e.bytesReceived // 0) > 0)
+            )
           }
       ]
-      | sort_by(.kind)
+      | sort_by(if .has_bytes then 0 elif .kind == "FLOW_EVENT_KIND_TRAFFIC" then 1 else 2 end)
       | .[].line
   ' || true)"
 

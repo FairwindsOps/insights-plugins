@@ -29,7 +29,7 @@ type Client struct {
 	cfg     Config
 	log     *slog.Logger
 	mu      sync.Mutex
-	pending []*pendingBatch
+	pending []*pendingBatch // TODO: bound pending queue; see TODO.md
 	flushCh chan struct{}
 }
 
