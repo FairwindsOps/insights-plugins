@@ -100,6 +100,13 @@
       "matchManagers": ["circleci"],
       "matchUpdateTypes": ["major"],
       "groupName": "CircleCI major updates"
+    },
+    {
+      "description": "jsonpatch/v2 must stay; controller-runtime admission.Patched() uses v2 types",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["gomodules.xyz/jsonpatch/v2"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/fairwindsops/polaris/pkg/mutation"
 	polariswebhook "github.com/fairwindsops/polaris/pkg/webhook"
 	"github.com/sirupsen/logrus"
-	"gomodules.xyz/jsonpatch/v3"
+	"gomodules.xyz/jsonpatch/v2"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 )
@@ -87,6 +87,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 	if len(patches) == 0 {
 		return admission.Allowed("Allowed")
 	}
+
 	return admission.Patched("", patches...)
 
 }
