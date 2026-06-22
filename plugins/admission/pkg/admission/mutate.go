@@ -87,6 +87,7 @@ func (m *Mutator) Handle(ctx context.Context, req admission.Request) admission.R
 	if len(patches) == 0 {
 		return admission.Allowed("Allowed")
 	}
+
 	return admission.Patched("", patches...)
 
 }
