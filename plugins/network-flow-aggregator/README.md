@@ -51,3 +51,18 @@ All four upstream settings are required when `INSIGHTS_GRPC_ADDR` is set.
 |---|---|---|---|
 | `-max-events` | `MAX_EVENTS` | `100000` | Ring buffer capacity |
 | `-max-age` | `MAX_AGE` | `15m` | Drop events older than this |
+
+## How to run it
+```
+export CLUSTER_TOKEN=
+export ORGANIZATION=
+export CLUSTER=
+
+AUTH_TOKEN=$CLUSTER_TOKEN \
+INSIGHTS_GRPC_ADDR=host.docker.internal:4318 \
+ORGANIZATION=$ORGANIZATION \
+CLUSTER=$CLUSTER \
+KEEP_GOING=1 \
+ENABLE_INSIGHTS_UPSTREAM=true \
+./test/network-flow-e2e/kind-e2e.sh all
+```
