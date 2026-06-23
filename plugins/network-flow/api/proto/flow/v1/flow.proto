@@ -8,11 +8,22 @@ enum FlowEventKind {
   FLOW_EVENT_KIND_UNSPECIFIED = 0;
   FLOW_EVENT_KIND_CONNECT = 1;
   FLOW_EVENT_KIND_TRAFFIC = 2;
+  FLOW_EVENT_KIND_DNS_QUERY = 3;
+  FLOW_EVENT_KIND_DNS_RESPONSE = 4;
 }
 
 enum Protocol {
   PROTOCOL_UNSPECIFIED = 0;
   PROTOCOL_TCP = 1;
+  PROTOCOL_DNS = 2;
+}
+
+message DnsDetails {
+  string name = 1;
+  string qtype = 2;
+  string rcode = 3;
+  repeated string addresses = 4;
+  uint32 query_id = 5;
 }
 
 message Endpoint {
@@ -41,6 +52,7 @@ message FlowEvent {
   Endpoint dst = 6;
   uint64 bytes_sent = 7;
   uint64 bytes_received = 8;
+  DnsDetails dns = 9;
 }
 
 message FlowEventBatch {
@@ -62,6 +74,7 @@ message EnrichedFlowEvent {
   KubernetesRef dst_ref = 10;
   uint64 bytes_sent = 11;
   uint64 bytes_received = 12;
+  DnsDetails dns = 13;
 }
 
 message EnrichedFlowEventBatch {

@@ -326,6 +326,33 @@ count_namespace_demo_events() {
   '
 }
 
+verify_dns_external() {
+  local dns_responses external_connects
+  dns_responses="$(curl -sf 'http://127.0.0.1:18080/api/v1/flows?namespace=insights&event_kind=DNS_RESPONSE' | jq '
+    [.events[]?
+      | select(
+          (.srcWorkload.name // "") == "demo-traffic"
+          and (.dns.name // "") == "example.com"
+        )
+    ] | length
+  ')"
+  external_connects="$(curl -sf 'http://127.0.0.1:18080/api/v1/flows?namespace=insights&event_kind=CONNECT' | jq '
+    [.events[]?
+      | select(
+          (.srcWorkload.name // "") == "demo-traffic"
+          and (.dstRef.kind // "") == "ExternalHostname"
+          and (.dstRef.name // "") == "example.com"
+        )
+    ] | length
+  ')"
+  if [[ "$dns_responses" -ge 1 && "$external_connects" -ge 1 ]]; then
+    echo "e2e verify: insights: DNS_RESPONSE and CONNECT with ExternalHostname example.com"
+    return 0
+  fi
+  echo "e2e verify: insights: missing DNS external hostname (dns=$dns_responses connect=$external_connects)" >&2
+  return 1
+}
+
 verify_demo_namespaces() {
   local ns failed=0
   for ns in $DEMO_NAMESPACES; do
@@ -339,6 +366,9 @@ verify_demo_namespaces() {
       failed=1
     fi
   done
+  if ! verify_dns_external; then
+    failed=1
+  fi
   return "$failed"
 }
 

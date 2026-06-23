@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector"
+	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/dns"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/upstream"
@@ -36,6 +37,7 @@ func main() {
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	st := store.NewStore(*maxEvents, *maxAge)
+	dnsCache := dns.NewCache(*maxAge)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -74,7 +76,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	flowv1.RegisterFlowIngestServer(grpcServer, collector.NewServer(st, enricher, upstreamClient, log))
+	flowv1.RegisterFlowIngestServer(grpcServer, collector.NewServer(st, enricher, dnsCache, upstreamClient, log))
 
 	lis, err := net.Listen("tcp", *grpcAddr)
 	if err != nil {

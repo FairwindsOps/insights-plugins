@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.35.0
-// source: flow/v1/flow.proto
+// source: api/proto/flow/v1/flow.proto
 
 package flowv1
 
@@ -141,5 +141,5 @@ var FlowIngest_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "flow/v1/flow.proto",
+	Metadata: "api/proto/flow/v1/flow.proto",
 }

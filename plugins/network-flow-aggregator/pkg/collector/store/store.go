@@ -62,7 +62,7 @@ func (s *Store) AppendBatch(batch *flowv1.FlowEventBatch, enrich func(*flowv1.Fl
 	var accepted int64
 	enriched := make([]*flowv1.EnrichedFlowEvent, 0, len(batch.GetEvents()))
 	for _, event := range batch.GetEvents() {
-		if event == nil || event.GetSrc().GetPod() == "" || event.GetDst().GetAddr() == "" {
+		if event == nil || !isAcceptableEvent(event) {
 			continue
 		}
 
@@ -100,6 +100,7 @@ func enrichedFromEvent(nodeName, agentID string, event *flowv1.FlowEvent, enrich
 		Dst:               event.GetDst(),
 		BytesSent:         event.GetBytesSent(),
 		BytesReceived:     event.GetBytesReceived(),
+		Dns:               event.GetDns(),
 	}
 	if enrich.SrcNamespace != "" || enrich.SrcWorkloadKind != "" || enrich.SrcWorkloadName != "" {
 		out.SrcWorkload = &flowv1.KubernetesRef{
@@ -116,6 +117,16 @@ func enrichedFromEvent(nodeName, agentID string, event *flowv1.FlowEvent, enrich
 		}
 	}
 	return out
+}
+
+func isAcceptableEvent(event *flowv1.FlowEvent) bool {
+	if event.GetSrc().GetPod() == "" {
+		return false
+	}
+	if event.GetProtocol() == flowv1.Protocol_PROTOCOL_DNS {
+		return event.GetDns().GetName() != ""
+	}
+	return event.GetDst().GetAddr() != ""
 }
 
 func (s *Store) pruneLocked() {

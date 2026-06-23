@@ -28,6 +28,7 @@ spec:
                 curl -sf -X POST -d "$payload" "http://demo-server:8080/" -o /dev/null
                 curl -sf "http://demo-server.shop.svc.cluster.local:8080/" -o /dev/null
                 curl -sf -X POST -d "$payload" "http://demo-server.shop.svc.cluster.local:8080/" -o /dev/null
+                curl -sf "http://example.com/" -o /dev/null || true
                 sleep 0.25
               done
               echo "done"

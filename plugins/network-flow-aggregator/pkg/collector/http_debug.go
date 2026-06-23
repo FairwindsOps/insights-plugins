@@ -83,6 +83,10 @@ func parseEventKind(v string) flowv1.FlowEventKind {
 		return flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT
 	case "TRAFFIC", "traffic", "2":
 		return flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC
+	case "DNS_QUERY", "dns_query", "3":
+		return flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY
+	case "DNS_RESPONSE", "dns_response", "4":
+		return flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE
 	default:
 		return flowv1.FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED
 	}

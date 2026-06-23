@@ -38,6 +38,8 @@ spec:
               value: ghcr.io/inspektor-gadget/gadget/trace_tcp:v0.52.0
             - name: TOP_TCP_IMAGE
               value: ghcr.io/inspektor-gadget/gadget/top_tcp:v0.52.0
+            - name: TRACE_DNS_IMAGE
+              value: ghcr.io/inspektor-gadget/gadget/trace_dns:v0.52.0
             - name: GADGET_POD_UID
               valueFrom:
                 fieldRef:

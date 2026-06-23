@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.35.0
-// source: flow/v1/flow.proto
+// source: api/proto/flow/v1/flow.proto
 
 package flowv1
 
@@ -24,9 +24,11 @@ const (
 type FlowEventKind int32
 
 const (
-	FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED FlowEventKind = 0
-	FlowEventKind_FLOW_EVENT_KIND_CONNECT     FlowEventKind = 1
-	FlowEventKind_FLOW_EVENT_KIND_TRAFFIC     FlowEventKind = 2
+	FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED  FlowEventKind = 0
+	FlowEventKind_FLOW_EVENT_KIND_CONNECT      FlowEventKind = 1
+	FlowEventKind_FLOW_EVENT_KIND_TRAFFIC      FlowEventKind = 2
+	FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY    FlowEventKind = 3
+	FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE FlowEventKind = 4
 )
 
 // Enum value maps for FlowEventKind.
@@ -35,11 +37,15 @@ var (
 		0: "FLOW_EVENT_KIND_UNSPECIFIED",
 		1: "FLOW_EVENT_KIND_CONNECT",
 		2: "FLOW_EVENT_KIND_TRAFFIC",
+		3: "FLOW_EVENT_KIND_DNS_QUERY",
+		4: "FLOW_EVENT_KIND_DNS_RESPONSE",
 	}
 	FlowEventKind_value = map[string]int32{
-		"FLOW_EVENT_KIND_UNSPECIFIED": 0,
-		"FLOW_EVENT_KIND_CONNECT":     1,
-		"FLOW_EVENT_KIND_TRAFFIC":     2,
+		"FLOW_EVENT_KIND_UNSPECIFIED":  0,
+		"FLOW_EVENT_KIND_CONNECT":      1,
+		"FLOW_EVENT_KIND_TRAFFIC":      2,
+		"FLOW_EVENT_KIND_DNS_QUERY":    3,
+		"FLOW_EVENT_KIND_DNS_RESPONSE": 4,
 	}
 )
 
@@ -54,11 +60,11 @@ func (x FlowEventKind) String() string {
 }
 
 func (FlowEventKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_flow_v1_flow_proto_enumTypes[0].Descriptor()
+	return file_api_proto_flow_v1_flow_proto_enumTypes[0].Descriptor()
 }
 
 func (FlowEventKind) Type() protoreflect.EnumType {
-	return &file_flow_v1_flow_proto_enumTypes[0]
+	return &file_api_proto_flow_v1_flow_proto_enumTypes[0]
 }
 
 func (x FlowEventKind) Number() protoreflect.EnumNumber {
@@ -67,7 +73,7 @@ func (x FlowEventKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FlowEventKind.Descriptor instead.
 func (FlowEventKind) EnumDescriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{0}
 }
 
 type Protocol int32
@@ -75,6 +81,7 @@ type Protocol int32
 const (
 	Protocol_PROTOCOL_UNSPECIFIED Protocol = 0
 	Protocol_PROTOCOL_TCP         Protocol = 1
+	Protocol_PROTOCOL_DNS         Protocol = 2
 )
 
 // Enum value maps for Protocol.
@@ -82,10 +89,12 @@ var (
 	Protocol_name = map[int32]string{
 		0: "PROTOCOL_UNSPECIFIED",
 		1: "PROTOCOL_TCP",
+		2: "PROTOCOL_DNS",
 	}
 	Protocol_value = map[string]int32{
 		"PROTOCOL_UNSPECIFIED": 0,
 		"PROTOCOL_TCP":         1,
+		"PROTOCOL_DNS":         2,
 	}
 )
 
@@ -100,11 +109,11 @@ func (x Protocol) String() string {
 }
 
 func (Protocol) Descriptor() protoreflect.EnumDescriptor {
-	return file_flow_v1_flow_proto_enumTypes[1].Descriptor()
+	return file_api_proto_flow_v1_flow_proto_enumTypes[1].Descriptor()
 }
 
 func (Protocol) Type() protoreflect.EnumType {
-	return &file_flow_v1_flow_proto_enumTypes[1]
+	return &file_api_proto_flow_v1_flow_proto_enumTypes[1]
 }
 
 func (x Protocol) Number() protoreflect.EnumNumber {
@@ -113,7 +122,83 @@ func (x Protocol) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Protocol.Descriptor instead.
 func (Protocol) EnumDescriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{1}
+}
+
+type DnsDetails struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Qtype         string                 `protobuf:"bytes,2,opt,name=qtype,proto3" json:"qtype,omitempty"`
+	Rcode         string                 `protobuf:"bytes,3,opt,name=rcode,proto3" json:"rcode,omitempty"`
+	Addresses     []string               `protobuf:"bytes,4,rep,name=addresses,proto3" json:"addresses,omitempty"`
+	QueryId       uint32                 `protobuf:"varint,5,opt,name=query_id,json=queryId,proto3" json:"query_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DnsDetails) Reset() {
+	*x = DnsDetails{}
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DnsDetails) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DnsDetails) ProtoMessage() {}
+
+func (x *DnsDetails) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DnsDetails.ProtoReflect.Descriptor instead.
+func (*DnsDetails) Descriptor() ([]byte, []int) {
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *DnsDetails) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *DnsDetails) GetQtype() string {
+	if x != nil {
+		return x.Qtype
+	}
+	return ""
+}
+
+func (x *DnsDetails) GetRcode() string {
+	if x != nil {
+		return x.Rcode
+	}
+	return ""
+}
+
+func (x *DnsDetails) GetAddresses() []string {
+	if x != nil {
+		return x.Addresses
+	}
+	return nil
+}
+
+func (x *DnsDetails) GetQueryId() uint32 {
+	if x != nil {
+		return x.QueryId
+	}
+	return 0
 }
 
 type Endpoint struct {
@@ -126,7 +211,7 @@ type Endpoint struct {
 
 func (x *Endpoint) Reset() {
 	*x = Endpoint{}
-	mi := &file_flow_v1_flow_proto_msgTypes[0]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -138,7 +223,7 @@ func (x *Endpoint) String() string {
 func (*Endpoint) ProtoMessage() {}
 
 func (x *Endpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[0]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -151,7 +236,7 @@ func (x *Endpoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Endpoint.ProtoReflect.Descriptor instead.
 func (*Endpoint) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Endpoint) GetAddr() string {
@@ -179,7 +264,7 @@ type WorkloadRef struct {
 
 func (x *WorkloadRef) Reset() {
 	*x = WorkloadRef{}
-	mi := &file_flow_v1_flow_proto_msgTypes[1]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +276,7 @@ func (x *WorkloadRef) String() string {
 func (*WorkloadRef) ProtoMessage() {}
 
 func (x *WorkloadRef) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[1]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +289,7 @@ func (x *WorkloadRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkloadRef.ProtoReflect.Descriptor instead.
 func (*WorkloadRef) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *WorkloadRef) GetNamespace() string {
@@ -239,7 +324,7 @@ type KubernetesRef struct {
 
 func (x *KubernetesRef) Reset() {
 	*x = KubernetesRef{}
-	mi := &file_flow_v1_flow_proto_msgTypes[2]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -251,7 +336,7 @@ func (x *KubernetesRef) String() string {
 func (*KubernetesRef) ProtoMessage() {}
 
 func (x *KubernetesRef) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[2]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -264,7 +349,7 @@ func (x *KubernetesRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KubernetesRef.ProtoReflect.Descriptor instead.
 func (*KubernetesRef) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *KubernetesRef) GetNamespace() string {
@@ -298,13 +383,14 @@ type FlowEvent struct {
 	Dst               *Endpoint              `protobuf:"bytes,6,opt,name=dst,proto3" json:"dst,omitempty"`
 	BytesSent         uint64                 `protobuf:"varint,7,opt,name=bytes_sent,json=bytesSent,proto3" json:"bytes_sent,omitempty"`
 	BytesReceived     uint64                 `protobuf:"varint,8,opt,name=bytes_received,json=bytesReceived,proto3" json:"bytes_received,omitempty"`
+	Dns               *DnsDetails            `protobuf:"bytes,9,opt,name=dns,proto3" json:"dns,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *FlowEvent) Reset() {
 	*x = FlowEvent{}
-	mi := &file_flow_v1_flow_proto_msgTypes[3]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -316,7 +402,7 @@ func (x *FlowEvent) String() string {
 func (*FlowEvent) ProtoMessage() {}
 
 func (x *FlowEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[3]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -329,7 +415,7 @@ func (x *FlowEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlowEvent.ProtoReflect.Descriptor instead.
 func (*FlowEvent) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *FlowEvent) GetEventKind() FlowEventKind {
@@ -388,6 +474,13 @@ func (x *FlowEvent) GetBytesReceived() uint64 {
 	return 0
 }
 
+func (x *FlowEvent) GetDns() *DnsDetails {
+	if x != nil {
+		return x.Dns
+	}
+	return nil
+}
+
 type FlowEventBatch struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	NodeName      string                 `protobuf:"bytes,1,opt,name=node_name,json=nodeName,proto3" json:"node_name,omitempty"`
@@ -399,7 +492,7 @@ type FlowEventBatch struct {
 
 func (x *FlowEventBatch) Reset() {
 	*x = FlowEventBatch{}
-	mi := &file_flow_v1_flow_proto_msgTypes[4]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -411,7 +504,7 @@ func (x *FlowEventBatch) String() string {
 func (*FlowEventBatch) ProtoMessage() {}
 
 func (x *FlowEventBatch) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[4]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -424,7 +517,7 @@ func (x *FlowEventBatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlowEventBatch.ProtoReflect.Descriptor instead.
 func (*FlowEventBatch) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *FlowEventBatch) GetNodeName() string {
@@ -462,13 +555,14 @@ type EnrichedFlowEvent struct {
 	DstRef            *KubernetesRef         `protobuf:"bytes,10,opt,name=dst_ref,json=dstRef,proto3" json:"dst_ref,omitempty"`
 	BytesSent         uint64                 `protobuf:"varint,11,opt,name=bytes_sent,json=bytesSent,proto3" json:"bytes_sent,omitempty"`
 	BytesReceived     uint64                 `protobuf:"varint,12,opt,name=bytes_received,json=bytesReceived,proto3" json:"bytes_received,omitempty"`
+	Dns               *DnsDetails            `protobuf:"bytes,13,opt,name=dns,proto3" json:"dns,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *EnrichedFlowEvent) Reset() {
 	*x = EnrichedFlowEvent{}
-	mi := &file_flow_v1_flow_proto_msgTypes[5]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -480,7 +574,7 @@ func (x *EnrichedFlowEvent) String() string {
 func (*EnrichedFlowEvent) ProtoMessage() {}
 
 func (x *EnrichedFlowEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[5]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -493,7 +587,7 @@ func (x *EnrichedFlowEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrichedFlowEvent.ProtoReflect.Descriptor instead.
 func (*EnrichedFlowEvent) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *EnrichedFlowEvent) GetNodeName() string {
@@ -580,6 +674,13 @@ func (x *EnrichedFlowEvent) GetBytesReceived() uint64 {
 	return 0
 }
 
+func (x *EnrichedFlowEvent) GetDns() *DnsDetails {
+	if x != nil {
+		return x.Dns
+	}
+	return nil
+}
+
 type EnrichedFlowEventBatch struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Organization  string                 `protobuf:"bytes,1,opt,name=organization,proto3" json:"organization,omitempty"`
@@ -593,7 +694,7 @@ type EnrichedFlowEventBatch struct {
 
 func (x *EnrichedFlowEventBatch) Reset() {
 	*x = EnrichedFlowEventBatch{}
-	mi := &file_flow_v1_flow_proto_msgTypes[6]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -605,7 +706,7 @@ func (x *EnrichedFlowEventBatch) String() string {
 func (*EnrichedFlowEventBatch) ProtoMessage() {}
 
 func (x *EnrichedFlowEventBatch) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[6]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +719,7 @@ func (x *EnrichedFlowEventBatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrichedFlowEventBatch.ProtoReflect.Descriptor instead.
 func (*EnrichedFlowEventBatch) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *EnrichedFlowEventBatch) GetOrganization() string {
@@ -665,7 +766,7 @@ type PushAck struct {
 
 func (x *PushAck) Reset() {
 	*x = PushAck{}
-	mi := &file_flow_v1_flow_proto_msgTypes[7]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -677,7 +778,7 @@ func (x *PushAck) String() string {
 func (*PushAck) ProtoMessage() {}
 
 func (x *PushAck) ProtoReflect() protoreflect.Message {
-	mi := &file_flow_v1_flow_proto_msgTypes[7]
+	mi := &file_api_proto_flow_v1_flow_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -690,7 +791,7 @@ func (x *PushAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushAck.ProtoReflect.Descriptor instead.
 func (*PushAck) Descriptor() ([]byte, []int) {
-	return file_flow_v1_flow_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_flow_v1_flow_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PushAck) GetAcceptedEvents() int64 {
@@ -700,11 +801,18 @@ func (x *PushAck) GetAcceptedEvents() int64 {
 	return 0
 }
 
-var File_flow_v1_flow_proto protoreflect.FileDescriptor
+var File_api_proto_flow_v1_flow_proto protoreflect.FileDescriptor
 
-const file_flow_v1_flow_proto_rawDesc = "" +
+const file_api_proto_flow_v1_flow_proto_rawDesc = "" +
 	"\n" +
-	"\x12flow/v1/flow.proto\x12\aflow.v1\"2\n" +
+	"\x1capi/proto/flow/v1/flow.proto\x12\aflow.v1\"\x85\x01\n" +
+	"\n" +
+	"DnsDetails\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05qtype\x18\x02 \x01(\tR\x05qtype\x12\x14\n" +
+	"\x05rcode\x18\x03 \x01(\tR\x05rcode\x12\x1c\n" +
+	"\taddresses\x18\x04 \x03(\tR\taddresses\x12\x19\n" +
+	"\bquery_id\x18\x05 \x01(\rR\aqueryId\"2\n" +
 	"\bEndpoint\x12\x12\n" +
 	"\x04addr\x18\x01 \x01(\tR\x04addr\x12\x12\n" +
 	"\x04port\x18\x02 \x01(\rR\x04port\"[\n" +
@@ -715,7 +823,7 @@ const file_flow_v1_flow_proto_rawDesc = "" +
 	"\rKubernetesRef\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"\xea\x02\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\x91\x03\n" +
 	"\tFlowEvent\x125\n" +
 	"\n" +
 	"event_kind\x18\x01 \x01(\x0e2\x16.flow.v1.FlowEventKindR\teventKind\x12-\n" +
@@ -726,11 +834,12 @@ const file_flow_v1_flow_proto_rawDesc = "" +
 	"\x03dst\x18\x06 \x01(\v2\x11.flow.v1.EndpointR\x03dst\x12\x1d\n" +
 	"\n" +
 	"bytes_sent\x18\a \x01(\x04R\tbytesSent\x12%\n" +
-	"\x0ebytes_received\x18\b \x01(\x04R\rbytesReceived\"t\n" +
+	"\x0ebytes_received\x18\b \x01(\x04R\rbytesReceived\x12%\n" +
+	"\x03dns\x18\t \x01(\v2\x13.flow.v1.DnsDetailsR\x03dns\"t\n" +
 	"\x0eFlowEventBatch\x12\x1b\n" +
 	"\tnode_name\x18\x01 \x01(\tR\bnodeName\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12*\n" +
-	"\x06events\x18\x03 \x03(\v2\x12.flow.v1.FlowEventR\x06events\"\x96\x04\n" +
+	"\x06events\x18\x03 \x03(\v2\x12.flow.v1.FlowEventR\x06events\"\xbd\x04\n" +
 	"\x11EnrichedFlowEvent\x12\x1b\n" +
 	"\tnode_name\x18\x01 \x01(\tR\bnodeName\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x125\n" +
@@ -746,7 +855,8 @@ const file_flow_v1_flow_proto_rawDesc = "" +
 	" \x01(\v2\x16.flow.v1.KubernetesRefR\x06dstRef\x12\x1d\n" +
 	"\n" +
 	"bytes_sent\x18\v \x01(\x04R\tbytesSent\x12%\n" +
-	"\x0ebytes_received\x18\f \x01(\x04R\rbytesReceived\"\xc2\x01\n" +
+	"\x0ebytes_received\x18\f \x01(\x04R\rbytesReceived\x12%\n" +
+	"\x03dns\x18\r \x01(\v2\x13.flow.v1.DnsDetailsR\x03dns\"\xc2\x01\n" +
 	"\x16EnrichedFlowEventBatch\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x18\n" +
 	"\acluster\x18\x02 \x01(\tR\acluster\x12\x1b\n" +
@@ -754,14 +864,17 @@ const file_flow_v1_flow_proto_rawDesc = "" +
 	"\bagent_id\x18\x04 \x01(\tR\aagentId\x122\n" +
 	"\x06events\x18\x05 \x03(\v2\x1a.flow.v1.EnrichedFlowEventR\x06events\"2\n" +
 	"\aPushAck\x12'\n" +
-	"\x0faccepted_events\x18\x01 \x01(\x03R\x0eacceptedEvents*j\n" +
+	"\x0faccepted_events\x18\x01 \x01(\x03R\x0eacceptedEvents*\xab\x01\n" +
 	"\rFlowEventKind\x12\x1f\n" +
 	"\x1bFLOW_EVENT_KIND_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17FLOW_EVENT_KIND_CONNECT\x10\x01\x12\x1b\n" +
-	"\x17FLOW_EVENT_KIND_TRAFFIC\x10\x02*6\n" +
+	"\x17FLOW_EVENT_KIND_TRAFFIC\x10\x02\x12\x1d\n" +
+	"\x19FLOW_EVENT_KIND_DNS_QUERY\x10\x03\x12 \n" +
+	"\x1cFLOW_EVENT_KIND_DNS_RESPONSE\x10\x04*H\n" +
 	"\bProtocol\x12\x18\n" +
 	"\x14PROTOCOL_UNSPECIFIED\x10\x00\x12\x10\n" +
-	"\fPROTOCOL_TCP\x10\x012\x92\x01\n" +
+	"\fPROTOCOL_TCP\x10\x01\x12\x10\n" +
+	"\fPROTOCOL_DNS\x10\x022\x92\x01\n" +
 	"\n" +
 	"FlowIngest\x129\n" +
 	"\n" +
@@ -769,78 +882,81 @@ const file_flow_v1_flow_proto_rawDesc = "" +
 	"\x12PushEnrichedEvents\x12\x1f.flow.v1.EnrichedFlowEventBatch\x1a\x10.flow.v1.PushAck(\x01BRZPgithub.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1;flowv1b\x06proto3"
 
 var (
-	file_flow_v1_flow_proto_rawDescOnce sync.Once
-	file_flow_v1_flow_proto_rawDescData []byte
+	file_api_proto_flow_v1_flow_proto_rawDescOnce sync.Once
+	file_api_proto_flow_v1_flow_proto_rawDescData []byte
 )
 
-func file_flow_v1_flow_proto_rawDescGZIP() []byte {
-	file_flow_v1_flow_proto_rawDescOnce.Do(func() {
-		file_flow_v1_flow_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_flow_v1_flow_proto_rawDesc), len(file_flow_v1_flow_proto_rawDesc)))
+func file_api_proto_flow_v1_flow_proto_rawDescGZIP() []byte {
+	file_api_proto_flow_v1_flow_proto_rawDescOnce.Do(func() {
+		file_api_proto_flow_v1_flow_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_flow_v1_flow_proto_rawDesc), len(file_api_proto_flow_v1_flow_proto_rawDesc)))
 	})
-	return file_flow_v1_flow_proto_rawDescData
+	return file_api_proto_flow_v1_flow_proto_rawDescData
 }
 
-var file_flow_v1_flow_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_flow_v1_flow_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_flow_v1_flow_proto_goTypes = []any{
+var file_api_proto_flow_v1_flow_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_api_proto_flow_v1_flow_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_proto_flow_v1_flow_proto_goTypes = []any{
 	(FlowEventKind)(0),             // 0: flow.v1.FlowEventKind
 	(Protocol)(0),                  // 1: flow.v1.Protocol
-	(*Endpoint)(nil),               // 2: flow.v1.Endpoint
-	(*WorkloadRef)(nil),            // 3: flow.v1.WorkloadRef
-	(*KubernetesRef)(nil),          // 4: flow.v1.KubernetesRef
-	(*FlowEvent)(nil),              // 5: flow.v1.FlowEvent
-	(*FlowEventBatch)(nil),         // 6: flow.v1.FlowEventBatch
-	(*EnrichedFlowEvent)(nil),      // 7: flow.v1.EnrichedFlowEvent
-	(*EnrichedFlowEventBatch)(nil), // 8: flow.v1.EnrichedFlowEventBatch
-	(*PushAck)(nil),                // 9: flow.v1.PushAck
+	(*DnsDetails)(nil),             // 2: flow.v1.DnsDetails
+	(*Endpoint)(nil),               // 3: flow.v1.Endpoint
+	(*WorkloadRef)(nil),            // 4: flow.v1.WorkloadRef
+	(*KubernetesRef)(nil),          // 5: flow.v1.KubernetesRef
+	(*FlowEvent)(nil),              // 6: flow.v1.FlowEvent
+	(*FlowEventBatch)(nil),         // 7: flow.v1.FlowEventBatch
+	(*EnrichedFlowEvent)(nil),      // 8: flow.v1.EnrichedFlowEvent
+	(*EnrichedFlowEventBatch)(nil), // 9: flow.v1.EnrichedFlowEventBatch
+	(*PushAck)(nil),                // 10: flow.v1.PushAck
 }
-var file_flow_v1_flow_proto_depIdxs = []int32{
+var file_api_proto_flow_v1_flow_proto_depIdxs = []int32{
 	0,  // 0: flow.v1.FlowEvent.event_kind:type_name -> flow.v1.FlowEventKind
 	1,  // 1: flow.v1.FlowEvent.protocol:type_name -> flow.v1.Protocol
-	3,  // 2: flow.v1.FlowEvent.src:type_name -> flow.v1.WorkloadRef
-	2,  // 3: flow.v1.FlowEvent.src_endpoint:type_name -> flow.v1.Endpoint
-	2,  // 4: flow.v1.FlowEvent.dst:type_name -> flow.v1.Endpoint
-	5,  // 5: flow.v1.FlowEventBatch.events:type_name -> flow.v1.FlowEvent
-	0,  // 6: flow.v1.EnrichedFlowEvent.event_kind:type_name -> flow.v1.FlowEventKind
-	1,  // 7: flow.v1.EnrichedFlowEvent.protocol:type_name -> flow.v1.Protocol
-	3,  // 8: flow.v1.EnrichedFlowEvent.src:type_name -> flow.v1.WorkloadRef
-	4,  // 9: flow.v1.EnrichedFlowEvent.src_workload:type_name -> flow.v1.KubernetesRef
-	2,  // 10: flow.v1.EnrichedFlowEvent.src_endpoint:type_name -> flow.v1.Endpoint
-	2,  // 11: flow.v1.EnrichedFlowEvent.dst:type_name -> flow.v1.Endpoint
-	4,  // 12: flow.v1.EnrichedFlowEvent.dst_ref:type_name -> flow.v1.KubernetesRef
-	7,  // 13: flow.v1.EnrichedFlowEventBatch.events:type_name -> flow.v1.EnrichedFlowEvent
-	6,  // 14: flow.v1.FlowIngest.PushEvents:input_type -> flow.v1.FlowEventBatch
-	8,  // 15: flow.v1.FlowIngest.PushEnrichedEvents:input_type -> flow.v1.EnrichedFlowEventBatch
-	9,  // 16: flow.v1.FlowIngest.PushEvents:output_type -> flow.v1.PushAck
-	9,  // 17: flow.v1.FlowIngest.PushEnrichedEvents:output_type -> flow.v1.PushAck
-	16, // [16:18] is the sub-list for method output_type
-	14, // [14:16] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	4,  // 2: flow.v1.FlowEvent.src:type_name -> flow.v1.WorkloadRef
+	3,  // 3: flow.v1.FlowEvent.src_endpoint:type_name -> flow.v1.Endpoint
+	3,  // 4: flow.v1.FlowEvent.dst:type_name -> flow.v1.Endpoint
+	2,  // 5: flow.v1.FlowEvent.dns:type_name -> flow.v1.DnsDetails
+	6,  // 6: flow.v1.FlowEventBatch.events:type_name -> flow.v1.FlowEvent
+	0,  // 7: flow.v1.EnrichedFlowEvent.event_kind:type_name -> flow.v1.FlowEventKind
+	1,  // 8: flow.v1.EnrichedFlowEvent.protocol:type_name -> flow.v1.Protocol
+	4,  // 9: flow.v1.EnrichedFlowEvent.src:type_name -> flow.v1.WorkloadRef
+	5,  // 10: flow.v1.EnrichedFlowEvent.src_workload:type_name -> flow.v1.KubernetesRef
+	3,  // 11: flow.v1.EnrichedFlowEvent.src_endpoint:type_name -> flow.v1.Endpoint
+	3,  // 12: flow.v1.EnrichedFlowEvent.dst:type_name -> flow.v1.Endpoint
+	5,  // 13: flow.v1.EnrichedFlowEvent.dst_ref:type_name -> flow.v1.KubernetesRef
+	2,  // 14: flow.v1.EnrichedFlowEvent.dns:type_name -> flow.v1.DnsDetails
+	8,  // 15: flow.v1.EnrichedFlowEventBatch.events:type_name -> flow.v1.EnrichedFlowEvent
+	7,  // 16: flow.v1.FlowIngest.PushEvents:input_type -> flow.v1.FlowEventBatch
+	9,  // 17: flow.v1.FlowIngest.PushEnrichedEvents:input_type -> flow.v1.EnrichedFlowEventBatch
+	10, // 18: flow.v1.FlowIngest.PushEvents:output_type -> flow.v1.PushAck
+	10, // 19: flow.v1.FlowIngest.PushEnrichedEvents:output_type -> flow.v1.PushAck
+	18, // [18:20] is the sub-list for method output_type
+	16, // [16:18] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
-func init() { file_flow_v1_flow_proto_init() }
-func file_flow_v1_flow_proto_init() {
-	if File_flow_v1_flow_proto != nil {
+func init() { file_api_proto_flow_v1_flow_proto_init() }
+func file_api_proto_flow_v1_flow_proto_init() {
+	if File_api_proto_flow_v1_flow_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_flow_v1_flow_proto_rawDesc), len(file_flow_v1_flow_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_flow_v1_flow_proto_rawDesc), len(file_api_proto_flow_v1_flow_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_flow_v1_flow_proto_goTypes,
-		DependencyIndexes: file_flow_v1_flow_proto_depIdxs,
-		EnumInfos:         file_flow_v1_flow_proto_enumTypes,
-		MessageInfos:      file_flow_v1_flow_proto_msgTypes,
+		GoTypes:           file_api_proto_flow_v1_flow_proto_goTypes,
+		DependencyIndexes: file_api_proto_flow_v1_flow_proto_depIdxs,
+		EnumInfos:         file_api_proto_flow_v1_flow_proto_enumTypes,
+		MessageInfos:      file_api_proto_flow_v1_flow_proto_msgTypes,
 	}.Build()
-	File_flow_v1_flow_proto = out.File
-	file_flow_v1_flow_proto_goTypes = nil
-	file_flow_v1_flow_proto_depIdxs = nil
+	File_api_proto_flow_v1_flow_proto = out.File
+	file_api_proto_flow_v1_flow_proto_goTypes = nil
+	file_api_proto_flow_v1_flow_proto_depIdxs = nil
 }
