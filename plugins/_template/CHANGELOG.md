@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.1.26
-* Bump libs
+* Bump dependencies
 
 ## 0.1.25
 * Pin runtime image to Alpine 3.24.0.
