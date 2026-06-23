@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.12
+* Bump dependencies
+
 ## 2.3.11
 * Bump indirect libraries dependencies
 
