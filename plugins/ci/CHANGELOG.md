@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.24
+* Bump dependencies
+
 ## 6.2.23
 * Bump dependencies
 
