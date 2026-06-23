@@ -5,9 +5,11 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -22,6 +24,8 @@ func main() {
 	traceDNSImage := flag.String("trace-dns-image", envOr("TRACE_DNS_IMAGE", ""), "trace_dns gadget OCI image")
 	nodeName := flag.String("node-name", envOr("NODE_NAME", os.Getenv("HOSTNAME")), "Kubernetes node name")
 	agentID := flag.String("agent-id", envOr("AGENT_ID", os.Getenv("HOSTNAME")), "unique agent identifier")
+	batchSize := flag.Int("batch-size", parseIntEnv("BATCH_SIZE", 1_000), "number of events to batch before flushing")
+	flushInterval := flag.Duration("flush-interval", parseDurationEnv("FLUSH_INTERVAL", 15*time.Second), "interval to flush events")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -30,8 +34,8 @@ func main() {
 		CollectorAddr: *collectorAddr,
 		NodeName:      *nodeName,
 		AgentID:       *agentID,
-		BatchSize:     100,
-		FlushInterval: 2 * time.Second,
+		BatchSize:     *batchSize,
+		FlushInterval: *flushInterval,
 	}, log)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -76,6 +80,28 @@ func main() {
 func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func parseIntEnv(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		val, err := strconv.Atoi(v)
+		if err != nil {
+			panic(fmt.Errorf("invalid %s: %v", key, err))
+		}
+		return val
+	}
+	return fallback
+}
+
+func parseDurationEnv(key string, fallback time.Duration) time.Duration {
+	if v := os.Getenv(key); v != "" {
+		val, err := time.ParseDuration(v)
+		if err != nil {
+			panic(fmt.Errorf("invalid %s: %v", key, err))
+		}
+		return val
 	}
 	return fallback
 }
