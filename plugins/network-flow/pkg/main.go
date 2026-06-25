@@ -27,17 +27,21 @@ func main() {
 	batchSize := flag.Int("batch-size", parseIntEnv("BATCH_SIZE", 1_000), "number of events to batch before flushing")
 	maxPendingEvents := flag.Int("max-pending-events", parseIntEnv("MAX_PENDING_EVENTS", 50_000), "maximum pending events before drop-oldest retention")
 	flushInterval := flag.Duration("flush-interval", parseDurationEnv("FLUSH_INTERVAL", 15*time.Second), "interval to flush events")
+	reconnectBackoffMin := flag.Duration("reconnect-backoff-min", parseDurationEnv("RECONNECT_BACKOFF_MIN", time.Second), "minimum gRPC reconnect backoff")
+	reconnectBackoffMax := flag.Duration("reconnect-backoff-max", parseDurationEnv("RECONNECT_BACKOFF_MAX", 30*time.Second), "maximum gRPC reconnect backoff")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	client := agent.NewClient(agent.ClientConfig{
-		CollectorAddr:    *collectorAddr,
-		NodeName:         *nodeName,
-		AgentID:          *agentID,
-		BatchSize:        *batchSize,
-		MaxPendingEvents: *maxPendingEvents,
-		FlushInterval:    *flushInterval,
+		CollectorAddr:       *collectorAddr,
+		NodeName:            *nodeName,
+		AgentID:             *agentID,
+		BatchSize:           *batchSize,
+		MaxPendingEvents:    *maxPendingEvents,
+		FlushInterval:       *flushInterval,
+		ReconnectBackoffMin: *reconnectBackoffMin,
+		ReconnectBackoffMax: *reconnectBackoffMax,
 	}, log)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

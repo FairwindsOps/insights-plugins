@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
+	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 )
 
 type Config struct {
@@ -41,10 +41,10 @@ type Client struct {
 func NewClient(cfg Config, st *store.Store, log *slog.Logger) *Client {
 	cfg.InsightsAddr = normalizeGRPCAddr(cfg.InsightsAddr)
 	if cfg.BatchSize <= 0 {
-		cfg.BatchSize = 100
+		cfg.BatchSize = 1000
 	}
 	if cfg.FlushInterval <= 0 {
-		cfg.FlushInterval = 2 * time.Second
+		cfg.FlushInterval = 15 * time.Second
 	}
 	if cfg.ReconnectBackoffMin <= 0 {
 		cfg.ReconnectBackoffMin = time.Second
@@ -183,7 +183,7 @@ func (c *Client) sendPending(stream networkflowv1.NetworkFlowIngest_PushEnriched
 			return err
 		}
 		c.store.AdvanceSendCursor(len(events))
-		c.log.Info("upstream batch sent", "events", len(events), "node", nodeName, "agent", agentID)
+		c.log.Debug("upstream batch sent", "events", len(events), "node", nodeName, "agent", agentID)
 	}
 }
 

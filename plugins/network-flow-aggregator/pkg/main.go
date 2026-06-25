@@ -33,6 +33,10 @@ func main() {
 	organization := flag.String("organization", envOr("ORGANIZATION", ""), "Insights organization slug")
 	cluster := flag.String("cluster", envOr("CLUSTER", ""), "Insights cluster name")
 	authToken := flag.String("auth-token", envOr("AUTH_TOKEN", ""), "Insights cluster auth token")
+	upstreamBatchSize := flag.Int("upstream-batch-size", parseIntEnv("UPSTREAM_BATCH_SIZE", 1_000), "Insights upstream send batch size")
+	upstreamFlushInterval := flag.Duration("upstream-flush-interval", parseDurationEnv("UPSTREAM_FLUSH_INTERVAL", 15*time.Second), "Insights upstream flush interval")
+	reconnectBackoffMin := flag.Duration("reconnect-backoff-min", parseDurationEnv("RECONNECT_BACKOFF_MIN", time.Second), "minimum gRPC reconnect backoff")
+	reconnectBackoffMax := flag.Duration("reconnect-backoff-max", parseDurationEnv("RECONNECT_BACKOFF_MAX", 30*time.Second), "maximum gRPC reconnect backoff")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -62,10 +66,14 @@ func main() {
 			os.Exit(1)
 		}
 		upstreamClient = upstream.NewClient(upstream.Config{
-			InsightsAddr: *insightsAddr,
-			Organization: *organization,
-			Cluster:      *cluster,
-			AuthToken:    *authToken,
+			InsightsAddr:        *insightsAddr,
+			Organization:        *organization,
+			Cluster:             *cluster,
+			AuthToken:           *authToken,
+			BatchSize:           *upstreamBatchSize,
+			FlushInterval:       *upstreamFlushInterval,
+			ReconnectBackoffMin: *reconnectBackoffMin,
+			ReconnectBackoffMax: *reconnectBackoffMax,
 		}, st, log)
 		go func() {
 			if err := upstreamClient.Run(ctx); err != nil && ctx.Err() == nil {
