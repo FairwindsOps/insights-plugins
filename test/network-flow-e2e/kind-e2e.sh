@@ -15,12 +15,10 @@ DEMO_NAMESPACES="${DEMO_NAMESPACES:-insights shop payments analytics}"
 INSIGHTS_GRPC_ADDR="${INSIGHTS_GRPC_ADDR:-}"
 INSIGHTS_GRPC_PORT="${INSIGHTS_GRPC_PORT:-4318}"
 INSIGHTS_HOST="${INSIGHTS_HOST:-}"
-ORGANIZATION="${ORGANIZATION:-ci-co}"
-CLUSTER="${CLUSTER:-k8test}"
+ORGANIZATION="${ORGANIZATION:-}"
+CLUSTER="${CLUSTER:-}"
 AUTH_TOKEN="${AUTH_TOKEN:-}"
-ENABLE_INSIGHTS_UPSTREAM="${ENABLE_INSIGHTS_UPSTREAM:-0}"
 PF_PID=""
-KEEP_GOING=0
 WATCH_INTERVAL="${WATCH_INTERVAL:-3}"
 
 demo_namespace_list() {
@@ -55,34 +53,40 @@ Usage: $(basename "$0") [options] [up|down|load|deploy|deploy-agent-only|traffic
   watch    up + load + deploy + continuous traffic + stream flows until Ctrl+C
   stream   Port-forward and stream flows until Ctrl+C (cluster must already be up)
   agent-only  up + load + deploy-agent-only + continuous traffic (queue backpressure test)
-  all      up + load + deploy + traffic + verify (or watch with --keep-going)
+  all      up + load + deploy + continuous traffic + stream flows until Ctrl+C
 
-Options:
-  --keep-going, -k   With 'all': run continuous traffic and stream flows until Ctrl+C
-  --with-insights-upstream
-                     Forward enriched flows to a local Insights API (see env vars below)
   WATCH_INTERVAL     Poll interval in seconds for watch mode (default: 3)
   DEMO_NAMESPACES    Space-separated demo namespaces (default: insights shop payments analytics)
 
-Insights upstream (Insights API on your host, aggregator in kind):
-  ENABLE_INSIGHTS_UPSTREAM=1   Enable upstream forwarding
-  INSIGHTS_GRPC_ADDR           Host API gRPC address (default: host.docker.internal:4318)
-  INSIGHTS_GRPC_PORT           Host API gRPC port when addr omitted (default: 4318)
-  INSIGHTS_HOST                Hostname/IP reachable from kind pods (auto-detected when unset)
-  ORGANIZATION                 Insights organization slug (default: ci-co)
-  CLUSTER                      Insights cluster name (default: k8test)
-  AUTH_TOKEN                   Insights cluster auth token (required when upstream enabled)
+Required environment variables (Insights upstream is always enabled for deploy/all/watch):
+  AUTH_TOKEN         Insights cluster auth token
+  INSIGHTS_GRPC_ADDR Host API gRPC address (e.g. host.docker.internal:4318)
+  ORGANIZATION       Insights organization slug
+  CLUSTER            Insights cluster name
+
+Optional:
+  INSIGHTS_GRPC_PORT Host API gRPC port when addr omits port (default: 4318)
+  INSIGHTS_HOST      Hostname/IP reachable from kind pods (auto-detected when unset)
 
 Example (Insights API on host: NETWORK_FLOW_GRPC_ADDR=:4318 go run cmd/api/main.go):
-  AUTH_TOKEN=<cluster-token> ENABLE_INSIGHTS_UPSTREAM=1 ./test/network-flow-e2e/kind-e2e.sh all
+  AUTH_TOKEN=<cluster-token> \
+  INSIGHTS_GRPC_ADDR=host.docker.internal:4318 \
+  ORGANIZATION=ci-co \
+  CLUSTER=k8test \
+  ./test/network-flow-e2e/kind-e2e.sh all
 EOF
 }
 
-insights_upstream_enabled() {
-  case "${ENABLE_INSIGHTS_UPSTREAM:-}" in
-    1|true|yes|TRUE|True|YES|Yes) return 0 ;;
-  esac
-  [[ -n "$INSIGHTS_GRPC_ADDR" ]]
+require_insights_upstream_env() {
+  local missing=()
+  [[ -z "$AUTH_TOKEN" ]] && missing+=(AUTH_TOKEN)
+  [[ -z "$INSIGHTS_GRPC_ADDR" ]] && missing+=(INSIGHTS_GRPC_ADDR)
+  [[ -z "$ORGANIZATION" ]] && missing+=(ORGANIZATION)
+  [[ -z "$CLUSTER" ]] && missing+=(CLUSTER)
+  if ((${#missing[@]} > 0)); then
+    echo "required environment variable(s) not set: ${missing[*]}" >&2
+    exit 1
+  fi
 }
 
 normalize_insights_grpc_addr() {
@@ -125,15 +129,6 @@ resolve_insights_host() {
 }
 
 apply_insights_upstream() {
-  if ! insights_upstream_enabled; then
-    return 0
-  fi
-
-  if [[ -z "$AUTH_TOKEN" ]]; then
-    echo "AUTH_TOKEN is required when Insights upstream is enabled" >&2
-    exit 1
-  fi
-
   prepare_insights_upstream_config
 
   local aggregator_patch
@@ -516,13 +511,15 @@ cmd="${1:-all}"
 shift || true
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --keep-going|-k) KEEP_GOING=1 ;;
-    --with-insights-upstream) ENABLE_INSIGHTS_UPSTREAM=1 ;;
     -h|--help|help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage; exit 1 ;;
   esac
   shift
 done
+
+case "$cmd" in
+  deploy|all|watch) require_insights_upstream_env ;;
+esac
 
 case "$cmd" in
   up) kind_up ;;
@@ -550,13 +547,8 @@ case "$cmd" in
     kind_up
     kind_load
     kind_deploy
-    if [[ "$KEEP_GOING" == "1" ]]; then
-      kind_traffic_continuous
-      kind_watch
-    else
-      kind_traffic
-      kind_verify
-    fi
+    kind_traffic_continuous
+    kind_watch
     ;;
   -h|--help|help) usage ;;
   *) echo "unknown command: $cmd" >&2; usage; exit 1 ;;

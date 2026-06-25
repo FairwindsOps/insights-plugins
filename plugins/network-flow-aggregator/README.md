@@ -89,15 +89,10 @@ Retention applies to both the debug HTTP API and upstream delivery to Insights. 
 
 ## How to run it
 ```
-export CLUSTER_TOKEN=
+export AUTH_TOKEN=
+export INSIGHTS_GRPC_ADDR=host.docker.internal:4318
 export ORGANIZATION=
 export CLUSTER=
 
-AUTH_TOKEN=$CLUSTER_TOKEN \
-INSIGHTS_GRPC_ADDR=host.docker.internal:4318 \
-ORGANIZATION=$ORGANIZATION \
-CLUSTER=$CLUSTER \
-KEEP_GOING=1 \
-ENABLE_INSIGHTS_UPSTREAM=true \
 ./test/network-flow-e2e/kind-e2e.sh all
 ```
