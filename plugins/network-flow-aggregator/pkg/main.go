@@ -37,9 +37,10 @@ func main() {
 	upstreamFlushInterval := flag.Duration("upstream-flush-interval", parseDurationEnv("UPSTREAM_FLUSH_INTERVAL", 10*time.Second), "Insights upstream flush interval")
 	reconnectBackoffMin := flag.Duration("reconnect-backoff-min", parseDurationEnv("RECONNECT_BACKOFF_MIN", time.Second), "minimum gRPC reconnect backoff")
 	reconnectBackoffMax := flag.Duration("reconnect-backoff-max", parseDurationEnv("RECONNECT_BACKOFF_MAX", 30*time.Second), "maximum gRPC reconnect backoff")
+	logLevel := flag.String("log-level", envOr("LOG_LEVEL", "info"), "log level")
 	flag.Parse()
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: parseLogLevel(*logLevel)}))
 	st := store.NewStore(*maxEvents, *maxAge)
 	dnsCache := dns.NewCache(*maxAge)
 
@@ -144,4 +145,18 @@ func parseIntEnv(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func parseLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	}
+	return slog.LevelInfo
 }

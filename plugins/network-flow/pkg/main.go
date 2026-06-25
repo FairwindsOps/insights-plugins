@@ -29,9 +29,10 @@ func main() {
 	flushInterval := flag.Duration("flush-interval", parseDurationEnv("FLUSH_INTERVAL", 5*time.Second), "interval to flush events")
 	reconnectBackoffMin := flag.Duration("reconnect-backoff-min", parseDurationEnv("RECONNECT_BACKOFF_MIN", time.Second), "minimum gRPC reconnect backoff")
 	reconnectBackoffMax := flag.Duration("reconnect-backoff-max", parseDurationEnv("RECONNECT_BACKOFF_MAX", 30*time.Second), "maximum gRPC reconnect backoff")
+	logLevel := flag.String("log-level", envOr("LOG_LEVEL", "info"), "log level")
 	flag.Parse()
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: parseLogLevel(*logLevel)}))
 
 	client := agent.NewClient(agent.ClientConfig{
 		CollectorAddr:       *collectorAddr,
@@ -110,4 +111,18 @@ func parseDurationEnv(key string, fallback time.Duration) time.Duration {
 		return val
 	}
 	return fallback
+}
+
+func parseLogLevel(level string) slog.Level {
+	switch level {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	}
+	return slog.LevelInfo
 }
