@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 func TestMapFlowEventConnect(t *testing.T) {
@@ -16,15 +16,15 @@ func TestMapFlowEventConnect(t *testing.T) {
 		DstAddr:   "10.0.0.5",
 		DstPort:   443,
 		Timestamp: 123,
-		EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+		EventKind: aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
 	})
 	if event == nil {
 		t.Fatal("expected event")
 	}
-	if event.GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT {
+	if event.GetEventKind() != aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT {
 		t.Fatalf("event_kind = %v", event.GetEventKind())
 	}
-	if event.GetProtocol() != flowv1.Protocol_PROTOCOL_TCP {
+	if event.GetProtocol() != aggregv1.Protocol_PROTOCOL_TCP {
 		t.Fatalf("protocol = %v", event.GetProtocol())
 	}
 	if event.GetSrc().GetPod() != "frontend" {
@@ -49,12 +49,12 @@ func TestMapFlowEventTraffic(t *testing.T) {
 		Timestamp:     123,
 		BytesSent:     10,
 		BytesReceived: 20,
-		EventKind:     flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+		EventKind:     aggregv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
 	})
 	if event == nil {
 		t.Fatal("expected event")
 	}
-	if event.GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
+	if event.GetEventKind() != aggregv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
 		t.Fatalf("event_kind = %v", event.GetEventKind())
 	}
 	if event.GetBytesSent() != 10 || event.GetBytesReceived() != 20 {
@@ -63,10 +63,10 @@ func TestMapFlowEventTraffic(t *testing.T) {
 }
 
 func TestMapFlowEventSkipsIncomplete(t *testing.T) {
-	if MapFlowEvent(TCPFields{Pod: "x", EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT}) != nil {
+	if MapFlowEvent(TCPFields{Pod: "x", EventKind: aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT}) != nil {
 		t.Fatal("expected nil without dst")
 	}
-	if MapFlowEvent(TCPFields{DstAddr: "1.1.1.1", EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT}) != nil {
+	if MapFlowEvent(TCPFields{DstAddr: "1.1.1.1", EventKind: aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT}) != nil {
 		t.Fatal("expected nil without pod")
 	}
 }

@@ -3,7 +3,7 @@ package agent
 import (
 	"testing"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 func TestMapDnsEventQuery(t *testing.T) {
@@ -24,10 +24,10 @@ func TestMapDnsEventQuery(t *testing.T) {
 	if event == nil {
 		t.Fatal("expected event")
 	}
-	if event.GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY {
+	if event.GetEventKind() != aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY {
 		t.Fatalf("event_kind = %v", event.GetEventKind())
 	}
-	if event.GetProtocol() != flowv1.Protocol_PROTOCOL_DNS {
+	if event.GetProtocol() != aggregv1.Protocol_PROTOCOL_DNS {
 		t.Fatalf("protocol = %v", event.GetProtocol())
 	}
 	if event.GetDns().GetName() != "api.stripe.com" {
@@ -60,7 +60,7 @@ func TestMapDnsEventResponse(t *testing.T) {
 	if event == nil {
 		t.Fatal("expected event")
 	}
-	if event.GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE {
+	if event.GetEventKind() != aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE {
 		t.Fatalf("event_kind = %v", event.GetEventKind())
 	}
 	if event.GetDst().GetAddr() != "104.21.11.16" {

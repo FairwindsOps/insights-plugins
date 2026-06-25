@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package aggregator.v1;
+
+option go_package = "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1;aggregv1";
+
+enum FlowEventKind {
+  FLOW_EVENT_KIND_UNSPECIFIED = 0;
+  FLOW_EVENT_KIND_CONNECT = 1;
+  FLOW_EVENT_KIND_TRAFFIC = 2;
+  FLOW_EVENT_KIND_DNS_QUERY = 3;
+  FLOW_EVENT_KIND_DNS_RESPONSE = 4;
+}
+
+enum Protocol {
+  PROTOCOL_UNSPECIFIED = 0;
+  PROTOCOL_TCP = 1;
+  PROTOCOL_DNS = 2;
+}
+
+message DnsDetails {
+  string name = 1;
+  string qtype = 2;
+  string rcode = 3;
+  repeated string addresses = 4;
+  uint32 query_id = 5;
+}
+
+message Endpoint {
+  string addr = 1;
+  uint32 port = 2;
+}
+
+message WorkloadRef {
+  string namespace = 1;
+  string pod = 2;
+  string container = 3;
+}

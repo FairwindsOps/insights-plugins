@@ -10,7 +10,7 @@ import (
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/datasource"
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/operators"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 type GadgetConfig struct {
@@ -49,7 +49,7 @@ func (r *TraceTCPRunner) Run(ctx context.Context) error {
 			}
 			ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
 				raw := fields.extract(data)
-				raw.EventKind = flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT
+				raw.EventKind = aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT
 				event := MapFlowEvent(raw)
 				r.client.Enqueue(event)
 				return nil

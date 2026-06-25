@@ -7,7 +7,7 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/dns"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 func TestEnrichEventTCPUsesDNSCache(t *testing.T) {
@@ -16,12 +16,12 @@ func TestEnrichEventTCPUsesDNSCache(t *testing.T) {
 
 	cache.RecordResponse("default", "frontend", "example.com", "A", "Success", []string{"93.184.216.34"}, time.Now())
 
-	enrich := s.enrichEvent(&flowv1.FlowEvent{
-		EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
-		Protocol:          flowv1.Protocol_PROTOCOL_TCP,
+	enrich := s.enrichEvent(&aggregv1.FlowEvent{
+		EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+		Protocol:          aggregv1.Protocol_PROTOCOL_TCP,
 		TimestampUnixNano: time.Now().UnixNano(),
-		Src:               &flowv1.WorkloadRef{Namespace: "default", Pod: "frontend"},
-		Dst:               &flowv1.Endpoint{Addr: "93.184.216.34", Port: 443},
+		Src:               &aggregv1.WorkloadRef{Namespace: "default", Pod: "frontend"},
+		Dst:               &aggregv1.Endpoint{Addr: "93.184.216.34", Port: 443},
 	})
 	if enrich.DstKind != "ExternalHostname" || enrich.DstName != "example.com" {
 		t.Fatalf("enrichment = %+v", enrich)
@@ -32,13 +32,13 @@ func TestEnrichEventDNSResponseRecordsCache(t *testing.T) {
 	cache := dns.NewCache(time.Minute)
 	s := &Server{dnsCache: cache, log: slog.Default()}
 
-	s.enrichEvent(&flowv1.FlowEvent{
-		EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE,
-		Protocol:          flowv1.Protocol_PROTOCOL_DNS,
+	s.enrichEvent(&aggregv1.FlowEvent{
+		EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE,
+		Protocol:          aggregv1.Protocol_PROTOCOL_DNS,
 		TimestampUnixNano: time.Now().UnixNano(),
-		Src:               &flowv1.WorkloadRef{Namespace: "default", Pod: "frontend"},
-		Dst:               &flowv1.Endpoint{Addr: "93.184.216.34", Port: 443},
-		Dns: &flowv1.DnsDetails{
+		Src:               &aggregv1.WorkloadRef{Namespace: "default", Pod: "frontend"},
+		Dst:               &aggregv1.Endpoint{Addr: "93.184.216.34", Port: 443},
+		Dns: &aggregv1.DnsDetails{
 			Name:      "example.com",
 			Qtype:     "A",
 			Rcode:     "Success",
@@ -54,17 +54,17 @@ func TestEnrichEventDNSResponseRecordsCache(t *testing.T) {
 
 func TestStoreAcceptsDNSEventWithoutDstAddr(t *testing.T) {
 	st := store.NewStore(100, time.Minute)
-	accepted, _ := st.AppendBatch(&flowv1.FlowEventBatch{
+	accepted, _ := st.AppendBatch(&aggregv1.FlowEventBatch{
 		NodeName: "node-a",
 		AgentId:  "agent-a",
-		Events: []*flowv1.FlowEvent{
+		Events: []*aggregv1.FlowEvent{
 			{
-				EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY,
-				Protocol:          flowv1.Protocol_PROTOCOL_DNS,
+				EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY,
+				Protocol:          aggregv1.Protocol_PROTOCOL_DNS,
 				TimestampUnixNano: time.Now().UnixNano(),
-				Src:               &flowv1.WorkloadRef{Namespace: "default", Pod: "frontend"},
-				Dst:               &flowv1.Endpoint{Addr: "10.96.0.10", Port: 53},
-				Dns:               &flowv1.DnsDetails{Name: "example.com", Qtype: "A"},
+				Src:               &aggregv1.WorkloadRef{Namespace: "default", Pod: "frontend"},
+				Dst:               &aggregv1.Endpoint{Addr: "10.96.0.10", Port: 53},
+				Dns:               &aggregv1.DnsDetails{Name: "example.com", Qtype: "A"},
 			},
 		},
 	}, nil)

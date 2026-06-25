@@ -19,7 +19,7 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/upstream"
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 func main() {
@@ -76,7 +76,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	flowv1.RegisterFlowIngestServer(grpcServer, collector.NewServer(st, enricher, dnsCache, upstreamClient, log))
+	aggregv1.RegisterAgentIngestServer(grpcServer, collector.NewServer(st, enricher, dnsCache, upstreamClient, log))
 
 	lis, err := net.Listen("tcp", *grpcAddr)
 	if err != nil {

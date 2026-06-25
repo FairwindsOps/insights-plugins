@@ -10,14 +10,14 @@ import (
 
 	"google.golang.org/grpc"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 func TestClientUsesLongLivedStream(t *testing.T) {
 	var batches atomic.Int32
 	var events atomic.Int32
 
-	_, _, grpcServer, addr := startTestCollector(t, func(batch *flowv1.FlowEventBatch) {
+	_, _, grpcServer, addr := startTestCollector(t, func(batch *aggregv1.FlowEventBatch) {
 		batches.Add(1)
 		events.Add(int32(len(batch.GetEvents())))
 	})
@@ -46,7 +46,7 @@ func TestClientReconnectsWhenCollectorBecomesAvailable(t *testing.T) {
 	var events atomic.Int32
 
 	srv := &batchCountingServer{
-		onBatch: func(batch *flowv1.FlowEventBatch) {
+		onBatch: func(batch *aggregv1.FlowEventBatch) {
 			events.Add(int32(len(batch.GetEvents())))
 		},
 	}
@@ -70,7 +70,7 @@ func TestClientReconnectsWhenCollectorBecomesAvailable(t *testing.T) {
 	}
 
 	grpcServer := grpc.NewServer()
-	flowv1.RegisterFlowIngestServer(grpcServer, srv)
+	aggregv1.RegisterAgentIngestServer(grpcServer, srv)
 	go func() {
 		_ = grpcServer.Serve(lis)
 	}()
@@ -81,8 +81,8 @@ func TestClientReconnectsWhenCollectorBecomesAvailable(t *testing.T) {
 
 func TestRequeuePreservesOrder(t *testing.T) {
 	c := NewClient(ClientConfig{NodeName: "n", AgentID: "a"}, nil)
-	c.requeue(&flowv1.FlowEventBatch{Events: []*flowv1.FlowEvent{{Src: &flowv1.WorkloadRef{Pod: "b"}}}})
-	c.requeue(&flowv1.FlowEventBatch{Events: []*flowv1.FlowEvent{{Src: &flowv1.WorkloadRef{Pod: "a"}}}})
+	c.requeue(&aggregv1.FlowEventBatch{Events: []*aggregv1.FlowEvent{{Src: &aggregv1.WorkloadRef{Pod: "b"}}}})
+	c.requeue(&aggregv1.FlowEventBatch{Events: []*aggregv1.FlowEvent{{Src: &aggregv1.WorkloadRef{Pod: "a"}}}})
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -103,7 +103,7 @@ func newTestClient(addr string) *Client {
 	}, nil)
 }
 
-func startTestCollector(t *testing.T, onBatch func(*flowv1.FlowEventBatch)) (*batchCountingServer, net.Listener, *grpc.Server, string) {
+func startTestCollector(t *testing.T, onBatch func(*aggregv1.FlowEventBatch)) (*batchCountingServer, net.Listener, *grpc.Server, string) {
 	t.Helper()
 
 	srv := &batchCountingServer{onBatch: onBatch}
@@ -113,7 +113,7 @@ func startTestCollector(t *testing.T, onBatch func(*flowv1.FlowEventBatch)) (*ba
 	}
 
 	grpcServer := grpc.NewServer()
-	flowv1.RegisterFlowIngestServer(grpcServer, srv)
+	aggregv1.RegisterAgentIngestServer(grpcServer, srv)
 	go func() {
 		_ = grpcServer.Serve(lis)
 	}()
@@ -121,13 +121,13 @@ func startTestCollector(t *testing.T, onBatch func(*flowv1.FlowEventBatch)) (*ba
 	return srv, lis, grpcServer, lis.Addr().String()
 }
 
-func sampleEvent(pod string) *flowv1.FlowEvent {
-	return &flowv1.FlowEvent{
-		EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
-		Protocol:          flowv1.Protocol_PROTOCOL_TCP,
+func sampleEvent(pod string) *aggregv1.FlowEvent {
+	return &aggregv1.FlowEvent{
+		EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+		Protocol:          aggregv1.Protocol_PROTOCOL_TCP,
 		TimestampUnixNano: time.Now().UnixNano(),
-		Src:               &flowv1.WorkloadRef{Namespace: "default", Pod: pod},
-		Dst:               &flowv1.Endpoint{Addr: "10.0.0.1", Port: 443},
+		Src:               &aggregv1.WorkloadRef{Namespace: "default", Pod: pod},
+		Dst:               &aggregv1.Endpoint{Addr: "10.0.0.1", Port: 443},
 	}
 }
 
@@ -144,16 +144,16 @@ func waitFor(t *testing.T, timeout time.Duration, cond func() bool) {
 }
 
 type batchCountingServer struct {
-	flowv1.UnimplementedFlowIngestServer
-	onBatch func(*flowv1.FlowEventBatch)
+	aggregv1.UnimplementedAgentIngestServer
+	onBatch func(*aggregv1.FlowEventBatch)
 }
 
-func (s *batchCountingServer) PushEvents(stream flowv1.FlowIngest_PushEventsServer) error {
+func (s *batchCountingServer) PushEvents(stream aggregv1.AgentIngest_PushEventsServer) error {
 	var total int64
 	for {
 		batch, err := stream.Recv()
 		if err == io.EOF {
-			return stream.SendAndClose(&flowv1.PushAck{AcceptedEvents: total})
+			return stream.SendAndClose(&aggregv1.PushAck{AcceptedEvents: total})
 		}
 		if err != nil {
 			return err

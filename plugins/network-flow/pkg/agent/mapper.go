@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 type TCPFields struct {
@@ -19,27 +19,27 @@ type TCPFields struct {
 	Timestamp     int64
 	BytesSent     uint64
 	BytesReceived uint64
-	EventKind     flowv1.FlowEventKind
+	EventKind     aggregv1.FlowEventKind
 }
 
-func MapFlowEvent(fields TCPFields) *flowv1.FlowEvent {
+func MapFlowEvent(fields TCPFields) *aggregv1.FlowEvent {
 	if fields.Pod == "" || fields.DstAddr == "" {
 		return nil
 	}
-	return &flowv1.FlowEvent{
+	return &aggregv1.FlowEvent{
 		EventKind:         fields.EventKind,
-		Protocol:          flowv1.Protocol_PROTOCOL_TCP,
+		Protocol:          aggregv1.Protocol_PROTOCOL_TCP,
 		TimestampUnixNano: fields.Timestamp,
-		Src: &flowv1.WorkloadRef{
+		Src: &aggregv1.WorkloadRef{
 			Namespace: fields.Namespace,
 			Pod:       fields.Pod,
 			Container: fields.Container,
 		},
-		SrcEndpoint: &flowv1.Endpoint{
+		SrcEndpoint: &aggregv1.Endpoint{
 			Addr: fields.SrcAddr,
 			Port: fields.SrcPort,
 		},
-		Dst: &flowv1.Endpoint{
+		Dst: &aggregv1.Endpoint{
 			Addr: fields.DstAddr,
 			Port: fields.DstPort,
 		},

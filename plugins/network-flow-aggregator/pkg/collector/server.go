@@ -12,11 +12,11 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/upstream"
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 type Server struct {
-	flowv1.UnimplementedFlowIngestServer
+	aggregv1.UnimplementedAgentIngestServer
 	store    *store.Store
 	enricher *kube.Enricher
 	dnsCache *dns.Cache
@@ -31,12 +31,12 @@ func NewServer(st *store.Store, enricher *kube.Enricher, dnsCache *dns.Cache, up
 	return &Server{store: st, enricher: enricher, dnsCache: dnsCache, upstream: upstreamClient, log: log}
 }
 
-func (s *Server) PushEvents(stream flowv1.FlowIngest_PushEventsServer) error {
+func (s *Server) PushEvents(stream aggregv1.AgentIngest_PushEventsServer) error {
 	var total int64
 	for {
 		batch, err := stream.Recv()
 		if err == io.EOF {
-			return stream.SendAndClose(&flowv1.PushAck{AcceptedEvents: total})
+			return stream.SendAndClose(&aggregv1.PushAck{AcceptedEvents: total})
 		}
 		if err != nil {
 			return status.Errorf(codes.Internal, "recv batch: %v", err)
@@ -56,7 +56,7 @@ func (s *Server) PushEvents(stream flowv1.FlowIngest_PushEventsServer) error {
 	}
 }
 
-func (s *Server) enrichEvent(event *flowv1.FlowEvent) store.Enrichment {
+func (s *Server) enrichEvent(event *aggregv1.FlowEvent) store.Enrichment {
 	srcNs := event.GetSrc().GetNamespace()
 	srcPod := event.GetSrc().GetPod()
 
@@ -67,8 +67,8 @@ func (s *Server) enrichEvent(event *flowv1.FlowEvent) store.Enrichment {
 		src = s.enricher.ResolveSrcWorkload(srcNs, srcPod)
 	}
 
-	if event.GetProtocol() == flowv1.Protocol_PROTOCOL_DNS {
-		if event.GetEventKind() == flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE && s.dnsCache != nil {
+	if event.GetProtocol() == aggregv1.Protocol_PROTOCOL_DNS {
+		if event.GetEventKind() == aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE && s.dnsCache != nil {
 			ts := time.Unix(0, event.GetTimestampUnixNano())
 			s.dnsCache.RecordResponse(
 				srcNs,

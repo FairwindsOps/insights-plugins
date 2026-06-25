@@ -2,6 +2,29 @@
 
 Deployment plugin that ingests `FlowEventBatch` messages from `network-flow` agents, enriches each event with Kubernetes workload and service metadata, maintains an IP-to-hostname cache from DNS responses, and stores individual `EnrichedFlowEvent` records in memory.
 
+## gRPC contract (agent ↔ aggregator)
+
+This plugin owns the **agent–aggregator** protobuf contract. Source files live under `proto/aggregator/v1/`; generated Go is committed under `pkg/aggregator/v1` (`aggregv1`).
+
+| Item | Value |
+|---|---|
+| Package | `aggregator.v1` |
+| Service | `AgentIngest` |
+| RPC | `PushEvents(stream FlowEventBatch) returns (PushAck)` |
+| Consumers | `network-flow` agent (client), this collector (server) |
+
+The **aggregator–API** contract (`NetworkFlowIngest.PushEnrichedEvents`) is owned by [fairwinds-insights](https://github.com/FairwindsOps/Insights) under `api/proto/api/v1/`.
+
+### Regenerating Go from proto
+
+Requires `protoc` on your PATH (`brew install protobuf`). Plugin versions are pinned in the script.
+
+```bash
+./scripts/generate-proto.sh
+```
+
+Edit `proto/aggregator/v1/*.proto`, run the script, and commit both the `.proto` files and `pkg/aggregator/v1/*.go`.
+
 ## Running locally
 
 ```bash

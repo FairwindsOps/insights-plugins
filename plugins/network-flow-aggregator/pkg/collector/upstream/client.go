@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
 )
 
 type Config struct {
@@ -36,7 +36,7 @@ type Client struct {
 type pendingBatch struct {
 	nodeName string
 	agentID  string
-	events   []*flowv1.EnrichedFlowEvent
+	events   []*networkflowv1.EnrichedFlowEvent
 }
 
 func NewClient(cfg Config, log *slog.Logger) *Client {
@@ -63,7 +63,7 @@ func NewClient(cfg Config, log *slog.Logger) *Client {
 	}
 }
 
-func (c *Client) Enqueue(nodeName, agentID string, events []*flowv1.EnrichedFlowEvent) {
+func (c *Client) Enqueue(nodeName, agentID string, events []*networkflowv1.EnrichedFlowEvent) {
 	if len(events) == 0 {
 		return
 	}
@@ -137,7 +137,7 @@ func (c *Client) Run(ctx context.Context) error {
 	}
 }
 
-func (c *Client) runConnected(ctx context.Context, stream flowv1.FlowIngest_PushEnrichedEventsClient, ticker *time.Ticker) error {
+func (c *Client) runConnected(ctx context.Context, stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient, ticker *time.Ticker) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -154,7 +154,7 @@ func (c *Client) runConnected(ctx context.Context, stream flowv1.FlowIngest_Push
 	}
 }
 
-func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowIngest_PushEnrichedEventsClient, error) {
+func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient, error) {
 	conn, err := grpc.NewClient(
 		c.cfg.InsightsAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -166,7 +166,7 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowI
 	md := metadata.Pairs("authorization", "Bearer "+c.cfg.AuthToken)
 	streamCtx := metadata.NewOutgoingContext(ctx, md)
 
-	client := flowv1.NewFlowIngestClient(conn)
+	client := networkflowv1.NewNetworkFlowIngestClient(conn)
 	stream, err := client.PushEnrichedEvents(streamCtx)
 	if err != nil {
 		conn.Close()
@@ -175,7 +175,7 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowI
 	return conn, stream, nil
 }
 
-func (c *Client) sendPending(stream flowv1.FlowIngest_PushEnrichedEventsClient) error {
+func (c *Client) sendPending(stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient) error {
 	c.mu.Lock()
 	batches := c.pending
 	c.pending = nil
@@ -185,7 +185,7 @@ func (c *Client) sendPending(stream flowv1.FlowIngest_PushEnrichedEventsClient) 
 		if batch == nil || len(batch.events) == 0 {
 			continue
 		}
-		msg := &flowv1.EnrichedFlowEventBatch{
+		msg := &networkflowv1.EnrichedFlowEventBatch{
 			Organization: c.cfg.Organization,
 			Cluster:      c.cfg.Cluster,
 			NodeName:     batch.nodeName,
@@ -210,7 +210,7 @@ func (c *Client) requeueFront(batch *pendingBatch) {
 	c.mu.Unlock()
 }
 
-func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream flowv1.FlowIngest_PushEnrichedEventsClient) {
+func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient) {
 	if stream != nil {
 		ack, err := stream.CloseAndRecv()
 		if err != nil && err != io.EOF {

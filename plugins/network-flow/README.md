@@ -8,6 +8,8 @@ Three event kinds are emitted:
 - **TRAFFIC** — from `top_tcp` (byte delta snapshots for active connections)
 - **DNS_QUERY** / **DNS_RESPONSE** — from `trace_dns` (hostname resolution queries and responses)
 
+The agent gRPC client uses the **agent–aggregator** contract defined in `network-flow-aggregator` (`aggregator.v1.AgentIngest`). See that plugin's README for proto layout and codegen.
+
 ## Running locally
 
 Build binaries (linux only for the agent and entrypoint):

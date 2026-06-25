@@ -11,7 +11,7 @@ import (
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/datasource"
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/operators"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 const defaultTopTCPImage = "ghcr.io/inspektor-gadget/gadget/top_tcp:v0.52.0"
@@ -72,7 +72,7 @@ func (r *TopTCPRunner) Run(ctx context.Context) error {
 	}, nil)
 }
 
-func (r *TopTCPRunner) mapTrafficDelta(delta ByteDelta) *flowv1.FlowEvent {
+func (r *TopTCPRunner) mapTrafficDelta(delta ByteDelta) *aggregv1.FlowEvent {
 	fields := delta.Fields
 	if fields.Pod == "" || fields.DstAddr == "" {
 		return nil
@@ -98,7 +98,7 @@ func (r *TopTCPRunner) mapTrafficDelta(delta ByteDelta) *flowv1.FlowEvent {
 		Timestamp:     ts,
 		BytesSent:     delta.Sent,
 		BytesReceived: delta.Received,
-		EventKind:     flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+		EventKind:     aggregv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
 	})
 }
 

@@ -4,22 +4,23 @@ import (
 	"testing"
 	"time"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
+	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
 )
 
 func TestAppendBatchDoesNotMerge(t *testing.T) {
 	st := NewStore(1000, time.Hour)
 	now := time.Now().UnixNano()
-	batch := &flowv1.FlowEventBatch{
+	batch := &aggregv1.FlowEventBatch{
 		NodeName: "node-a",
 		AgentId:  "agent-a",
-		Events: []*flowv1.FlowEvent{
+		Events: []*aggregv1.FlowEvent{
 			sampleEvent(now, 0, 0),
 			sampleEvent(now+1, 0, 0),
 		},
 	}
 
-	enrich := func(_ *flowv1.FlowEvent) Enrichment {
+	enrich := func(_ *aggregv1.FlowEvent) Enrichment {
 		return Enrichment{
 			SrcNamespace:    "default",
 			SrcWorkloadKind: "Deployment",
@@ -38,8 +39,8 @@ func TestAppendBatchDoesNotMerge(t *testing.T) {
 func TestAppendBatchPreservesBytes(t *testing.T) {
 	st := NewStore(1000, time.Hour)
 	now := time.Now().UnixNano()
-	batch := &flowv1.FlowEventBatch{
-		Events: []*flowv1.FlowEvent{
+	batch := &aggregv1.FlowEventBatch{
+		Events: []*aggregv1.FlowEvent{
 			sampleEvent(now, 100, 200),
 			sampleEvent(now+1, 50, 60),
 		},
@@ -59,19 +60,19 @@ func TestAppendBatchPreservesBytes(t *testing.T) {
 
 func TestAppendBatchEnrichment(t *testing.T) {
 	st := NewStore(1000, time.Hour)
-	batch := &flowv1.FlowEventBatch{
-		Events: []*flowv1.FlowEvent{
+	batch := &aggregv1.FlowEventBatch{
+		Events: []*aggregv1.FlowEvent{
 			{
-				EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
-				Protocol:          flowv1.Protocol_PROTOCOL_TCP,
+				EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+				Protocol:          aggregv1.Protocol_PROTOCOL_TCP,
 				TimestampUnixNano: time.Now().UnixNano(),
-				Src:               &flowv1.WorkloadRef{Namespace: "prod", Pod: "payments-abc"},
-				Dst:               &flowv1.Endpoint{Addr: "10.96.0.10", Port: 5432},
+				Src:               &aggregv1.WorkloadRef{Namespace: "prod", Pod: "payments-abc"},
+				Dst:               &aggregv1.Endpoint{Addr: "10.96.0.10", Port: 5432},
 			},
 		},
 	}
 
-	enrich := func(_ *flowv1.FlowEvent) Enrichment {
+	enrich := func(_ *aggregv1.FlowEvent) Enrichment {
 		return Enrichment{
 			SrcNamespace:    "prod",
 			SrcWorkloadKind: "Deployment",
@@ -97,8 +98,8 @@ func TestAppendBatchEnrichment(t *testing.T) {
 func TestStoreEnforcesMaxEvents(t *testing.T) {
 	st := NewStore(2, time.Hour)
 	now := time.Now().UnixNano()
-	batch := &flowv1.FlowEventBatch{
-		Events: []*flowv1.FlowEvent{
+	batch := &aggregv1.FlowEventBatch{
+		Events: []*aggregv1.FlowEvent{
 			sampleEvent(now, 0, 0),
 			sampleEvent(now+1, 0, 0),
 			sampleEvent(now+2, 0, 0),
@@ -117,30 +118,30 @@ func TestStoreEnforcesMaxEvents(t *testing.T) {
 func TestListEventsFilters(t *testing.T) {
 	st := NewStore(1000, time.Hour)
 	now := time.Now().UnixNano()
-	st.AppendBatch(&flowv1.FlowEventBatch{
-		Events: []*flowv1.FlowEvent{
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		Events: []*aggregv1.FlowEvent{
 			{
-				EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
+				EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT,
 				TimestampUnixNano: now,
-				Src:               &flowv1.WorkloadRef{Namespace: "insights", Pod: "a"},
-				Dst:               &flowv1.Endpoint{Addr: "10.0.0.1", Port: 80},
+				Src:               &aggregv1.WorkloadRef{Namespace: "insights", Pod: "a"},
+				Dst:               &aggregv1.Endpoint{Addr: "10.0.0.1", Port: 80},
 			},
 			{
-				EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+				EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
 				TimestampUnixNano: now + int64(time.Second),
-				Src:               &flowv1.WorkloadRef{Namespace: "kube-system", Pod: "b"},
-				Dst:               &flowv1.Endpoint{Addr: "10.0.0.2", Port: 443},
+				Src:               &aggregv1.WorkloadRef{Namespace: "kube-system", Pod: "b"},
+				Dst:               &aggregv1.Endpoint{Addr: "10.0.0.2", Port: 443},
 				BytesSent:         10,
 			},
 		},
-	}, func(event *flowv1.FlowEvent) Enrichment {
-		if event.GetEventKind() == flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT {
+	}, func(event *aggregv1.FlowEvent) Enrichment {
+		if event.GetEventKind() == aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT {
 			return Enrichment{SrcNamespace: "insights", SrcWorkloadKind: "Job", SrcWorkloadName: "demo-traffic", DstNamespace: "insights", DstKind: "Service", DstName: "demo-server"}
 		}
 		return Enrichment{SrcNamespace: "kube-system", SrcWorkloadKind: "Pod", SrcWorkloadName: "b"}
 	})
 
-	connectEvents := st.ListEvents(ListOpts{EventKind: flowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT})
+	connectEvents := st.ListEvents(ListOpts{EventKind: networkflowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT})
 	if len(connectEvents) != 1 {
 		t.Fatalf("connect events = %d", len(connectEvents))
 	}
@@ -149,18 +150,18 @@ func TestListEventsFilters(t *testing.T) {
 	}
 
 	sinceEvents := st.ListEvents(ListOpts{Since: now + int64(time.Millisecond)})
-	if len(sinceEvents) != 1 || sinceEvents[0].GetEventKind() != flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
+	if len(sinceEvents) != 1 || sinceEvents[0].GetEventKind() != networkflowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
 		t.Fatalf("since filter = %+v", sinceEvents)
 	}
 }
 
-func sampleEvent(ts int64, sent, received uint64) *flowv1.FlowEvent {
-	return &flowv1.FlowEvent{
-		EventKind:         flowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
-		Protocol:          flowv1.Protocol_PROTOCOL_TCP,
+func sampleEvent(ts int64, sent, received uint64) *aggregv1.FlowEvent {
+	return &aggregv1.FlowEvent{
+		EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+		Protocol:          aggregv1.Protocol_PROTOCOL_TCP,
 		TimestampUnixNano: ts,
-		Src:               &flowv1.WorkloadRef{Namespace: "default", Pod: "a"},
-		Dst:               &flowv1.Endpoint{Addr: "10.0.0.1", Port: 80},
+		Src:               &aggregv1.WorkloadRef{Namespace: "default", Pod: "a"},
+		Dst:               &aggregv1.Endpoint{Addr: "10.0.0.1", Port: 80},
 		BytesSent:         sent,
 		BytesReceived:     received,
 	}

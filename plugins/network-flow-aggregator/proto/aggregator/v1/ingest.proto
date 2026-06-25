@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package aggregator.v1;
+
+import "aggregator/v1/types.proto";
+
+option go_package = "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1;aggregv1";
+
+message FlowEvent {
+  FlowEventKind event_kind = 1;
+  Protocol protocol = 2;
+  int64 timestamp_unix_nano = 3;
+  WorkloadRef src = 4;
+  Endpoint src_endpoint = 5;
+  Endpoint dst = 6;
+  uint64 bytes_sent = 7;
+  uint64 bytes_received = 8;
+  DnsDetails dns = 9;
+}
+
+message FlowEventBatch {
+  string node_name = 1;
+  string agent_id = 2;
+  repeated FlowEvent events = 3;
+}
+
+message PushAck {
+  int64 accepted_events = 1;
+}
+
+service AgentIngest {
+  rpc PushEvents(stream FlowEventBatch) returns (PushAck);
+}

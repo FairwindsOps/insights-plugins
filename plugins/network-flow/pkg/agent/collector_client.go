@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 type ClientConfig struct {
@@ -27,7 +27,7 @@ type Client struct {
 	cfg     ClientConfig
 	log     *slog.Logger
 	mu      sync.Mutex
-	events  []*flowv1.FlowEvent
+	events  []*aggregv1.FlowEvent
 	flushCh chan struct{}
 }
 
@@ -54,7 +54,7 @@ func NewClient(cfg ClientConfig, log *slog.Logger) *Client {
 	}
 }
 
-func (c *Client) Enqueue(event *flowv1.FlowEvent) {
+func (c *Client) Enqueue(event *aggregv1.FlowEvent) {
 	if event == nil {
 		return
 	}
@@ -131,7 +131,7 @@ func (c *Client) Run(ctx context.Context) error {
 	}
 }
 
-func (c *Client) runConnected(ctx context.Context, stream flowv1.FlowIngest_PushEventsClient, ticker *time.Ticker) error {
+func (c *Client) runConnected(ctx context.Context, stream aggregv1.AgentIngest_PushEventsClient, ticker *time.Ticker) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -148,7 +148,7 @@ func (c *Client) runConnected(ctx context.Context, stream flowv1.FlowIngest_Push
 	}
 }
 
-func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowIngest_PushEventsClient, error) {
+func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, aggregv1.AgentIngest_PushEventsClient, error) {
 	conn, err := grpc.NewClient(
 		c.cfg.CollectorAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -157,7 +157,7 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowI
 		return nil, nil, err
 	}
 
-	client := flowv1.NewFlowIngestClient(conn)
+	client := aggregv1.NewAgentIngestClient(conn)
 	stream, err := client.PushEvents(ctx)
 	if err != nil {
 		conn.Close()
@@ -166,11 +166,11 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, flowv1.FlowI
 	return conn, stream, nil
 }
 
-func (c *Client) drainLocked() *flowv1.FlowEventBatch {
+func (c *Client) drainLocked() *aggregv1.FlowEventBatch {
 	if len(c.events) == 0 {
 		return nil
 	}
-	batch := &flowv1.FlowEventBatch{
+	batch := &aggregv1.FlowEventBatch{
 		NodeName: c.cfg.NodeName,
 		AgentId:  c.cfg.AgentID,
 		Events:   c.events,
@@ -179,7 +179,7 @@ func (c *Client) drainLocked() *flowv1.FlowEventBatch {
 	return batch
 }
 
-func (c *Client) sendPending(stream flowv1.FlowIngest_PushEventsClient) error {
+func (c *Client) sendPending(stream aggregv1.AgentIngest_PushEventsClient) error {
 	c.mu.Lock()
 	batch := c.drainLocked()
 	c.mu.Unlock()
@@ -197,7 +197,7 @@ func (c *Client) sendPending(stream flowv1.FlowIngest_PushEventsClient) error {
 	return nil
 }
 
-func (c *Client) requeue(batch *flowv1.FlowEventBatch) {
+func (c *Client) requeue(batch *aggregv1.FlowEventBatch) {
 	if batch == nil || len(batch.GetEvents()) == 0 {
 		return
 	}
@@ -206,7 +206,7 @@ func (c *Client) requeue(batch *flowv1.FlowEventBatch) {
 	c.mu.Unlock()
 }
 
-func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream flowv1.FlowIngest_PushEventsClient) {
+func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream aggregv1.AgentIngest_PushEventsClient) {
 	if stream != nil {
 		ack, err := stream.CloseAndRecv()
 		if err != nil && err != io.EOF {

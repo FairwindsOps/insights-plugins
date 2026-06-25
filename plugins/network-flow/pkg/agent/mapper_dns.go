@@ -3,7 +3,7 @@ package agent
 import (
 	"strings"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 type DNSFields struct {
@@ -23,41 +23,41 @@ type DNSFields struct {
 	QueryID   uint32
 }
 
-func MapDnsEvent(fields DNSFields) *flowv1.FlowEvent {
+func MapDnsEvent(fields DNSFields) *aggregv1.FlowEvent {
 	if fields.Pod == "" || fields.Name == "" {
 		return nil
 	}
 
-	kind := flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY
+	kind := aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY
 	if fields.QR == "R" {
-		kind = flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE
+		kind = aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE
 	}
 
 	addresses := parseAddresses(fields.Addresses)
 	dstAddr := fields.DstAddr
 	dstPort := fields.DstPort
-	if kind == flowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE && len(addresses) > 0 {
+	if kind == aggregv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE && len(addresses) > 0 {
 		dstAddr = addresses[0]
 	}
 
-	return &flowv1.FlowEvent{
+	return &aggregv1.FlowEvent{
 		EventKind:         kind,
-		Protocol:          flowv1.Protocol_PROTOCOL_DNS,
+		Protocol:          aggregv1.Protocol_PROTOCOL_DNS,
 		TimestampUnixNano: fields.Timestamp,
-		Src: &flowv1.WorkloadRef{
+		Src: &aggregv1.WorkloadRef{
 			Namespace: fields.Namespace,
 			Pod:       fields.Pod,
 			Container: fields.Container,
 		},
-		SrcEndpoint: &flowv1.Endpoint{
+		SrcEndpoint: &aggregv1.Endpoint{
 			Addr: fields.SrcAddr,
 			Port: fields.SrcPort,
 		},
-		Dst: &flowv1.Endpoint{
+		Dst: &aggregv1.Endpoint{
 			Addr: dstAddr,
 			Port: dstPort,
 		},
-		Dns: &flowv1.DnsDetails{
+		Dns: &aggregv1.DnsDetails{
 			Name:      normalizeHostname(fields.Name),
 			Qtype:     fields.QType,
 			Rcode:     fields.RCode,

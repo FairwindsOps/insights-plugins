@@ -4,7 +4,8 @@ import (
 	"sync"
 	"time"
 
-	flowv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/flow/v1"
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
+	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
 )
 
 type Enrichment struct {
@@ -17,18 +18,18 @@ type Enrichment struct {
 }
 
 type ListOpts struct {
-	Since            int64
-	Limit            int
-	Offset           int
-	Namespace        string
-	EventKind        flowv1.FlowEventKind
-	SrcWorkloadKind  string
-	DstKind          string
+	Since           int64
+	Limit           int
+	Offset          int
+	Namespace       string
+	EventKind       networkflowv1.FlowEventKind
+	SrcWorkloadKind string
+	DstKind         string
 }
 
 type Store struct {
 	mu        sync.RWMutex
-	events    []*flowv1.EnrichedFlowEvent
+	events    []*networkflowv1.EnrichedFlowEvent
 	maxEvents int
 	maxAge    time.Duration
 }
@@ -41,7 +42,7 @@ func NewStore(maxEvents int, maxAge time.Duration) *Store {
 		maxAge = 15 * time.Minute
 	}
 	return &Store{
-		events:    make([]*flowv1.EnrichedFlowEvent, 0, 1024),
+		events:    make([]*networkflowv1.EnrichedFlowEvent, 0, 1024),
 		maxEvents: maxEvents,
 		maxAge:    maxAge,
 	}
@@ -51,7 +52,7 @@ func (s *Store) MaxAge() time.Duration {
 	return s.maxAge
 }
 
-func (s *Store) AppendBatch(batch *flowv1.FlowEventBatch, enrich func(*flowv1.FlowEvent) Enrichment) (int64, []*flowv1.EnrichedFlowEvent) {
+func (s *Store) AppendBatch(batch *aggregv1.FlowEventBatch, enrich func(*aggregv1.FlowEvent) Enrichment) (int64, []*networkflowv1.EnrichedFlowEvent) {
 	if batch == nil {
 		return 0, nil
 	}
@@ -60,7 +61,7 @@ func (s *Store) AppendBatch(batch *flowv1.FlowEventBatch, enrich func(*flowv1.Fl
 	defer s.mu.Unlock()
 
 	var accepted int64
-	enriched := make([]*flowv1.EnrichedFlowEvent, 0, len(batch.GetEvents()))
+	enriched := make([]*networkflowv1.EnrichedFlowEvent, 0, len(batch.GetEvents()))
 	for _, event := range batch.GetEvents() {
 		if event == nil || !isAcceptableEvent(event) {
 			continue
@@ -88,29 +89,29 @@ func (s *Store) AppendBatch(batch *flowv1.FlowEventBatch, enrich func(*flowv1.Fl
 	return accepted, enriched
 }
 
-func enrichedFromEvent(nodeName, agentID string, event *flowv1.FlowEvent, enrich Enrichment) *flowv1.EnrichedFlowEvent {
-	out := &flowv1.EnrichedFlowEvent{
+func enrichedFromEvent(nodeName, agentID string, event *aggregv1.FlowEvent, enrich Enrichment) *networkflowv1.EnrichedFlowEvent {
+	out := &networkflowv1.EnrichedFlowEvent{
 		NodeName:          nodeName,
 		AgentId:           agentID,
-		EventKind:         event.GetEventKind(),
-		Protocol:          event.GetProtocol(),
+		EventKind:         networkflowv1.FlowEventKind(event.GetEventKind()),
+		Protocol:          networkflowv1.Protocol(event.GetProtocol()),
 		TimestampUnixNano: event.GetTimestampUnixNano(),
-		Src:               event.GetSrc(),
-		SrcEndpoint:       event.GetSrcEndpoint(),
-		Dst:               event.GetDst(),
+		Src:               cloneWorkloadRef(event.GetSrc()),
+		SrcEndpoint:       cloneEndpoint(event.GetSrcEndpoint()),
+		Dst:               cloneEndpoint(event.GetDst()),
 		BytesSent:         event.GetBytesSent(),
 		BytesReceived:     event.GetBytesReceived(),
-		Dns:               event.GetDns(),
+		Dns:               cloneDnsDetails(event.GetDns()),
 	}
 	if enrich.SrcNamespace != "" || enrich.SrcWorkloadKind != "" || enrich.SrcWorkloadName != "" {
-		out.SrcWorkload = &flowv1.KubernetesRef{
+		out.SrcWorkload = &networkflowv1.KubernetesRef{
 			Namespace: enrich.SrcNamespace,
 			Kind:      enrich.SrcWorkloadKind,
 			Name:      enrich.SrcWorkloadName,
 		}
 	}
 	if enrich.DstKind != "" || enrich.DstName != "" {
-		out.DstRef = &flowv1.KubernetesRef{
+		out.DstRef = &networkflowv1.KubernetesRef{
 			Namespace: enrich.DstNamespace,
 			Kind:      enrich.DstKind,
 			Name:      enrich.DstName,
@@ -119,11 +120,11 @@ func enrichedFromEvent(nodeName, agentID string, event *flowv1.FlowEvent, enrich
 	return out
 }
 
-func isAcceptableEvent(event *flowv1.FlowEvent) bool {
+func isAcceptableEvent(event *aggregv1.FlowEvent) bool {
 	if event.GetSrc().GetPod() == "" {
 		return false
 	}
-	if event.GetProtocol() == flowv1.Protocol_PROTOCOL_DNS {
+	if event.GetProtocol() == aggregv1.Protocol_PROTOCOL_DNS {
 		return event.GetDns().GetName() != ""
 	}
 	return event.GetDst().GetAddr() != ""
@@ -139,7 +140,7 @@ func (s *Store) pruneLocked() {
 		start++
 	}
 	if start > 0 {
-		s.events = append([]*flowv1.EnrichedFlowEvent(nil), s.events[start:]...)
+		s.events = append([]*networkflowv1.EnrichedFlowEvent(nil), s.events[start:]...)
 	}
 }
 
@@ -148,10 +149,10 @@ func (s *Store) enforceMaxLocked() {
 	if overflow <= 0 {
 		return
 	}
-	s.events = append([]*flowv1.EnrichedFlowEvent(nil), s.events[overflow:]...)
+	s.events = append([]*networkflowv1.EnrichedFlowEvent(nil), s.events[overflow:]...)
 }
 
-func (s *Store) ListEvents(opts ListOpts) []*flowv1.EnrichedFlowEvent {
+func (s *Store) ListEvents(opts ListOpts) []*networkflowv1.EnrichedFlowEvent {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -160,7 +161,7 @@ func (s *Store) ListEvents(opts ListOpts) []*flowv1.EnrichedFlowEvent {
 		limit = len(s.events)
 	}
 
-	out := make([]*flowv1.EnrichedFlowEvent, 0, limit)
+	out := make([]*networkflowv1.EnrichedFlowEvent, 0, limit)
 	skipped := 0
 	for _, event := range s.events {
 		if event == nil {
@@ -172,7 +173,7 @@ func (s *Store) ListEvents(opts ListOpts) []*flowv1.EnrichedFlowEvent {
 		if opts.Namespace != "" && event.GetSrc().GetNamespace() != opts.Namespace && event.GetDstRef().GetNamespace() != opts.Namespace {
 			continue
 		}
-		if opts.EventKind != flowv1.FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED && event.GetEventKind() != opts.EventKind {
+		if opts.EventKind != networkflowv1.FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED && event.GetEventKind() != opts.EventKind {
 			continue
 		}
 		if opts.SrcWorkloadKind != "" && event.GetSrcWorkload().GetKind() != opts.SrcWorkloadKind {
