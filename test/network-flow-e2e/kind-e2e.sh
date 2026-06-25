@@ -10,6 +10,7 @@ KIND_CONFIG="${KIND_CONFIG:-test/network-flow-e2e/deploy/e2e/kind-config.yaml}"
 AGENT_IMAGE="${AGENT_IMAGE:-fw-network-flow:local}"
 AGGREGATOR_IMAGE="${AGGREGATOR_IMAGE:-fw-network-flow-aggregator:local}"
 DEPLOY_DIR="${DEPLOY_DIR:-test/network-flow-e2e/deploy/e2e}"
+AGENT_ONLY_DEPLOY_DIR="${AGENT_ONLY_DEPLOY_DIR:-test/network-flow-e2e/deploy/e2e/agent-only}"
 DEMO_NAMESPACES="${DEMO_NAMESPACES:-insights shop payments analytics}"
 INSIGHTS_GRPC_ADDR="${INSIGHTS_GRPC_ADDR:-}"
 INSIGHTS_GRPC_PORT="${INSIGHTS_GRPC_PORT:-4318}"
@@ -41,17 +42,19 @@ delete_demo_traffic() {
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [options] [up|down|load|deploy|traffic|traffic-continuous|verify|watch|stream|all]
+Usage: $(basename "$0") [options] [up|down|load|deploy|deploy-agent-only|traffic|traffic-continuous|verify|watch|stream|agent-only|all]
 
   up       Create kind cluster (if missing)
   down     Delete kind cluster
   load     Build and load local images into kind nodes
   deploy   Apply e2e manifests
+  deploy-agent-only  Apply agent-only overlay (no aggregator; collector blocked)
   traffic  Run demo-traffic job (one-shot)
   traffic-continuous  Run demo-traffic deployment (loops until deleted)
   verify   Check flows API for demo-traffic connect + traffic events
   watch    up + load + deploy + continuous traffic + stream flows until Ctrl+C
   stream   Port-forward and stream flows until Ctrl+C (cluster must already be up)
+  agent-only  up + load + deploy-agent-only + continuous traffic (queue backpressure test)
   all      up + load + deploy + traffic + verify (or watch with --keep-going)
 
 Options:
@@ -254,6 +257,22 @@ kind_deploy() {
   kubectl -n insights rollout status daemonset/network-flow --timeout=180s
   for_each_demo_namespace wait_demo_server
   kubectl -n insights wait --for=condition=ready pod -l app.kubernetes.io/name=network-flow-aggregator --timeout=120s
+}
+
+kind_deploy_agent_only() {
+  ensure_kubectl_context
+  kubectl -n insights delete deployment,service network-flow-aggregator --ignore-not-found
+  apply_demo_namespaces
+  apply_demo_workloads
+  kubectl apply -k "$AGENT_ONLY_DEPLOY_DIR"
+  kubectl apply -f "${DEPLOY_DIR}/demo-traffic-continuous.yaml"
+  kubectl -n insights rollout status daemonset/network-flow --timeout=180s
+  for_each_demo_namespace wait_demo_server
+  for_each_demo_namespace wait_demo_traffic_rollout
+  echo
+  echo "Agent-only mode: collector blocked at 127.0.0.1:1, MAX_PENDING_EVENTS=1000"
+  echo "  logs: kubectl -n insights logs -l app.kubernetes.io/name=network-flow -f"
+  echo "  look for: pending flow events dropped by retention"
 }
 
 kind_traffic() {
@@ -510,6 +529,7 @@ case "$cmd" in
   down) kind_down ;;
   load) kind_load ;;
   deploy) kind_deploy ;;
+  deploy-agent-only) kind_deploy_agent_only ;;
   traffic) kind_traffic ;;
   traffic-continuous) kind_traffic_continuous ;;
   verify) kind_verify ;;
@@ -520,6 +540,11 @@ case "$cmd" in
     kind_deploy
     kind_traffic_continuous
     kind_watch
+    ;;
+  agent-only)
+    kind_up
+    kind_load
+    kind_deploy_agent_only
     ;;
   all)
     kind_up
