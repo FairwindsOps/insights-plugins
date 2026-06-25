@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.10.3
+* Bump dependencies
+
 ## 2.10.2
 * Bump library k8s.io/api to v0.36.2
 * Bump library k8s.io/apimachinery to v0.36.2
