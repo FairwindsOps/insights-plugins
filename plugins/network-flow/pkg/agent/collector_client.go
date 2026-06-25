@@ -44,13 +44,13 @@ type Client struct {
 
 func NewClient(cfg ClientConfig, log *slog.Logger) *Client {
 	if cfg.BatchSize <= 0 {
-		cfg.BatchSize = 100
+		cfg.BatchSize = 5_000
 	}
 	if cfg.MaxPendingEvents <= 0 {
 		cfg.MaxPendingEvents = defaultMaxPendingEvents
 	}
 	if cfg.FlushInterval <= 0 {
-		cfg.FlushInterval = 2 * time.Second
+		cfg.FlushInterval = 5 * time.Second
 	}
 	if cfg.ReconnectBackoffMin <= 0 {
 		cfg.ReconnectBackoffMin = time.Second

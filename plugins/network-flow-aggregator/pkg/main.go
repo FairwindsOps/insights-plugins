@@ -14,12 +14,12 @@ import (
 
 	"google.golang.org/grpc"
 
+	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/dns"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/kube"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/upstream"
-	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
 func main() {
@@ -33,8 +33,8 @@ func main() {
 	organization := flag.String("organization", envOr("ORGANIZATION", ""), "Insights organization slug")
 	cluster := flag.String("cluster", envOr("CLUSTER", ""), "Insights cluster name")
 	authToken := flag.String("auth-token", envOr("AUTH_TOKEN", ""), "Insights cluster auth token")
-	upstreamBatchSize := flag.Int("upstream-batch-size", parseIntEnv("UPSTREAM_BATCH_SIZE", 1_000), "Insights upstream send batch size")
-	upstreamFlushInterval := flag.Duration("upstream-flush-interval", parseDurationEnv("UPSTREAM_FLUSH_INTERVAL", 15*time.Second), "Insights upstream flush interval")
+	upstreamBatchSize := flag.Int("upstream-batch-size", parseIntEnv("UPSTREAM_BATCH_SIZE", 10_000), "Insights upstream send batch size")
+	upstreamFlushInterval := flag.Duration("upstream-flush-interval", parseDurationEnv("UPSTREAM_FLUSH_INTERVAL", 10*time.Second), "Insights upstream flush interval")
 	reconnectBackoffMin := flag.Duration("reconnect-backoff-min", parseDurationEnv("RECONNECT_BACKOFF_MIN", time.Second), "minimum gRPC reconnect backoff")
 	reconnectBackoffMax := flag.Duration("reconnect-backoff-max", parseDurationEnv("RECONNECT_BACKOFF_MAX", 30*time.Second), "maximum gRPC reconnect backoff")
 	flag.Parse()

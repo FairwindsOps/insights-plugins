@@ -41,10 +41,10 @@ type Client struct {
 func NewClient(cfg Config, st *store.Store, log *slog.Logger) *Client {
 	cfg.InsightsAddr = normalizeGRPCAddr(cfg.InsightsAddr)
 	if cfg.BatchSize <= 0 {
-		cfg.BatchSize = 1000
+		cfg.BatchSize = 10_000
 	}
 	if cfg.FlushInterval <= 0 {
-		cfg.FlushInterval = 15 * time.Second
+		cfg.FlushInterval = 10 * time.Second
 	}
 	if cfg.ReconnectBackoffMin <= 0 {
 		cfg.ReconnectBackoffMin = time.Second
