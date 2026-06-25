@@ -66,7 +66,7 @@ func main() {
 			Organization: *organization,
 			Cluster:      *cluster,
 			AuthToken:    *authToken,
-		}, log)
+		}, st, log)
 		go func() {
 			if err := upstreamClient.Run(ctx); err != nil && ctx.Err() == nil {
 				log.Error("insights upstream client stopped", "err", err)

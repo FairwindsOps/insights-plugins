@@ -85,6 +85,8 @@ All four upstream settings are required when `INSIGHTS_GRPC_ADDR` is set.
 | `-max-events` | `MAX_EVENTS` | `100000` | Ring buffer capacity |
 | `-max-age` | `MAX_AGE` | `15m` | Drop events older than this |
 
+Retention applies to both the debug HTTP API and upstream delivery to Insights. Events evicted before they are sent upstream are not forwarded; sustained backpressure emits rate-limited warnings when unsent events are dropped.
+
 ## How to run it
 ```
 export CLUSTER_TOKEN=

@@ -42,9 +42,9 @@ func (s *Server) PushEvents(stream aggregv1.AgentIngest_PushEventsServer) error 
 			return status.Errorf(codes.Internal, "recv batch: %v", err)
 		}
 
-		accepted, enriched := s.store.AppendBatch(batch, s.enrichEvent)
-		if s.upstream != nil && len(enriched) > 0 {
-			s.upstream.Enqueue(batch.GetNodeName(), batch.GetAgentId(), enriched)
+		accepted, _ := s.store.AppendBatch(batch, s.enrichEvent)
+		if s.upstream != nil && accepted > 0 {
+			s.upstream.NotifyAppended()
 		}
 		total += accepted
 		s.log.Debug("ingested batch",

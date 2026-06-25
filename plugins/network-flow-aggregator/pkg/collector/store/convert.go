@@ -22,7 +22,7 @@ func cloneEndpoint(e *aggregv1.Endpoint) *networkflowv1.Endpoint {
 	}
 	return &networkflowv1.Endpoint{
 		Addr: e.GetAddr(),
-		Port: e.GetPort(),
+		Port: int32(e.GetPort()),
 	}
 }
 
@@ -35,6 +35,6 @@ func cloneDnsDetails(d *aggregv1.DnsDetails) *networkflowv1.DnsDetails {
 		Qtype:     d.GetQtype(),
 		Rcode:     d.GetRcode(),
 		Addresses: append([]string(nil), d.GetAddresses()...),
-		QueryId:   d.GetQueryId(),
+		QueryId:   int32(d.GetQueryId()),
 	}
 }

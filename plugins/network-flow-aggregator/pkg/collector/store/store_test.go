@@ -115,6 +115,119 @@ func TestStoreEnforcesMaxEvents(t *testing.T) {
 	}
 }
 
+func TestAdvanceSendCursor(t *testing.T) {
+	st := NewStore(100, time.Hour)
+	now := time.Now().UnixNano()
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		NodeName: "node-a",
+		AgentId:  "agent-a",
+		Events: []*aggregv1.FlowEvent{
+			sampleEvent(now, 0, 0),
+			sampleEvent(now+1, 0, 0),
+		},
+	}, nil)
+
+	if st.UnsentCount() != 2 {
+		t.Fatalf("unsent = %d", st.UnsentCount())
+	}
+	st.AdvanceSendCursor(1)
+	if st.UnsentCount() != 1 {
+		t.Fatalf("unsent after advance = %d", st.UnsentCount())
+	}
+	if st.SendCursor() != 1 {
+		t.Fatalf("cursor = %d", st.SendCursor())
+	}
+}
+
+func TestEnforceMaxDropsUnsentEvents(t *testing.T) {
+	st := NewStore(2, time.Hour)
+	now := time.Now().UnixNano()
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		NodeName: "node-a",
+		AgentId:  "agent-a",
+		Events: []*aggregv1.FlowEvent{
+			sampleEvent(now, 0, 0),
+			sampleEvent(now+1, 0, 0),
+			sampleEvent(now+2, 0, 0),
+		},
+	}, nil)
+
+	if st.UnsentCount() != 2 {
+		t.Fatalf("unsent = %d, want 2", st.UnsentCount())
+	}
+	if st.SendCursor() != 0 {
+		t.Fatalf("cursor = %d, want 0", st.SendCursor())
+	}
+	dropped, reason := st.TakeDroppedUnsent()
+	if dropped != 1 {
+		t.Fatalf("dropped unsent = %d, want 1", dropped)
+	}
+	if reason != "max_events" {
+		t.Fatalf("drop reason = %q", reason)
+	}
+}
+
+func TestPeekUnsentBatchGroupsByAgent(t *testing.T) {
+	st := NewStore(100, time.Hour)
+	now := time.Now().UnixNano()
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		NodeName: "node-a",
+		AgentId:  "agent-a",
+		Events:   []*aggregv1.FlowEvent{sampleEvent(now, 0, 0)},
+	}, nil)
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		NodeName: "node-b",
+		AgentId:  "agent-b",
+		Events:   []*aggregv1.FlowEvent{sampleEvent(now+1, 0, 0)},
+	}, nil)
+
+	node, agent, events, ok := st.PeekUnsentBatch(100)
+	if !ok || len(events) != 1 {
+		t.Fatalf("peek = ok:%v len:%d", ok, len(events))
+	}
+	if node != "node-a" || agent != "agent-a" {
+		t.Fatalf("peek node/agent = %q/%q", node, agent)
+	}
+
+	st.AdvanceSendCursor(1)
+	node, agent, events, ok = st.PeekUnsentBatch(100)
+	if !ok || len(events) != 1 {
+		t.Fatalf("second peek = ok:%v len:%d", ok, len(events))
+	}
+	if node != "node-b" || agent != "agent-b" {
+		t.Fatalf("second peek node/agent = %q/%q", node, agent)
+	}
+}
+
+func TestAgePruneDropsUnsentEvents(t *testing.T) {
+	st := NewStore(100, time.Millisecond)
+	now := time.Now().UnixNano()
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		NodeName: "node-a",
+		AgentId:  "agent-a",
+		Events:   []*aggregv1.FlowEvent{sampleEvent(now-time.Second.Nanoseconds(), 0, 0)},
+	}, nil)
+
+	time.Sleep(2 * time.Millisecond)
+
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		NodeName: "node-a",
+		AgentId:  "agent-a",
+		Events:   []*aggregv1.FlowEvent{sampleEvent(time.Now().UnixNano(), 0, 0)},
+	}, nil)
+
+	if st.UnsentCount() != 1 {
+		t.Fatalf("unsent = %d, want 1", st.UnsentCount())
+	}
+	dropped, reason := st.TakeDroppedUnsent()
+	if dropped != 1 {
+		t.Fatalf("dropped unsent = %d, want 1", dropped)
+	}
+	if reason != "max_age" {
+		t.Fatalf("drop reason = %q", reason)
+	}
+}
+
 func TestListEventsFilters(t *testing.T) {
 	st := NewStore(1000, time.Hour)
 	now := time.Now().UnixNano()

@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
+	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
 )
 
@@ -27,19 +28,17 @@ type Config struct {
 
 type Client struct {
 	cfg     Config
+	store   *store.Store
 	log     *slog.Logger
-	mu      sync.Mutex
-	pending []*pendingBatch // TODO: bound pending queue; see TODO.md
 	flushCh chan struct{}
+
+	dropLogMu            sync.Mutex
+	dropLogNext          time.Time
+	pendingDropLogCount  int64
+	pendingDropLogReason string
 }
 
-type pendingBatch struct {
-	nodeName string
-	agentID  string
-	events   []*networkflowv1.EnrichedFlowEvent
-}
-
-func NewClient(cfg Config, log *slog.Logger) *Client {
+func NewClient(cfg Config, st *store.Store, log *slog.Logger) *Client {
 	cfg.InsightsAddr = normalizeGRPCAddr(cfg.InsightsAddr)
 	if cfg.BatchSize <= 0 {
 		cfg.BatchSize = 100
@@ -58,24 +57,14 @@ func NewClient(cfg Config, log *slog.Logger) *Client {
 	}
 	return &Client{
 		cfg:     cfg,
+		store:   st,
 		log:     log,
 		flushCh: make(chan struct{}, 1),
 	}
 }
 
-func (c *Client) Enqueue(nodeName, agentID string, events []*networkflowv1.EnrichedFlowEvent) {
-	if len(events) == 0 {
-		return
-	}
-	c.mu.Lock()
-	c.pending = append(c.pending, &pendingBatch{
-		nodeName: nodeName,
-		agentID:  agentID,
-		events:   events,
-	})
-	shouldFlush := c.pendingEventCountLocked() >= c.cfg.BatchSize
-	c.mu.Unlock()
-	if shouldFlush {
+func (c *Client) NotifyAppended() {
+	if c.store.UnsentCount() >= c.cfg.BatchSize {
 		c.signalFlush()
 	}
 }
@@ -176,38 +165,56 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, networkflowv
 }
 
 func (c *Client) sendPending(stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient) error {
-	c.mu.Lock()
-	batches := c.pending
-	c.pending = nil
-	c.mu.Unlock()
+	c.logDroppedUnsent()
 
-	for _, batch := range batches {
-		if batch == nil || len(batch.events) == 0 {
-			continue
+	for {
+		nodeName, agentID, events, ok := c.store.PeekUnsentBatch(c.cfg.BatchSize)
+		if !ok {
+			return nil
 		}
 		msg := &networkflowv1.EnrichedFlowEventBatch{
 			Organization: c.cfg.Organization,
 			Cluster:      c.cfg.Cluster,
-			NodeName:     batch.nodeName,
-			AgentId:      batch.agentID,
-			Events:       batch.events,
+			NodeName:     nodeName,
+			AgentId:      agentID,
+			Events:       events,
 		}
 		if err := stream.Send(msg); err != nil {
-			c.requeueFront(batch)
 			return err
 		}
-		c.log.Info("upstream batch sent", "events", len(batch.events), "node", batch.nodeName, "agent", batch.agentID)
+		c.store.AdvanceSendCursor(len(events))
+		c.log.Info("upstream batch sent", "events", len(events), "node", nodeName, "agent", agentID)
 	}
-	return nil
 }
 
-func (c *Client) requeueFront(batch *pendingBatch) {
-	if batch == nil || len(batch.events) == 0 {
+func (c *Client) logDroppedUnsent() {
+	count, reason := c.store.TakeDroppedUnsent()
+	if count == 0 {
 		return
 	}
-	c.mu.Lock()
-	c.pending = append([]*pendingBatch{batch}, c.pending...)
-	c.mu.Unlock()
+
+	c.dropLogMu.Lock()
+	c.pendingDropLogCount += count
+	if reason != "" {
+		c.pendingDropLogReason = reason
+	}
+	now := time.Now()
+	if now.Before(c.dropLogNext) {
+		c.dropLogMu.Unlock()
+		return
+	}
+	c.dropLogNext = now.Add(time.Minute)
+	dropped := c.pendingDropLogCount
+	logReason := c.pendingDropLogReason
+	c.pendingDropLogCount = 0
+	c.pendingDropLogReason = ""
+	c.dropLogMu.Unlock()
+
+	c.log.Warn("unsent flow events dropped by retention",
+		"dropped", dropped,
+		"unsent_remaining", c.store.UnsentCount(),
+		"reason", logReason,
+	)
 }
 
 func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient) {
@@ -235,14 +242,6 @@ func (c *Client) signalFlush() {
 	case c.flushCh <- struct{}{}:
 	default:
 	}
-}
-
-func (c *Client) pendingEventCountLocked() int {
-	total := 0
-	for _, batch := range c.pending {
-		total += len(batch.events)
-	}
-	return total
 }
 
 func sleepOrDone(ctx context.Context, d time.Duration) bool {

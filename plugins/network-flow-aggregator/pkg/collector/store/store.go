@@ -28,10 +28,13 @@ type ListOpts struct {
 }
 
 type Store struct {
-	mu        sync.RWMutex
-	events    []*networkflowv1.EnrichedFlowEvent
-	maxEvents int
-	maxAge    time.Duration
+	mu             sync.RWMutex
+	events         []*networkflowv1.EnrichedFlowEvent
+	maxEvents      int
+	maxAge         time.Duration
+	sendCursor     int
+	droppedUnsent  int64
+	lastDropReason string
 }
 
 func NewStore(maxEvents int, maxAge time.Duration) *Store {
@@ -99,8 +102,8 @@ func enrichedFromEvent(nodeName, agentID string, event *aggregv1.FlowEvent, enri
 		Src:               cloneWorkloadRef(event.GetSrc()),
 		SrcEndpoint:       cloneEndpoint(event.GetSrcEndpoint()),
 		Dst:               cloneEndpoint(event.GetDst()),
-		BytesSent:         event.GetBytesSent(),
-		BytesReceived:     event.GetBytesReceived(),
+		BytesSent:         int64(event.GetBytesSent()),
+		BytesReceived:     int64(event.GetBytesReceived()),
 		Dns:               cloneDnsDetails(event.GetDns()),
 	}
 	if enrich.SrcNamespace != "" || enrich.SrcWorkloadKind != "" || enrich.SrcWorkloadName != "" {
@@ -141,6 +144,7 @@ func (s *Store) pruneLocked() {
 	}
 	if start > 0 {
 		s.events = append([]*networkflowv1.EnrichedFlowEvent(nil), s.events[start:]...)
+		s.adjustCursorOnDrop(start, "max_age")
 	}
 }
 
@@ -150,6 +154,97 @@ func (s *Store) enforceMaxLocked() {
 		return
 	}
 	s.events = append([]*networkflowv1.EnrichedFlowEvent(nil), s.events[overflow:]...)
+	s.adjustCursorOnDrop(overflow, "max_events")
+}
+
+func (s *Store) adjustCursorOnDrop(droppedFromFront int, reason string) {
+	if droppedFromFront <= 0 {
+		return
+	}
+	var lostUnsent int
+	if s.sendCursor >= droppedFromFront {
+		s.sendCursor -= droppedFromFront
+	} else {
+		lostUnsent = droppedFromFront - s.sendCursor
+		s.sendCursor = 0
+	}
+	if lostUnsent > 0 {
+		s.droppedUnsent += int64(lostUnsent)
+		s.lastDropReason = reason
+	}
+}
+
+func (s *Store) UnsentCount() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.sendCursor >= len(s.events) {
+		return 0
+	}
+	return len(s.events) - s.sendCursor
+}
+
+func (s *Store) SendCursor() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.sendCursor
+}
+
+func (s *Store) PeekUnsentBatch(maxEvents int) (nodeName, agentID string, events []*networkflowv1.EnrichedFlowEvent, ok bool) {
+	if maxEvents <= 0 {
+		maxEvents = 100
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	i := s.sendCursor
+	for i < len(s.events) && s.events[i] == nil {
+		i++
+	}
+	if i >= len(s.events) {
+		return "", "", nil, false
+	}
+
+	nodeName = s.events[i].GetNodeName()
+	agentID = s.events[i].GetAgentId()
+	events = make([]*networkflowv1.EnrichedFlowEvent, 0, maxEvents)
+
+	for ; i < len(s.events) && len(events) < maxEvents; i++ {
+		e := s.events[i]
+		if e == nil {
+			continue
+		}
+		if e.GetNodeName() != nodeName || e.GetAgentId() != agentID {
+			break
+		}
+		events = append(events, e)
+	}
+	if len(events) == 0 {
+		return "", "", nil, false
+	}
+	return nodeName, agentID, events, true
+}
+
+func (s *Store) AdvanceSendCursor(n int) {
+	if n <= 0 {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sendCursor += n
+	if s.sendCursor > len(s.events) {
+		s.sendCursor = len(s.events)
+	}
+}
+
+func (s *Store) TakeDroppedUnsent() (count int64, reason string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	count = s.droppedUnsent
+	reason = s.lastDropReason
+	s.droppedUnsent = 0
+	s.lastDropReason = ""
+	return count, reason
 }
 
 func (s *Store) ListEvents(opts ListOpts) []*networkflowv1.EnrichedFlowEvent {
