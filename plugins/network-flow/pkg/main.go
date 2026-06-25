@@ -25,17 +25,19 @@ func main() {
 	nodeName := flag.String("node-name", envOr("NODE_NAME", os.Getenv("HOSTNAME")), "Kubernetes node name")
 	agentID := flag.String("agent-id", envOr("AGENT_ID", os.Getenv("HOSTNAME")), "unique agent identifier")
 	batchSize := flag.Int("batch-size", parseIntEnv("BATCH_SIZE", 1_000), "number of events to batch before flushing")
+	maxPendingEvents := flag.Int("max-pending-events", parseIntEnv("MAX_PENDING_EVENTS", 50_000), "maximum pending events before drop-oldest retention")
 	flushInterval := flag.Duration("flush-interval", parseDurationEnv("FLUSH_INTERVAL", 15*time.Second), "interval to flush events")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	client := agent.NewClient(agent.ClientConfig{
-		CollectorAddr: *collectorAddr,
-		NodeName:      *nodeName,
-		AgentID:       *agentID,
-		BatchSize:     *batchSize,
-		FlushInterval: *flushInterval,
+		CollectorAddr:    *collectorAddr,
+		NodeName:         *nodeName,
+		AgentID:          *agentID,
+		BatchSize:        *batchSize,
+		MaxPendingEvents: *maxPendingEvents,
+		FlushInterval:    *flushInterval,
 	}, log)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

@@ -13,11 +13,14 @@ import (
 	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
+const defaultMaxPendingEvents = 50_000
+
 type ClientConfig struct {
 	CollectorAddr       string
 	NodeName            string
 	AgentID             string
 	BatchSize           int
+	MaxPendingEvents    int
 	FlushInterval       time.Duration
 	ReconnectBackoffMin time.Duration
 	ReconnectBackoffMax time.Duration
@@ -29,11 +32,22 @@ type Client struct {
 	mu      sync.Mutex
 	events  []*aggregv1.FlowEvent
 	flushCh chan struct{}
+
+	droppedPending       int64
+	sendFailures         int64
+	lastDropReason       string
+	dropLogMu            sync.Mutex
+	dropLogNext          time.Time
+	pendingDropLogCount  int64
+	pendingDropLogReason string
 }
 
 func NewClient(cfg ClientConfig, log *slog.Logger) *Client {
 	if cfg.BatchSize <= 0 {
 		cfg.BatchSize = 100
+	}
+	if cfg.MaxPendingEvents <= 0 {
+		cfg.MaxPendingEvents = defaultMaxPendingEvents
 	}
 	if cfg.FlushInterval <= 0 {
 		cfg.FlushInterval = 2 * time.Second
@@ -54,12 +68,31 @@ func NewClient(cfg ClientConfig, log *slog.Logger) *Client {
 	}
 }
 
+func (c *Client) PendingCount() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.events)
+}
+
+func (c *Client) DroppedPending() int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.droppedPending
+}
+
+func (c *Client) SendFailures() int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.sendFailures
+}
+
 func (c *Client) Enqueue(event *aggregv1.FlowEvent) {
 	if event == nil {
 		return
 	}
 	c.mu.Lock()
 	c.events = append(c.events, event)
+	c.enforceMaxLocked()
 	shouldFlush := len(c.events) >= c.cfg.BatchSize
 	c.mu.Unlock()
 	if shouldFlush {
@@ -98,12 +131,12 @@ func (c *Client) Run(ctx context.Context) error {
 			continue
 		}
 
-		c.log.Info("collector stream connected", "addr", c.cfg.CollectorAddr)
+		c.log.Info("collector stream connected", "addr", c.cfg.CollectorAddr, "pending", c.PendingCount())
 		backoff = c.cfg.ReconnectBackoffMin
 
 		if err := c.sendPending(stream); err != nil {
 			c.abortConn(conn)
-			c.log.Warn("initial send failed", "err", err)
+			c.log.Warn("initial send failed", "err", err, "send_failures", c.SendFailures())
 			if !sleepOrDone(ctx, backoff) {
 				return ctx.Err()
 			}
@@ -118,7 +151,7 @@ func (c *Client) Run(ctx context.Context) error {
 				return ctx.Err()
 			}
 			c.abortConn(conn)
-			c.log.Warn("stream disconnected", "err", err, "backoff", backoff)
+			c.log.Warn("stream disconnected", "err", err, "backoff", backoff, "send_failures", c.SendFailures())
 			if !sleepOrDone(ctx, backoff) {
 				return ctx.Err()
 			}
@@ -166,35 +199,58 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, aggregv1.Age
 	return conn, stream, nil
 }
 
-func (c *Client) drainLocked() *aggregv1.FlowEventBatch {
+func (c *Client) drainBatchLocked(max int) *aggregv1.FlowEventBatch {
 	if len(c.events) == 0 {
 		return nil
+	}
+	if max <= 0 {
+		max = c.cfg.BatchSize
+	}
+	if max > len(c.events) {
+		max = len(c.events)
 	}
 	batch := &aggregv1.FlowEventBatch{
 		NodeName: c.cfg.NodeName,
 		AgentId:  c.cfg.AgentID,
-		Events:   c.events,
+		Events:   c.events[:max],
 	}
-	c.events = nil
+	c.events = c.events[max:]
 	return batch
 }
 
+func (c *Client) enforceMaxLocked() {
+	overflow := len(c.events) - c.cfg.MaxPendingEvents
+	if overflow <= 0 {
+		return
+	}
+	c.events = c.events[overflow:]
+	c.droppedPending += int64(overflow)
+	c.lastDropReason = "max_pending_events"
+}
+
 func (c *Client) sendPending(stream aggregv1.AgentIngest_PushEventsClient) error {
-	c.mu.Lock()
-	batch := c.drainLocked()
-	c.mu.Unlock()
+	c.logDroppedPending()
 
-	if batch == nil || len(batch.GetEvents()) == 0 {
-		return nil
+	for {
+		c.mu.Lock()
+		batch := c.drainBatchLocked(c.cfg.BatchSize)
+		pending := len(c.events)
+		c.mu.Unlock()
+
+		if batch == nil || len(batch.GetEvents()) == 0 {
+			return nil
+		}
+
+		if err := stream.Send(batch); err != nil {
+			c.mu.Lock()
+			c.sendFailures++
+			c.mu.Unlock()
+			c.requeue(batch)
+			return err
+		}
+
+		c.log.Debug("batch sent", "events", len(batch.GetEvents()), "pending", pending)
 	}
-
-	if err := stream.Send(batch); err != nil {
-		c.requeue(batch)
-		return err
-	}
-
-	c.log.Debug("batch sent", "events", len(batch.GetEvents()))
-	return nil
 }
 
 func (c *Client) requeue(batch *aggregv1.FlowEventBatch) {
@@ -203,7 +259,47 @@ func (c *Client) requeue(batch *aggregv1.FlowEventBatch) {
 	}
 	c.mu.Lock()
 	c.events = append(batch.GetEvents(), c.events...)
+	c.enforceMaxLocked()
 	c.mu.Unlock()
+}
+
+func (c *Client) logDroppedPending() {
+	c.mu.Lock()
+	count := c.droppedPending
+	reason := c.lastDropReason
+	if count > 0 {
+		c.droppedPending = 0
+		c.lastDropReason = ""
+	}
+	pending := len(c.events)
+	c.mu.Unlock()
+
+	if count == 0 {
+		return
+	}
+
+	c.dropLogMu.Lock()
+	c.pendingDropLogCount += count
+	if reason != "" {
+		c.pendingDropLogReason = reason
+	}
+	now := time.Now()
+	if now.Before(c.dropLogNext) {
+		c.dropLogMu.Unlock()
+		return
+	}
+	c.dropLogNext = now.Add(time.Minute)
+	dropped := c.pendingDropLogCount
+	logReason := c.pendingDropLogReason
+	c.pendingDropLogCount = 0
+	c.pendingDropLogReason = ""
+	c.dropLogMu.Unlock()
+
+	c.log.Warn("pending flow events dropped by retention",
+		"dropped", dropped,
+		"pending_remaining", pending,
+		"reason", logReason,
+	)
 }
 
 func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream aggregv1.AgentIngest_PushEventsClient) {

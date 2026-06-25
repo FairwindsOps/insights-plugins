@@ -10,6 +10,16 @@ Three event kinds are emitted:
 
 The agent gRPC client uses the **agent–aggregator** contract defined in `network-flow-aggregator` (`aggregator.v1.AgentIngest`). See that plugin's README for proto layout and codegen.
 
+## Configuration
+
+| Flag | Env | Default | Description |
+|---|---|---|---|
+| `-batch-size` | `BATCH_SIZE` | `1000` | Events per gRPC send batch |
+| `-max-pending-events` | `MAX_PENDING_EVENTS` | `50000` | Pending queue capacity (drop-oldest) |
+| `-flush-interval` | `FLUSH_INTERVAL` | `15s` | Max time between sends |
+
+When the pending queue exceeds `-max-pending-events`, the oldest events are dropped. Sustained overload emits rate-limited `pending flow events dropped by retention` warnings. Size the cap for your node memory limit (the e2e DaemonSet uses a 512Mi limit; 50k events is a conservative default).
+
 ## Running locally
 
 Build binaries (linux only for the agent and entrypoint):

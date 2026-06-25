@@ -32,6 +32,8 @@ spec:
                   fieldPath: spec.nodeName
             - name: COLLECTOR_ADDR
               value: network-flow-aggregator.insights.svc:4317
+            - name: MAX_PENDING_EVENTS
+              value: "50000"
             - name: IG_ADDR
               value: tcp://127.0.0.1:8080
             - name: TRACE_TCP_IMAGE
