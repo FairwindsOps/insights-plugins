@@ -3,27 +3,32 @@ version: 2
 project_name: network-flow
 release:
   disable: true
+# This avoids creating .tar.gz archives.
 archives:
 - format: binary
 env:
   - CGO_ENABLED=0
   - GOTOOLCHAIN=go1.26.3
 builds:
-- id: network-flow
-  main: ./pkg/main.go
+- main: pkg/main.go
+  # goreleaser builds a matrix of the GOOS, GOArch, and GOARM listed below,
+  # minus those under `ignore`.
   goarch:
   - amd64
   - arm64
   goos:
   - linux
 - id: entrypoint
-  main: ./cmd/entrypoint/main.go
+  main: cmd/entrypoint/main.go
+  binary: entrypoint
   goarch:
   - amd64
   - arm64
   goos:
   - linux
 dockers:
+  # There are multiple images to match the `--platform` docker build flag with
+  # combinations of `GOOS`, `GOARCH`, and `GOARM`
 - image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   use: buildx
@@ -32,7 +37,6 @@ dockers:
   - entrypoint
   build_flag_templates:
   - "--platform=linux/amd64"
-  - "--build-arg=IG_VERSION=v0.52.0"
 - image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
   use: buildx
@@ -43,33 +47,39 @@ dockers:
   - entrypoint
   build_flag_templates:
   - "--platform=linux/arm64"
-  - "--build-arg=IG_VERSION=v0.52.0"
 docker_manifests:
+# Create DOcker manifests that make multiple architectures available within a tag,
+# and provide partial-version tags like 2, and 2.2.
 - name_template: quay.io/fairwinds/network-flow:{{ .FullCommit }}
   image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
 - name_template: quay.io/fairwinds/network-flow:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_feature_docker_tags}
   image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
 - name_template: quay.io/fairwinds/network-flow:latest
+  # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
 - name_template: quay.io/fairwinds/network-flow:{{ .Tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
 - name_template: quay.io/fairwinds/network-flow:{{ .Major }}
+  # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
 - name_template: quay.io/fairwinds/network-flow:{{ .Major }}.{{ .Minor }}
+  # This is replaced using `envsubst`, depending on the git branch.
   skip_push: ${skip_main_docker_tags}
   image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
