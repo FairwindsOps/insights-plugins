@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
+	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 )
 
 type Config struct {
@@ -158,7 +158,9 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, insightsv1.N
 	client := insightsv1.NewNetworkFlowIngestClient(conn)
 	stream, err := client.PushEnrichedEvents(streamCtx)
 	if err != nil {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			c.log.Warn("close insights connection", "err", err)
+		}
 		return nil, nil, err
 	}
 	return conn, stream, nil
@@ -227,13 +229,17 @@ func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream insightsv1.Ne
 		}
 	}
 	if conn != nil {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			c.log.Warn("close insights connection", "err", err)
+		}
 	}
 }
 
 func (c *Client) abortConn(conn *grpc.ClientConn) {
 	if conn != nil {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			c.log.Warn("close insights connection", "err", err)
+		}
 	}
 }
 

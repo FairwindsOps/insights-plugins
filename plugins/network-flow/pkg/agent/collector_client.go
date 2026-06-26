@@ -193,7 +193,9 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, aggregv1.Age
 	client := aggregv1.NewAgentIngestClient(conn)
 	stream, err := client.PushEvents(ctx)
 	if err != nil {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			c.log.Warn("close collector connection", "err", err)
+		}
 		return nil, nil, err
 	}
 	return conn, stream, nil
@@ -312,13 +314,17 @@ func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream aggregv1.Agen
 		}
 	}
 	if conn != nil {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			c.log.Warn("close collector connection", "err", err)
+		}
 	}
 }
 
 func (c *Client) abortConn(conn *grpc.ClientConn) {
 	if conn != nil {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			c.log.Warn("close collector connection", "err", err)
+		}
 	}
 }
 
