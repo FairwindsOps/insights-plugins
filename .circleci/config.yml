@@ -327,6 +327,7 @@ workflows:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
           name: End-To-End Test on Kubernetes
+          resource_class: large # 4 vCPU, 8 GB RAM
           kind_node_image: "kindest/node:v1.30.13"
           requires:
             - build_and_push_plugins
