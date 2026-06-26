@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+* Bump library github.com/google/go-containerregistry to v0.21.7
+* Bump indirect libraries dependencies
+
 ## 0.1.4
 * Bump dependencies
 
