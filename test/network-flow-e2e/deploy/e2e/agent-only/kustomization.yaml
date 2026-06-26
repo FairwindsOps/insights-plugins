@@ -7,8 +7,8 @@ resources:
   - ../../stack
 
 images:
-  - name: quay.io/fairwinds/fw-network-flow
-    newName: fw-network-flow
+  - name: quay.io/fairwinds/network-flow
+    newName: network-flow
     newTag: local
 
 patches:

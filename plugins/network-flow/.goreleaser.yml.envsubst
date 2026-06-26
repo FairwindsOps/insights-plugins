@@ -25,7 +25,7 @@ builds:
   - linux
 dockers:
 - image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   use: buildx
   ids:
   - network-flow
@@ -34,7 +34,7 @@ dockers:
   - "--platform=linux/amd64"
   - "--build-arg=IG_VERSION=v0.52.0"
 - image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
@@ -45,32 +45,32 @@ dockers:
   - "--platform=linux/arm64"
   - "--build-arg=IG_VERSION=v0.52.0"
 docker_manifests:
-- name_template: quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}
+- name_template: quay.io/fairwinds/network-flow:{{ .FullCommit }}
   image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/fw-network-flow:{{ .Env.feature_docker_tag }}
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/network-flow:{{ .Env.feature_docker_tag }}
   skip_push: ${skip_feature_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/fw-network-flow:latest
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/network-flow:latest
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/fw-network-flow:{{ .Tag }}
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/network-flow:{{ .Tag }}
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/fw-network-flow:{{ .Major }}
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/network-flow:{{ .Major }}
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
-- name_template: quay.io/fairwinds/fw-network-flow:{{ .Major }}.{{ .Minor }}
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
+- name_template: quay.io/fairwinds/network-flow:{{ .Major }}.{{ .Minor }}
   skip_push: ${skip_main_docker_tags}
   image_templates:
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-amd64"
-  - "quay.io/fairwinds/fw-network-flow:{{ .FullCommit }}-arm64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
+  - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"

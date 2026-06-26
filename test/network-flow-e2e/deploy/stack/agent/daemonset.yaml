@@ -23,7 +23,7 @@ spec:
         - operator: Exists
       containers:
         - name: agent
-          image: quay.io/fairwinds/fw-network-flow:0.1.0
+          image: quay.io/fairwinds/network-flow:0.0.3
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_NAME

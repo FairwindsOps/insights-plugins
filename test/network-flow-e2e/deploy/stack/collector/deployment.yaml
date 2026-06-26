@@ -36,7 +36,7 @@ spec:
       serviceAccountName: network-flow-aggregator
       containers:
         - name: network-flow-aggregator
-          image: quay.io/fairwinds/fw-network-flow-aggregator:0.0.3
+          image: quay.io/fairwinds/network-flow-aggregator:0.0.3
           imagePullPolicy: IfNotPresent
           args:
             - -grpc-addr=:4317

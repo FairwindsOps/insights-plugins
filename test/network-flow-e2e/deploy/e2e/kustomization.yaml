@@ -9,11 +9,11 @@ resources:
   - demo-traffic-job.yaml
 
 images:
-  - name: quay.io/fairwinds/fw-network-flow
-    newName: fw-network-flow
+  - name: quay.io/fairwinds/network-flow
+    newName: network-flow
     newTag: local
-  - name: quay.io/fairwinds/fw-network-flow-aggregator
-    newName: fw-network-flow-aggregator
+  - name: quay.io/fairwinds/network-flow-aggregator
+    newName: network-flow-aggregator
     newTag: local
 
 patches:
