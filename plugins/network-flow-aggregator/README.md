@@ -17,6 +17,8 @@ The **aggregator–API** contract (`NetworkFlowIngest.PushEnrichedEvents`) is ow
 
 ### Regenerating Go from proto (agent ↔ aggregator)
 
+Note: In an ideal setup, this plugin would consume the Insights API protos as a published module. Today that contract lives in the private fairwinds-insights repo and is not available as an external proto package, so we vendor a local copy under proto/insights/ and commit the generated Go stubs.
+
 Requires `protoc` on your PATH (`brew install protobuf`). Plugin versions are pinned in the script.
 
 ```bash
