@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
+	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 )
 
@@ -126,7 +126,7 @@ func (c *Client) Run(ctx context.Context) error {
 	}
 }
 
-func (c *Client) runConnected(ctx context.Context, stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient, ticker *time.Ticker) error {
+func (c *Client) runConnected(ctx context.Context, stream insightsv1.NetworkFlowIngest_PushEnrichedEventsClient, ticker *time.Ticker) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -143,7 +143,7 @@ func (c *Client) runConnected(ctx context.Context, stream networkflowv1.NetworkF
 	}
 }
 
-func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient, error) {
+func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, insightsv1.NetworkFlowIngest_PushEnrichedEventsClient, error) {
 	conn, err := grpc.NewClient(
 		c.cfg.InsightsAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -155,7 +155,7 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, networkflowv
 	md := metadata.Pairs("authorization", "Bearer "+c.cfg.AuthToken)
 	streamCtx := metadata.NewOutgoingContext(ctx, md)
 
-	client := networkflowv1.NewNetworkFlowIngestClient(conn)
+	client := insightsv1.NewNetworkFlowIngestClient(conn)
 	stream, err := client.PushEnrichedEvents(streamCtx)
 	if err != nil {
 		conn.Close()
@@ -164,7 +164,7 @@ func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, networkflowv
 	return conn, stream, nil
 }
 
-func (c *Client) sendPending(stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient) error {
+func (c *Client) sendPending(stream insightsv1.NetworkFlowIngest_PushEnrichedEventsClient) error {
 	c.logDroppedUnsent()
 
 	for {
@@ -172,7 +172,7 @@ func (c *Client) sendPending(stream networkflowv1.NetworkFlowIngest_PushEnriched
 		if !ok {
 			return nil
 		}
-		msg := &networkflowv1.EnrichedFlowEventBatch{
+		msg := &insightsv1.EnrichedFlowEventBatch{
 			Organization: c.cfg.Organization,
 			Cluster:      c.cfg.Cluster,
 			NodeName:     nodeName,
@@ -217,7 +217,7 @@ func (c *Client) logDroppedUnsent() {
 	)
 }
 
-func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream networkflowv1.NetworkFlowIngest_PushEnrichedEventsClient) {
+func (c *Client) closeConnGracefully(conn *grpc.ClientConn, stream insightsv1.NetworkFlowIngest_PushEnrichedEventsClient) {
 	if stream != nil {
 		ack, err := stream.CloseAndRecv()
 		if err != nil && err != io.EOF {

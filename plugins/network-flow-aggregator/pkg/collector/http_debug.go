@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
-	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
+	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -77,17 +77,17 @@ func parseInt(v string) int {
 	return n
 }
 
-func parseEventKind(v string) networkflowv1.FlowEventKind {
+func parseEventKind(v string) insightsv1.FlowEventKind {
 	switch v {
 	case "CONNECT", "connect", "1":
-		return networkflowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT
+		return insightsv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT
 	case "TRAFFIC", "traffic", "2":
-		return networkflowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC
+		return insightsv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC
 	case "DNS_QUERY", "dns_query", "3":
-		return networkflowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY
+		return insightsv1.FlowEventKind_FLOW_EVENT_KIND_DNS_QUERY
 	case "DNS_RESPONSE", "dns_response", "4":
-		return networkflowv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE
+		return insightsv1.FlowEventKind_FLOW_EVENT_KIND_DNS_RESPONSE
 	default:
-		return networkflowv1.FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED
+		return insightsv1.FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED
 	}
 }

@@ -10,15 +10,15 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
-	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
+	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 )
 
 type fakeStream struct {
 	sendCalls int
-	send      func(*networkflowv1.EnrichedFlowEventBatch) error
+	send      func(*insightsv1.EnrichedFlowEventBatch) error
 }
 
-func (f *fakeStream) Send(msg *networkflowv1.EnrichedFlowEventBatch) error {
+func (f *fakeStream) Send(msg *insightsv1.EnrichedFlowEventBatch) error {
 	f.sendCalls++
 	if f.send != nil {
 		return f.send(msg)
@@ -27,7 +27,7 @@ func (f *fakeStream) Send(msg *networkflowv1.EnrichedFlowEventBatch) error {
 }
 
 func (f *fakeStream) SendMsg(m any) error {
-	msg, ok := m.(*networkflowv1.EnrichedFlowEventBatch)
+	msg, ok := m.(*insightsv1.EnrichedFlowEventBatch)
 	if !ok {
 		return errors.New("unexpected message type")
 	}
@@ -38,8 +38,8 @@ func (f *fakeStream) RecvMsg(m any) error {
 	return errors.New("not implemented")
 }
 
-func (f *fakeStream) CloseAndRecv() (*networkflowv1.PushAck, error) {
-	return &networkflowv1.PushAck{}, nil
+func (f *fakeStream) CloseAndRecv() (*insightsv1.PushAck, error) {
+	return &insightsv1.PushAck{}, nil
 }
 
 func (f *fakeStream) Header() (metadata.MD, error) { return nil, nil }
@@ -78,7 +78,7 @@ func TestSendPendingLeavesCursorOnFailure(t *testing.T) {
 	sendErr := errors.New("send failed")
 	client := NewClient(Config{BatchSize: 2, Organization: "org", Cluster: "cluster"}, st, nil)
 	stream := &fakeStream{
-		send: func(msg *networkflowv1.EnrichedFlowEventBatch) error {
+		send: func(msg *insightsv1.EnrichedFlowEventBatch) error {
 			if len(msg.GetEvents()) == 1 {
 				return sendErr
 			}
@@ -105,7 +105,7 @@ func TestSendPendingRetriesUnsentAfterFailure(t *testing.T) {
 	failOnce := true
 	client := NewClient(Config{BatchSize: 2, Organization: "org", Cluster: "cluster"}, st, nil)
 	stream := &fakeStream{
-		send: func(msg *networkflowv1.EnrichedFlowEventBatch) error {
+		send: func(msg *insightsv1.EnrichedFlowEventBatch) error {
 			if failOnce && len(msg.GetEvents()) == 1 {
 				failOnce = false
 				return errors.New("send failed")

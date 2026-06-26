@@ -5,7 +5,7 @@ import (
 	"time"
 
 	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
-	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
+	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 )
 
 func TestAppendBatchDoesNotMerge(t *testing.T) {
@@ -254,7 +254,7 @@ func TestListEventsFilters(t *testing.T) {
 		return Enrichment{SrcNamespace: "kube-system", SrcWorkloadKind: "Pod", SrcWorkloadName: "b"}
 	})
 
-	connectEvents := st.ListEvents(ListOpts{EventKind: networkflowv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT})
+	connectEvents := st.ListEvents(ListOpts{EventKind: insightsv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT})
 	if len(connectEvents) != 1 {
 		t.Fatalf("connect events = %d", len(connectEvents))
 	}
@@ -263,7 +263,7 @@ func TestListEventsFilters(t *testing.T) {
 	}
 
 	sinceEvents := st.ListEvents(ListOpts{Since: now + int64(time.Millisecond)})
-	if len(sinceEvents) != 1 || sinceEvents[0].GetEventKind() != networkflowv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
+	if len(sinceEvents) != 1 || sinceEvents[0].GetEventKind() != insightsv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC {
 		t.Fatalf("since filter = %+v", sinceEvents)
 	}
 }

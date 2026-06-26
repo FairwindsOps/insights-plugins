@@ -4,7 +4,6 @@ go 1.26.3
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
-	github.com/fairwindsops/fairwinds-insights v0.0.0
 	google.golang.org/grpc v1.81.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.36.2
@@ -62,5 +61,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/fairwindsops/fairwinds-insights => ../../../Insights

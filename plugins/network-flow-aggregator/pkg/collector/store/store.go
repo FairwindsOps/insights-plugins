@@ -5,7 +5,7 @@ import (
 	"time"
 
 	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
-	networkflowv1 "github.com/fairwindsops/fairwinds-insights/pkg/networkflow/v1"
+	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 )
 
 type Enrichment struct {
@@ -22,14 +22,14 @@ type ListOpts struct {
 	Limit           int
 	Offset          int
 	Namespace       string
-	EventKind       networkflowv1.FlowEventKind
+	EventKind       insightsv1.FlowEventKind
 	SrcWorkloadKind string
 	DstKind         string
 }
 
 type Store struct {
 	mu             sync.RWMutex
-	events         []*networkflowv1.EnrichedFlowEvent
+	events         []*insightsv1.EnrichedFlowEvent
 	maxEvents      int
 	maxAge         time.Duration
 	sendCursor     int
@@ -45,7 +45,7 @@ func NewStore(maxEvents int, maxAge time.Duration) *Store {
 		maxAge = 15 * time.Minute
 	}
 	return &Store{
-		events:    make([]*networkflowv1.EnrichedFlowEvent, 0, 1024),
+		events:    make([]*insightsv1.EnrichedFlowEvent, 0, 1024),
 		maxEvents: maxEvents,
 		maxAge:    maxAge,
 	}
@@ -55,7 +55,7 @@ func (s *Store) MaxAge() time.Duration {
 	return s.maxAge
 }
 
-func (s *Store) AppendBatch(batch *aggregv1.FlowEventBatch, enrich func(*aggregv1.FlowEvent) Enrichment) (int64, []*networkflowv1.EnrichedFlowEvent) {
+func (s *Store) AppendBatch(batch *aggregv1.FlowEventBatch, enrich func(*aggregv1.FlowEvent) Enrichment) (int64, []*insightsv1.EnrichedFlowEvent) {
 	if batch == nil {
 		return 0, nil
 	}
@@ -64,7 +64,7 @@ func (s *Store) AppendBatch(batch *aggregv1.FlowEventBatch, enrich func(*aggregv
 	defer s.mu.Unlock()
 
 	var accepted int64
-	enriched := make([]*networkflowv1.EnrichedFlowEvent, 0, len(batch.GetEvents()))
+	enriched := make([]*insightsv1.EnrichedFlowEvent, 0, len(batch.GetEvents()))
 	for _, event := range batch.GetEvents() {
 		if event == nil || !isAcceptableEvent(event) {
 			continue
@@ -92,12 +92,12 @@ func (s *Store) AppendBatch(batch *aggregv1.FlowEventBatch, enrich func(*aggregv
 	return accepted, enriched
 }
 
-func enrichedFromEvent(nodeName, agentID string, event *aggregv1.FlowEvent, enrich Enrichment) *networkflowv1.EnrichedFlowEvent {
-	out := &networkflowv1.EnrichedFlowEvent{
+func enrichedFromEvent(nodeName, agentID string, event *aggregv1.FlowEvent, enrich Enrichment) *insightsv1.EnrichedFlowEvent {
+	out := &insightsv1.EnrichedFlowEvent{
 		NodeName:          nodeName,
 		AgentId:           agentID,
-		EventKind:         networkflowv1.FlowEventKind(event.GetEventKind()),
-		Protocol:          networkflowv1.Protocol(event.GetProtocol()),
+		EventKind:         insightsv1.FlowEventKind(event.GetEventKind()),
+		Protocol:          insightsv1.Protocol(event.GetProtocol()),
 		TimestampUnixNano: event.GetTimestampUnixNano(),
 		Src:               cloneWorkloadRef(event.GetSrc()),
 		SrcEndpoint:       cloneEndpoint(event.GetSrcEndpoint()),
@@ -107,14 +107,14 @@ func enrichedFromEvent(nodeName, agentID string, event *aggregv1.FlowEvent, enri
 		Dns:               cloneDnsDetails(event.GetDns()),
 	}
 	if enrich.SrcNamespace != "" || enrich.SrcWorkloadKind != "" || enrich.SrcWorkloadName != "" {
-		out.SrcWorkload = &networkflowv1.KubernetesRef{
+		out.SrcWorkload = &insightsv1.KubernetesRef{
 			Namespace: enrich.SrcNamespace,
 			Kind:      enrich.SrcWorkloadKind,
 			Name:      enrich.SrcWorkloadName,
 		}
 	}
 	if enrich.DstKind != "" || enrich.DstName != "" {
-		out.DstRef = &networkflowv1.KubernetesRef{
+		out.DstRef = &insightsv1.KubernetesRef{
 			Namespace: enrich.DstNamespace,
 			Kind:      enrich.DstKind,
 			Name:      enrich.DstName,
@@ -143,7 +143,7 @@ func (s *Store) pruneLocked() {
 		start++
 	}
 	if start > 0 {
-		s.events = append([]*networkflowv1.EnrichedFlowEvent(nil), s.events[start:]...)
+		s.events = append([]*insightsv1.EnrichedFlowEvent(nil), s.events[start:]...)
 		s.adjustCursorOnDrop(start, "max_age")
 	}
 }
@@ -153,7 +153,7 @@ func (s *Store) enforceMaxLocked() {
 	if overflow <= 0 {
 		return
 	}
-	s.events = append([]*networkflowv1.EnrichedFlowEvent(nil), s.events[overflow:]...)
+	s.events = append([]*insightsv1.EnrichedFlowEvent(nil), s.events[overflow:]...)
 	s.adjustCursorOnDrop(overflow, "max_events")
 }
 
@@ -189,7 +189,7 @@ func (s *Store) SendCursor() int {
 	return s.sendCursor
 }
 
-func (s *Store) PeekUnsentBatch(maxEvents int) (nodeName, agentID string, events []*networkflowv1.EnrichedFlowEvent, ok bool) {
+func (s *Store) PeekUnsentBatch(maxEvents int) (nodeName, agentID string, events []*insightsv1.EnrichedFlowEvent, ok bool) {
 	if maxEvents <= 0 {
 		maxEvents = 100
 	}
@@ -207,7 +207,7 @@ func (s *Store) PeekUnsentBatch(maxEvents int) (nodeName, agentID string, events
 
 	nodeName = s.events[i].GetNodeName()
 	agentID = s.events[i].GetAgentId()
-	events = make([]*networkflowv1.EnrichedFlowEvent, 0, maxEvents)
+	events = make([]*insightsv1.EnrichedFlowEvent, 0, maxEvents)
 
 	for ; i < len(s.events) && len(events) < maxEvents; i++ {
 		e := s.events[i]
@@ -247,7 +247,7 @@ func (s *Store) TakeDroppedUnsent() (count int64, reason string) {
 	return count, reason
 }
 
-func (s *Store) ListEvents(opts ListOpts) []*networkflowv1.EnrichedFlowEvent {
+func (s *Store) ListEvents(opts ListOpts) []*insightsv1.EnrichedFlowEvent {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -256,7 +256,7 @@ func (s *Store) ListEvents(opts ListOpts) []*networkflowv1.EnrichedFlowEvent {
 		limit = len(s.events)
 	}
 
-	out := make([]*networkflowv1.EnrichedFlowEvent, 0, limit)
+	out := make([]*insightsv1.EnrichedFlowEvent, 0, limit)
 	skipped := 0
 	for _, event := range s.events {
 		if event == nil {
@@ -268,7 +268,7 @@ func (s *Store) ListEvents(opts ListOpts) []*networkflowv1.EnrichedFlowEvent {
 		if opts.Namespace != "" && event.GetSrc().GetNamespace() != opts.Namespace && event.GetDstRef().GetNamespace() != opts.Namespace {
 			continue
 		}
-		if opts.EventKind != networkflowv1.FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED && event.GetEventKind() != opts.EventKind {
+		if opts.EventKind != insightsv1.FlowEventKind_FLOW_EVENT_KIND_UNSPECIFIED && event.GetEventKind() != opts.EventKind {
 			continue
 		}
 		if opts.SrcWorkloadKind != "" && event.GetSrcWorkload().GetKind() != opts.SrcWorkloadKind {

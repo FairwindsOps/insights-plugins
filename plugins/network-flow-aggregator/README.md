@@ -13,9 +13,9 @@ This plugin owns the **agent–aggregator** protobuf contract. Source files live
 | RPC | `PushEvents(stream FlowEventBatch) returns (PushAck)` |
 | Consumers | `network-flow` agent (client), this collector (server) |
 
-The **aggregator–API** contract (`NetworkFlowIngest.PushEnrichedEvents`) is owned by [fairwinds-insights](https://github.com/FairwindsOps/Insights) under `api/proto/api/v1/`.
+The **aggregator–API** contract (`NetworkFlowIngest.PushEnrichedEvents`) is owned by [fairwinds-insights](https://github.com/FairwindsOps/Insights) under `api/proto/api/v1/`. A local copy lives under `proto/insights/api/v1/`; generated Go is committed under `pkg/insights/v1` (`insightsv1`).
 
-### Regenerating Go from proto
+### Regenerating Go from proto (agent ↔ aggregator)
 
 Requires `protoc` on your PATH (`brew install protobuf`). Plugin versions are pinned in the script.
 
@@ -24,6 +24,16 @@ Requires `protoc` on your PATH (`brew install protobuf`). Plugin versions are pi
 ```
 
 Edit `proto/aggregator/v1/*.proto`, run the script, and commit both the `.proto` files and `pkg/aggregator/v1/*.go`.
+
+### Syncing Insights API protos (aggregator ↔ API)
+
+Requires a local [fairwinds-insights](https://github.com/FairwindsOps/Insights) checkout. Copies protos from that repo and regenerates `pkg/insights/v1`.
+
+```bash
+./scripts/generate-insights-api-proto.sh --fairwinds-insights-path ../../../Insights
+```
+
+Commit both `proto/insights/` and `pkg/insights/v1/` after syncing.
 
 ## Running locally
 
