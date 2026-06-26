@@ -84,7 +84,11 @@ commands:
 executors:
   ci-images:
     docker:
-      - image: quay.io/reactiveops/ci-images:v14.1-bullseye
+      - image: quay.io/reactiveops/ci-images:v15.0-bullseye
+  ci-images-large:
+    resource_class: large
+    docker:
+      - image: quay.io/reactiveops/ci-images:v15.0-bullseye
   goreleaser:
     resource_class: large
     docker:
@@ -327,7 +331,8 @@ workflows:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
           name: End-To-End Test on Kubernetes
-          resource_class: large # 4 vCPU, 8 GB RAM
+          executor:
+            name: ci-images-large
           kind_node_image: "kindest/node:v1.30.13"
           requires:
             - build_and_push_plugins
