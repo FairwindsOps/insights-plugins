@@ -47,13 +47,16 @@ func (r *TraceTCPRunner) Run(ctx context.Context) error {
 			if err := fields.init(); err != nil {
 				return err
 			}
-			ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
+			err := ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
 				raw := fields.extract(data)
 				raw.EventKind = aggregv1.FlowEventKind_FLOW_EVENT_KIND_CONNECT
 				event := MapFlowEvent(raw)
 				r.client.Enqueue(event)
 				return nil
 			}, opPriority)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}, map[string]string{

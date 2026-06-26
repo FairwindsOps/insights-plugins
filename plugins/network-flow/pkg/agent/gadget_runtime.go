@@ -39,7 +39,11 @@ func runGadget(
 	if err := rt.Init(params); err != nil {
 		return fmt.Errorf("runtime init: %w", err)
 	}
-	defer rt.Close()
+	defer func() {
+		if err := rt.Close(); err != nil {
+			log.Error("close runtime", "err", err)
+		}
+	}()
 
 	log.Info("starting gadget", "gadget", gadgetName, "ig", cfg.IGAddress, "image", cfg.GadgetImage)
 	if err := rt.RunGadget(gctx, nil, gadgetParams); err != nil {

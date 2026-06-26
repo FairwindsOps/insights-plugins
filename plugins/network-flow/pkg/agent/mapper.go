@@ -55,7 +55,10 @@ func splitEndpoint(endpoint string) (string, uint32) {
 	if i := strings.LastIndex(endpoint, ":"); i > 0 {
 		addr := endpoint[:i]
 		var port uint32
-		fmt.Sscanf(endpoint[i+1:], "%d", &port)
+		_, err := fmt.Sscanf(endpoint[i+1:], "%d", &port)
+		if err != nil {
+			return "", 0
+		}
 		return addr, port
 	}
 	return endpoint, 0

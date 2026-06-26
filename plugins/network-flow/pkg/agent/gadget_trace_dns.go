@@ -40,11 +40,14 @@ func (r *TraceDNSRunner) Run(ctx context.Context) error {
 			if err := fields.init(); err != nil {
 				return err
 			}
-			ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
+			err := ds.Subscribe(func(_ datasource.DataSource, data datasource.Data) error {
 				event := MapDnsEvent(fields.extract(data))
 				r.client.Enqueue(event)
 				return nil
 			}, opPriority)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}, nil)
