@@ -107,10 +107,9 @@ jobs:
           branch_pattern: main
           template: basic_fail_1
 
-  test:
+  lint:
     docker:
       - image: cimg/go:1.26.4
-    resource_class: large
     steps:
       - checkout
       - set_vault
@@ -126,6 +125,19 @@ jobs:
               echo "linting $plugin"
               (cd "plugins/$plugin" && golangci-lint run --new-from-merge-base=origin/main ./...)
             done
+      - slack/notify:
+          event: fail
+          branch_pattern: main
+          template: basic_fail_1
+
+  test:
+    docker:
+      - image: cimg/go:1.26.4
+    resource_class: large
+    steps:
+      - checkout
+      - set_vault
+      - set_environment_variables
       - run: cd plugins/opa ; go test ./... ; cd ../..
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - run: cd plugins/ci ; go test ./... ; cd ../..
@@ -316,11 +328,13 @@ workflows:
           filters:
             branches:
               only: /renovate\/.*/
+      - lint
       - test
       - check_version_changed
       - validate_modified_opa_policies:
           name: Validate Modified OPA Policies
           requires:
+            - lint
             - test
             - check_version_changed
       - build_and_push_plugins:
