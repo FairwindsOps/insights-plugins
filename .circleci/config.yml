@@ -85,6 +85,10 @@ executors:
   ci-images:
     docker:
       - image: quay.io/reactiveops/ci-images:v14.1-bullseye
+  ci-images-xlarge:
+    resource_class: xlarge
+    docker:
+      - image: quay.io/reactiveops/ci-images:v14.1-bullseye
   goreleaser:
     resource_class: large
     docker:
@@ -99,6 +103,8 @@ references:
     pre_script: test/plugins-e2e/pre.sh
     script: test/plugins-e2e/ci.sh
     store-artifacts: /workspace/output
+    executor:
+      name: ci-images-xlarge
     requires:
       - test
       - check_version_changed
