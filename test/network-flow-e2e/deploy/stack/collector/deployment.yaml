@@ -38,6 +38,7 @@ spec:
         - name: network-flow-aggregator
           image: quay.io/fairwinds/network-flow-aggregator:0.0.3
           imagePullPolicy: IfNotPresent
+          command: ["network-flow-aggregator"]
           args:
             - -grpc-addr=:4317
             - -http-addr=:8080
