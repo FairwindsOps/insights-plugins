@@ -90,6 +90,21 @@ executors:
     docker:
       - image: goreleaser/goreleaser:v2.16.0
 
+references:
+  kind_e2e_configuration: &kind_e2e_configuration
+    kind_node_image: "kindest/node:v1.30.13"
+    pre_script: test/plugins-e2e/pre.sh
+    script: test/plugins-e2e/ci.sh
+    store-artifacts: /workspace/output
+    requires:
+      - test
+      - check_version_changed
+      - build_and_push_plugins
+    filters:
+      branches:
+        only: /.*/
+      tags:
+        ignore: /.*/
 
 jobs:
   build_and_push_plugins:
@@ -182,6 +197,8 @@ jobs:
                 ]
             }
 
+  # Fails when vulns are found (so CI shows red) but does not block merging
+  # (no job requires this one; it runs in check_vulnerabilities on a schedule).
   scan_for_vulnerabilities:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     executor: ci-images
@@ -304,6 +321,8 @@ jobs:
 
 workflows:
   version: 2
+  # scan_for_vulnerabilities fails when vulns are found but does not block merging
+  # (no job requires it; scheduled in check_vulnerabilities).
   release:
     jobs:
       - bump_renovate_pr_versions:
@@ -320,24 +339,19 @@ workflows:
       - build_and_push_plugins:
           context: org-global
           requires:
+            - test
             - check_version_changed
           filters:
             branches:
               ignore:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
-          name: End-To-End Test on Kubernetes
-          kind_node_image: "kindest/node:v1.30.13"
-          requires:
-            - build_and_push_plugins
-          pre_script: test/plugins-e2e/pre.sh
-          script: test/plugins-e2e/ci.sh
-          store-artifacts: /workspace/output
-      - scan_for_vulnerabilities:
-          requires:
-            - build_and_push_plugins
+          name: "End-To-End Kubernetes 1.30"
+          <<: *kind_e2e_configuration
       - ci_plugin_e2e:
           requires:
+            - test
+            - check_version_changed
             - build_and_push_plugins
 
   check_vulnerabilities:
