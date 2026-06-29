@@ -91,6 +91,9 @@ executors:
       - image: goreleaser/goreleaser:v2.16.0
 
 references:
+  # Job name matches other Fairwinds repos (End-To-End Kubernetes X.XX) so the
+  # status context is ci/circleci: End-To-End Kubernetes 1.30. Add that check
+  # to GitHub branch protection to show the Required tag in CircleCI.
   kind_e2e_configuration: &kind_e2e_configuration
     kind_node_image: "kindest/node:v1.30.13"
     pre_script: test/plugins-e2e/pre.sh
@@ -353,6 +356,7 @@ workflows:
             - test
             - check_version_changed
             - build_and_push_plugins
+            - End-To-End Kubernetes 1.30
 
   check_vulnerabilities:
     jobs:
