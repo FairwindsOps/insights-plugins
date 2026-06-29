@@ -3,10 +3,8 @@ cd /workspace
 echo "SETTING ENV"
 . /workspace/env.sh
 echo "ADDING PYTHON"
-apk add python3
-echo "UPDATING PIP"
-pip3 install --upgrade pip
+apk add --no-cache python3 py3-pip
 echo "ADDING CHECK-JSONSCHEMA"
-pip3 install check-jsonschema
+PIP_NO_CACHE_DIR=1 pip3 install --no-cache-dir check-jsonschema
 echo "RUNNING TESTS"
 bash ./test/plugins-e2e/test.sh

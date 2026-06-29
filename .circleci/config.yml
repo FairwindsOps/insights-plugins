@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@6.1.3
-  rok8s-scripts: fairwinds/rok8s-scripts@15.0.1
+  rok8s-scripts: fairwinds/rok8s-scripts@12.2.0
 
 commands:
   install_goreleaser_dependencies:
@@ -103,8 +103,6 @@ references:
     pre_script: test/plugins-e2e/pre.sh
     script: test/plugins-e2e/ci.sh
     store-artifacts: /workspace/output
-    executor:
-      name: ci-images-xlarge
     requires:
       - test
       - check_version_changed
@@ -356,6 +354,8 @@ workflows:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
           name: "End-To-End Kubernetes 1.30"
+          executor:
+            name: ci-images-xlarge
           <<: *kind_e2e_configuration
       - ci_plugin_e2e:
           requires:

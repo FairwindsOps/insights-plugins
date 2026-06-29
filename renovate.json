@@ -107,6 +107,12 @@
       "matchPackageNames": ["gomodules.xyz/jsonpatch/v2"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "rok8s-scripts 15.x causes kubernetes_e2e_tests OOM; stay on 12.2.0",
+      "matchManagers": ["circleci"],
+      "matchPackageNames": ["fairwinds/rok8s-scripts"],
+      "enabled": false
     }
   ]
 }
