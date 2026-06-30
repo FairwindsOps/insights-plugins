@@ -352,7 +352,7 @@ workflows:
       - rok8s-scripts/kubernetes_e2e_tests:
           name: "End-To-End Kubernetes 1.30"
           executor:
-            name: ci-images-xlarge
+            name: ci-images
           <<: *kind_e2e_configuration
       - ci_plugin_e2e:
           requires:
