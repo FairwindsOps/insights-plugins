@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@6.1.3
-  rok8s-scripts: fairwinds/rok8s-scripts@15.0.1
+  rok8s-scripts: fairwinds/rok8s-scripts@15.0.2
 
 commands:
   install_goreleaser_dependencies:
@@ -83,10 +83,6 @@ commands:
 
 executors:
   ci-images:
-    docker:
-      - image: quay.io/reactiveops/ci-images:v14.1-bullseye
-  ci-images-xlarge:
-    resource_class: xlarge
     docker:
       - image: quay.io/reactiveops/ci-images:v14.1-bullseye
   goreleaser:
