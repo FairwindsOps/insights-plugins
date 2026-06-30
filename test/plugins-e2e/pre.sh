@@ -15,7 +15,7 @@ docker run -d \
   --env CI_BUILD_NUM="${CIRCLE_BUILD_NUM:-}" \
   --env CI_TAG="${CIRCLE_TAG:-}" \
   --entrypoint sleep \
-  quay.io/reactiveops/ci-images:v12.2-alpine \
+  quay.io/reactiveops/ci-images:v15.0-alpine \
   infinity
 docker exec e2e-command-runner sh -c 'mkdir -p /.kube'
 docker cp ./kind-kubeconfig e2e-command-runner:/.kube/config
