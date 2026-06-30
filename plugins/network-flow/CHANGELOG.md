@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.4
+* Bump library github.com/inspektor-gadget/inspektor-gadget to v0.53.1
+
 ## 0.0.3
 * Bound the pending event queue with drop-oldest retention (`-max-pending-events` / `MAX_PENDING_EVENTS`, default 50000)
 * Send pending events in `BatchSize` chunks instead of draining the full backlog per flush
