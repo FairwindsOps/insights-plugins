@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@6.1.3
-  rok8s-scripts: fairwinds/rok8s-scripts@15.0.1
+  rok8s-scripts: fairwinds/rok8s-scripts@16.0.0
 
 commands:
   install_goreleaser_dependencies:
@@ -90,6 +90,25 @@ executors:
     docker:
       - image: goreleaser/goreleaser:v2.16.0
 
+references:
+  # Job name matches other Fairwinds repos (End-To-End Kubernetes X.XX) so the
+  # status context is ci/circleci: End-To-End Kubernetes 1.30. Add that check
+  # to GitHub branch protection to show the Required tag in CircleCI.
+  kind_e2e_configuration: &kind_e2e_configuration
+    kind_node_image: "kindest/node:v1.30.13"
+    command_runner_image: quay.io/reactiveops/ci-images:v15.0-alpine
+    pre_script: test/plugins-e2e/pre.sh
+    script: test/plugins-e2e/ci.sh
+    store-artifacts: /workspace/output
+    requires:
+      - test
+      - check_version_changed
+      - build_and_push_plugins
+    filters:
+      branches:
+        only: /.*/
+      tags:
+        ignore: /.*/
 
 jobs:
   build_and_push_plugins:
@@ -339,25 +358,23 @@ workflows:
       - build_and_push_plugins:
           context: org-global
           requires:
+            - test
             - check_version_changed
           filters:
             branches:
               ignore:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
-          name: End-To-End Test on Kubernetes
-          kind_node_image: "kindest/node:v1.30.13"
-          requires:
-            - build_and_push_plugins
-          pre_script: test/plugins-e2e/pre.sh
-          script: test/plugins-e2e/ci.sh
-          store-artifacts: /workspace/output
-      - scan_for_vulnerabilities:
-          requires:
-            - build_and_push_plugins
+          name: "End-To-End Kubernetes 1.30"
+          executor:
+            name: ci-images
+          <<: *kind_e2e_configuration
       - ci_plugin_e2e:
           requires:
+            - test
+            - check_version_changed
             - build_and_push_plugins
+            - End-To-End Kubernetes 1.30
 
   check_vulnerabilities:
     jobs:
