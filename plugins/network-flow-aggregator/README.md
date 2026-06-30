@@ -1,0 +1,110 @@
+# network-flow-aggregator
+
+Deployment plugin that ingests `FlowEventBatch` messages from `network-flow` agents, enriches each event with Kubernetes workload and service metadata, maintains an IP-to-hostname cache from DNS responses, and stores individual `EnrichedFlowEvent` records in memory.
+
+## gRPC contract (agent ↔ aggregator)
+
+This plugin owns the **agent–aggregator** protobuf contract. Source files live under `proto/aggregator/v1/`; generated Go is committed under `pkg/aggregator/v1` (`aggregv1`).
+
+| Item | Value |
+|---|---|
+| Package | `aggregator.v1` |
+| Service | `AgentIngest` |
+| RPC | `PushEvents(stream FlowEventBatch) returns (PushAck)` |
+| Consumers | `network-flow` agent (client), this collector (server) |
+
+The **aggregator–API** contract (`NetworkFlowIngest.PushEnrichedEvents`) is owned by [fairwinds-insights](https://github.com/FairwindsOps/Insights) under `api/proto/api/v1/`. A local copy lives under `proto/insights/api/v1/`; generated Go is committed under `pkg/insights/v1` (`insightsv1`).
+
+### Regenerating Go from proto (agent ↔ aggregator)
+
+Note: In an ideal setup, this plugin would consume the Insights API protos as a published module. Today that contract lives in the private fairwinds-insights repo and is not available as an external proto package, so we vendor a local copy under proto/insights/ and commit the generated Go stubs.
+
+Requires `protoc` on your PATH (`brew install protobuf`). Plugin versions are pinned in the script.
+
+```bash
+./scripts/generate-proto.sh
+```
+
+Edit `proto/aggregator/v1/*.proto`, run the script, and commit both the `.proto` files and `pkg/aggregator/v1/*.go`.
+
+### Syncing Insights API protos (aggregator ↔ API)
+
+Requires a local [fairwinds-insights](https://github.com/FairwindsOps/Insights) checkout. Copies protos from that repo and regenerates `pkg/insights/v1`.
+
+```bash
+./scripts/generate-insights-api-proto.sh --fairwinds-insights-path ../../../Insights
+```
+
+Commit both `proto/insights/` and `pkg/insights/v1/` after syncing.
+
+## Running locally
+
+```bash
+go run ./pkg -grpc-addr=:4317 -http-addr=:8080
+```
+
+Debug HTTP endpoints (when running): `/healthz`, `/api/v1/flows`.
+
+### Flow export API
+
+```
+GET /api/v1/flows?since=<timestamp_unix_nano>&limit=1000&offset=0&namespace=insights&event_kind=CONNECT
+```
+
+Query parameters:
+
+| Param | Description |
+|---|---|
+| `since` | Return events with timestamp strictly after this value (unix nano) |
+| `limit` | Maximum events to return |
+| `offset` | Skip first N matching events |
+| `namespace` | Filter by source or destination namespace |
+| `event_kind` | `CONNECT`, `TRAFFIC`, `DNS_QUERY`, or `DNS_RESPONSE` |
+| `src_workload_kind` | Filter by enriched source workload kind |
+| `dst_kind` | Filter by enriched destination kind (e.g. `Service`, `ExternalHostname`) |
+
+Response: `{ "events": [EnrichedFlowEvent...], "count": N }`
+
+A future backend should poll this API (or replace it with Timescale ingestion) and own all aggregation — servicemap edges, analytics, long-term retention.
+
+### DNS observability
+
+DNS responses from `trace_dns` populate an in-memory IP-to-hostname cache (TTL matches `-max-age`). When enriching TCP flows, destination resolution order is:
+
+1. Kubernetes Service (ClusterIP / EndpointSlice)
+2. Workload-scoped DNS cache (`namespace` + `pod` + IP)
+3. Cluster-scoped DNS cache (IP only)
+
+External destinations resolve to `dst_ref.kind = ExternalHostname` with the queried hostname (e.g. `api.stripe.com`).
+
+## Insights upstream
+
+When configured, the collector forwards enriched events to the Insights API over gRPC after local enrichment.
+
+| Flag | Env | Description |
+|---|---|---|
+| `-insights-grpc-addr` | `INSIGHTS_GRPC_ADDR` | Insights network flow gRPC address |
+| `-organization` | `ORGANIZATION` | Insights organization slug |
+| `-cluster` | `CLUSTER` | Insights cluster name |
+| `-auth-token` | `AUTH_TOKEN` | Insights cluster auth token |
+
+All four upstream settings are required when `INSIGHTS_GRPC_ADDR` is set.
+
+### Retention flags
+
+| Flag | Env | Default | Description |
+|---|---|---|---|
+| `-max-events` | `MAX_EVENTS` | `100000` | Ring buffer capacity |
+| `-max-age` | `MAX_AGE` | `15m` | Drop events older than this |
+
+Retention applies to both the debug HTTP API and upstream delivery to Insights. Events evicted before they are sent upstream are not forwarded; sustained backpressure emits rate-limited warnings when unsent events are dropped.
+
+## How to run it
+```
+export AUTH_TOKEN=
+export INSIGHTS_GRPC_ADDR=host.docker.internal:4318
+export ORGANIZATION=
+export CLUSTER=
+
+./test/network-flow-e2e/kind-e2e.sh all
+```

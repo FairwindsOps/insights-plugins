@@ -122,6 +122,32 @@ jobs:
           branch_pattern: main
           template: basic_fail_1
 
+  lint:
+    docker:
+      - image: cimg/go:1.26.4
+    steps:
+      - checkout
+      - set_vault
+      - set_environment_variables
+      - set_tags
+      - run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+      - run:
+          name: golangci-lint (new vs origin/main)
+          command: |
+            set -euo pipefail
+            git fetch origin main
+            for plugin in "${CHANGED[@]}"; do
+              if [ "${plugin}" == "_template" ] || [ ! -f "plugins/$plugin/go.mod" ]; then
+                continue
+              fi
+              echo "linting $plugin"
+              (cd "plugins/$plugin" && golangci-lint run --new-from-merge-base=origin/main ./...)
+            done
+      - slack/notify:
+          event: fail
+          branch_pattern: main
+          template: basic_fail_1
+
   test:
     docker:
       - image: cimg/go:1.26.4
@@ -130,23 +156,14 @@ jobs:
       - checkout
       - set_vault
       - set_environment_variables
-      - set_tags
-      - run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
-      - run:
-          name: golangci-lint (new vs origin/main)
-          command: |
-            set -euo pipefail
-            git fetch origin main
-            for plugin in "${GO_PKGS[@]}"; do
-              echo "linting $plugin"
-              (cd "plugins/$plugin" && golangci-lint run --new-from-merge-base=origin/main ./...)
-            done
       - run: cd plugins/opa ; go test ./... ; cd ../..
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - run: cd plugins/ci ; go test ./... ; cd ../..
       - run: cd plugins/falco-agent ; go test ./...; cd ../..
       - run: cd plugins/trivy ; go test ./... ; cd ../..
       - run: cd plugins/image-trust ; go test ./... ; cd ../..
+      - run: cd plugins/network-flow ; go test ./... ; cd ../..
+      - run: cd plugins/network-flow-aggregator ; go test ./... ; cd ../..
       - slack/notify:
           event: fail
           branch_pattern: main
@@ -329,11 +346,13 @@ workflows:
           filters:
             branches:
               only: /renovate\/.*/
+      - lint
       - test
       - check_version_changed
       - validate_modified_opa_policies:
           name: Validate Modified OPA Policies
           requires:
+            - lint
             - test
             - check_version_changed
       - build_and_push_plugins:

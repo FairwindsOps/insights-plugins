@@ -5,3 +5,6 @@ run:
 
 linters:
   default: standard
+  exclusions:
+    paths:
+      - _test\.go$

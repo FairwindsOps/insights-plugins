@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package api.v1;
+
+import "api/v1/types.proto";
+
+option go_package = "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1;insightsv1";
+
+message EnrichedFlowEvent {
+  string node_name = 1;
+  string agent_id = 2;
+  FlowEventKind event_kind = 3;
+  Protocol protocol = 4;
+  int64 timestamp_unix_nano = 5;
+  WorkloadRef src = 6;
+  KubernetesRef src_workload = 7;
+  Endpoint src_endpoint = 8;
+  Endpoint dst = 9;
+  KubernetesRef dst_ref = 10;
+  int64 bytes_sent = 11;
+  int64 bytes_received = 12;
+  DnsDetails dns = 13;
+}
+
+message EnrichedFlowEventBatch {
+  string organization = 1;
+  string cluster = 2;
+  string node_name = 3;
+  string agent_id = 4;
+  repeated EnrichedFlowEvent events = 5;
+}
+
+message PushAck {
+  int64 accepted_events = 1;
+}
+
+service NetworkFlowIngest {
+  rpc PushEnrichedEvents(stream EnrichedFlowEventBatch) returns (PushAck);
+}

@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: demo-traffic
+  labels:
+    app: demo-traffic
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: demo-traffic
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: traffic
+          image: curlimages/curl:8.11.1
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              echo "generating TCP flows in insights namespace..."
+              payload="$(head -c 65536 /dev/zero | tr '\0' 'A')"
+              for i in $(seq 1 80); do
+                curl -sf "http://demo-server:8080/" -o /dev/null
+                curl -sf -X POST -d "$payload" "http://demo-server:8080/" -o /dev/null
+                curl -sf "http://demo-server.shop.svc.cluster.local:8080/" -o /dev/null
+                curl -sf -X POST -d "$payload" "http://demo-server.shop.svc.cluster.local:8080/" -o /dev/null
+                curl -sf "http://example.com/" -o /dev/null || true
+                sleep 0.25
+              done
+              echo "done"
