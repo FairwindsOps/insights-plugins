@@ -29,7 +29,7 @@ for proj in ${cloned_projects[@]}; do
   used_versions[$proj]=$(yq e ".$proj.image.tag" $values_file)
 done
 
-plugin_projects=( falco-agent image-trust kube-bench kube-bench-aggregator kyverno-policy-sync opa prometheus rbac-reporter right-sizer trivy uploader workloads event-watcher )
+plugin_projects=( falco-agent image-trust kube-bench kube-bench-aggregator network-flow network-flow-aggregator kyverno-policy-sync opa prometheus rbac-reporter right-sizer trivy uploader workloads event-watcher )
 
 declare -A rewrites=()
 for proj in ${plugin_projects[@]}; do
@@ -37,6 +37,7 @@ for proj in ${plugin_projects[@]}; do
 done
 rewrites["falco-agent"]="falco"
 rewrites["kube-bench-aggregator"]="kube-bench.aggregator"
+rewrites["network-flow-aggregator"]="network-flow.aggregator"
 rewrites["prometheus"]="prometheus-metrics"
 rewrites["event-watcher"]="insights-event-watcher"
 
