@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.4
+* Bump library google.golang.org/grpc to v1.81.1
+
 ## 0.0.3
 * Replace upstream pending queue with store send cursor so retention limits apply to unsent events
 * Fix upstream flush to retain unsent events on mid-stream send failure
