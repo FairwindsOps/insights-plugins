@@ -205,8 +205,6 @@ jobs:
                 ]
             }
 
-  # Fails when vulns are found (so CI shows red) but does not block merging
-  # (no job requires this one; it runs in check_vulnerabilities on a schedule).
   scan_for_vulnerabilities:
     working_directory: /go/src/github.com/fairwindsops/insights-plugins/
     executor: ci-images
@@ -329,8 +327,6 @@ jobs:
 
 workflows:
   version: 2
-  # scan_for_vulnerabilities fails when vulns are found but does not block merging
-  # (no job requires it; scheduled in check_vulnerabilities).
   release:
     jobs:
       - bump_renovate_pr_versions:
