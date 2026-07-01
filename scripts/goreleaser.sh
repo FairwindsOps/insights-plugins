@@ -56,6 +56,11 @@ fi
 
 git restore ../../go.work.sum # something on the releaser process is changing the go.work.sum file
 
+if [ ! -f go.mod ] ; then
+  export GOWORK=off
+  echo "${this_script} set GOWORK=off because this plugin has no go.mod"
+fi
+
 cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml
 goreleaser $@
 if [ $? -eq 0 ] ; then
