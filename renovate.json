@@ -57,6 +57,17 @@
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v?(?<version>.*)$",
       "autoReplaceStringTemplate": "golangci/golangci-lint/v2/cmd/golangci-lint@v{{{newValue}}}"
+    },
+    {
+      "customType": "regex",
+      "description": "Pinned Go toolchain for goreleaser release builds",
+      "managerFilePatterns": ["(^|/)\\.goreleaser\\.yml\\.envsubst$"],
+      "matchStrings": [
+        "GOTOOLCHAIN=go(?<currentValue>[0-9.]+)"
+      ],
+      "depNameTemplate": "go",
+      "datasourceTemplate": "golang-version",
+      "autoReplaceStringTemplate": "GOTOOLCHAIN=go{{{newValue}}}"
     }
   ],
   "packageRules": [
@@ -70,12 +81,32 @@
       "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"]
     },
     {
+      "description": "Proactively bump go directive on every Go release",
       "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump",
+      "groupName": "Go toolchain"
+    },
+    {
+      "description": "Keep release GOTOOLCHAIN and CircleCI cimg/go aligned with go.mod",
+      "groupName": "Go toolchain",
+      "matchManagers": ["circleci", "custom.regex"],
+      "matchDepNames": ["go", "cimg/go"],
+      "matchFileNames": [
+        "**/.goreleaser.yml.envsubst",
+        ".circleci/config.yml"
+      ]
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["!go"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "Go non-major updates"
     },
     {
       "matchManagers": ["gomod"],
+      "matchDepNames": ["!go"],
       "matchUpdateTypes": ["major"],
       "groupName": "Go major updates"
     },
@@ -93,11 +124,13 @@
     },
     {
       "matchManagers": ["circleci"],
+      "matchDepNames": ["!cimg/go"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "CircleCI non-major updates"
     },
     {
       "matchManagers": ["circleci"],
+      "matchDepNames": ["!cimg/go"],
       "matchUpdateTypes": ["major"],
       "groupName": "CircleCI major updates"
     },
