@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/right-sizer
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4

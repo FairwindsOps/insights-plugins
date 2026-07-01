@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.6
+* Build with Go 1.26.4 (stdlib CVE-2026-42504, CVE-2026-42507, CVE-2026-27145) via module `go` version and `GOTOOLCHAIN=go1.26.4` in release builds.
+
 ## 0.1.5
 * Bump library github.com/google/go-containerregistry to v0.21.7
 * Bump indirect libraries dependencies
