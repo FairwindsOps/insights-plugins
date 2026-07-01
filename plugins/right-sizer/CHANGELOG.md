@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.20
+* Build with Go 1.26.4 (stdlib CVE-2026-42504, CVE-2026-42507, CVE-2026-27145) via module `go` version and `GOTOOLCHAIN=go1.26.4` in release builds.
+
 ## 0.6.19
 * Bump library k8s.io/api to v0.36.2
 * Bump library k8s.io/apimachinery to v0.36.2

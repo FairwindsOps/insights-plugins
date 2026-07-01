@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.28
+* Build with Go 1.26.4 (stdlib CVE-2026-42504, CVE-2026-42507, CVE-2026-27145) via module `go` version and `GOTOOLCHAIN=go1.26.4` in release builds.
+
 ## 0.4.27
 * Bump library github.com/falcosecurity/falcosidekick to v0.0.0-20260622152004-92f1125b1ed1
 

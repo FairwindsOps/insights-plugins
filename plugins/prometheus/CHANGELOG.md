@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.11
+* Build with Go 1.26.4 (stdlib CVE-2026-42504, CVE-2026-42507, CVE-2026-27145) via module `go` version and `GOTOOLCHAIN=go1.26.4` in release builds.
+
 ## 1.9.10
 * Bump library github.com/prometheus/common to v0.69.0
 
