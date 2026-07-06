@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
@@ -20,6 +19,7 @@ type Config struct {
 	Organization        string
 	Cluster             string
 	AuthToken           string
+	TLS                 TLSConfig
 	BatchSize           int
 	FlushInterval       time.Duration
 	ReconnectBackoffMin time.Duration
@@ -144,9 +144,14 @@ func (c *Client) runConnected(ctx context.Context, stream insightsv1.NetworkFlow
 }
 
 func (c *Client) dialStream(ctx context.Context) (*grpc.ClientConn, insightsv1.NetworkFlowIngest_PushEnrichedEventsClient, error) {
+	creds, err := transportCredentials(c.cfg.InsightsAddr, c.cfg.TLS)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	conn, err := grpc.NewClient(
 		c.cfg.InsightsAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithTransportCredentials(creds),
 	)
 	if err != nil {
 		return nil, nil, err
