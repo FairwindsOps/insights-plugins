@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.44
+* Bump library github.com/aws/aws-sdk-go-v2/config to v1.32.26
+* Bump library github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to v1.78.1
+* Bump indirect libraries dependencies
+
 ## 0.2.43
 * Build with Go 1.26.4 (stdlib CVE-2026-42504, CVE-2026-42507, CVE-2026-27145) via module `go` version and `GOTOOLCHAIN=go1.26.4` in release builds.
 
