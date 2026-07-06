@@ -84,11 +84,16 @@ When configured, the collector forwards enriched events to the Insights API over
 | Flag | Env | Description |
 |---|---|---|
 | `-insights-grpc-addr` | `INSIGHTS_GRPC_ADDR` | Insights network flow gRPC address |
+| `-insights-grpc-tls` | `INSIGHTS_GRPC_TLS` | TLS mode: `auto` (default), `true`, or `false` |
+| `-insights-grpc-tls-server-name` | `INSIGHTS_GRPC_TLS_SERVER_NAME` | TLS server name; defaults to hostname from addr |
+| `-insights-grpc-tls-ca-file` | `INSIGHTS_GRPC_TLS_CA_FILE` | Optional PEM file with extra CA certs |
 | `-organization` | `ORGANIZATION` | Insights organization slug |
 | `-cluster` | `CLUSTER` | Insights cluster name |
 | `-auth-token` | `AUTH_TOKEN` | Insights cluster auth token |
 
-All four upstream settings are required when `INSIGHTS_GRPC_ADDR` is set.
+All four upstream identity settings are required when `INSIGHTS_GRPC_ADDR` is set.
+
+TLS is enabled automatically when the address uses port `443` or an `https://` prefix. For ALB-terminated gRPC (e.g. `grpc.staging.insights.fairwinds.com:443`), set the public hostname as the address and leave TLS on `auto`.
 
 ### Retention flags
 

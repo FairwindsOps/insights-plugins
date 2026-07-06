@@ -30,6 +30,9 @@ func main() {
 	maxEvents := flag.Int("max-events", parseIntEnv("MAX_EVENTS", 100_000), "maximum in-memory flow events")
 	maxAge := flag.Duration("max-age", parseDurationEnv("MAX_AGE", 15*time.Minute), "maximum age of retained flow events")
 	insightsAddr := flag.String("insights-grpc-addr", envOr("INSIGHTS_GRPC_ADDR", ""), "Insights network flow gRPC address; disabled when empty")
+	insightsTLS := flag.String("insights-grpc-tls", envOr("INSIGHTS_GRPC_TLS", "auto"), "Insights upstream TLS mode: auto, true, or false")
+	insightsTLSServerName := flag.String("insights-grpc-tls-server-name", envOr("INSIGHTS_GRPC_TLS_SERVER_NAME", ""), "TLS server name for Insights upstream; defaults to hostname from insights-grpc-addr")
+	insightsTLSCAFile := flag.String("insights-grpc-tls-ca-file", envOr("INSIGHTS_GRPC_TLS_CA_FILE", ""), "optional PEM file with additional CA certs for Insights upstream TLS")
 	organization := flag.String("organization", envOr("ORGANIZATION", ""), "Insights organization slug")
 	cluster := flag.String("cluster", envOr("CLUSTER", ""), "Insights cluster name")
 	authToken := flag.String("auth-token", envOr("AUTH_TOKEN", ""), "Insights cluster auth token")
@@ -67,10 +70,15 @@ func main() {
 			os.Exit(1)
 		}
 		upstreamClient = upstream.NewClient(upstream.Config{
-			InsightsAddr:        *insightsAddr,
-			Organization:        *organization,
-			Cluster:             *cluster,
-			AuthToken:           *authToken,
+			InsightsAddr: *insightsAddr,
+			Organization: *organization,
+			Cluster:      *cluster,
+			AuthToken:    *authToken,
+			TLS: upstream.TLSConfig{
+				Mode:       upstream.ParseTLSMode(*insightsTLS),
+				ServerName: *insightsTLSServerName,
+				CAFile:     *insightsTLSCAFile,
+			},
 			BatchSize:           *upstreamBatchSize,
 			FlushInterval:       *upstreamFlushInterval,
 			ReconnectBackoffMin: *reconnectBackoffMin,
