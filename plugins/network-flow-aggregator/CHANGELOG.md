@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.7
+* Bump library google.golang.org/grpc to v1.82.0
+* Bump indirect libraries dependencies
+
 ## 0.0.6
 * Add TLS support for Insights upstream gRPC client (auto-enabled on port 443)
 
