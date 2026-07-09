@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.31
+* Bump library github.com/open-policy-agent/opa to v1.18.2
+
 ## 3.1.30
 * Bump library github.com/open-policy-agent/opa to v1.18.1
 
