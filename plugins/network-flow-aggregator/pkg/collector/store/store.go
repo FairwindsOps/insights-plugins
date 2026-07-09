@@ -15,6 +15,11 @@ type Enrichment struct {
 	DstNamespace    string
 	DstKind         string
 	DstName         string
+	BackendWorkloadNamespace string
+	BackendWorkloadKind      string
+	BackendWorkloadName      string
+	BackendPodNamespace      string
+	BackendPodName           string
 }
 
 type ListOpts struct {
@@ -118,6 +123,19 @@ func enrichedFromEvent(nodeName, agentID string, event *aggregv1.FlowEvent, enri
 			Namespace: enrich.DstNamespace,
 			Kind:      enrich.DstKind,
 			Name:      enrich.DstName,
+		}
+	}
+	if enrich.BackendWorkloadKind != "" || enrich.BackendWorkloadName != "" {
+		out.BackendWorkload = &insightsv1.KubernetesRef{
+			Namespace: enrich.BackendWorkloadNamespace,
+			Kind:      enrich.BackendWorkloadKind,
+			Name:      enrich.BackendWorkloadName,
+		}
+	}
+	if enrich.BackendPodName != "" {
+		out.BackendPod = &insightsv1.WorkloadRef{
+			Namespace: enrich.BackendPodNamespace,
+			Pod:       enrich.BackendPodName,
 		}
 	}
 	return out

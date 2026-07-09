@@ -36,6 +36,8 @@ type EnrichedFlowEvent struct {
 	BytesSent         int64                  `protobuf:"varint,11,opt,name=bytes_sent,json=bytesSent,proto3" json:"bytes_sent,omitempty"`
 	BytesReceived     int64                  `protobuf:"varint,12,opt,name=bytes_received,json=bytesReceived,proto3" json:"bytes_received,omitempty"`
 	Dns               *DnsDetails            `protobuf:"bytes,13,opt,name=dns,proto3" json:"dns,omitempty"`
+	BackendWorkload   *KubernetesRef         `protobuf:"bytes,14,opt,name=backend_workload,json=backendWorkload,proto3" json:"backend_workload,omitempty"`
+	BackendPod        *WorkloadRef           `protobuf:"bytes,15,opt,name=backend_pod,json=backendPod,proto3" json:"backend_pod,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -157,6 +159,20 @@ func (x *EnrichedFlowEvent) GetBytesReceived() int64 {
 func (x *EnrichedFlowEvent) GetDns() *DnsDetails {
 	if x != nil {
 		return x.Dns
+	}
+	return nil
+}
+
+func (x *EnrichedFlowEvent) GetBackendWorkload() *KubernetesRef {
+	if x != nil {
+		return x.BackendWorkload
+	}
+	return nil
+}
+
+func (x *EnrichedFlowEvent) GetBackendPod() *WorkloadRef {
+	if x != nil {
+		return x.BackendPod
 	}
 	return nil
 }
@@ -285,7 +301,7 @@ var File_api_v1_ingest_proto protoreflect.FileDescriptor
 
 const file_api_v1_ingest_proto_rawDesc = "" +
 	"\n" +
-	"\x13api/v1/ingest.proto\x12\x06api.v1\x1a\x12api/v1/types.proto\"\xb5\x04\n" +
+	"\x13api/v1/ingest.proto\x12\x06api.v1\x1a\x12api/v1/types.proto\"\xad\x05\n" +
 	"\x11EnrichedFlowEvent\x12\x1b\n" +
 	"\tnode_name\x18\x01 \x01(\tR\bnodeName\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x124\n" +
@@ -302,7 +318,10 @@ const file_api_v1_ingest_proto_rawDesc = "" +
 	"\n" +
 	"bytes_sent\x18\v \x01(\x03R\tbytesSent\x12%\n" +
 	"\x0ebytes_received\x18\f \x01(\x03R\rbytesReceived\x12$\n" +
-	"\x03dns\x18\r \x01(\v2\x12.api.v1.DnsDetailsR\x03dns\"\xc1\x01\n" +
+	"\x03dns\x18\r \x01(\v2\x12.api.v1.DnsDetailsR\x03dns\x12@\n" +
+	"\x10backend_workload\x18\x0e \x01(\v2\x15.api.v1.KubernetesRefR\x0fbackendWorkload\x124\n" +
+	"\vbackend_pod\x18\x0f \x01(\v2\x13.api.v1.WorkloadRefR\n" +
+	"backendPod\"\xc1\x01\n" +
 	"\x16EnrichedFlowEventBatch\x12\"\n" +
 	"\forganization\x18\x01 \x01(\tR\forganization\x12\x18\n" +
 	"\acluster\x18\x02 \x01(\tR\acluster\x12\x1b\n" +
@@ -347,14 +366,16 @@ var file_api_v1_ingest_proto_depIdxs = []int32{
 	7,  // 5: api.v1.EnrichedFlowEvent.dst:type_name -> api.v1.Endpoint
 	6,  // 6: api.v1.EnrichedFlowEvent.dst_ref:type_name -> api.v1.KubernetesRef
 	8,  // 7: api.v1.EnrichedFlowEvent.dns:type_name -> api.v1.DnsDetails
-	0,  // 8: api.v1.EnrichedFlowEventBatch.events:type_name -> api.v1.EnrichedFlowEvent
-	1,  // 9: api.v1.NetworkFlowIngest.PushEnrichedEvents:input_type -> api.v1.EnrichedFlowEventBatch
-	2,  // 10: api.v1.NetworkFlowIngest.PushEnrichedEvents:output_type -> api.v1.PushAck
-	10, // [10:11] is the sub-list for method output_type
-	9,  // [9:10] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	6,  // 8: api.v1.EnrichedFlowEvent.backend_workload:type_name -> api.v1.KubernetesRef
+	5,  // 9: api.v1.EnrichedFlowEvent.backend_pod:type_name -> api.v1.WorkloadRef
+	0,  // 10: api.v1.EnrichedFlowEventBatch.events:type_name -> api.v1.EnrichedFlowEvent
+	1,  // 11: api.v1.NetworkFlowIngest.PushEnrichedEvents:input_type -> api.v1.EnrichedFlowEventBatch
+	2,  // 12: api.v1.NetworkFlowIngest.PushEnrichedEvents:output_type -> api.v1.PushAck
+	12, // [12:13] is the sub-list for method output_type
+	11, // [11:12] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_ingest_proto_init() }

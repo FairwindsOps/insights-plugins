@@ -106,6 +106,50 @@ func TestEndpointSliceSkipsNotReady(t *testing.T) {
 	}
 }
 
+func TestEndpointIndexPodTargetRef(t *testing.T) {
+	services := []*corev1.Service{
+		{
+			ObjectMeta: metav1.ObjectMeta{Namespace: "payments", Name: "backend"},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: "10.96.89.41",
+				Ports:     []corev1.ServicePort{{Port: 8080, TargetPort: intstr.FromInt32(8080)}},
+			},
+		},
+	}
+
+	ready := true
+	slices := []*discoveryv1.EndpointSlice{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "payments",
+				Name:      "backend-abc",
+				Labels:    map[string]string{discoveryv1.LabelServiceName: "backend"},
+			},
+			Ports: []discoveryv1.EndpointPort{{Port: ptrInt32(8080)}},
+			Endpoints: []discoveryv1.Endpoint{
+				{
+					Addresses: []string{"10.244.0.95"},
+					Conditions: discoveryv1.EndpointConditions{Ready: &ready},
+					TargetRef: &corev1.ObjectReference{
+						Kind:      "Pod",
+						Namespace: "payments",
+						Name:      "backend-6f9c48f647-vnbzk",
+					},
+				},
+			},
+		},
+	}
+
+	idx := buildEndpointIndex(services, slices)
+	entry, ok := idx.lookup("10.244.0.95", 8080)
+	if !ok {
+		t.Fatal("expected endpoint lookup")
+	}
+	if entry.ServiceName != "backend" || entry.PodName != "backend-6f9c48f647-vnbzk" {
+		t.Fatalf("entry = %#v", entry)
+	}
+}
+
 func ptrInt32(v int32) *int32 {
 	return &v
 }

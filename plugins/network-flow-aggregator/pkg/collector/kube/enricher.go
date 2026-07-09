@@ -8,6 +8,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -133,15 +134,8 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 		return fallback
 	}
 
-	services, err := e.svcLister.List(labels.Everything())
-	if err != nil {
-		e.log.Debug("service list failed", "err", err)
-		return fallback
-	}
-
-	slices, err := e.epSliceLister.List(labels.Everything())
-	if err != nil {
-		e.log.Debug("endpointslice list failed", "err", err)
+	services, slices, ok := e.listServicesAndSlices()
+	if !ok {
 		return fallback
 	}
 
@@ -155,6 +149,49 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 		}
 	}
 	return fallback
+}
+
+func (e *Enricher) LookupEndpoint(addr string, port uint32) (EndpointEntry, bool) {
+	if addr == "" || port == 0 {
+		return EndpointEntry{}, false
+	}
+	services, slices, ok := e.listServicesAndSlices()
+	if !ok {
+		return EndpointEntry{}, false
+	}
+	idx := buildEndpointIndex(services, slices)
+	return idx.lookup(addr, port)
+}
+
+func (e *Enricher) ResolveBackendFromEndpoint(addr string, port uint32) (BackendIdentity, bool) {
+	entry, ok := e.LookupEndpoint(addr, port)
+	if !ok || entry.PodName == "" {
+		return BackendIdentity{}, false
+	}
+	workload := e.ResolveSrcWorkload(entry.PodNamespace, entry.PodName)
+	return BackendIdentity{
+		PodNamespace:      entry.PodNamespace,
+		PodName:           entry.PodName,
+		WorkloadNamespace: workload.Namespace,
+		WorkloadKind:      workload.Kind,
+		WorkloadName:      workload.Name,
+		ServiceNamespace:  entry.ServiceNamespace,
+		ServiceName:       entry.ServiceName,
+	}, true
+}
+
+func (e *Enricher) listServicesAndSlices() ([]*corev1.Service, []*discoveryv1.EndpointSlice, bool) {
+	services, err := e.svcLister.List(labels.Everything())
+	if err != nil {
+		e.log.Debug("service list failed", "err", err)
+		return nil, nil, false
+	}
+	slices, err := e.epSliceLister.List(labels.Everything())
+	if err != nil {
+		e.log.Debug("endpointslice list failed", "err", err)
+		return nil, nil, false
+	}
+	return services, slices, true
 }
 
 func podToUnstructured(pod *corev1.Pod) (unstructured.Unstructured, error) {
