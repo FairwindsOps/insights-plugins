@@ -1,6 +1,6 @@
-# do not change cloudnative-pg base image as it is required for kubernetes deployment
-# Use minimal-trixie for fewer packages and newer Debian (fewer vulns than default bullseye)
-FROM ghcr.io/cloudnative-pg/postgresql:18.3-minimal-trixie
+# do not change cloudnative-pg base image as it is required for k8s deployment
+# Postgres 17.5 still ships docker-entrypoint.sh (needed for local pg-docker).
+FROM ghcr.io/cloudnative-pg/postgresql:17.5
 
 USER root
 
@@ -19,7 +19,7 @@ RUN apt-get update \
         make \
         gcc \
         libc6-dev \
-        postgresql-server-dev-18 \
+        postgresql-server-dev-17 \
     && wget -O /tmp/pg_partman.tar.gz "https://github.com/pgpartman/pg_partman/archive/refs/tags/$PG_PARTMAN_VERSION.tar.gz" \
     && mkdir -p /usr/src/pg_partman \
     && tar --extract --file /tmp/pg_partman.tar.gz --directory /usr/src/pg_partman --strip-components 1 \
@@ -33,7 +33,7 @@ RUN apt-get update \
         make \
         gcc \
         libc6-dev \
-        postgresql-server-dev-18 \
+        postgresql-server-dev-17 \
     && rm -rf /var/lib/apt/lists/*
 
 USER 999

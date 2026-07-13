@@ -1,5 +1,8 @@
 # Changelog
 
+## 17.0.3
+* Restore Postgres 17.5 base image — 17.0.2 incorrectly published Postgres 18 under 17.x tags (no entrypoint; local pg-docker exits immediately)
+
 ## 17.0.2
 * Reducing vulnerabilities
 

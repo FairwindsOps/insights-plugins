@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.8
+* Bump library github.com/inspektor-gadget/inspektor-gadget to v0.54.0
+* Bump indirect libraries dependencies
+
 ## 0.0.7
 * Bump library google.golang.org/grpc to v1.82.0
 * Bump indirect libraries dependencies
