@@ -4,7 +4,7 @@ FROM postgres:18 AS official-postgres
 
 # do not change cloudnative-pg base image as it is required for k8s deployment
 # Use minimal-trixie for fewer packages and newer Debian (fewer vulns than default bullseye)
-FROM ghcr.io/cloudnative-pg/postgresql:18.3-minimal-trixie
+FROM ghcr.io/cloudnative-pg/postgresql:18.4-minimal-trixie
 
 USER root
 
