@@ -1,5 +1,11 @@
 # Changelog
 
+## 18.0.0
+* BREAKING CHANGE: upgrade to Postgres 18 (cloudnative-pg `18.3-minimal-trixie`)
+* Add `docker-entrypoint.sh` so local `pg-docker` works (CNPG 18 images ship no entrypoint)
+* Default `listen_addresses=*` for local docker port publishing (CNPG overrides CMD in-cluster)
+* Container user is UID 26 (CNPG postgres), not 999
+
 ## 17.0.3
 * Restore Postgres 17.5 base image — 17.0.2 incorrectly published Postgres 18 under 17.x tags (no entrypoint; local pg-docker exits immediately)
 
