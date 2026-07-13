@@ -77,6 +77,17 @@ DNS responses from `trace_dns` populate an in-memory IP-to-hostname cache (TTL m
 
 External destinations resolve to `dst_ref.kind = ExternalHostname` with the queried hostname (e.g. `api.stripe.com`).
 
+### Service backend attribution
+
+For TCP flows where `dst_ref.kind = Service`, the collector attempts to identify which backend pod/workload received the connection:
+
+1. **Direct pod IP:** when the client connects to an EndpointSlice address, resolve the pod from `TargetRef` and roll up to its top-controller workload.
+2. **ClusterIP correlation:** index server-side events whose `(src_addr, src_port)` matches a ready endpoint; map the client peer `(dst_addr, dst_port)` to that backend for later client→Service events on the same `(src_addr, src_port)`.
+
+Backend identity is attached only on **client→Service** rows (`backend_workload`, `backend_pod` on `EnrichedFlowEvent`). Server-side rows are correlation inputs only; byte totals on Service→backend edges use client-side TRAFFIC bytes to avoid double-counting.
+
+**Limitations:** SNAT/NodePort/external clients, missing agents on backend nodes, ephemeral port reuse, and hostNetwork/API-server traffic (e.g. `kubernetes` Service on node addresses) may leave backend fields empty. The collector does not invent replicas or spread bytes evenly across backends.
+
 ## Insights upstream
 
 When configured, the collector forwards enriched events to the Insights API over gRPC after local enrichment.
@@ -113,3 +124,11 @@ export CLUSTER=
 
 ./test/network-flow-e2e/kind-e2e.sh all
 ```
+
+### Demo cluster verification (Service→backend)
+
+1. Deploy a frontend→backend Service with at least two backend replicas.
+2. Confirm enriched client→Service TRAFFIC events include `backend_workload` and `backend_pod`; server-side peer events do not.
+3. Query Insights `GET .../network-observability/service-map` — Workload→Service byte totals unchanged.
+4. Query `GET .../network-observability/service-backends` — per-backend byte split matches client-side raw event sums for the same window.
+5. Stop the network-flow agent on one backend node and confirm unattributed Service traffic remains possible (empty backend fields, no fabricated split).

@@ -20,6 +20,8 @@ message EnrichedFlowEvent {
   int64 bytes_sent = 11;
   int64 bytes_received = 12;
   DnsDetails dns = 13;
+  KubernetesRef backend_workload = 14;
+  WorkloadRef backend_pod = 15;
 }
 
 message EnrichedFlowEventBatch {

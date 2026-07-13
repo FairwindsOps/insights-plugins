@@ -10,25 +10,42 @@ import (
 
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/dns"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/kube"
+	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/peerindex"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/store"
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/collector/upstream"
 	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
+const defaultPeerIndexTTL = 5 * time.Minute
+
+type flowEnricher interface {
+	ResolveSrcWorkload(namespace, podName string) kube.WorkloadIdentity
+	ResolveDst(addr string, port uint32) kube.DstIdentity
+	LookupEndpoint(addr string, port uint32) (kube.EndpointEntry, bool)
+}
+
 type Server struct {
 	aggregv1.UnimplementedAgentIngestServer
-	store    *store.Store
-	enricher *kube.Enricher
-	dnsCache *dns.Cache
-	upstream *upstream.Client
-	log      *slog.Logger
+	store     *store.Store
+	enricher  flowEnricher
+	dnsCache  *dns.Cache
+	peerIndex *peerindex.Index
+	upstream  *upstream.Client
+	log       *slog.Logger
 }
 
 func NewServer(st *store.Store, enricher *kube.Enricher, dnsCache *dns.Cache, upstreamClient *upstream.Client, log *slog.Logger) *Server {
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Server{store: st, enricher: enricher, dnsCache: dnsCache, upstream: upstreamClient, log: log}
+	return &Server{
+		store:     st,
+		enricher:  enricher,
+		dnsCache:  dnsCache,
+		peerIndex: peerindex.New(defaultPeerIndexTTL),
+		upstream:  upstreamClient,
+		log:       log,
+	}
 }
 
 func (s *Server) PushEvents(stream aggregv1.AgentIngest_PushEventsServer) error {
@@ -106,7 +123,7 @@ func (s *Server) enrichEvent(event *aggregv1.FlowEvent) store.Enrichment {
 		}
 	}
 
-	return store.Enrichment{
+	enrichment := store.Enrichment{
 		SrcNamespace:    src.Namespace,
 		SrcWorkloadKind: src.Kind,
 		SrcWorkloadName: src.Name,
@@ -114,4 +131,87 @@ func (s *Server) enrichEvent(event *aggregv1.FlowEvent) store.Enrichment {
 		DstKind:         dst.Kind,
 		DstName:         dst.Name,
 	}
+
+	s.recordServerPeer(event, src)
+	if dst.Kind == "Service" {
+		if backend, ok := s.resolveClientBackend(event, dst); ok {
+			enrichment.BackendWorkloadNamespace = backend.WorkloadNamespace
+			enrichment.BackendWorkloadKind = backend.WorkloadKind
+			enrichment.BackendWorkloadName = backend.WorkloadName
+			enrichment.BackendPodNamespace = backend.PodNamespace
+			enrichment.BackendPodName = backend.PodName
+		}
+	}
+
+	return enrichment
+}
+
+func (s *Server) recordServerPeer(event *aggregv1.FlowEvent, src kube.WorkloadIdentity) {
+	if s.enricher == nil || s.peerIndex == nil {
+		return
+	}
+	srcAddr := event.GetSrcEndpoint().GetAddr()
+	srcPort := event.GetSrcEndpoint().GetPort()
+	if srcAddr == "" || srcPort == 0 {
+		return
+	}
+	entry, ok := s.enricher.LookupEndpoint(srcAddr, srcPort)
+	if !ok {
+		return
+	}
+	clientAddr := event.GetDst().GetAddr()
+	clientPort := event.GetDst().GetPort()
+	if clientAddr == "" || clientPort == 0 {
+		return
+	}
+	now := time.Unix(0, event.GetTimestampUnixNano())
+	if event.GetTimestampUnixNano() == 0 {
+		now = time.Now()
+	}
+	s.peerIndex.Put(clientAddr, clientPort, kube.BackendIdentity{
+		PodNamespace:      event.GetSrc().GetNamespace(),
+		PodName:           event.GetSrc().GetPod(),
+		WorkloadNamespace: src.Namespace,
+		WorkloadKind:      src.Kind,
+		WorkloadName:      src.Name,
+		ServiceNamespace:  entry.ServiceNamespace,
+		ServiceName:       entry.ServiceName,
+	}, now)
+}
+
+func (s *Server) resolveClientBackend(event *aggregv1.FlowEvent, dst kube.DstIdentity) (kube.BackendIdentity, bool) {
+	if s.enricher == nil {
+		return kube.BackendIdentity{}, false
+	}
+
+	dstAddr := event.GetDst().GetAddr()
+	dstPort := event.GetDst().GetPort()
+	if entry, ok := s.enricher.LookupEndpoint(dstAddr, dstPort); ok && entry.PodName != "" {
+		if entry.ServiceNamespace == dst.Namespace && entry.ServiceName == dst.Name {
+			workload := s.enricher.ResolveSrcWorkload(entry.PodNamespace, entry.PodName)
+			return kube.BackendIdentity{
+				PodNamespace:      entry.PodNamespace,
+				PodName:           entry.PodName,
+				WorkloadNamespace: workload.Namespace,
+				WorkloadKind:      workload.Kind,
+				WorkloadName:      workload.Name,
+				ServiceNamespace:  entry.ServiceNamespace,
+				ServiceName:       entry.ServiceName,
+			}, true
+		}
+	}
+
+	if s.peerIndex == nil {
+		return kube.BackendIdentity{}, false
+	}
+	clientAddr := event.GetSrcEndpoint().GetAddr()
+	clientPort := event.GetSrcEndpoint().GetPort()
+	if clientAddr == "" || clientPort == 0 {
+		return kube.BackendIdentity{}, false
+	}
+	backend, ok := s.peerIndex.Lookup(clientAddr, clientPort)
+	if !ok || !backend.MatchesService(dst.Namespace, dst.Name) {
+		return kube.BackendIdentity{}, false
+	}
+	return backend, true
 }
