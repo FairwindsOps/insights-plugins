@@ -220,7 +220,7 @@ func TestFinalizeImagesSortsDeterministically(t *testing.T) {
 	require.Equal(t, "z", images[0].Owners[1].Name)
 }
 
-func TestListRunningImagesControllerPass(t *testing.T) {
+func TestListImagesControllerPass(t *testing.T) {
 	pod := runningPod("default", "api-abc", corev1.ContainerStatus{
 		Name:    "app",
 		Image:   "nginx:1.25",
@@ -262,7 +262,7 @@ func TestListRunningImagesControllerPass(t *testing.T) {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 	)
 
-	result, err := ListRunningImages(context.Background(), client, controllers)
+	result, err := ListImages(context.Background(), client, controllers)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Deployment", result.Images[0].Owners[0].Kind)
@@ -273,7 +273,7 @@ func TestListRunningImagesControllerPass(t *testing.T) {
 	require.Empty(t, result.Images[0].Owners[0].PodAnnotations)
 }
 
-func TestListRunningImagesOrphanPodPass(t *testing.T) {
+func TestListImagesOrphanPodPass(t *testing.T) {
 	pod := runningPod("default", "standalone", corev1.ContainerStatus{
 		Name:    "app",
 		Image:   "nginx:1.25",
@@ -287,7 +287,7 @@ func TestListRunningImagesOrphanPodPass(t *testing.T) {
 		pod,
 	)
 
-	result, err := ListRunningImages(context.Background(), client, nil)
+	result, err := ListImages(context.Background(), client, nil)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Pod", result.Images[0].Owners[0].Kind)
@@ -296,7 +296,7 @@ func TestListRunningImagesOrphanPodPass(t *testing.T) {
 	require.Equal(t, "orphan", result.Images[0].Owners[0].Annotations["note"])
 }
 
-func TestListRunningImagesActiveJobPass(t *testing.T) {
+func TestListImagesActiveJobPass(t *testing.T) {
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "batch",
@@ -331,7 +331,7 @@ func TestListRunningImagesActiveJobPass(t *testing.T) {
 		pod,
 	)
 
-	result, err := ListRunningImages(context.Background(), client, nil)
+	result, err := ListImages(context.Background(), client, nil)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Job", result.Images[0].Owners[0].Kind)
@@ -350,7 +350,7 @@ func TestPodPhaseContributesImages(t *testing.T) {
 	require.True(t, podPhaseContributesImages(corev1.PodPending, "CronJob"))
 }
 
-func TestListRunningImagesCronJobCompletedPodPass(t *testing.T) {
+func TestListImagesCronJobCompletedPodPass(t *testing.T) {
 	pod := completedPod("insights-agent", "trivy-29732745-84kb8", corev1.PodSucceeded, corev1.ContainerStatus{
 		Name:    "trivy",
 		Image:   "quay.io/fairwinds/trivy:1.0",
@@ -378,7 +378,7 @@ func TestListRunningImagesCronJobCompletedPodPass(t *testing.T) {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "insights-agent"}},
 	)
 
-	result, err := ListRunningImages(context.Background(), client, controllers)
+	result, err := ListImages(context.Background(), client, controllers)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "CronJob", result.Images[0].Owners[0].Kind)
@@ -389,7 +389,7 @@ func TestListRunningImagesCronJobCompletedPodPass(t *testing.T) {
 	require.Equal(t, "quay.io/fairwinds/trivy@sha256:trivy", result.Images[0].ID)
 }
 
-func TestListRunningImagesDeploymentIgnoresSucceededPod(t *testing.T) {
+func TestListImagesDeploymentIgnoresSucceededPod(t *testing.T) {
 	pod := completedPod("default", "api-abc", corev1.PodSucceeded, corev1.ContainerStatus{
 		Name:    "app",
 		Image:   "nginx:1.25",
@@ -417,12 +417,12 @@ func TestListRunningImagesDeploymentIgnoresSucceededPod(t *testing.T) {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 	)
 
-	result, err := ListRunningImages(context.Background(), client, controllers)
+	result, err := ListImages(context.Background(), client, controllers)
 	require.NoError(t, err)
 	require.Empty(t, result.Images)
 }
 
-func TestListRunningImagesCompletedJobOwnedByCronJob(t *testing.T) {
+func TestListImagesCompletedJobOwnedByCronJob(t *testing.T) {
 	trueVal := true
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -471,7 +471,7 @@ func TestListRunningImagesCompletedJobOwnedByCronJob(t *testing.T) {
 		pod,
 	)
 
-	result, err := ListRunningImages(context.Background(), client, nil)
+	result, err := ListImages(context.Background(), client, nil)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "CronJob", result.Images[0].Owners[0].Kind)
@@ -480,7 +480,7 @@ func TestListRunningImagesCompletedJobOwnedByCronJob(t *testing.T) {
 	require.Empty(t, result.Images[0].Owners[0].Annotations)
 }
 
-func TestListRunningImagesCompletedStandaloneJob(t *testing.T) {
+func TestListImagesCompletedStandaloneJob(t *testing.T) {
 	trueVal := true
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -521,7 +521,7 @@ func TestListRunningImagesCompletedStandaloneJob(t *testing.T) {
 		pod,
 	)
 
-	result, err := ListRunningImages(context.Background(), client, nil)
+	result, err := ListImages(context.Background(), client, nil)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Job", result.Images[0].Owners[0].Kind)

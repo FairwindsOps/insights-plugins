@@ -17,11 +17,11 @@ import (
 
 const dockerIOPrefix = "index.docker.io/"
 
-// ListRunningImages returns container images discovered across the cluster for repository inventory.
+// ListImages returns container images discovered across the cluster for repository inventory.
 // It includes Running pods for all controllers, plus Succeeded/Failed pods for CronJob and Job
 // owners so short-lived batch workloads still appear after completion. CronJob-owned Jobs are
 // attributed to the CronJob. controllers should be GetAllTopControllersWithPods when available.
-func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface, controllers []fwControllerUtils.Workload) (Result, error) {
+func ListImages(ctx context.Context, kubeClient kubernetes.Interface, controllers []fwControllerUtils.Workload) (Result, error) {
 	if kubeClient == nil {
 		return Result{}, fmt.Errorf("kubernetes client is required")
 	}
