@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.0.8
-* Enriches existing client -> Service flow events with optional backend workload/pod identity using EndpointSlice pod lookup and server-side peer correlation. Enables Service→backend workload metrics downstream in Insights.
+* Enriches existing client→Service flow events with optional backend workload/pod identity using EndpointSlice pod lookup and server-side peer correlation. This enables Service→backend attribution on Insights.
 
 ## 0.0.7
 * Bump library google.golang.org/grpc to v1.82.0
