@@ -350,6 +350,44 @@ func TestPodPhaseContributesImages(t *testing.T) {
 	require.True(t, podPhaseContributesImages(corev1.PodPending, "CronJob"))
 }
 
+func TestListImagesPrefersPodSpecOverTruncatedStatusImage(t *testing.T) {
+	pod := completedPod("insights-agent", "workloads-29732785-x9h2f", corev1.PodSucceeded, corev1.ContainerStatus{
+		Name:    "workloads",
+		Image:   "quay.io/fairwinds/workloads:2",
+		ImageID: "quay.io/fairwinds/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd",
+	})
+	pod.Spec.Containers = []corev1.Container{
+		{Name: "workloads", Image: "quay.io/fairwinds/workloads:2.10"},
+	}
+	podUnstructured, err := podToUnstructured(pod)
+	require.NoError(t, err)
+
+	controllers := []fwControllerUtils.Workload{
+		{
+			TopController: unstructured.Unstructured{
+				Object: map[string]any{
+					"kind": "CronJob",
+					"metadata": map[string]any{
+						"name":      "workloads",
+						"namespace": "insights-agent",
+					},
+				},
+			},
+			Pods: []unstructured.Unstructured{*podUnstructured},
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "insights-agent"}},
+	)
+
+	result, err := ListImages(context.Background(), client, controllers)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "quay.io/fairwinds/workloads:2.10", result.Images[0].Name)
+	require.Equal(t, "quay.io/fairwinds/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd", result.Images[0].ID)
+}
+
 func TestListImagesCronJobCompletedPodPass(t *testing.T) {
 	pod := completedPod("insights-agent", "trivy-29732745-84kb8", corev1.PodSucceeded, corev1.ContainerStatus{
 		Name:    "trivy",

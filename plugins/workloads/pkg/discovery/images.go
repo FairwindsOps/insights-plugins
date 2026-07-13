@@ -72,7 +72,7 @@ func recordControllerPods(
 			seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 
 			for _, status := range containerStatusesFromPod(pod) {
-				keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+				keyToImage, imageOwners = recordContainerImage(statusWithPreferredImage(pod, status), owner, keyToImage, imageOwners)
 			}
 		}
 	}
@@ -186,7 +186,7 @@ func recordOrphanPods(
 			}
 			seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 			for _, status := range containerStatusesFromPod(pod) {
-				keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+				keyToImage, imageOwners = recordContainerImage(statusWithPreferredImage(pod, status), owner, keyToImage, imageOwners)
 			}
 		}
 	}
@@ -235,7 +235,7 @@ func recordJobPods(
 				}
 				seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 				for _, status := range containerStatusesFromPod(pod) {
-					keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+					keyToImage, imageOwners = recordContainerImage(statusWithPreferredImage(pod, status), owner, keyToImage, imageOwners)
 				}
 			}
 		}
@@ -301,6 +301,34 @@ func containerStatusesFromPod(pod corev1.Pod) []corev1.ContainerStatus {
 	statuses = append(statuses, pod.Status.InitContainerStatuses...)
 	statuses = append(statuses, pod.Status.EphemeralContainerStatuses...)
 	return statuses
+}
+
+// statusWithPreferredImage prefers pod spec.image over status.image. Some CRIs
+// truncate dotted tags in status (e.g. workloads:2.10 -> workloads:2).
+func statusWithPreferredImage(pod corev1.Pod, status corev1.ContainerStatus) corev1.ContainerStatus {
+	if img := containerSpecImage(pod, status.Name); img != "" {
+		status.Image = img
+	}
+	return status
+}
+
+func containerSpecImage(pod corev1.Pod, containerName string) string {
+	for _, c := range pod.Spec.Containers {
+		if c.Name == containerName {
+			return c.Image
+		}
+	}
+	for _, c := range pod.Spec.InitContainers {
+		if c.Name == containerName {
+			return c.Image
+		}
+	}
+	for _, c := range pod.Spec.EphemeralContainers {
+		if c.Name == containerName {
+			return c.Image
+		}
+	}
+	return ""
 }
 
 func recordContainerImage(
