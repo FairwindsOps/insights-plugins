@@ -59,9 +59,25 @@ git restore ../../go.work.sum # something on the releaser process is changing th
 if [ ! -f go.mod ] ; then
   export GOWORK=off
   echo "${this_script} set GOWORK=off because this plugin has no go.mod"
-elif go list -m github.com/inspektor-gadget/inspektor-gadget >/dev/null 2>&1 ; then
-  export IG_VERSION=$(go list -m -f '{{.Version}}' github.com/inspektor-gadget/inspektor-gadget)
+elif grep -q 'github.com/inspektor-gadget/inspektor-gadget' go.mod ; then
+  # Resolve before goreleaser runs. Do not rely on go list alone: it can fail when the
+  # local Go/GOTOOLCHAIN is older than go.work, while goreleaser itself later builds with
+  # a newer toolchain from .goreleaser.yml — leaving IG_VERSION empty and breaking Docker FROM.
+  IG_VERSION="$(go list -m -f '{{.Version}}' github.com/inspektor-gadget/inspektor-gadget 2>/dev/null || true)"
+  if [ -z "${IG_VERSION}" ] ; then
+    IG_VERSION="$(awk '/github\.com\/inspektor-gadget\/inspektor-gadget($|[[:space:]])/ {print $2; exit}' go.mod)"
+  fi
+  if [ -z "${IG_VERSION}" ] ; then
+    echo "${this_script} failed to resolve IG_VERSION from go.mod for github.com/inspektor-gadget/inspektor-gadget" >&2
+    exit 1
+  fi
+  export IG_VERSION
   echo "${this_script} using IG_VERSION=${IG_VERSION} from go.mod"
+fi
+
+if grep -q 'IG_VERSION' .goreleaser.yml.envsubst && [ -z "${IG_VERSION}" ] ; then
+  echo "${this_script} .goreleaser.yml.envsubst references IG_VERSION but it is unset" >&2
+  exit 1
 fi
 
 cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml

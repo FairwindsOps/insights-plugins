@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.11
+* Fix release Docker builds when `go list` cannot resolve IG_VERSION (fall back to `go.mod`, fail if unset)
+
 ## 0.0.10
 * Bump dependencies
 

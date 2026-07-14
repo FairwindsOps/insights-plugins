@@ -37,7 +37,7 @@ dockers:
   - entrypoint
   build_flag_templates:
   - "--platform=linux/amd64"
-  - "--build-arg=IG_VERSION=${IG_VERSION}"
+  - "--build-arg=IG_VERSION={{ .Env.IG_VERSION }}"
 - image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
   use: buildx
@@ -48,7 +48,7 @@ dockers:
   - entrypoint
   build_flag_templates:
   - "--platform=linux/arm64"
-  - "--build-arg=IG_VERSION=${IG_VERSION}"
+  - "--build-arg=IG_VERSION={{ .Env.IG_VERSION }}"
 docker_manifests:
 # Create DOcker manifests that make multiple architectures available within a tag,
 # and provide partial-version tags like 2, and 2.2.
