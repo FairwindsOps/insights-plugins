@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.10.6
+* Bump dependencies
+
 ## 2.10.5
 * **Images inventory:** include non-Running pods for **CronJob** and **Job** owners so short-lived batch workloads still populate repository after completion (empty ImageID still skipped). CronJob-owned Jobs are attributed to the **CronJob** (not the ephemeral Job). Standalone Jobs remain Job owners. Deployments and other long-running controllers stay Running-only. Rename **`ListRunningImages`** → **`ListImages`**. Prefer **pod spec image** over **status.image** for `Images[].Name` (some CRIs truncate dotted tags, e.g. `workloads:2.10` → `workloads:2`).
 

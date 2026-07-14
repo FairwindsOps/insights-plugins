@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.11
+* Fix release Docker builds when `go list` cannot resolve IG_VERSION (fall back to `go.mod`, fail if unset)
+
+## 0.0.10
+* Bump dependencies
+
 ## 0.0.9
 * Derive Inspektor Gadget image tags and Docker base image from the `go.mod` dependency version (single source of truth)
 

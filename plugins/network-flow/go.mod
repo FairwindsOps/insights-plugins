@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/network-flow
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator v0.0.0
