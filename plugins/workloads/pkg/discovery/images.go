@@ -17,10 +17,11 @@ import (
 
 const dockerIOPrefix = "index.docker.io/"
 
-// ListRunningImages returns images from running containers across the full cluster.
-// controllers should be the result of GetAllTopControllersWithPods when available,
-// to avoid a duplicate controller walk.
-func ListRunningImages(ctx context.Context, kubeClient kubernetes.Interface, controllers []fwControllerUtils.Workload) (Result, error) {
+// ListImages returns container images discovered across the cluster for repository inventory.
+// It includes Running pods for all controllers, plus Succeeded/Failed pods for CronJob and Job
+// owners so short-lived batch workloads still appear after completion. CronJob-owned Jobs are
+// attributed to the CronJob. controllers should be GetAllTopControllersWithPods when available.
+func ListImages(ctx context.Context, kubeClient kubernetes.Interface, controllers []fwControllerUtils.Workload) (Result, error) {
 	if kubeClient == nil {
 		return Result{}, fmt.Errorf("kubernetes client is required")
 	}
@@ -65,17 +66,28 @@ func recordControllerPods(
 				logrus.Warnf("Unable to retrieve structured pod data: %v", err)
 				continue
 			}
-			if pod.Status.Phase != corev1.PodRunning {
+			if !podPhaseContributesImages(pod.Status.Phase, owner.Kind) {
 				continue
 			}
 			seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 
 			for _, status := range containerStatusesFromPod(pod) {
-				keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+				keyToImage, imageOwners = recordContainerImage(statusWithPreferredImage(pod, status), owner, keyToImage, imageOwners)
 			}
 		}
 	}
 	return seenPods, keyToImage, imageOwners
+}
+
+// podPhaseContributesImages reports whether a pod phase should feed Images[].
+// Long-running controllers only contribute while Running. CronJob/Job contribute
+// any phase (empty ImageID is still skipped) so completed/pending batch pods can
+// populate the repository when digests are present.
+func podPhaseContributesImages(phase corev1.PodPhase, ownerKind string) bool {
+	if phase == corev1.PodRunning {
+		return true
+	}
+	return ownerKind == "CronJob" || ownerKind == "Job"
 }
 
 // ownerFromController identifies a top-controller owner. Label maps are omitted because
@@ -174,7 +186,7 @@ func recordOrphanPods(
 			}
 			seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 			for _, status := range containerStatusesFromPod(pod) {
-				keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+				keyToImage, imageOwners = recordContainerImage(statusWithPreferredImage(pod, status), owner, keyToImage, imageOwners)
 			}
 		}
 	}
@@ -200,9 +212,6 @@ func recordJobPods(
 			return seenPods, keyToImage, imageOwners, fmt.Errorf("listing jobs in namespace %s: %w", namespace, err)
 		}
 		for _, job := range jobs.Items {
-			if !jobHasActivePods(job) {
-				continue
-			}
 			if job.Spec.Selector == nil {
 				continue
 			}
@@ -216,17 +225,9 @@ func recordJobPods(
 			if err != nil {
 				return seenPods, keyToImage, imageOwners, fmt.Errorf("listing job pods in namespace %s: %w", namespace, err)
 			}
-			owner := OwnerResult{
-				Namespace:      job.Namespace,
-				Kind:           "Job",
-				Name:           job.Name,
-				Labels:         job.Labels,
-				Annotations:    job.Annotations,
-				PodLabels:      job.Spec.Template.Labels,
-				PodAnnotations: job.Spec.Template.Annotations,
-			}
+			owner := ownerFromJob(job)
 			for _, pod := range pods.Items {
-				if pod.Status.Phase != corev1.PodRunning {
+				if !podPhaseContributesImages(pod.Status.Phase, owner.Kind) {
 					continue
 				}
 				if _, ok := seenPods[podKey(pod.Namespace, pod.Name)]; ok {
@@ -234,7 +235,7 @@ func recordJobPods(
 				}
 				seenPods = markPodSeen(seenPods, pod.Namespace, pod.Name)
 				for _, status := range containerStatusesFromPod(pod) {
-					keyToImage, imageOwners = recordContainerImage(status, owner, keyToImage, imageOwners)
+					keyToImage, imageOwners = recordContainerImage(statusWithPreferredImage(pod, status), owner, keyToImage, imageOwners)
 				}
 			}
 		}
@@ -242,8 +243,34 @@ func recordJobPods(
 	return seenPods, keyToImage, imageOwners, nil
 }
 
-func jobHasActivePods(job batchv1.Job) bool {
-	return job.Status.Active > 0
+// ownerFromJob attributes images to the owning CronJob when present; otherwise to the Job.
+// CronJob owners omit label maps (same data lives on Controllers[]). Standalone Jobs keep them.
+func ownerFromJob(job batchv1.Job) OwnerResult {
+	if ref := cronJobOwnerRef(job.OwnerReferences); ref != nil {
+		return OwnerResult{
+			Namespace: job.Namespace,
+			Kind:      "CronJob",
+			Name:      ref.Name,
+		}
+	}
+	return OwnerResult{
+		Namespace:      job.Namespace,
+		Kind:           "Job",
+		Name:           job.Name,
+		Labels:         job.Labels,
+		Annotations:    job.Annotations,
+		PodLabels:      job.Spec.Template.Labels,
+		PodAnnotations: job.Spec.Template.Annotations,
+	}
+}
+
+func cronJobOwnerRef(owners []metav1.OwnerReference) *metav1.OwnerReference {
+	for i := range owners {
+		if owners[i].Kind == "CronJob" {
+			return &owners[i]
+		}
+	}
+	return nil
 }
 
 func hasControllerOwner(owners []metav1.OwnerReference) bool {
@@ -274,6 +301,34 @@ func containerStatusesFromPod(pod corev1.Pod) []corev1.ContainerStatus {
 	statuses = append(statuses, pod.Status.InitContainerStatuses...)
 	statuses = append(statuses, pod.Status.EphemeralContainerStatuses...)
 	return statuses
+}
+
+// statusWithPreferredImage prefers pod spec.image over status.image. Some CRIs
+// truncate dotted tags in status (e.g. workloads:2.10 -> workloads:2).
+func statusWithPreferredImage(pod corev1.Pod, status corev1.ContainerStatus) corev1.ContainerStatus {
+	if img := containerSpecImage(pod, status.Name); img != "" {
+		status.Image = img
+	}
+	return status
+}
+
+func containerSpecImage(pod corev1.Pod, containerName string) string {
+	for _, c := range pod.Spec.Containers {
+		if c.Name == containerName {
+			return c.Image
+		}
+	}
+	for _, c := range pod.Spec.InitContainers {
+		if c.Name == containerName {
+			return c.Image
+		}
+	}
+	for _, c := range pod.Spec.EphemeralContainers {
+		if c.Name == containerName {
+			return c.Image
+		}
+	}
+	return ""
 }
 
 func recordContainerImage(

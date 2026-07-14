@@ -1,11 +1,11 @@
 package discovery
 
-// Result contains running container images discovered in the cluster.
+// Result contains container images discovered for repository inventory.
 type Result struct {
 	Images []ImageResult
 }
 
-// ImageResult is a running container image with workload owners.
+// ImageResult is a container image with workload owners.
 type ImageResult struct {
 	Name    string
 	ID      string
@@ -20,7 +20,8 @@ type OwnerResult struct {
 	Name      string
 	Container string
 	// Labels/Annotations/PodLabels/PodAnnotations are set only for supplemental owners
-	// (orphan Pod, active Job) that do not appear in Controllers[].
+	// (orphan Pod, standalone Job) that do not appear in Controllers[]. CronJob owners
+	// omit these maps even when discovered via a Job pod.
 	Labels         map[string]string `json:",omitempty"`
 	Annotations    map[string]string `json:",omitempty"`
 	PodLabels      map[string]string `json:",omitempty"`

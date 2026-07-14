@@ -270,7 +270,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	}
 
 	images := []discovery.ImageResult{}
-	imageDiscovery, err := discovery.ListRunningImages(ctx, kube, workloads)
+	imageDiscovery, err := discovery.ListImages(ctx, kube, workloads)
 	if err != nil {
 		logrus.Warnf("error listing running images, continuing with empty Images: %v", err)
 	} else {

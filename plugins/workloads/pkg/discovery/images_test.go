@@ -220,7 +220,7 @@ func TestFinalizeImagesSortsDeterministically(t *testing.T) {
 	require.Equal(t, "z", images[0].Owners[1].Name)
 }
 
-func TestListRunningImagesControllerPass(t *testing.T) {
+func TestListImagesControllerPass(t *testing.T) {
 	pod := runningPod("default", "api-abc", corev1.ContainerStatus{
 		Name:    "app",
 		Image:   "nginx:1.25",
@@ -262,7 +262,7 @@ func TestListRunningImagesControllerPass(t *testing.T) {
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 	)
 
-	result, err := ListRunningImages(context.Background(), client, controllers)
+	result, err := ListImages(context.Background(), client, controllers)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Deployment", result.Images[0].Owners[0].Kind)
@@ -273,7 +273,7 @@ func TestListRunningImagesControllerPass(t *testing.T) {
 	require.Empty(t, result.Images[0].Owners[0].PodAnnotations)
 }
 
-func TestListRunningImagesOrphanPodPass(t *testing.T) {
+func TestListImagesOrphanPodPass(t *testing.T) {
 	pod := runningPod("default", "standalone", corev1.ContainerStatus{
 		Name:    "app",
 		Image:   "nginx:1.25",
@@ -287,7 +287,7 @@ func TestListRunningImagesOrphanPodPass(t *testing.T) {
 		pod,
 	)
 
-	result, err := ListRunningImages(context.Background(), client, nil)
+	result, err := ListImages(context.Background(), client, nil)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Pod", result.Images[0].Owners[0].Kind)
@@ -296,7 +296,7 @@ func TestListRunningImagesOrphanPodPass(t *testing.T) {
 	require.Equal(t, "orphan", result.Images[0].Owners[0].Annotations["note"])
 }
 
-func TestListRunningImagesActiveJobPass(t *testing.T) {
+func TestListImagesActiveJobPass(t *testing.T) {
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "batch",
@@ -331,12 +331,240 @@ func TestListRunningImagesActiveJobPass(t *testing.T) {
 		pod,
 	)
 
-	result, err := ListRunningImages(context.Background(), client, nil)
+	result, err := ListImages(context.Background(), client, nil)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
 	require.Equal(t, "Job", result.Images[0].Owners[0].Kind)
 	require.Equal(t, "batch", result.Images[0].Owners[0].Name)
 	require.Equal(t, "worker", result.Images[0].Owners[0].Container)
+}
+
+func TestPodPhaseContributesImages(t *testing.T) {
+	require.True(t, podPhaseContributesImages(corev1.PodRunning, "Deployment"))
+	require.False(t, podPhaseContributesImages(corev1.PodSucceeded, "Deployment"))
+	require.False(t, podPhaseContributesImages(corev1.PodFailed, "StatefulSet"))
+	require.True(t, podPhaseContributesImages(corev1.PodRunning, "CronJob"))
+	require.True(t, podPhaseContributesImages(corev1.PodSucceeded, "CronJob"))
+	require.True(t, podPhaseContributesImages(corev1.PodFailed, "CronJob"))
+	require.True(t, podPhaseContributesImages(corev1.PodSucceeded, "Job"))
+	require.True(t, podPhaseContributesImages(corev1.PodPending, "CronJob"))
+}
+
+func TestListImagesPrefersPodSpecOverTruncatedStatusImage(t *testing.T) {
+	pod := completedPod("insights-agent", "workloads-29732785-x9h2f", corev1.PodSucceeded, corev1.ContainerStatus{
+		Name:    "workloads",
+		Image:   "quay.io/fairwinds/workloads:2",
+		ImageID: "quay.io/fairwinds/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd",
+	})
+	pod.Spec.Containers = []corev1.Container{
+		{Name: "workloads", Image: "quay.io/fairwinds/workloads:2.10"},
+	}
+	podUnstructured, err := podToUnstructured(pod)
+	require.NoError(t, err)
+
+	controllers := []fwControllerUtils.Workload{
+		{
+			TopController: unstructured.Unstructured{
+				Object: map[string]any{
+					"kind": "CronJob",
+					"metadata": map[string]any{
+						"name":      "workloads",
+						"namespace": "insights-agent",
+					},
+				},
+			},
+			Pods: []unstructured.Unstructured{*podUnstructured},
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "insights-agent"}},
+	)
+
+	result, err := ListImages(context.Background(), client, controllers)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "quay.io/fairwinds/workloads:2.10", result.Images[0].Name)
+	require.Equal(t, "quay.io/fairwinds/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd", result.Images[0].ID)
+}
+
+func TestListImagesCronJobCompletedPodPass(t *testing.T) {
+	pod := completedPod("insights-agent", "trivy-29732745-84kb8", corev1.PodSucceeded, corev1.ContainerStatus{
+		Name:    "trivy",
+		Image:   "quay.io/fairwinds/trivy:1.0",
+		ImageID: "docker-pullable://quay.io/fairwinds/trivy@sha256:trivy",
+	})
+	podUnstructured, err := podToUnstructured(pod)
+	require.NoError(t, err)
+
+	controllers := []fwControllerUtils.Workload{
+		{
+			TopController: unstructured.Unstructured{
+				Object: map[string]any{
+					"kind": "CronJob",
+					"metadata": map[string]any{
+						"name":      "trivy",
+						"namespace": "insights-agent",
+					},
+				},
+			},
+			Pods: []unstructured.Unstructured{*podUnstructured},
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "insights-agent"}},
+	)
+
+	result, err := ListImages(context.Background(), client, controllers)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "CronJob", result.Images[0].Owners[0].Kind)
+	require.Equal(t, "trivy", result.Images[0].Owners[0].Name)
+	require.Equal(t, "insights-agent", result.Images[0].Owners[0].Namespace)
+	require.Equal(t, "trivy", result.Images[0].Owners[0].Container)
+	require.Empty(t, result.Images[0].Owners[0].Labels)
+	require.Equal(t, "quay.io/fairwinds/trivy@sha256:trivy", result.Images[0].ID)
+}
+
+func TestListImagesDeploymentIgnoresSucceededPod(t *testing.T) {
+	pod := completedPod("default", "api-abc", corev1.PodSucceeded, corev1.ContainerStatus{
+		Name:    "app",
+		Image:   "nginx:1.25",
+		ImageID: "docker-pullable://nginx@sha256:done",
+	})
+	podUnstructured, err := podToUnstructured(pod)
+	require.NoError(t, err)
+
+	controllers := []fwControllerUtils.Workload{
+		{
+			TopController: unstructured.Unstructured{
+				Object: map[string]any{
+					"kind": "Deployment",
+					"metadata": map[string]any{
+						"name":      "api",
+						"namespace": "default",
+					},
+				},
+			},
+			Pods: []unstructured.Unstructured{*podUnstructured},
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+	)
+
+	result, err := ListImages(context.Background(), client, controllers)
+	require.NoError(t, err)
+	require.Empty(t, result.Images)
+}
+
+func TestListImagesCompletedJobOwnedByCronJob(t *testing.T) {
+	trueVal := true
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "polaris-29732742",
+			Namespace: "insights-agent",
+			Labels:    map[string]string{"app": "polaris"},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "batch/v1",
+					Kind:       "CronJob",
+					Name:       "polaris",
+					Controller: &trueVal,
+				},
+			},
+		},
+		Spec: batchv1.JobSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"job-name": "polaris-29732742"},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"job-name": "polaris-29732742"},
+				},
+			},
+		},
+		Status: batchv1.JobStatus{Succeeded: 1},
+	}
+	pod := completedPod("insights-agent", "polaris-29732742-mt86f", corev1.PodSucceeded, corev1.ContainerStatus{
+		Name:    "polaris",
+		Image:   "quay.io/fairwinds/polaris:9.0",
+		ImageID: "docker-pullable://quay.io/fairwinds/polaris@sha256:polaris",
+	})
+	pod.Labels = map[string]string{"job-name": "polaris-29732742"}
+	pod.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion: "batch/v1",
+			Kind:       "Job",
+			Name:       "polaris-29732742",
+			Controller: &trueVal,
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "insights-agent"}},
+		job,
+		pod,
+	)
+
+	result, err := ListImages(context.Background(), client, nil)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "CronJob", result.Images[0].Owners[0].Kind)
+	require.Equal(t, "polaris", result.Images[0].Owners[0].Name)
+	require.Empty(t, result.Images[0].Owners[0].Labels)
+	require.Empty(t, result.Images[0].Owners[0].Annotations)
+}
+
+func TestListImagesCompletedStandaloneJob(t *testing.T) {
+	trueVal := true
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oneshot",
+			Namespace: "default",
+			Labels:    map[string]string{"app": "oneshot"},
+		},
+		Spec: batchv1.JobSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"job-name": "oneshot"},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"job-name": "oneshot"},
+				},
+			},
+		},
+		Status: batchv1.JobStatus{Failed: 1},
+	}
+	pod := completedPod("default", "oneshot-xyz", corev1.PodFailed, corev1.ContainerStatus{
+		Name:    "worker",
+		Image:   "worker:1.0",
+		ImageID: "docker-pullable://worker@sha256:fail",
+	})
+	pod.Labels = map[string]string{"job-name": "oneshot"}
+	pod.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion: "batch/v1",
+			Kind:       "Job",
+			Name:       "oneshot",
+			Controller: &trueVal,
+		},
+	}
+
+	client := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+		job,
+		pod,
+	)
+
+	result, err := ListImages(context.Background(), client, nil)
+	require.NoError(t, err)
+	require.Len(t, result.Images, 1)
+	require.Equal(t, "Job", result.Images[0].Owners[0].Kind)
+	require.Equal(t, "oneshot", result.Images[0].Owners[0].Name)
+	require.Equal(t, "oneshot", result.Images[0].Owners[0].Labels["app"])
 }
 
 func runningPod(namespace, name string, status corev1.ContainerStatus) *corev1.Pod {
@@ -347,6 +575,21 @@ func runningPod(namespace, name string, status corev1.ContainerStatus) *corev1.P
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
+				status,
+			},
+		},
+	}
+}
+
+func completedPod(namespace, name string, phase corev1.PodPhase, status corev1.ContainerStatus) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: corev1.PodStatus{
+			Phase: phase,
 			ContainerStatuses: []corev1.ContainerStatus{
 				status,
 			},
