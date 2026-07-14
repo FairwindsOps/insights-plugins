@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strconv"
 	"syscall"
 	"time"
@@ -16,12 +17,19 @@ import (
 	"github.com/fairwindsops/insights-plugins/plugins/network-flow/pkg/agent"
 )
 
+const igModulePath = "github.com/inspektor-gadget/inspektor-gadget"
+
 func main() {
+	igVersion := mustIGVersion()
+	defaultTraceTCPImage := "ghcr.io/inspektor-gadget/gadget/trace_tcp:" + igVersion
+	defaultTopTCPImage := "ghcr.io/inspektor-gadget/gadget/top_tcp:" + igVersion
+	defaultTraceDNSImage := "ghcr.io/inspektor-gadget/gadget/trace_dns:" + igVersion
+
 	collectorAddr := flag.String("collector-addr", envOr("COLLECTOR_ADDR", "network-flow-aggregator.insights.svc:4317"), "network-flow-aggregator gRPC address")
 	igAddr := flag.String("ig-addr", envOr("IG_ADDR", "tcp://127.0.0.1:8080"), "local Inspektor Gadget gRPC address")
-	traceTCPImage := flag.String("trace-tcp-image", envOr("TRACE_TCP_IMAGE", ""), "trace_tcp gadget OCI image")
-	topTCPImage := flag.String("top-tcp-image", envOr("TOP_TCP_IMAGE", ""), "top_tcp gadget OCI image")
-	traceDNSImage := flag.String("trace-dns-image", envOr("TRACE_DNS_IMAGE", ""), "trace_dns gadget OCI image")
+	traceTCPImage := flag.String("trace-tcp-image", envOr("TRACE_TCP_IMAGE", defaultTraceTCPImage), "trace_tcp gadget OCI image")
+	topTCPImage := flag.String("top-tcp-image", envOr("TOP_TCP_IMAGE", defaultTopTCPImage), "top_tcp gadget OCI image")
+	traceDNSImage := flag.String("trace-dns-image", envOr("TRACE_DNS_IMAGE", defaultTraceDNSImage), "trace_dns gadget OCI image")
 	nodeName := flag.String("node-name", envOr("NODE_NAME", os.Getenv("HOSTNAME")), "Kubernetes node name")
 	agentID := flag.String("agent-id", envOr("AGENT_ID", os.Getenv("HOSTNAME")), "unique agent identifier")
 	batchSize := flag.Int("batch-size", parseIntEnv("BATCH_SIZE", 5_000), "number of events to batch before flushing")
@@ -33,6 +41,8 @@ func main() {
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: parseLogLevel(*logLevel)}))
+
+	log.Info("Network Flow agent started", "Inspect Gadget version", igVersion)
 
 	client := agent.NewClient(agent.ClientConfig{
 		CollectorAddr:       *collectorAddr,
@@ -82,6 +92,19 @@ func main() {
 
 	client.Flush()
 	log.Info("agent stopped")
+}
+
+func mustIGVersion() string {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		panic("missing build info")
+	}
+	for _, dep := range bi.Deps {
+		if dep.Path == igModulePath {
+			return dep.Version
+		}
+	}
+	panic(fmt.Sprintf("%s not found in build info", igModulePath))
 }
 
 func envOr(key, fallback string) string {
