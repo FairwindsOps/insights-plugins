@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.15
+* Bump library github.com/fairwindsops/polaris to v0.0.0-20260706210958-278cb9008ca8
+
 ## 2.3.14
 * Bump dependencies
 
