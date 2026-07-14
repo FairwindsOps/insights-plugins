@@ -314,7 +314,7 @@
                     },
                     "Labels": {
                       "type": "object",
-                      "description": "Present for supplemental owners (orphan Pod, active Job) only; omitted for top controllers (see Controllers[])."
+                      "description": "Present for supplemental owners (orphan Pod, standalone Job) only; omitted for top controllers including CronJob (see Controllers[])."
                     },
                     "Annotations": {
                       "type": "object",
