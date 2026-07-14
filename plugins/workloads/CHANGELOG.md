@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.10.5
+* **Images inventory:** include non-Running pods for **CronJob** and **Job** owners so short-lived batch workloads still populate repository after completion (empty ImageID still skipped). CronJob-owned Jobs are attributed to the **CronJob** (not the ephemeral Job). Standalone Jobs remain Job owners. Deployments and other long-running controllers stay Running-only. Rename **`ListRunningImages`** → **`ListImages`**. Prefer **pod spec image** over **status.image** for `Images[].Name` (some CRIs truncate dotted tags, e.g. `workloads:2.10` → `workloads:2`).
+
 ## 2.10.4
 * Build with Go 1.26.4 (stdlib CVE-2026-42504, CVE-2026-42507, CVE-2026-27145) via module `go` version and `GOTOOLCHAIN=go1.26.4` in release builds.
 
@@ -16,7 +19,7 @@
 
 ## 2.10.0
 * **Cluster inventory:** top-level **`Images[]`** lists every running container image (regular, init, ephemeral) with workload owners. Runtime discovery via controller, orphan-pod, and active-job sweeps; entries without a normalized **`ID`** are skipped. Reuses the controller list from the main report pass; image discovery failures are logged and the rest of the report is still emitted.
-* **Owner labels:** controller owners in **`Images[].Owners[]`** omit label/annotation maps (same data lives on **`Controllers[]`**). Orphan **`Pod`** and active **`Job`** owners include label maps for backends that cannot link to a controller row.
+* **Owner labels:** controller owners in **`Images[].Owners[]`** omit label/annotation maps (same data lives on **`Controllers[]`**). Orphan **`Pod`** and standalone **`Job`** owners include label maps for backends that cannot link to a controller row.
 
 ## 2.9.8
 * Build with Go 1.26.3 (stdlib CVE-2026-42501, CVE-2026-39825, CVE-2026-39826, CVE-2026-39823) via module `go` version and `GOTOOLCHAIN=go1.26.3` in release builds.
