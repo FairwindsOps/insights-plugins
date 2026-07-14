@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.10
+* Bump dependencies
+
 ## 0.0.9
 * Derive Inspektor Gadget image tags and Docker base image from the `go.mod` dependency version (single source of truth)
 

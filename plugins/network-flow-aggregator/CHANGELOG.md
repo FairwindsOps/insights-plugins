@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.9
+* Bump dependencies
+
 ## 0.0.8
 * Enriches existing client→Service flow events with optional backend workload/pod identity using EndpointSlice pod lookup and server-side peer correlation. This enables Service→backend attribution on Insights.
 
