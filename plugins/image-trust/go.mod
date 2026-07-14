@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/image-trust
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4
