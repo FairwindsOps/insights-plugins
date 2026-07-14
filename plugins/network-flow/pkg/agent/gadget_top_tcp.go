@@ -14,8 +14,6 @@ import (
 	aggregv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/aggregator/v1"
 )
 
-const defaultTopTCPImage = "ghcr.io/inspektor-gadget/gadget/top_tcp:v0.52.0"
-
 type TopTCPRunner struct {
 	cfg     GadgetConfig
 	client  *Client
@@ -26,9 +24,6 @@ type TopTCPRunner struct {
 func NewTopTCPRunner(cfg GadgetConfig, client *Client, log *slog.Logger) *TopTCPRunner {
 	if cfg.IGAddress == "" {
 		cfg.IGAddress = "tcp://127.0.0.1:8080"
-	}
-	if cfg.GadgetImage == "" {
-		cfg.GadgetImage = defaultTopTCPImage
 	}
 	if log == nil {
 		log = slog.Default()

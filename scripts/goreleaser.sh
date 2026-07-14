@@ -59,6 +59,9 @@ git restore ../../go.work.sum # something on the releaser process is changing th
 if [ ! -f go.mod ] ; then
   export GOWORK=off
   echo "${this_script} set GOWORK=off because this plugin has no go.mod"
+elif go list -m github.com/inspektor-gadget/inspektor-gadget >/dev/null 2>&1 ; then
+  export IG_VERSION=$(go list -m -f '{{.Version}}' github.com/inspektor-gadget/inspektor-gadget)
+  echo "${this_script} using IG_VERSION=${IG_VERSION} from go.mod"
 fi
 
 cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml

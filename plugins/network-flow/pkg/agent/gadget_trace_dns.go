@@ -11,8 +11,6 @@ import (
 	"github.com/inspektor-gadget/inspektor-gadget/pkg/operators"
 )
 
-const defaultTraceDNSImage = "ghcr.io/inspektor-gadget/gadget/trace_dns:v0.52.0"
-
 type TraceDNSRunner struct {
 	cfg    GadgetConfig
 	client *Client
@@ -22,9 +20,6 @@ type TraceDNSRunner struct {
 func NewTraceDNSRunner(cfg GadgetConfig, client *Client, log *slog.Logger) *TraceDNSRunner {
 	if cfg.IGAddress == "" {
 		cfg.IGAddress = "tcp://127.0.0.1:8080"
-	}
-	if cfg.GadgetImage == "" {
-		cfg.GadgetImage = defaultTraceDNSImage
 	}
 	if log == nil {
 		log = slog.Default()

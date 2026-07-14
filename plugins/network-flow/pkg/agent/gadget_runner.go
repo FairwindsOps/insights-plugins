@@ -18,8 +18,6 @@ type GadgetConfig struct {
 	GadgetImage string
 }
 
-const defaultTraceTCPImage = "ghcr.io/inspektor-gadget/gadget/trace_tcp:v0.52.0"
-
 type TraceTCPRunner struct {
 	cfg    GadgetConfig
 	client *Client
@@ -29,9 +27,6 @@ type TraceTCPRunner struct {
 func NewTraceTCPRunner(cfg GadgetConfig, client *Client, log *slog.Logger) *TraceTCPRunner {
 	if cfg.IGAddress == "" {
 		cfg.IGAddress = "tcp://127.0.0.1:8080"
-	}
-	if cfg.GadgetImage == "" {
-		cfg.GadgetImage = defaultTraceTCPImage
 	}
 	if log == nil {
 		log = slog.Default()
