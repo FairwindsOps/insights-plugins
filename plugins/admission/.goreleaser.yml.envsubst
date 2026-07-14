@@ -7,7 +7,7 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
-  - GOTOOLCHAIN=go1.26.4
+  - GOTOOLCHAIN=go1.26.5
   # Avoid contaminating workstation Go directories.
   - GOMODCACHE={{ .Env.TMPDIR }}/admission-go-mod-cache
   - GOBIN={{ .Env.TMPDIR }}/admission-go-bin

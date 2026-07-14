@@ -8,7 +8,7 @@ archives:
 - format: binary
 env:
   - CGO_ENABLED=0
-  - GOTOOLCHAIN=go1.26.4
+  - GOTOOLCHAIN=go1.26.5
 builds:
   # Multiple pkg/*.go files are required to build.
 - main: ./pkg
