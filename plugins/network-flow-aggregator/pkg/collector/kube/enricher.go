@@ -148,7 +148,30 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 			Addr:      addr,
 		}
 	}
+
+	if dst, ok := e.resolveDstFromPodIP(addr); ok {
+		return dst
+	}
+
 	return fallback
+}
+
+func (e *Enricher) resolveDstFromPodIP(addr string) (DstIdentity, bool) {
+	pods, ok := e.listPods()
+	if !ok {
+		return DstIdentity{}, false
+	}
+	ref, ok := buildPodIPIndex(pods).lookup(addr)
+	if !ok {
+		return DstIdentity{}, false
+	}
+	wl := e.ResolveSrcWorkload(ref.Namespace, ref.Name)
+	return DstIdentity{
+		Namespace: wl.Namespace,
+		Kind:      wl.Kind,
+		Name:      wl.Name,
+		Addr:      addr,
+	}, true
 }
 
 func (e *Enricher) LookupEndpoint(addr string, port uint32) (EndpointEntry, bool) {
@@ -178,6 +201,15 @@ func (e *Enricher) ResolveBackendFromEndpoint(addr string, port uint32) (Backend
 		ServiceNamespace:  entry.ServiceNamespace,
 		ServiceName:       entry.ServiceName,
 	}, true
+}
+
+func (e *Enricher) listPods() ([]*corev1.Pod, bool) {
+	pods, err := e.podLister.List(labels.Everything())
+	if err != nil {
+		e.log.Debug("pod list failed", "err", err)
+		return nil, false
+	}
+	return pods, true
 }
 
 func (e *Enricher) listServicesAndSlices() ([]*corev1.Service, []*discoveryv1.EndpointSlice, bool) {

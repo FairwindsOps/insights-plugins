@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.10
+* Resolve destination identity from Pod IP (after Service lookup) and roll up to the top-controller workload, so pod-to-pod flows get workload-kind attribution
+
 ## 0.0.9
 * Bump dependencies
 
