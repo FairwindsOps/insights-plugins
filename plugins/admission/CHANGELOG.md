@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.17
+* Bump library github.com/fairwindsops/pluto/v5 to v5.24.1
+
 ## 2.3.16
 * Bump library golang.org/x/mod to v0.38.0
 
