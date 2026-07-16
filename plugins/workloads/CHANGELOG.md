@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.11.0
+* **Nodes inventory:** emit **`UID`**, **`Conditions`**, **`Taints`**, **`Unschedulable`**, **`Addresses`**, **`ProviderID`**, and nested **`NodeInfo`** (architecture, OS, runtime, kernel, kubelet version) alongside existing capacity and version fields. Top-level **`KubeletVersion`** is retained (also present under **`NodeInfo`**) for Insights compatibility. Top-level **`KubeProxyVersion`** is retained for compatibility but is typically empty (no longer reported by the node API on modern clusters).
+* **Ingresses inventory:** emit **`IngressClassName`**, **`Rules`** (hosts/paths/backends), **`TLS`** (hosts and secret names only), **`DefaultBackend`**, and **`LoadBalancer`** status; prefer **`APIVersion`** from the object, else `networking.k8s.io/v1`. Ingresses are listed once cluster-wide.
+* **NamespaceCounts:** top-level **`NamespaceCounts[]`** with per-namespace ResourceQuota, LimitRange, NetworkPolicy, Pod, Service, and Ingress counts. Pod counts reuse the shared cluster pod list used for node allocation; Service / ResourceQuota / LimitRange / NetworkPolicy lists soft-fail (warn + leave that counter at 0) so missing RBAC does not fail the report. Agent ClusterRoles should allow `list` on those resources for full counts.
+
 ## 2.10.6
 * Bump dependencies
 

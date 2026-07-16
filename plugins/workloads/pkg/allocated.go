@@ -63,6 +63,23 @@ func GetNodeAllocatedResource(ctx context.Context, client k8sClient.Interface, n
 	return getNodeAllocatedResources(node, pods)
 }
 
+// podsScheduledOnNode filters a cluster-wide pod list to pods on nodeName that are still
+// consuming resources (excludes Succeeded/Failed), matching getNodePods field selectors.
+func podsScheduledOnNode(pods []v1.Pod, nodeName string) *v1.PodList {
+	out := &v1.PodList{}
+	for i := range pods {
+		pod := &pods[i]
+		if pod.Spec.NodeName != nodeName {
+			continue
+		}
+		if pod.Status.Phase == v1.PodSucceeded || pod.Status.Phase == v1.PodFailed {
+			continue
+		}
+		out.Items = append(out.Items, *pod)
+	}
+	return out
+}
+
 func getNodePods(ctx context.Context, client k8sClient.Interface, node v1.Node) (*v1.PodList, error) {
 	fieldSelector, err := fields.ParseSelector("spec.nodeName=" + node.Name +
 		",status.phase!=" + string(v1.PodSucceeded) +

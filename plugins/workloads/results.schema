@@ -193,6 +193,63 @@
             },
             "IsControlPlaneNode": {
               "type": "boolean"
+            },
+            "UID": {
+              "type": "string"
+            },
+            "Conditions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "Type": { "type": "string" },
+                  "Status": { "type": "string" },
+                  "Reason": { "type": "string" },
+                  "Message": { "type": "string" },
+                  "LastTransitionTime": { "type": "string" }
+                },
+                "required": ["Type", "Status"]
+              }
+            },
+            "Taints": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "Key": { "type": "string" },
+                  "Value": { "type": "string" },
+                  "Effect": { "type": "string" }
+                },
+                "required": ["Key", "Effect"]
+              }
+            },
+            "Unschedulable": {
+              "type": "boolean"
+            },
+            "Addresses": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "Type": { "type": "string" },
+                  "Address": { "type": "string" }
+                },
+                "required": ["Type", "Address"]
+              }
+            },
+            "ProviderID": {
+              "type": "string"
+            },
+            "NodeInfo": {
+              "type": "object",
+              "properties": {
+                "Architecture": { "type": "string" },
+                "OperatingSystem": { "type": "string" },
+                "OSImage": { "type": "string" },
+                "ContainerRuntimeVersion": { "type": "string" },
+                "KernelVersion": { "type": "string" },
+                "KubeletVersion": { "type": "string" }
+              }
             }
           },
           "required": [
@@ -278,6 +335,101 @@
           ]
         }
       ]
+    },
+    "NamespaceCounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": { "type": "string" },
+          "ResourceQuotaCount": { "type": "integer" },
+          "LimitRangeCount": { "type": "integer" },
+          "NetworkPolicyCount": { "type": "integer" },
+          "PodCount": { "type": "integer" },
+          "ServiceCount": { "type": "integer" },
+          "IngressCount": { "type": "integer" }
+        },
+        "required": ["Name"]
+      }
+    },
+    "Ingresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Kind": { "type": "string" },
+          "Name": { "type": "string" },
+          "Namespace": { "type": "string" },
+          "Annotations": { "type": ["object", "null"] },
+          "Labels": { "type": ["object", "null"] },
+          "UID": { "type": "string" },
+          "APIVersion": { "type": "string" },
+          "IngressClassName": { "type": "string" },
+          "Rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Host": { "type": "string" },
+                "Paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "Path": { "type": "string" },
+                      "PathType": { "type": "string" },
+                      "Backend": {
+                        "type": "object",
+                        "properties": {
+                          "ServiceName": { "type": "string" },
+                          "ServicePort": { "type": "string" },
+                          "API": { "type": "string" },
+                          "Kind": { "type": "string" },
+                          "Name": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "TLS": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Hosts": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "SecretName": { "type": "string" }
+              }
+            }
+          },
+          "DefaultBackend": {
+            "type": "object",
+            "properties": {
+              "ServiceName": { "type": "string" },
+              "ServicePort": { "type": "string" },
+              "API": { "type": "string" },
+              "Kind": { "type": "string" },
+              "Name": { "type": "string" }
+            }
+          },
+          "LoadBalancer": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "IP": { "type": "string" },
+                "Hostname": { "type": "string" }
+              }
+            }
+          }
+        },
+        "required": ["Kind", "Name", "Namespace", "UID"]
+      }
     },
     "Images": {
       "type": "array",
