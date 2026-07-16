@@ -69,7 +69,6 @@ func TestFormatNodeInfo(t *testing.T) {
 		ContainerRuntimeVersion: "containerd://1.7.0",
 		KernelVersion:           "6.8.0",
 		KubeletVersion:          "v1.32.0",
-		KubeProxyVersion:        "v1.32.0",
 	})
 	require.Equal(t, NodeInfoSummary{
 		Architecture:            "amd64",
@@ -78,7 +77,6 @@ func TestFormatNodeInfo(t *testing.T) {
 		ContainerRuntimeVersion: "containerd://1.7.0",
 		KernelVersion:           "6.8.0",
 		KubeletVersion:          "v1.32.0",
-		KubeProxyVersion:        "v1.32.0",
 	}, got)
 }
 

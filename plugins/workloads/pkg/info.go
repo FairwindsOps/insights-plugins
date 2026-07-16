@@ -81,10 +81,10 @@ type Ingress struct {
 	Labels           map[string]string
 	UID              string
 	APIVersion       string
-	IngressClassName *string                   `json:",omitempty"`
-	Rules            []IngressRuleSummary      `json:",omitempty"`
-	TLS              []IngressTLSSummary       `json:",omitempty"`
-	DefaultBackend   *IngressBackendSummary    `json:",omitempty"`
+	IngressClassName *string                    `json:",omitempty"`
+	Rules            []IngressRuleSummary       `json:",omitempty"`
+	TLS              []IngressTLSSummary        `json:",omitempty"`
+	DefaultBackend   *IngressBackendSummary     `json:",omitempty"`
 	LoadBalancer     []IngressLoadBalancerEntry `json:",omitempty"`
 }
 
@@ -157,7 +157,6 @@ type NodeInfoSummary struct {
 	ContainerRuntimeVersion string `json:",omitempty"`
 	KernelVersion           string `json:",omitempty"`
 	KubeletVersion          string `json:",omitempty"`
-	KubeProxyVersion        string `json:",omitempty"`
 }
 
 // NodeSummary gives highlevel overview of node informations
@@ -178,8 +177,8 @@ type NodeSummary struct {
 	Conditions         []NodeConditionSummary `json:",omitempty"`
 	Taints             []NodeTaintSummary     `json:",omitempty"`
 	Unschedulable      bool
-	Addresses          []NodeAddressSummary   `json:",omitempty"`
-	ProviderID         string                 `json:",omitempty"`
+	Addresses          []NodeAddressSummary `json:",omitempty"`
+	ProviderID         string               `json:",omitempty"`
 	NodeInfo           NodeInfoSummary
 }
 
@@ -319,7 +318,6 @@ func formatNodeInfo(info corev1.NodeSystemInfo) NodeInfoSummary {
 		ContainerRuntimeVersion: info.ContainerRuntimeVersion,
 		KernelVersion:           info.KernelVersion,
 		KubeletVersion:          info.KubeletVersion,
-		KubeProxyVersion:        info.KubeProxyVersion,
 	}
 }
 
@@ -583,7 +581,8 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 			CreationTimestamp:  item.GetCreationTimestamp().UTC(),
 			Capacity:           item.Status.Capacity,
 			Allocatable:        item.Status.Allocatable,
-			KubeletVersion:     item.Status.NodeInfo.KubeletVersion,
+			KubeletVersion: item.Status.NodeInfo.KubeletVersion,
+			//lint:ignore SA1019 keep top-level field for Insights compatibility
 			KubeProxyVersion:   item.Status.NodeInfo.KubeProxyVersion,
 			IsControlPlaneNode: checkIfNodeIsControlPlane(item.GetLabels()),
 			Conditions:         formatNodeConditions(item.Status.Conditions),

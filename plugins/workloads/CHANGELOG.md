@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2.11.0
-* **Nodes inventory:** emit **`UID`**, **`Conditions`**, **`Taints`**, **`Unschedulable`**, **`Addresses`**, **`ProviderID`**, and nested **`NodeInfo`** (architecture, OS, runtime, kernel, kubelet/kube-proxy versions) alongside existing capacity and version fields.
+* **Nodes inventory:** emit **`UID`**, **`Conditions`**, **`Taints`**, **`Unschedulable`**, **`Addresses`**, **`ProviderID`**, and nested **`NodeInfo`** (architecture, OS, runtime, kernel, kubelet version) alongside existing capacity and version fields. Drop deprecated **`KubeProxyVersion`** (no longer reported by the node API).
 * **Ingresses inventory:** emit **`IngressClassName`**, **`Rules`** (hosts/paths/backends), **`TLS`**, **`DefaultBackend`**, and **`LoadBalancer`** status; prefer **`APIVersion`** from the object (then ManagedFields, then `networking.k8s.io/v1`).
 * **NamespaceCounts:** top-level **`NamespaceCounts[]`** with per-namespace ResourceQuota, LimitRange, NetworkPolicy, Pod, Service, and Ingress counts (cluster-scoped lists where possible).
 
