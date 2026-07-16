@@ -199,6 +199,30 @@ func TestPeekUnsentBatchGroupsByAgent(t *testing.T) {
 	}
 }
 
+func TestOldestUnsentAge(t *testing.T) {
+	st := NewStore(100, time.Hour)
+	if st.OldestUnsentAge() != 0 {
+		t.Fatalf("empty store age = %v, want 0", st.OldestUnsentAge())
+	}
+
+	past := time.Now().Add(-2 * time.Minute).UnixNano()
+	st.AppendBatch(&aggregv1.FlowEventBatch{
+		NodeName: "node-a",
+		AgentId:  "agent-a",
+		Events:   []*aggregv1.FlowEvent{sampleEvent(past, 0, 0)},
+	}, nil)
+
+	age := st.OldestUnsentAge()
+	if age < 2*time.Minute || age > 3*time.Minute {
+		t.Fatalf("oldest unsent age = %v, want ~2m", age)
+	}
+
+	st.AdvanceSendCursor(1)
+	if st.OldestUnsentAge() != 0 {
+		t.Fatalf("after send age = %v, want 0", st.OldestUnsentAge())
+	}
+}
+
 func TestAgePruneDropsUnsentEvents(t *testing.T) {
 	st := NewStore(100, time.Millisecond)
 	now := time.Now().UnixNano()
