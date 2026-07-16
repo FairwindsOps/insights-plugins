@@ -201,6 +201,29 @@ func (s *Store) UnsentCount() int {
 	return len(s.events) - s.sendCursor
 }
 
+// OldestUnsentAge returns how long the oldest unsent event has been buffered.
+// Returns 0 when there is no unsent event.
+func (s *Store) OldestUnsentAge() time.Duration {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for i := s.sendCursor; i < len(s.events); i++ {
+		e := s.events[i]
+		if e == nil {
+			continue
+		}
+		ts := e.GetTimestampUnixNano()
+		if ts <= 0 {
+			return 0
+		}
+		age := time.Since(time.Unix(0, ts))
+		if age < 0 {
+			return 0
+		}
+		return age
+	}
+	return 0
+}
+
 func (s *Store) SendCursor() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
