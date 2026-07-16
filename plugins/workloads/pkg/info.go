@@ -413,9 +413,6 @@ func resolveIngressAPIVersion(item networkingv1.Ingress) string {
 	if item.APIVersion != "" {
 		return item.APIVersion
 	}
-	if len(item.ManagedFields) > 0 && item.ManagedFields[0].APIVersion != "" {
-		return item.ManagedFields[0].APIVersion
-	}
 	return networkingIngressAPIVersion
 }
 
@@ -445,66 +442,70 @@ type namespaceCountAccum struct {
 	IngressCount       int
 }
 
-func collectNamespaceCounts(ctx context.Context, kube kubernetes.Interface, namespaces []corev1.Namespace, ingresses []Ingress) ([]NamespaceCounts, error) {
+// collectNamespaceCounts builds per-namespace object counts. Pod and Ingress counts are
+// derived from already-fetched lists. Services / ResourceQuotas / LimitRanges /
+// NetworkPolicies are listed cluster-wide; list failures are logged and that counter
+// is left at 0 so missing RBAC does not fail the whole report.
+func collectNamespaceCounts(ctx context.Context, kube kubernetes.Interface, namespaces []corev1.Namespace, pods []corev1.Pod, ingresses []Ingress) []NamespaceCounts {
 	listOpts := metav1.ListOptions{}
 	countsByNS := make(map[string]*namespaceCountAccum, len(namespaces))
 	for _, ns := range namespaces {
 		countsByNS[ns.Name] = &namespaceCountAccum{}
 	}
 
-	pods, err := kube.CoreV1().Pods(metav1.NamespaceAll).List(ctx, listOpts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing pods for namespace counts: %w", err)
-	}
-	for _, pod := range pods.Items {
+	for _, pod := range pods {
 		if c, ok := countsByNS[pod.Namespace]; ok {
 			c.PodCount++
-		}
-	}
-
-	services, err := kube.CoreV1().Services(metav1.NamespaceAll).List(ctx, listOpts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing services for namespace counts: %w", err)
-	}
-	for _, svc := range services.Items {
-		if c, ok := countsByNS[svc.Namespace]; ok {
-			c.ServiceCount++
-		}
-	}
-
-	resourceQuotas, err := kube.CoreV1().ResourceQuotas(metav1.NamespaceAll).List(ctx, listOpts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing resource quotas for namespace counts: %w", err)
-	}
-	for _, rq := range resourceQuotas.Items {
-		if c, ok := countsByNS[rq.Namespace]; ok {
-			c.ResourceQuotaCount++
-		}
-	}
-
-	limitRanges, err := kube.CoreV1().LimitRanges(metav1.NamespaceAll).List(ctx, listOpts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing limit ranges for namespace counts: %w", err)
-	}
-	for _, lr := range limitRanges.Items {
-		if c, ok := countsByNS[lr.Namespace]; ok {
-			c.LimitRangeCount++
-		}
-	}
-
-	networkPolicies, err := kube.NetworkingV1().NetworkPolicies(metav1.NamespaceAll).List(ctx, listOpts)
-	if err != nil {
-		return nil, fmt.Errorf("error listing network policies for namespace counts: %w", err)
-	}
-	for _, np := range networkPolicies.Items {
-		if c, ok := countsByNS[np.Namespace]; ok {
-			c.NetworkPolicyCount++
 		}
 	}
 
 	for _, ing := range ingresses {
 		if c, ok := countsByNS[ing.Namespace]; ok {
 			c.IngressCount++
+		}
+	}
+
+	services, err := kube.CoreV1().Services(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		logrus.Warnf("error listing services for namespace counts, leaving ServiceCount at 0: %v", err)
+	} else {
+		for _, svc := range services.Items {
+			if c, ok := countsByNS[svc.Namespace]; ok {
+				c.ServiceCount++
+			}
+		}
+	}
+
+	resourceQuotas, err := kube.CoreV1().ResourceQuotas(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		logrus.Warnf("error listing resource quotas for namespace counts, leaving ResourceQuotaCount at 0: %v", err)
+	} else {
+		for _, rq := range resourceQuotas.Items {
+			if c, ok := countsByNS[rq.Namespace]; ok {
+				c.ResourceQuotaCount++
+			}
+		}
+	}
+
+	limitRanges, err := kube.CoreV1().LimitRanges(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		logrus.Warnf("error listing limit ranges for namespace counts, leaving LimitRangeCount at 0: %v", err)
+	} else {
+		for _, lr := range limitRanges.Items {
+			if c, ok := countsByNS[lr.Namespace]; ok {
+				c.LimitRangeCount++
+			}
+		}
+	}
+
+	networkPolicies, err := kube.NetworkingV1().NetworkPolicies(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		logrus.Warnf("error listing network policies for namespace counts, leaving NetworkPolicyCount at 0: %v", err)
+	} else {
+		for _, np := range networkPolicies.Items {
+			if c, ok := countsByNS[np.Namespace]; ok {
+				c.NetworkPolicyCount++
+			}
 		}
 	}
 
@@ -521,7 +522,7 @@ func collectNamespaceCounts(ctx context.Context, kube kubernetes.Interface, name
 			IngressCount:       c.IngressCount,
 		})
 	}
-	return out, nil
+	return out
 }
 
 // CreateResourceProviderFromAPI creates a new ResourceProvider from an existing k8s interface
@@ -570,19 +571,26 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		return nil, fmt.Errorf("error fetching Nodes: %v", err)
 	}
 
+	// One cluster-wide pod list powers node allocation and NamespaceCounts.PodCount
+	// (avoids an extra full list plus per-node pod lists).
+	allPods, err := kube.CoreV1().Pods(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching Pods: %v", err)
+	}
+
 	nodesSummaries := make([]NodeSummary, 0)
 
 	for _, item := range nodes.Items {
 		node := NodeSummary{
-			Name:               item.GetName(),
-			UID:                string(item.UID),
-			Labels:             item.GetLabels(),
-			Annotations:        item.GetAnnotations(),
-			CreationTimestamp:  item.GetCreationTimestamp().UTC(),
-			Capacity:           item.Status.Capacity,
-			Allocatable:        item.Status.Allocatable,
-			KubeletVersion: item.Status.NodeInfo.KubeletVersion,
-			//lint:ignore SA1019 keep top-level field for Insights compatibility
+			Name:              item.GetName(),
+			UID:               string(item.UID),
+			Labels:            item.GetLabels(),
+			Annotations:       item.GetAnnotations(),
+			CreationTimestamp: item.GetCreationTimestamp().UTC(),
+			Capacity:          item.Status.Capacity,
+			Allocatable:       item.Status.Allocatable,
+			KubeletVersion:    item.Status.NodeInfo.KubeletVersion,
+			//lint:ignore SA1019 keep top-level field for Insights compatibility (often empty on modern clusters)
 			KubeProxyVersion:   item.Status.NodeInfo.KubeProxyVersion,
 			IsControlPlaneNode: checkIfNodeIsControlPlane(item.GetLabels()),
 			Conditions:         formatNodeConditions(item.Status.Conditions),
@@ -592,7 +600,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 			ProviderID:         item.Spec.ProviderID,
 			NodeInfo:           formatNodeInfo(item.Status.NodeInfo),
 		}
-		allocated, utilization, err := GetNodeAllocatedResource(ctx, kube, item)
+		allocated, utilization, err := getNodeAllocatedResources(item, podsScheduledOnNode(allPods.Items, item.Name))
 		if err != nil {
 			return nil, fmt.Errorf("error fetching node allocation: %v", err)
 		}
@@ -608,23 +616,17 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		return nil, fmt.Errorf("error fetching Namespaces: %v", err)
 	}
 
-	// Ingresses
+	// Ingresses (single cluster-scoped list)
 	ingresses := []Ingress{}
-	for _, namespace := range namespaces.Items {
-		ingressesV1 := kube.NetworkingV1().Ingresses(namespace.Name)
-		list, err := ingressesV1.List(ctx, listOpts)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching ingresses: %v", err)
-		}
-		for _, item := range list.Items {
-			ingresses = append(ingresses, formatIngress(item))
-		}
+	ingressList, err := kube.NetworkingV1().Ingresses(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching ingresses: %v", err)
+	}
+	for _, item := range ingressList.Items {
+		ingresses = append(ingresses, formatIngress(item))
 	}
 
-	namespaceCounts, err := collectNamespaceCounts(ctx, kube, namespaces.Items, ingresses)
-	if err != nil {
-		return nil, err
-	}
+	namespaceCounts := collectNamespaceCounts(ctx, kube, namespaces.Items, allPods.Items, ingresses)
 
 	images := []discovery.ImageResult{}
 	imageDiscovery, err := discovery.ListImages(ctx, kube, workloads)

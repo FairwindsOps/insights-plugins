@@ -8,9 +8,13 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/utils/ptr"
 )
 
@@ -177,7 +181,8 @@ func TestResolveIngressAPIVersion(t *testing.T) {
 	require.Equal(t, "networking.k8s.io/v1", resolveIngressAPIVersion(networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{APIVersion: "networking.k8s.io/v1"},
 	}))
-	require.Equal(t, "networking.k8s.io/v1beta1", resolveIngressAPIVersion(networkingv1.Ingress{
+	// ManagedFields are ignored; missing TypeMeta.APIVersion falls back to networking/v1.
+	require.Equal(t, networkingIngressAPIVersion, resolveIngressAPIVersion(networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			ManagedFields: []metav1.ManagedFieldsEntry{{
 				APIVersion: "networking.k8s.io/v1beta1",
@@ -254,9 +259,6 @@ func TestCollectNamespaceCounts(t *testing.T) {
 	kube := fake.NewSimpleClientset(
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "kube-system"}},
-		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"}},
-		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "p2", Namespace: "default"}},
-		&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "p3", Namespace: "kube-system"}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "svc", Namespace: "default"}},
 		&corev1.ResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: "rq", Namespace: "default"}},
 		&corev1.LimitRange{ObjectMeta: metav1.ObjectMeta{Name: "lr", Namespace: "default"}},
@@ -266,13 +268,17 @@ func TestCollectNamespaceCounts(t *testing.T) {
 		{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 		{ObjectMeta: metav1.ObjectMeta{Name: "kube-system"}},
 	}
+	pods := []corev1.Pod{
+		{ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "p2", Namespace: "default"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "p3", Namespace: "kube-system"}},
+	}
 	ingresses := []Ingress{
 		{Name: "ing-a", Namespace: "default"},
 		{Name: "ing-b", Namespace: "default"},
 	}
 
-	got, err := collectNamespaceCounts(ctx, kube, namespaces, ingresses)
-	require.NoError(t, err)
+	got := collectNamespaceCounts(ctx, kube, namespaces, pods, ingresses)
 	require.Equal(t, []NamespaceCounts{
 		{
 			Name:               "default",
@@ -288,4 +294,46 @@ func TestCollectNamespaceCounts(t *testing.T) {
 			PodCount: 1,
 		},
 	}, got)
+}
+
+func TestCollectNamespaceCountsSoftFail(t *testing.T) {
+	ctx := context.Background()
+	kube := fake.NewSimpleClientset(
+		&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
+		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "svc", Namespace: "default"}},
+	)
+	kube.Fake.PrependReactor("list", "networkpolicies", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(schema.GroupResource{Group: "networking.k8s.io", Resource: "networkpolicies"}, "", nil)
+	})
+	kube.Fake.PrependReactor("list", "resourcequotas", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: "resourcequotas"}, "", nil)
+	})
+	kube.Fake.PrependReactor("list", "limitranges", func(action clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: "limitranges"}, "", nil)
+	})
+
+	got := collectNamespaceCounts(ctx, kube,
+		[]corev1.Namespace{{ObjectMeta: metav1.ObjectMeta{Name: "default"}}},
+		[]corev1.Pod{{ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"}}},
+		[]Ingress{{Name: "ing", Namespace: "default"}},
+	)
+	require.Equal(t, []NamespaceCounts{{
+		Name:         "default",
+		PodCount:     1,
+		ServiceCount: 1,
+		IngressCount: 1,
+		// ResourceQuota / LimitRange / NetworkPolicy left at 0 after soft-fail
+	}}, got)
+}
+
+func TestPodsScheduledOnNode(t *testing.T) {
+	pods := []corev1.Pod{
+		{ObjectMeta: metav1.ObjectMeta{Name: "a"}, Spec: corev1.PodSpec{NodeName: "n1"}, Status: corev1.PodStatus{Phase: corev1.PodRunning}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "b"}, Spec: corev1.PodSpec{NodeName: "n1"}, Status: corev1.PodStatus{Phase: corev1.PodSucceeded}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "c"}, Spec: corev1.PodSpec{NodeName: "n2"}, Status: corev1.PodStatus{Phase: corev1.PodRunning}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "d"}, Spec: corev1.PodSpec{NodeName: "n1"}, Status: corev1.PodStatus{Phase: corev1.PodFailed}},
+	}
+	got := podsScheduledOnNode(pods, "n1")
+	require.Len(t, got.Items, 1)
+	require.Equal(t, "a", got.Items[0].Name)
 }
