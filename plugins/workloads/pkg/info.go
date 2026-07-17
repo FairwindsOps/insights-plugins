@@ -14,6 +14,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -21,7 +22,10 @@ import (
 
 const (
 	KindIngress                 = "Ingress"
+	KindService                 = "Service"
+	KindPersistentVolumeClaim   = "PersistentVolumeClaim"
 	networkingIngressAPIVersion = "networking.k8s.io/v1"
+	coreAPIVersion              = "v1"
 )
 
 // ControllerResult provides a wrapper around a PodResult
@@ -86,6 +90,52 @@ type Ingress struct {
 	TLS              []IngressTLSSummary        `json:",omitempty"`
 	DefaultBackend   *IngressBackendSummary     `json:",omitempty"`
 	LoadBalancer     []IngressLoadBalancerEntry `json:",omitempty"`
+}
+
+// ServicePortSummary is a single Service port.
+type ServicePortSummary struct {
+	Name       string `json:",omitempty"`
+	Protocol   string `json:",omitempty"`
+	Port       int32
+	TargetPort string `json:",omitempty"`
+	NodePort   int32  `json:",omitempty"`
+}
+
+// Service is a cluster Service inventory object.
+type Service struct {
+	Kind         string
+	Name         string
+	Namespace    string
+	Annotations  map[string]string
+	Labels       map[string]string
+	UID          string
+	APIVersion   string
+	Type         string                     `json:",omitempty"`
+	ClusterIP    string                     `json:",omitempty"`
+	ClusterIPs   []string                   `json:",omitempty"`
+	ExternalName string                     `json:",omitempty"`
+	ExternalIPs  []string                   `json:",omitempty"`
+	Selector     map[string]string          `json:",omitempty"`
+	Ports        []ServicePortSummary       `json:",omitempty"`
+	LoadBalancer []IngressLoadBalancerEntry `json:",omitempty"`
+}
+
+// PersistentVolumeClaim is a PVC inventory object.
+type PersistentVolumeClaim struct {
+	Kind             string
+	Name             string
+	Namespace        string
+	Annotations      map[string]string
+	Labels           map[string]string
+	UID              string
+	APIVersion       string
+	StorageClassName *string  `json:",omitempty"`
+	AccessModes      []string `json:",omitempty"`
+	VolumeMode       string   `json:",omitempty"`
+	VolumeName       string   `json:",omitempty"`
+	RequestStorage   string   `json:",omitempty"`
+	CapacityStorage  string   `json:",omitempty"`
+	Phase            string   `json:",omitempty"`
 }
 
 // ContainerResult provides a list of validation messages for each container.
@@ -195,16 +245,18 @@ type NamespaceCounts struct {
 
 // ClusterWorkloadReport contains k8s workload resources report structure
 type ClusterWorkloadReport struct {
-	ServerVersion   string
-	CreationTime    time.Time
-	SourceName      string
-	SourceType      string
-	Nodes           []NodeSummary
-	Namespaces      []corev1.Namespace
-	NamespaceCounts []NamespaceCounts
-	Controllers     []ControllerResult
-	Ingresses       []Ingress
-	Images          []discovery.ImageResult
+	ServerVersion          string
+	CreationTime           time.Time
+	SourceName             string
+	SourceType             string
+	Nodes                  []NodeSummary
+	Namespaces             []corev1.Namespace
+	NamespaceCounts        []NamespaceCounts
+	Controllers            []ControllerResult
+	Ingresses              []Ingress
+	Services               []Service
+	PersistentVolumeClaims []PersistentVolumeClaim
+	Images                 []discovery.ImageResult
 }
 
 func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
@@ -433,6 +485,120 @@ func formatIngress(item networkingv1.Ingress) Ingress {
 	}
 }
 
+func resolveCoreAPIVersion(apiVersion string) string {
+	if apiVersion != "" {
+		return apiVersion
+	}
+	return coreAPIVersion
+}
+
+func intOrStringString(value intstr.IntOrString) string {
+	if value.Type == intstr.String {
+		return value.StrVal
+	}
+	if value.IntVal == 0 {
+		return ""
+	}
+	return strconv.FormatInt(int64(value.IntVal), 10)
+}
+
+func formatServicePorts(ports []corev1.ServicePort) []ServicePortSummary {
+	if len(ports) == 0 {
+		return nil
+	}
+	out := make([]ServicePortSummary, 0, len(ports))
+	for _, p := range ports {
+		out = append(out, ServicePortSummary{
+			Name:       p.Name,
+			Protocol:   string(p.Protocol),
+			Port:       p.Port,
+			TargetPort: intOrStringString(p.TargetPort),
+			NodePort:   p.NodePort,
+		})
+	}
+	return out
+}
+
+func formatServiceLoadBalancer(status corev1.LoadBalancerStatus) []IngressLoadBalancerEntry {
+	if len(status.Ingress) == 0 {
+		return nil
+	}
+	out := make([]IngressLoadBalancerEntry, 0, len(status.Ingress))
+	for _, lb := range status.Ingress {
+		out = append(out, IngressLoadBalancerEntry{
+			IP:       lb.IP,
+			Hostname: lb.Hostname,
+		})
+	}
+	return out
+}
+
+func formatService(item corev1.Service) Service {
+	return Service{
+		Kind:         KindService,
+		Name:         item.Name,
+		Namespace:    item.Namespace,
+		Annotations:  item.Annotations,
+		Labels:       item.Labels,
+		UID:          string(item.UID),
+		APIVersion:   resolveCoreAPIVersion(item.APIVersion),
+		Type:         string(item.Spec.Type),
+		ClusterIP:    item.Spec.ClusterIP,
+		ClusterIPs:   item.Spec.ClusterIPs,
+		ExternalName: item.Spec.ExternalName,
+		ExternalIPs:  item.Spec.ExternalIPs,
+		Selector:     item.Spec.Selector,
+		Ports:        formatServicePorts(item.Spec.Ports),
+		LoadBalancer: formatServiceLoadBalancer(item.Status.LoadBalancer),
+	}
+}
+
+func formatAccessModes(modes []corev1.PersistentVolumeAccessMode) []string {
+	if len(modes) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(modes))
+	for _, mode := range modes {
+		out = append(out, string(mode))
+	}
+	return out
+}
+
+func formatPersistentVolumeClaim(item corev1.PersistentVolumeClaim) PersistentVolumeClaim {
+	volumeMode := ""
+	if item.Spec.VolumeMode != nil {
+		volumeMode = string(*item.Spec.VolumeMode)
+	}
+	requestStorage := ""
+	if item.Spec.Resources.Requests != nil {
+		if qty, ok := item.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
+			requestStorage = qty.String()
+		}
+	}
+	capacityStorage := ""
+	if item.Status.Capacity != nil {
+		if qty, ok := item.Status.Capacity[corev1.ResourceStorage]; ok {
+			capacityStorage = qty.String()
+		}
+	}
+	return PersistentVolumeClaim{
+		Kind:             KindPersistentVolumeClaim,
+		Name:             item.Name,
+		Namespace:        item.Namespace,
+		Annotations:      item.Annotations,
+		Labels:           item.Labels,
+		UID:              string(item.UID),
+		APIVersion:       resolveCoreAPIVersion(item.APIVersion),
+		StorageClassName: item.Spec.StorageClassName,
+		AccessModes:      formatAccessModes(item.Spec.AccessModes),
+		VolumeMode:       volumeMode,
+		VolumeName:       item.Spec.VolumeName,
+		RequestStorage:   requestStorage,
+		CapacityStorage:  capacityStorage,
+		Phase:            string(item.Status.Phase),
+	}
+}
+
 type namespaceCountAccum struct {
 	ResourceQuotaCount int
 	LimitRangeCount    int
@@ -442,11 +608,11 @@ type namespaceCountAccum struct {
 	IngressCount       int
 }
 
-// collectNamespaceCounts builds per-namespace object counts. Pod and Ingress counts are
-// derived from already-fetched lists. Services / ResourceQuotas / LimitRanges /
+// collectNamespaceCounts builds per-namespace object counts. Pod, Service, and Ingress
+// counts are derived from already-fetched lists. ResourceQuotas / LimitRanges /
 // NetworkPolicies are listed cluster-wide; list failures are logged and that counter
 // is left at 0 so missing RBAC does not fail the whole report.
-func collectNamespaceCounts(ctx context.Context, kube kubernetes.Interface, namespaces []corev1.Namespace, pods []corev1.Pod, ingresses []Ingress) []NamespaceCounts {
+func collectNamespaceCounts(ctx context.Context, kube kubernetes.Interface, namespaces []corev1.Namespace, pods []corev1.Pod, services []Service, ingresses []Ingress) []NamespaceCounts {
 	listOpts := metav1.ListOptions{}
 	countsByNS := make(map[string]*namespaceCountAccum, len(namespaces))
 	for _, ns := range namespaces {
@@ -459,20 +625,15 @@ func collectNamespaceCounts(ctx context.Context, kube kubernetes.Interface, name
 		}
 	}
 
-	for _, ing := range ingresses {
-		if c, ok := countsByNS[ing.Namespace]; ok {
-			c.IngressCount++
+	for _, svc := range services {
+		if c, ok := countsByNS[svc.Namespace]; ok {
+			c.ServiceCount++
 		}
 	}
 
-	services, err := kube.CoreV1().Services(metav1.NamespaceAll).List(ctx, listOpts)
-	if err != nil {
-		logrus.Warnf("error listing services for namespace counts, leaving ServiceCount at 0: %v", err)
-	} else {
-		for _, svc := range services.Items {
-			if c, ok := countsByNS[svc.Namespace]; ok {
-				c.ServiceCount++
-			}
+	for _, ing := range ingresses {
+		if c, ok := countsByNS[ing.Namespace]; ok {
+			c.IngressCount++
 		}
 	}
 
@@ -626,7 +787,27 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		ingresses = append(ingresses, formatIngress(item))
 	}
 
-	namespaceCounts := collectNamespaceCounts(ctx, kube, namespaces.Items, allPods.Items, ingresses)
+	// Services (single cluster-scoped list; also feeds NamespaceCounts.ServiceCount)
+	services := []Service{}
+	serviceList, err := kube.CoreV1().Services(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching services: %v", err)
+	}
+	for _, item := range serviceList.Items {
+		services = append(services, formatService(item))
+	}
+
+	// PersistentVolumeClaims (single cluster-scoped list)
+	pvcs := []PersistentVolumeClaim{}
+	pvcList, err := kube.CoreV1().PersistentVolumeClaims(metav1.NamespaceAll).List(ctx, listOpts)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching persistentvolumeclaims: %v", err)
+	}
+	for _, item := range pvcList.Items {
+		pvcs = append(pvcs, formatPersistentVolumeClaim(item))
+	}
+
+	namespaceCounts := collectNamespaceCounts(ctx, kube, namespaces.Items, allPods.Items, services, ingresses)
 
 	images := []discovery.ImageResult{}
 	imageDiscovery, err := discovery.ListImages(ctx, kube, workloads)
@@ -637,16 +818,18 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	}
 
 	clusterWorkloadReport := ClusterWorkloadReport{
-		ServerVersion:   serverVersion.Major + "." + serverVersion.Minor,
-		SourceType:      "Cluster",
-		SourceName:      clusterName,
-		CreationTime:    time.Now(),
-		Nodes:           nodesSummaries,
-		Namespaces:      namespaces.Items,
-		NamespaceCounts: namespaceCounts,
-		Controllers:     interfaces,
-		Ingresses:       ingresses,
-		Images:          images,
+		ServerVersion:          serverVersion.Major + "." + serverVersion.Minor,
+		SourceType:             "Cluster",
+		SourceName:             clusterName,
+		CreationTime:           time.Now(),
+		Nodes:                  nodesSummaries,
+		Namespaces:             namespaces.Items,
+		NamespaceCounts:        namespaceCounts,
+		Controllers:            interfaces,
+		Ingresses:              ingresses,
+		Services:               services,
+		PersistentVolumeClaims: pvcs,
+		Images:                 images,
 	}
 	return &clusterWorkloadReport, nil
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.12.0
+* **Services inventory:** top-level **`Services[]`** with type, cluster IPs, selector, ports (including target/node ports), external name/IPs, and load-balancer status. Listed once cluster-wide (hard-fail like Ingresses); the same list feeds **`NamespaceCounts.ServiceCount`** (no second Service list).
+* **PersistentVolumeClaims inventory:** top-level **`PersistentVolumeClaims[]`** with storage class, access modes, volume mode/name, request/capacity storage, and phase. Listed once cluster-wide (hard-fail like Ingresses).
+
 ## 2.11.0
 * **Nodes inventory:** emit **`UID`**, **`Conditions`**, **`Taints`**, **`Unschedulable`**, **`Addresses`**, **`ProviderID`**, and nested **`NodeInfo`** (architecture, OS, runtime, kernel, kubelet version) alongside existing capacity and version fields. Top-level **`KubeletVersion`** is retained (also present under **`NodeInfo`**) for Insights compatibility. Top-level **`KubeProxyVersion`** is retained for compatibility but is typically empty (no longer reported by the node API on modern clusters).
 * **Ingresses inventory:** emit **`IngressClassName`**, **`Rules`** (hosts/paths/backends), **`TLS`** (hosts and secret names only), **`DefaultBackend`**, and **`LoadBalancer`** status; prefer **`APIVersion`** from the object, else `networking.k8s.io/v1`. Ingresses are listed once cluster-wide.

@@ -431,6 +431,83 @@
         "required": ["Kind", "Name", "Namespace", "UID"]
       }
     },
+    "Services": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Kind": { "type": "string" },
+          "Name": { "type": "string" },
+          "Namespace": { "type": "string" },
+          "Annotations": { "type": ["object", "null"] },
+          "Labels": { "type": ["object", "null"] },
+          "UID": { "type": "string" },
+          "APIVersion": { "type": "string" },
+          "Type": { "type": "string" },
+          "ClusterIP": { "type": "string" },
+          "ClusterIPs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "ExternalName": { "type": "string" },
+          "ExternalIPs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "Selector": { "type": ["object", "null"] },
+          "Ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": { "type": "string" },
+                "Protocol": { "type": "string" },
+                "Port": { "type": "integer" },
+                "TargetPort": { "type": "string" },
+                "NodePort": { "type": "integer" }
+              }
+            }
+          },
+          "LoadBalancer": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "IP": { "type": "string" },
+                "Hostname": { "type": "string" }
+              }
+            }
+          }
+        },
+        "required": ["Kind", "Name", "Namespace", "UID"]
+      }
+    },
+    "PersistentVolumeClaims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Kind": { "type": "string" },
+          "Name": { "type": "string" },
+          "Namespace": { "type": "string" },
+          "Annotations": { "type": ["object", "null"] },
+          "Labels": { "type": ["object", "null"] },
+          "UID": { "type": "string" },
+          "APIVersion": { "type": "string" },
+          "StorageClassName": { "type": "string" },
+          "AccessModes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "VolumeMode": { "type": "string" },
+          "VolumeName": { "type": "string" },
+          "RequestStorage": { "type": "string" },
+          "CapacityStorage": { "type": "string" },
+          "Phase": { "type": "string" }
+        },
+        "required": ["Kind", "Name", "Namespace", "UID"]
+      }
+    },
     "Images": {
       "type": "array",
       "items": [
