@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.13.0
+* **Controller volume claims:** Controllers emit optional **`VolumeClaims[]`** (`Name` = pod volume name, **`ClaimName`** = PVC name) collected from the pod template and from running pods (covers StatefulSet `volumeClaimTemplates` once materialized). Deduped by volume name + claim name. Enables Inventory PVC topology (controller → PVC edges).
+
 ## 2.12.0
 * **Services inventory:** top-level **`Services[]`** with type, cluster IPs, selector, ports (including target/node ports), external name/IPs, and load-balancer status. Listed once cluster-wide (hard-fail like Ingresses); the same list feeds **`NamespaceCounts.ServiceCount`** (no second Service list).
 * **PersistentVolumeClaims inventory:** top-level **`PersistentVolumeClaims[]`** with storage class, access modes, volume mode/name, request/capacity storage, and phase. Listed once cluster-wide (hard-fail like Ingresses).
