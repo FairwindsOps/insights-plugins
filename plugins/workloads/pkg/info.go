@@ -14,6 +14,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -41,6 +42,14 @@ type ControllerResult struct {
 	ParentUID      string
 	PodCount       float64
 	Containers     []ContainerResult
+	// VolumeClaims lists PersistentVolumeClaim refs from the pod template and running pods.
+	VolumeClaims []VolumeClaimRef `json:",omitempty"`
+}
+
+// VolumeClaimRef is a pod volume that references a PersistentVolumeClaim.
+type VolumeClaimRef struct {
+	Name      string `json:",omitempty"` // volume name in the pod spec
+	ClaimName string                   // PersistentVolumeClaim.claimName
 }
 
 // IngressBackendSummary is a service or resource backend for an Ingress path/default.
@@ -273,7 +282,64 @@ func formatControllers(kind, name, namespace, uid string, ownerReferences []meta
 		podCount = 1
 	}
 	ownerUID := getOwnerUID(ownerReferences)
-	return ControllerResult{kind, name, namespace, annotations, labels, podLabels, podAnnotations, uid, ownerUID, podCount, containers}
+	return ControllerResult{
+		Kind:           kind,
+		Name:           name,
+		Namespace:      namespace,
+		Annotations:    annotations,
+		Labels:         labels,
+		PodLabels:      podLabels,
+		PodAnnotations: podAnnotations,
+		UID:            uid,
+		ParentUID:      ownerUID,
+		PodCount:       podCount,
+		Containers:     containers,
+	}
+}
+
+// formatVolumeClaimsFromVolumes extracts PVC claim refs from a pod volume list.
+func formatVolumeClaimsFromVolumes(volumes []corev1.Volume) []VolumeClaimRef {
+	if len(volumes) == 0 {
+		return nil
+	}
+	out := make([]VolumeClaimRef, 0)
+	seen := map[string]struct{}{}
+	for _, volume := range volumes {
+		if volume.PersistentVolumeClaim == nil || volume.PersistentVolumeClaim.ClaimName == "" {
+			continue
+		}
+		claimName := volume.PersistentVolumeClaim.ClaimName
+		key := volume.Name + "/" + claimName
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, VolumeClaimRef{
+			Name:      volume.Name,
+			ClaimName: claimName,
+		})
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// collectControllerVolumeClaims gathers PVC refs from the controller pod template and live pods
+// (live pods cover StatefulSet volumeClaimTemplates once materialized).
+func collectControllerVolumeClaims(podSpec *corev1.PodSpec, pods []unstructured.Unstructured) []VolumeClaimRef {
+	var volumes []corev1.Volume
+	if podSpec != nil {
+		volumes = append(volumes, podSpec.Volumes...)
+	}
+	for _, podObj := range pods {
+		_, spec, err := controller.GetPodMetadataAndSpec(podObj.Object)
+		if err != nil || spec == nil {
+			continue
+		}
+		volumes = append(volumes, spec.Volumes...)
+	}
+	return formatVolumeClaimsFromVolumes(volumes)
 }
 
 func resourcesFromContainerSpec(container corev1.Container) ResourceResult {
@@ -723,6 +789,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		}
 		controller := formatControllers(topController.GetKind(), topController.GetName(), topController.GetNamespace(), string(topController.GetUID()), topController.GetOwnerReferences(), containers, topController.GetAnnotations(), topController.GetLabels(), podLabels, podAnnotations)
 		controller.PodCount = float64(workload.RunningPodCount)
+		controller.VolumeClaims = collectControllerVolumeClaims(workload.PodSpec, workload.Pods)
 		interfaces = append(interfaces, controller)
 	}
 

@@ -737,6 +737,26 @@
                   ]
                 }
               ]
+            },
+            "VolumeClaims": {
+              "type": "array",
+              "description": "PersistentVolumeClaim refs from the controller pod template and running pods (volume name + claimName).",
+              "items": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "Name": {
+                      "type": "string"
+                    },
+                    "ClaimName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ClaimName"
+                  ]
+                }
+              ]
             }
           },
           "required": [

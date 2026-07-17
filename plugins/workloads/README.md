@@ -2,6 +2,10 @@
 
 Retrieves metadata about running workloads in the current cluster: controllers (and their pods), namespaces, nodes, ingresses, services, persistent volume claims, images, and per-namespace object counts.
 
+## Report highlights (2.13+)
+
+* **Controller VolumeClaims** — each controller may include `VolumeClaims[]` with pod volume name and PVC `claimName` (from the template and running pods).
+
 ## Report highlights (2.12+)
 
 * **Services** — type, cluster IPs, selector, ports, external name/IPs, and load-balancer status.
