@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.12
+* Enrich flow events outside the store lock so slow Kubernetes lookups cannot block upstream send
+* Resolve top-controller workloads via informer listers instead of dynamic API List calls
+
 ## 0.0.11
 * Add periodic upstream send progress logging, slow-send warnings, and richer connect/disconnect context
 

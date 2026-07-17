@@ -8,6 +8,53 @@ import (
 	insightsv1 "github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator/pkg/insights/v1"
 )
 
+func TestAppendBatchEnrichRunsUnlocked(t *testing.T) {
+	st := NewStore(1000, time.Hour)
+	started := make(chan struct{})
+	release := make(chan struct{})
+	enrich := func(_ *aggregv1.FlowEvent) Enrichment {
+		close(started)
+		<-release
+		return Enrichment{
+			SrcNamespace:    "default",
+			SrcWorkloadKind: "Deployment",
+			SrcWorkloadName: "payments",
+		}
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, _ = st.AppendBatch(&aggregv1.FlowEventBatch{
+			Events: []*aggregv1.FlowEvent{sampleEvent(time.Now().UnixNano(), 0, 0)},
+		}, enrich)
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("enrich did not start")
+	}
+
+	ready := make(chan struct{})
+	go func() {
+		_ = st.Count()
+		close(ready)
+	}()
+	select {
+	case <-ready:
+	case <-time.After(time.Second):
+		t.Fatal("store remained locked during enrichment")
+	}
+
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("AppendBatch did not finish")
+	}
+}
+
 func TestAppendBatchDoesNotMerge(t *testing.T) {
 	st := NewStore(1000, time.Hour)
 	now := time.Now().UnixNano()
