@@ -11,6 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -436,4 +437,48 @@ func TestPodsScheduledOnNode(t *testing.T) {
 	got := podsScheduledOnNode(pods, "n1")
 	require.Len(t, got.Items, 1)
 	require.Equal(t, "a", got.Items[0].Name)
+}
+
+func TestFormatVolumeClaimsFromVolumes(t *testing.T) {
+	require.Nil(t, formatVolumeClaimsFromVolumes(nil))
+	require.Nil(t, formatVolumeClaimsFromVolumes([]corev1.Volume{
+		{Name: "tmp", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
+	}))
+
+	got := formatVolumeClaimsFromVolumes([]corev1.Volume{
+		{Name: "data", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "data-pvc"}}},
+		{Name: "logs", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "logs-pvc"}}},
+		{Name: "data", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "data-pvc"}}}, // dup
+		{Name: "cfg", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: "cfg"}}}},
+	})
+	require.Equal(t, []VolumeClaimRef{
+		{Name: "data", ClaimName: "data-pvc"},
+		{Name: "logs", ClaimName: "logs-pvc"},
+	}, got)
+}
+
+func TestCollectControllerVolumeClaimsIncludesPods(t *testing.T) {
+	template := &corev1.PodSpec{
+		Volumes: []corev1.Volume{
+			{Name: "from-template", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "tpl-pvc"}}},
+		},
+	}
+	pod := &corev1.Pod{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
+		ObjectMeta: metav1.ObjectMeta{Name: "web-0", Namespace: "default"},
+		Spec: corev1.PodSpec{
+			Volumes: []corev1.Volume{
+				{Name: "from-pod", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "web-data-web-0"}}},
+				{Name: "from-template", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "tpl-pvc"}}},
+			},
+		},
+	}
+	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
+	require.NoError(t, err)
+
+	got := collectControllerVolumeClaims(template, []unstructured.Unstructured{{Object: raw}})
+	require.Equal(t, []VolumeClaimRef{
+		{Name: "from-template", ClaimName: "tpl-pvc"},
+		{Name: "from-pod", ClaimName: "web-data-web-0"},
+	}, got)
 }
