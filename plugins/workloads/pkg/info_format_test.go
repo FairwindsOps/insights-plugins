@@ -9,10 +9,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/utils/ptr"
@@ -254,6 +256,100 @@ func TestFormatIngress(t *testing.T) {
 	require.Equal(t, []IngressLoadBalancerEntry{{Hostname: "lb.example.com"}}, got.LoadBalancer)
 }
 
+func TestFormatService(t *testing.T) {
+	item := corev1.Service{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "web",
+			Namespace: "default",
+			UID:       types.UID("svc-1"),
+			Labels:    map[string]string{"app": "web"},
+		},
+		Spec: corev1.ServiceSpec{
+			Type:       corev1.ServiceTypeNodePort,
+			ClusterIP:  "10.0.0.10",
+			ClusterIPs: []string{"10.0.0.10"},
+			Selector:   map[string]string{"app": "web"},
+			Ports: []corev1.ServicePort{{
+				Name:       "http",
+				Protocol:   corev1.ProtocolTCP,
+				Port:       80,
+				TargetPort: intstr.FromString("http"),
+				NodePort:   30080,
+			}},
+		},
+		Status: corev1.ServiceStatus{
+			LoadBalancer: corev1.LoadBalancerStatus{
+				Ingress: []corev1.LoadBalancerIngress{{IP: "1.2.3.4"}},
+			},
+		},
+	}
+
+	got := formatService(item)
+	require.Equal(t, KindService, got.Kind)
+	require.Equal(t, "web", got.Name)
+	require.Equal(t, "default", got.Namespace)
+	require.Equal(t, "svc-1", got.UID)
+	require.Equal(t, "v1", got.APIVersion)
+	require.Equal(t, "NodePort", got.Type)
+	require.Equal(t, "10.0.0.10", got.ClusterIP)
+	require.Equal(t, []string{"10.0.0.10"}, got.ClusterIPs)
+	require.Equal(t, map[string]string{"app": "web"}, got.Selector)
+	require.Equal(t, []ServicePortSummary{{
+		Name:       "http",
+		Protocol:   "TCP",
+		Port:       80,
+		TargetPort: "http",
+		NodePort:   30080,
+	}}, got.Ports)
+	require.Equal(t, []IngressLoadBalancerEntry{{IP: "1.2.3.4"}}, got.LoadBalancer)
+}
+
+func TestFormatPersistentVolumeClaim(t *testing.T) {
+	storageClass := "standard"
+	volumeMode := corev1.PersistentVolumeFilesystem
+	item := corev1.PersistentVolumeClaim{
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "data",
+			Namespace: "default",
+			UID:       types.UID("pvc-1"),
+			Labels:    map[string]string{"app": "db"},
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			StorageClassName: &storageClass,
+			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			VolumeMode:       &volumeMode,
+			VolumeName:       "pv-1",
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("10Gi"),
+				},
+			},
+		},
+		Status: corev1.PersistentVolumeClaimStatus{
+			Phase: corev1.ClaimBound,
+			Capacity: corev1.ResourceList{
+				corev1.ResourceStorage: resource.MustParse("10Gi"),
+			},
+		},
+	}
+
+	got := formatPersistentVolumeClaim(item)
+	require.Equal(t, KindPersistentVolumeClaim, got.Kind)
+	require.Equal(t, "data", got.Name)
+	require.Equal(t, "default", got.Namespace)
+	require.Equal(t, "pvc-1", got.UID)
+	require.Equal(t, "v1", got.APIVersion)
+	require.Equal(t, ptr.To("standard"), got.StorageClassName)
+	require.Equal(t, []string{"ReadWriteOnce"}, got.AccessModes)
+	require.Equal(t, "Filesystem", got.VolumeMode)
+	require.Equal(t, "pv-1", got.VolumeName)
+	require.Equal(t, "10Gi", got.RequestStorage)
+	require.Equal(t, "10Gi", got.CapacityStorage)
+	require.Equal(t, "Bound", got.Phase)
+}
+
 func TestCollectNamespaceCounts(t *testing.T) {
 	ctx := context.Background()
 	kube := fake.NewSimpleClientset(
@@ -277,8 +373,11 @@ func TestCollectNamespaceCounts(t *testing.T) {
 		{Name: "ing-a", Namespace: "default"},
 		{Name: "ing-b", Namespace: "default"},
 	}
+	services := []Service{
+		{Name: "svc", Namespace: "default"},
+	}
 
-	got := collectNamespaceCounts(ctx, kube, namespaces, pods, ingresses)
+	got := collectNamespaceCounts(ctx, kube, namespaces, pods, services, ingresses)
 	require.Equal(t, []NamespaceCounts{
 		{
 			Name:               "default",
@@ -315,6 +414,7 @@ func TestCollectNamespaceCountsSoftFail(t *testing.T) {
 	got := collectNamespaceCounts(ctx, kube,
 		[]corev1.Namespace{{ObjectMeta: metav1.ObjectMeta{Name: "default"}}},
 		[]corev1.Pod{{ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"}}},
+		[]Service{{Name: "svc", Namespace: "default"}},
 		[]Ingress{{Name: "ing", Namespace: "default"}},
 	)
 	require.Equal(t, []NamespaceCounts{{
