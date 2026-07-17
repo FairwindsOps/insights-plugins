@@ -4,23 +4,24 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
+	appslisters "k8s.io/client-go/listers/apps/v1"
+	batchlisters "k8s.io/client-go/listers/batch/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	discoverylisters "k8s.io/client-go/listers/discovery/v1"
 	"k8s.io/client-go/tools/cache"
-
-	ctrlclient "github.com/fairwindsops/controller-utils/pkg/controller"
 )
 
-const defaultResync = 10 * time.Minute
+const (
+	defaultResync     = 10 * time.Minute
+	maxOwnerWalkDepth = 8
+)
 
 type WorkloadIdentity struct {
 	Namespace string
@@ -36,16 +37,21 @@ type DstIdentity struct {
 }
 
 type Enricher struct {
-	log             *slog.Logger
-	controller      ctrlclient.Client
-	podLister       corelisters.PodLister
-	svcLister       corelisters.ServiceLister
-	epSliceLister   discoverylisters.EndpointSliceLister
-	podsSynced      cache.InformerSynced
-	svcsSynced      cache.InformerSynced
-	epSlicesSynced  cache.InformerSynced
-	ownerCache      map[string]unstructured.Unstructured
-	ownerMu         sync.Mutex
+	log            *slog.Logger
+	podLister      corelisters.PodLister
+	svcLister      corelisters.ServiceLister
+	epSliceLister  discoverylisters.EndpointSliceLister
+	rsLister       appslisters.ReplicaSetLister
+	jobLister      batchlisters.JobLister
+	podsSynced     cache.InformerSynced
+	svcsSynced     cache.InformerSynced
+	epSlicesSynced cache.InformerSynced
+	rsSynced       cache.InformerSynced
+	deploySynced   cache.InformerSynced
+	stsSynced      cache.InformerSynced
+	dsSynced       cache.InformerSynced
+	jobSynced      cache.InformerSynced
+	cronJobSynced  cache.InformerSynced
 }
 
 func NewEnricher(ctx context.Context, clients *Clients, log *slog.Logger) (*Enricher, error) {
@@ -57,21 +63,37 @@ func NewEnricher(ctx context.Context, clients *Clients, log *slog.Logger) (*Enri
 	podInformer := factory.Core().V1().Pods()
 	svcInformer := factory.Core().V1().Services()
 	epSliceInformer := factory.Discovery().V1().EndpointSlices()
+	rsInformer := factory.Apps().V1().ReplicaSets()
+	deployInformer := factory.Apps().V1().Deployments()
+	stsInformer := factory.Apps().V1().StatefulSets()
+	dsInformer := factory.Apps().V1().DaemonSets()
+	jobInformer := factory.Batch().V1().Jobs()
+	cronJobInformer := factory.Batch().V1().CronJobs()
 
 	e := &Enricher{
 		log:            log,
-		controller:     clients.Controller,
 		podLister:      podInformer.Lister(),
 		svcLister:      svcInformer.Lister(),
 		epSliceLister:  epSliceInformer.Lister(),
+		rsLister:       rsInformer.Lister(),
+		jobLister:      jobInformer.Lister(),
 		podsSynced:     podInformer.Informer().HasSynced,
 		svcsSynced:     svcInformer.Informer().HasSynced,
 		epSlicesSynced: epSliceInformer.Informer().HasSynced,
-		ownerCache:     make(map[string]unstructured.Unstructured),
+		rsSynced:       rsInformer.Informer().HasSynced,
+		deploySynced:   deployInformer.Informer().HasSynced,
+		stsSynced:      stsInformer.Informer().HasSynced,
+		dsSynced:       dsInformer.Informer().HasSynced,
+		jobSynced:      jobInformer.Informer().HasSynced,
+		cronJobSynced:  cronJobInformer.Informer().HasSynced,
 	}
 
 	factory.Start(ctx.Done())
-	if !cache.WaitForCacheSync(ctx.Done(), e.podsSynced, e.svcsSynced, e.epSlicesSynced) {
+	if !cache.WaitForCacheSync(ctx.Done(),
+		e.podsSynced, e.svcsSynced, e.epSlicesSynced,
+		e.rsSynced, e.deploySynced, e.stsSynced, e.dsSynced,
+		e.jobSynced, e.cronJobSynced,
+	) {
 		return nil, fmt.Errorf("informer cache sync")
 	}
 
@@ -91,41 +113,60 @@ func (e *Enricher) ResolveSrcWorkload(namespace, podName string) WorkloadIdentit
 		return fallback
 	}
 
-	u, err := podToUnstructured(pod)
-	if err != nil {
-		e.log.Debug("pod conversion failed", "namespace", namespace, "pod", podName, "err", err)
-		return fallback
-	}
-
-	e.ownerMu.Lock()
-	top, err := e.controller.GetTopController(u, e.ownerCache)
-	e.ownerMu.Unlock()
-	if err != nil {
-		e.log.Debug("top controller lookup failed", "namespace", namespace, "pod", podName, "err", err)
-		return fallback
-	}
-
-	return workloadIdentityFromController(top, namespace, podName)
+	return e.resolveTopWorkload(pod)
 }
 
-func workloadIdentityFromController(top unstructured.Unstructured, namespace, podName string) WorkloadIdentity {
-	kind := top.GetKind()
-	name := top.GetName()
-	ns := top.GetNamespace()
-	if ns == "" {
-		ns = namespace
+func (e *Enricher) resolveTopWorkload(pod *corev1.Pod) WorkloadIdentity {
+	ns := pod.Namespace
+	kind := "Pod"
+	name := pod.Name
+	owners := pod.OwnerReferences
+
+	for depth := 0; depth < maxOwnerWalkDepth; depth++ {
+		owner := controllerOwner(owners)
+		if owner == nil {
+			break
+		}
+		if owner.Kind == "Node" {
+			// Static pods are owned by the Node; keep the Pod identity.
+			break
+		}
+
+		kind = owner.Kind
+		name = owner.Name
+
+		switch owner.Kind {
+		case "ReplicaSet":
+			rs, err := e.rsLister.ReplicaSets(ns).Get(owner.Name)
+			if err != nil {
+				return WorkloadIdentity{Namespace: ns, Kind: kind, Name: name}
+			}
+			owners = rs.OwnerReferences
+		case "Job":
+			job, err := e.jobLister.Jobs(ns).Get(owner.Name)
+			if err != nil {
+				return WorkloadIdentity{Namespace: ns, Kind: kind, Name: name}
+			}
+			owners = job.OwnerReferences
+		default:
+			// Deployment, StatefulSet, DaemonSet, CronJob, and unknown controllers.
+			return WorkloadIdentity{Namespace: ns, Kind: kind, Name: name}
+		}
 	}
-	if kind == "" {
-		kind = "Pod"
+
+	return WorkloadIdentity{Namespace: ns, Kind: kind, Name: name}
+}
+
+func controllerOwner(owners []metav1.OwnerReference) *metav1.OwnerReference {
+	for i := range owners {
+		if owners[i].Controller != nil && *owners[i].Controller {
+			return &owners[i]
+		}
 	}
-	if name == "" {
-		name = podName
+	if len(owners) > 0 {
+		return &owners[0]
 	}
-	return WorkloadIdentity{
-		Namespace: ns,
-		Kind:      kind,
-		Name:      name,
-	}
+	return nil
 }
 
 func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
@@ -224,12 +265,4 @@ func (e *Enricher) listServicesAndSlices() ([]*corev1.Service, []*discoveryv1.En
 		return nil, nil, false
 	}
 	return services, slices, true
-}
-
-func podToUnstructured(pod *corev1.Pod) (unstructured.Unstructured, error) {
-	m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
-	if err != nil {
-		return unstructured.Unstructured{}, err
-	}
-	return unstructured.Unstructured{Object: m}, nil
 }

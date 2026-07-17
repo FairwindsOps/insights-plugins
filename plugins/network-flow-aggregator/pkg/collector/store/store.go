@@ -65,12 +65,11 @@ func (s *Store) AppendBatch(batch *aggregv1.FlowEventBatch, enrich func(*aggregv
 		return 0, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var accepted int64
-	enriched := make([]*insightsv1.EnrichedFlowEvent, 0, len(batch.GetEvents()))
-	for _, event := range batch.GetEvents() {
+	// Enrich outside the store lock: enrichment may hit the API / informers and must
+	// not block upstream send or concurrent AppendBatch callers.
+	events := batch.GetEvents()
+	rows := make([]*insightsv1.EnrichedFlowEvent, 0, len(events))
+	for _, event := range events {
 		if event == nil || !isAcceptableEvent(event) {
 			continue
 		}
@@ -85,16 +84,19 @@ func (s *Store) AppendBatch(batch *aggregv1.FlowEventBatch, enrich func(*aggregv
 				SrcWorkloadName: event.GetSrc().GetPod(),
 			}
 		}
-
-		row := enrichedFromEvent(batch.GetNodeName(), batch.GetAgentId(), event, enrichment)
-		s.events = append(s.events, row)
-		enriched = append(enriched, row)
-		accepted++
+		rows = append(rows, enrichedFromEvent(batch.GetNodeName(), batch.GetAgentId(), event, enrichment))
+	}
+	if len(rows) == 0 {
+		return 0, nil
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.events = append(s.events, rows...)
 	s.pruneLocked()
 	s.enforceMaxLocked()
-	return accepted, enriched
+	return int64(len(rows)), rows
 }
 
 func enrichedFromEvent(nodeName, agentID string, event *aggregv1.FlowEvent, enrich Enrichment) *insightsv1.EnrichedFlowEvent {
