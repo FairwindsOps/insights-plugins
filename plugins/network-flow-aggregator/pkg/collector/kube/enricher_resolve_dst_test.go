@@ -1,19 +1,15 @@
 package kube
 
 import (
-	"context"
 	"log/slog"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	discoverylisters "k8s.io/client-go/listers/discovery/v1"
 	"k8s.io/client-go/tools/cache"
-
-	ctrlclient "github.com/fairwindsops/controller-utils/pkg/controller"
 )
 
 func newTestEnricher(t *testing.T, pods []*corev1.Pod, services []*corev1.Service, slices []*discoveryv1.EndpointSlice) *Enricher {
@@ -42,11 +38,9 @@ func newTestEnricher(t *testing.T, pods []*corev1.Pod, services []*corev1.Servic
 
 	return &Enricher{
 		log:           slog.Default(),
-		controller:    ctrlclient.Client{Context: context.Background()},
 		podLister:     corelisters.NewPodLister(podIndexer),
 		svcLister:     corelisters.NewServiceLister(svcIndexer),
 		epSliceLister: discoverylisters.NewEndpointSliceLister(sliceIndexer),
-		ownerCache:    make(map[string]unstructured.Unstructured),
 	}
 }
 
