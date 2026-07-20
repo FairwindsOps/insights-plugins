@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.14.0
+* **Controller node placement:** Controllers emit optional **`NodeNames[]`** — unique names of nodes where **Running** pods are scheduled (from live pods; empty `NodeName` skipped). Enables Inventory deep node topology (node → workload edges).
+
 ## 2.13.0
 * **Controller volume claims:** Controllers emit optional **`VolumeClaims[]`** (`Name` = pod volume name, **`ClaimName`** = PVC name) collected from the pod template and from running pods (covers StatefulSet `volumeClaimTemplates` once materialized). Deduped by volume name + claim name. Enables Inventory PVC topology (controller → PVC edges).
 
