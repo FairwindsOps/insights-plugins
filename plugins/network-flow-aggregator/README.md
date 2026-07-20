@@ -61,7 +61,7 @@ Query parameters:
 | `namespace` | Filter by source or destination namespace |
 | `event_kind` | `CONNECT`, `TRAFFIC`, `DNS_QUERY`, or `DNS_RESPONSE` |
 | `src_workload_kind` | Filter by enriched source workload kind |
-| `dst_kind` | Filter by enriched destination kind (e.g. `Service`, `Deployment`, `ExternalHostname`) |
+| `dst_kind` | Filter by enriched destination kind (e.g. `Service`, `Deployment`, `Node`, `Loopback`, `ExternalHostname`) |
 
 Response: `{ "events": [EnrichedFlowEvent...], "count": N }`
 
@@ -72,11 +72,16 @@ A future backend should poll this API (or replace it with Timescale ingestion) a
 DNS responses from `trace_dns` populate an in-memory IP-to-hostname cache (TTL matches `-max-age`). When enriching TCP flows, destination resolution order is:
 
 1. Kubernetes Service (ClusterIP / EndpointSlice `(IP, port)`)
-2. Pod IP (`IP` only, any port) rolled up to top-controller workload
-3. Workload-scoped DNS cache (`namespace` + `pod` + IP)
-4. Cluster-scoped DNS cache (IP only)
+2. Unique ClusterIP with any port (port-mismatch fallback)
+3. Pod IP (`IP` only, any port) rolled up to top-controller workload
+4. Node IP (`InternalIP` / `ExternalIP` → `dst_ref.kind = Node`)
+5. Loopback (`127.0.0.1` / `::1` → `dst_ref.kind = Loopback`)
+6. Workload-scoped DNS cache (`namespace` + `pod` + IP)
+7. Cluster-scoped DNS cache (IP only)
 
-Pod-IP resolution skips `hostNetwork` pods and IPs shared by multiple distinct pods (ambiguous); those remain unlabeled and appear as `External` in downstream aggregates. External destinations resolve to `dst_ref.kind = ExternalHostname` with the queried hostname (e.g. `api.stripe.com`).
+Pod-IP resolution skips `hostNetwork` pods and IPs shared by multiple distinct pods (ambiguous). Those node/hostNetwork peers resolve as `Node` when the address matches a unique node IP; they are not attributed to a DaemonSet sharing the node IP. Remaining unlabeled destinations stay empty until DNS cache fills `ExternalHostname`, or appear as unlabeled/`External` downstream. Real egress resolves to `dst_ref.kind = ExternalHostname` with the queried hostname (e.g. `api.stripe.com`).
+
+Node resolution requires the aggregator's ServiceAccount to `get`/`list`/`watch` `nodes` (in addition to pods, services, endpointslices, and workload controllers).
 
 ### Service backend attribution
 
@@ -87,7 +92,7 @@ For TCP flows where `dst_ref.kind = Service`, the collector attempts to identify
 
 Backend identity is attached only on **client→Service** rows (`backend_workload`, `backend_pod` on `EnrichedFlowEvent`). Server-side rows are correlation inputs only; byte totals on Service→backend edges use client-side TRAFFIC bytes to avoid double-counting.
 
-**Limitations:** SNAT/NodePort/external clients, missing agents on backend nodes, ephemeral port reuse, hostNetwork/node-IP traffic (e.g. `kubernetes` Service on node addresses, DaemonSets sharing a node IP), and ambiguous pod-IP ownership may leave destination or backend fields empty. The collector does not invent replicas or spread bytes evenly across backends.
+**Limitations:** SNAT/NodePort/external clients, missing agents on backend nodes, ephemeral port reuse, ambiguous node or pod IP ownership, and Service ports advertised on node addresses (matched as `Service` when `(IP, port)` hits an EndpointSlice) may leave destination or backend fields empty or labeled only as `Node`. The collector does not invent replicas or spread bytes evenly across backends.
 
 ## Insights upstream
 

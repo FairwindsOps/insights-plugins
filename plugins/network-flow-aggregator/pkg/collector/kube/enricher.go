@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -41,11 +42,13 @@ type Enricher struct {
 	podLister      corelisters.PodLister
 	svcLister      corelisters.ServiceLister
 	epSliceLister  discoverylisters.EndpointSliceLister
+	nodeLister     corelisters.NodeLister
 	rsLister       appslisters.ReplicaSetLister
 	jobLister      batchlisters.JobLister
 	podsSynced     cache.InformerSynced
 	svcsSynced     cache.InformerSynced
 	epSlicesSynced cache.InformerSynced
+	nodesSynced    cache.InformerSynced
 	rsSynced       cache.InformerSynced
 	deploySynced   cache.InformerSynced
 	stsSynced      cache.InformerSynced
@@ -63,6 +66,7 @@ func NewEnricher(ctx context.Context, clients *Clients, log *slog.Logger) (*Enri
 	podInformer := factory.Core().V1().Pods()
 	svcInformer := factory.Core().V1().Services()
 	epSliceInformer := factory.Discovery().V1().EndpointSlices()
+	nodeInformer := factory.Core().V1().Nodes()
 	rsInformer := factory.Apps().V1().ReplicaSets()
 	deployInformer := factory.Apps().V1().Deployments()
 	stsInformer := factory.Apps().V1().StatefulSets()
@@ -75,11 +79,13 @@ func NewEnricher(ctx context.Context, clients *Clients, log *slog.Logger) (*Enri
 		podLister:      podInformer.Lister(),
 		svcLister:      svcInformer.Lister(),
 		epSliceLister:  epSliceInformer.Lister(),
+		nodeLister:     nodeInformer.Lister(),
 		rsLister:       rsInformer.Lister(),
 		jobLister:      jobInformer.Lister(),
 		podsSynced:     podInformer.Informer().HasSynced,
 		svcsSynced:     svcInformer.Informer().HasSynced,
 		epSlicesSynced: epSliceInformer.Informer().HasSynced,
+		nodesSynced:    nodeInformer.Informer().HasSynced,
 		rsSynced:       rsInformer.Informer().HasSynced,
 		deploySynced:   deployInformer.Informer().HasSynced,
 		stsSynced:      stsInformer.Informer().HasSynced,
@@ -90,7 +96,7 @@ func NewEnricher(ctx context.Context, clients *Clients, log *slog.Logger) (*Enri
 
 	factory.Start(ctx.Done())
 	if !cache.WaitForCacheSync(ctx.Done(),
-		e.podsSynced, e.svcsSynced, e.epSlicesSynced,
+		e.podsSynced, e.svcsSynced, e.epSlicesSynced, e.nodesSynced,
 		e.rsSynced, e.deploySynced, e.stsSynced, e.dsSynced,
 		e.jobSynced, e.cronJobSynced,
 	) {
@@ -190,8 +196,26 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 		}
 	}
 
+	// Port mismatch on a unique ClusterIP still attributes to that Service.
+	if ref, ok := buildClusterIPIndex(services).lookup(addr); ok {
+		return DstIdentity{
+			Namespace: ref.Namespace,
+			Kind:      "Service",
+			Name:      ref.Name,
+			Addr:      addr,
+		}
+	}
+
 	if dst, ok := e.resolveDstFromPodIP(addr); ok {
 		return dst
+	}
+
+	if dst, ok := e.resolveDstFromNodeIP(addr); ok {
+		return dst
+	}
+
+	if isLoopbackAddr(addr) {
+		return DstIdentity{Kind: "Loopback", Name: "localhost", Addr: addr}
 	}
 
 	return fallback
@@ -213,6 +237,23 @@ func (e *Enricher) resolveDstFromPodIP(addr string) (DstIdentity, bool) {
 		Name:      wl.Name,
 		Addr:      addr,
 	}, true
+}
+
+func (e *Enricher) resolveDstFromNodeIP(addr string) (DstIdentity, bool) {
+	nodes, ok := e.listNodes()
+	if !ok {
+		return DstIdentity{}, false
+	}
+	name, ok := buildNodeIPIndex(nodes).lookup(addr)
+	if !ok {
+		return DstIdentity{}, false
+	}
+	return DstIdentity{Kind: "Node", Name: name, Addr: addr}, true
+}
+
+func isLoopbackAddr(addr string) bool {
+	ip := net.ParseIP(addr)
+	return ip != nil && ip.IsLoopback()
 }
 
 func (e *Enricher) LookupEndpoint(addr string, port uint32) (EndpointEntry, bool) {
@@ -251,6 +292,18 @@ func (e *Enricher) listPods() ([]*corev1.Pod, bool) {
 		return nil, false
 	}
 	return pods, true
+}
+
+func (e *Enricher) listNodes() ([]*corev1.Node, bool) {
+	if e.nodeLister == nil {
+		return nil, false
+	}
+	nodes, err := e.nodeLister.List(labels.Everything())
+	if err != nil {
+		e.log.Debug("node list failed", "err", err)
+		return nil, false
+	}
+	return nodes, true
 }
 
 func (e *Enricher) listServicesAndSlices() ([]*corev1.Service, []*discoveryv1.EndpointSlice, bool) {
