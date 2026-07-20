@@ -3,6 +3,7 @@ package workloads
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -44,6 +46,8 @@ type ControllerResult struct {
 	Containers     []ContainerResult
 	// VolumeClaims lists PersistentVolumeClaim refs from the pod template and running pods.
 	VolumeClaims []VolumeClaimRef `json:",omitempty"`
+	// NodeNames are unique nodes where Running pods for this controller are scheduled.
+	NodeNames []string `json:",omitempty"`
 }
 
 // VolumeClaimRef is a pod volume that references a PersistentVolumeClaim.
@@ -340,6 +344,37 @@ func collectControllerVolumeClaims(podSpec *corev1.PodSpec, pods []unstructured.
 		volumes = append(volumes, spec.Volumes...)
 	}
 	return formatVolumeClaimsFromVolumes(volumes)
+}
+
+// collectControllerNodeNames returns unique node names from Running pods with a non-empty NodeName.
+func collectControllerNodeNames(pods []unstructured.Unstructured) []string {
+	if len(pods) == 0 {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0)
+	for _, podObj := range pods {
+		pod := &corev1.Pod{}
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(podObj.UnstructuredContent(), pod); err != nil {
+			continue
+		}
+		if pod.Status.Phase != corev1.PodRunning {
+			continue
+		}
+		if pod.Spec.NodeName == "" {
+			continue
+		}
+		if _, ok := seen[pod.Spec.NodeName]; ok {
+			continue
+		}
+		seen[pod.Spec.NodeName] = struct{}{}
+		out = append(out, pod.Spec.NodeName)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	sort.Strings(out)
+	return out
 }
 
 func resourcesFromContainerSpec(container corev1.Container) ResourceResult {
@@ -790,6 +825,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		controller := formatControllers(topController.GetKind(), topController.GetName(), topController.GetNamespace(), string(topController.GetUID()), topController.GetOwnerReferences(), containers, topController.GetAnnotations(), topController.GetLabels(), podLabels, podAnnotations)
 		controller.PodCount = float64(workload.RunningPodCount)
 		controller.VolumeClaims = collectControllerVolumeClaims(workload.PodSpec, workload.Pods)
+		controller.NodeNames = collectControllerNodeNames(workload.Pods)
 		interfaces = append(interfaces, controller)
 	}
 

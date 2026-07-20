@@ -757,6 +757,13 @@
                   ]
                 }
               ]
+            },
+            "NodeNames": {
+              "type": "array",
+              "description": "Unique node names where Running pods for this controller are scheduled.",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "required": [

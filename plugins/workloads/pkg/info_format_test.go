@@ -482,3 +482,29 @@ func TestCollectControllerVolumeClaimsIncludesPods(t *testing.T) {
 		{Name: "from-pod", ClaimName: "web-data-web-0"},
 	}, got)
 }
+
+func TestCollectControllerNodeNames(t *testing.T) {
+	require.Nil(t, collectControllerNodeNames(nil))
+
+	mkPod := func(name, node string, phase corev1.PodPhase) unstructured.Unstructured {
+		pod := &corev1.Pod{
+			TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"},
+			Spec:       corev1.PodSpec{NodeName: node},
+			Status:     corev1.PodStatus{Phase: phase},
+		}
+		raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
+		require.NoError(t, err)
+		return unstructured.Unstructured{Object: raw}
+	}
+
+	got := collectControllerNodeNames([]unstructured.Unstructured{
+		mkPod("a", "node-b", corev1.PodRunning),
+		mkPod("b", "node-a", corev1.PodRunning),
+		mkPod("c", "node-b", corev1.PodRunning), // dup
+		mkPod("d", "node-c", corev1.PodSucceeded),
+		mkPod("e", "", corev1.PodRunning),
+		mkPod("f", "node-d", corev1.PodPending),
+	})
+	require.Equal(t, []string{"node-a", "node-b"}, got)
+}
