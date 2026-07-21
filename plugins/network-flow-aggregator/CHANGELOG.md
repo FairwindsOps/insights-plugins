@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.13
+* Enhance network flow aggregator to support node IP resolution and improve service fallback logic.
+
 ## 0.0.12
 * Enrich flow events outside the store lock so slow Kubernetes lookups cannot block upstream send
 * Resolve top-controller workloads via informer listers instead of dynamic API List calls

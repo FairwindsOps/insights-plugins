@@ -62,6 +62,42 @@ func (idx serviceIndex) lookup(clusterIP string, port uint32) (serviceRef, bool)
 	return ref, ok
 }
 
+type clusterIPIndexEntry struct {
+	ref       serviceRef
+	ambiguous bool
+}
+
+// clusterIPIndex maps a unique ClusterIP (any port) to its Service.
+type clusterIPIndex map[string]clusterIPIndexEntry
+
+func buildClusterIPIndex(services []*corev1.Service) clusterIPIndex {
+	idx := make(clusterIPIndex)
+	for _, svc := range services {
+		if svc == nil || svc.Spec.ClusterIP == "" || svc.Spec.ClusterIP == corev1.ClusterIPNone {
+			continue
+		}
+		ref := serviceRef{Namespace: svc.Namespace, Name: svc.Name}
+		ent, ok := idx[svc.Spec.ClusterIP]
+		if !ok {
+			idx[svc.Spec.ClusterIP] = clusterIPIndexEntry{ref: ref}
+			continue
+		}
+		if ent.ambiguous || ent.ref == ref {
+			continue
+		}
+		idx[svc.Spec.ClusterIP] = clusterIPIndexEntry{ambiguous: true}
+	}
+	return idx
+}
+
+func (idx clusterIPIndex) lookup(clusterIP string) (serviceRef, bool) {
+	ent, ok := idx[clusterIP]
+	if !ok || ent.ambiguous {
+		return serviceRef{}, false
+	}
+	return ent.ref, true
+}
+
 func buildDstIndex(services []*corev1.Service, slices []*discoveryv1.EndpointSlice) serviceIndex {
 	idx := buildServiceIndex(services)
 	mergeEndpointSliceIndex(idx, slices)

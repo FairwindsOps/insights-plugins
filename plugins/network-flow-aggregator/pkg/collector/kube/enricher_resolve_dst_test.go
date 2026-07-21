@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func newTestEnricher(t *testing.T, pods []*corev1.Pod, services []*corev1.Service, slices []*discoveryv1.EndpointSlice) *Enricher {
+func newTestEnricher(t *testing.T, pods []*corev1.Pod, services []*corev1.Service, slices []*discoveryv1.EndpointSlice, nodes ...*corev1.Node) *Enricher {
 	t.Helper()
 
 	podIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
@@ -36,11 +36,19 @@ func newTestEnricher(t *testing.T, pods []*corev1.Pod, services []*corev1.Servic
 		}
 	}
 
+	nodeIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+	for _, node := range nodes {
+		if err := nodeIndexer.Add(node); err != nil {
+			t.Fatalf("add node: %v", err)
+		}
+	}
+
 	return &Enricher{
 		log:           slog.Default(),
 		podLister:     corelisters.NewPodLister(podIndexer),
 		svcLister:     corelisters.NewServiceLister(svcIndexer),
 		epSliceLister: discoverylisters.NewEndpointSliceLister(sliceIndexer),
+		nodeLister:    corelisters.NewNodeLister(nodeIndexer),
 	}
 }
 
@@ -110,5 +118,185 @@ func TestResolveDstUnknownPodIP(t *testing.T) {
 	}
 	if dst.Addr != "172.20.108.47" {
 		t.Fatalf("addr = %q", dst.Addr)
+	}
+}
+
+func TestResolveDstNodeIP(t *testing.T) {
+	e := newTestEnricher(t, nil, nil, nil,
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "ip-10-0-1-50.ec2.internal"},
+			Status: corev1.NodeStatus{
+				Addresses: []corev1.NodeAddress{
+					{Type: corev1.NodeInternalIP, Address: "172.20.53.225"},
+					{Type: corev1.NodeExternalIP, Address: "54.1.2.3"},
+				},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("172.20.53.225", 52912)
+	if dst.Kind != "Node" || dst.Name != "ip-10-0-1-50.ec2.internal" {
+		t.Fatalf("dst = %#v, want Node ip-10-0-1-50.ec2.internal", dst)
+	}
+
+	dst = e.ResolveDst("54.1.2.3", 443)
+	if dst.Kind != "Node" || dst.Name != "ip-10-0-1-50.ec2.internal" {
+		t.Fatalf("dst = %#v, want Node via ExternalIP", dst)
+	}
+}
+
+func TestResolveDstPrefersServiceOverNodeIP(t *testing.T) {
+	ready := true
+	e := newTestEnricher(t,
+		nil,
+		[]*corev1.Service{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: "kubelet"},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.96.0.99",
+					Ports:     []corev1.ServicePort{{Port: 10250}},
+				},
+			},
+		},
+		[]*discoveryv1.EndpointSlice{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "kube-system",
+					Name:      "kubelet-slice",
+					Labels:    map[string]string{discoveryv1.LabelServiceName: "kubelet"},
+				},
+				Ports: []discoveryv1.EndpointPort{{Port: ptrInt32(10250)}},
+				Endpoints: []discoveryv1.Endpoint{
+					{Addresses: []string{"172.20.53.225"}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}},
+				},
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+			Status: corev1.NodeStatus{
+				Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "172.20.53.225"}},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("172.20.53.225", 10250)
+	if dst.Kind != "Service" || dst.Name != "kubelet" {
+		t.Fatalf("dst = %#v, want Service kubelet", dst)
+	}
+
+	dst = e.ResolveDst("172.20.53.225", 52912)
+	if dst.Kind != "Node" || dst.Name != "node-a" {
+		t.Fatalf("dst = %#v, want Node node-a on ephemeral port", dst)
+	}
+}
+
+func TestResolveDstAmbiguousNodeIP(t *testing.T) {
+	e := newTestEnricher(t, nil, nil, nil,
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+			Status: corev1.NodeStatus{
+				Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "172.20.1.1"}},
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "node-b"},
+			Status: corev1.NodeStatus{
+				Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "172.20.1.1"}},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("172.20.1.1", 80)
+	if dst.Kind != "" || dst.Name != "" {
+		t.Fatalf("dst = %#v, want empty identity for ambiguous node IP", dst)
+	}
+}
+
+func TestResolveDstSkipsHostNetworkPodForNode(t *testing.T) {
+	e := newTestEnricher(t,
+		[]*corev1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "kube-system", Name: "aws-node-xyz"},
+				Spec:       corev1.PodSpec{HostNetwork: true},
+				Status:     corev1.PodStatus{PodIP: "172.20.53.225", Phase: corev1.PodRunning},
+			},
+		},
+		nil,
+		nil,
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+			Status: corev1.NodeStatus{
+				Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "172.20.53.225"}},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("172.20.53.225", 8162)
+	if dst.Kind != "Node" || dst.Name != "node-a" {
+		t.Fatalf("dst = %#v, want Node (not hostNetwork DaemonSet)", dst)
+	}
+}
+
+func TestResolveDstLoopback(t *testing.T) {
+	e := newTestEnricher(t, nil, nil, nil)
+
+	for _, addr := range []string{"127.0.0.1", "::1"} {
+		dst := e.ResolveDst(addr, 8080)
+		if dst.Kind != "Loopback" || dst.Name != "localhost" || dst.Addr != addr {
+			t.Fatalf("dst = %#v for %s, want Loopback localhost", dst, addr)
+		}
+	}
+}
+
+func TestResolveDstClusterIPPortFallback(t *testing.T) {
+	e := newTestEnricher(t,
+		nil,
+		[]*corev1.Service{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "prod", Name: "postgres"},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.96.0.10",
+					Ports:     []corev1.ServicePort{{Port: 5432}},
+				},
+			},
+		},
+		nil,
+	)
+
+	dst := e.ResolveDst("10.96.0.10", 5432)
+	if dst.Kind != "Service" || dst.Name != "postgres" {
+		t.Fatalf("dst = %#v, want Service on exact port", dst)
+	}
+
+	dst = e.ResolveDst("10.96.0.10", 9999)
+	if dst.Kind != "Service" || dst.Name != "postgres" || dst.Namespace != "prod" {
+		t.Fatalf("dst = %#v, want Service via ClusterIP fallback", dst)
+	}
+}
+
+func TestResolveDstClusterIPFallbackBeforeNode(t *testing.T) {
+	e := newTestEnricher(t,
+		nil,
+		[]*corev1.Service{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "prod", Name: "api"},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.96.0.20",
+					Ports:     []corev1.ServicePort{{Port: 80}},
+				},
+			},
+		},
+		nil,
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+			Status: corev1.NodeStatus{
+				Addresses: []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: "10.96.0.20"}},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("10.96.0.20", 9999)
+	if dst.Kind != "Service" || dst.Name != "api" {
+		t.Fatalf("dst = %#v, want Service via ClusterIP before Node", dst)
 	}
 }
