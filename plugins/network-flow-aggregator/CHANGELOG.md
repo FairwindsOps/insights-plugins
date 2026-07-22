@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.14
+* Bump library google.golang.org/grpc to v1.82.1
+
 ## 0.0.13
 * Enhance network flow aggregator to support node IP resolution and improve service fallback logic.
 

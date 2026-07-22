@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.12
+* Bump library google.golang.org/grpc to v1.82.1
+
 ## 0.0.11
 * Fix release Docker builds when `go list` cannot resolve IG_VERSION (fall back to `go.mod`, fail if unset)
 
