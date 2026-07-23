@@ -269,7 +269,11 @@ type ClusterWorkloadReport struct {
 	Ingresses              []Ingress
 	Services               []Service
 	PersistentVolumeClaims []PersistentVolumeClaim
-	Images                 []discovery.ImageResult
+	Images []discovery.ImageResult
+	// Karpenter is optional inventory of Karpenter CRDs (2.15+). Nil/omitted when
+	// karpenter.sh is not installed. When present, nested arrays are always emitted
+	// (possibly empty). Azure/GCP NodeClasses are out of scope for this release.
+	Karpenter *Karpenter `json:",omitempty"`
 }
 
 func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
@@ -920,6 +924,8 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		images = imageDiscovery.Images
 	}
 
+	karpenter := listKarpenterInventory(ctx, dynamicClient)
+
 	clusterWorkloadReport := ClusterWorkloadReport{
 		ServerVersion:          serverVersion.Major + "." + serverVersion.Minor,
 		SourceType:             "Cluster",
@@ -933,6 +939,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		Services:               services,
 		PersistentVolumeClaims: pvcs,
 		Images:                 images,
+		Karpenter:              karpenter,
 	}
 	return &clusterWorkloadReport, nil
 }
