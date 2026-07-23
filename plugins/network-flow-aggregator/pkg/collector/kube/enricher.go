@@ -181,10 +181,7 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 		return fallback
 	}
 
-	services, slices, ok := e.listServicesAndSlices()
-	if !ok {
-		return fallback
-	}
+	services, slices := e.listServicesAndSlices()
 
 	idx := buildDstIndex(services, slices)
 	if ref, ok := idx.lookup(addr, port); ok {
@@ -206,6 +203,16 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 		}
 	}
 
+	// Port mismatch on a unique EndpointSlice address still attributes to that Service.
+	if ref, ok := buildEndpointIPIndex(slices).lookup(addr); ok {
+		return DstIdentity{
+			Namespace: ref.Namespace,
+			Kind:      "Service",
+			Name:      ref.Name,
+			Addr:      addr,
+		}
+	}
+
 	if dst, ok := e.resolveDstFromPodIP(addr); ok {
 		return dst
 	}
@@ -216,6 +223,10 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 
 	if isLoopbackAddr(addr) {
 		return DstIdentity{Kind: "Loopback", Name: "localhost", Addr: addr}
+	}
+
+	if isLinkLocalAddr(addr) {
+		return DstIdentity{Kind: "LinkLocal", Name: "metadata", Addr: addr}
 	}
 
 	return fallback
@@ -256,12 +267,17 @@ func isLoopbackAddr(addr string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
+func isLinkLocalAddr(addr string) bool {
+	ip := net.ParseIP(addr)
+	return ip != nil && ip.IsLinkLocalUnicast()
+}
+
 func (e *Enricher) LookupEndpoint(addr string, port uint32) (EndpointEntry, bool) {
 	if addr == "" || port == 0 {
 		return EndpointEntry{}, false
 	}
-	services, slices, ok := e.listServicesAndSlices()
-	if !ok {
+	services, slices := e.listServicesAndSlices()
+	if len(services) == 0 && len(slices) == 0 {
 		return EndpointEntry{}, false
 	}
 	idx := buildEndpointIndex(services, slices)
@@ -306,16 +322,25 @@ func (e *Enricher) listNodes() ([]*corev1.Node, bool) {
 	return nodes, true
 }
 
-func (e *Enricher) listServicesAndSlices() ([]*corev1.Service, []*discoveryv1.EndpointSlice, bool) {
-	services, err := e.svcLister.List(labels.Everything())
-	if err != nil {
-		e.log.Debug("service list failed", "err", err)
-		return nil, nil, false
+func (e *Enricher) listServicesAndSlices() ([]*corev1.Service, []*discoveryv1.EndpointSlice) {
+	var services []*corev1.Service
+	var slices []*discoveryv1.EndpointSlice
+
+	if e.svcLister != nil {
+		svcs, err := e.svcLister.List(labels.Everything())
+		if err != nil {
+			e.log.Debug("service list failed", "err", err)
+		} else {
+			services = svcs
+		}
 	}
-	slices, err := e.epSliceLister.List(labels.Everything())
-	if err != nil {
-		e.log.Debug("endpointslice list failed", "err", err)
-		return nil, nil, false
+	if e.epSliceLister != nil {
+		eps, err := e.epSliceLister.List(labels.Everything())
+		if err != nil {
+			e.log.Debug("endpointslice list failed", "err", err)
+		} else {
+			slices = eps
+		}
 	}
-	return services, slices, true
+	return services, slices
 }

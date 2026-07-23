@@ -184,9 +184,10 @@ func TestResolveDstPrefersServiceOverNodeIP(t *testing.T) {
 		t.Fatalf("dst = %#v, want Service kubelet", dst)
 	}
 
+	// EndpointSlice any-port fallback attributes the unique endpoint IP to the Service.
 	dst = e.ResolveDst("172.20.53.225", 52912)
-	if dst.Kind != "Node" || dst.Name != "node-a" {
-		t.Fatalf("dst = %#v, want Node node-a on ephemeral port", dst)
+	if dst.Kind != "Service" || dst.Name != "kubelet" {
+		t.Fatalf("dst = %#v, want Service kubelet via endpoint IP fallback", dst)
 	}
 }
 
@@ -298,5 +299,180 @@ func TestResolveDstClusterIPFallbackBeforeNode(t *testing.T) {
 	dst := e.ResolveDst("10.96.0.20", 9999)
 	if dst.Kind != "Service" || dst.Name != "api" {
 		t.Fatalf("dst = %#v, want Service via ClusterIP before Node", dst)
+	}
+}
+
+func TestResolveDstEndpointIPAnyPort(t *testing.T) {
+	ready := true
+	e := newTestEnricher(t,
+		nil,
+		[]*corev1.Service{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "kubernetes"},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.96.0.1",
+					Ports:     []corev1.ServicePort{{Port: 443}},
+				},
+			},
+		},
+		[]*discoveryv1.EndpointSlice{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "kubernetes",
+					Labels:    map[string]string{discoveryv1.LabelServiceName: "kubernetes"},
+				},
+				Ports: []discoveryv1.EndpointPort{{Port: ptrInt32(443)}},
+				Endpoints: []discoveryv1.Endpoint{
+					{Addresses: []string{"172.20.25.214", "172.20.26.120"}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}},
+				},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("172.20.25.214", 443)
+	if dst.Kind != "Service" || dst.Name != "kubernetes" || dst.Namespace != "default" {
+		t.Fatalf("dst = %#v, want Service on exact port", dst)
+	}
+
+	dst = e.ResolveDst("172.20.25.214", 6443)
+	if dst.Kind != "Service" || dst.Name != "kubernetes" || dst.Namespace != "default" {
+		t.Fatalf("dst = %#v, want Service via endpoint IP any-port", dst)
+	}
+
+	dst = e.ResolveDst("172.20.26.120", 80)
+	if dst.Kind != "Service" || dst.Name != "kubernetes" {
+		t.Fatalf("dst = %#v, want Service for second endpoint IP", dst)
+	}
+}
+
+func TestResolveDstEndpointIPAnyPortBeforePod(t *testing.T) {
+	ready := true
+	e := newTestEnricher(t,
+		[]*corev1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "insights", Name: "demo-server-abc"},
+				Status:     corev1.PodStatus{PodIP: "10.244.0.15", Phase: corev1.PodRunning},
+			},
+		},
+		[]*corev1.Service{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "insights", Name: "demo-server"},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.96.173.46",
+					Ports:     []corev1.ServicePort{{Port: 8080}},
+				},
+			},
+		},
+		[]*discoveryv1.EndpointSlice{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "insights",
+					Name:      "demo-server-slice",
+					Labels:    map[string]string{discoveryv1.LabelServiceName: "demo-server"},
+				},
+				Ports: []discoveryv1.EndpointPort{{Port: ptrInt32(8080)}},
+				Endpoints: []discoveryv1.Endpoint{
+					{Addresses: []string{"10.244.0.15"}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}},
+				},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("10.244.0.15", 9999)
+	if dst.Kind != "Service" || dst.Name != "demo-server" {
+		t.Fatalf("dst = %#v, want Service via endpoint IP before Pod", dst)
+	}
+}
+
+func TestResolveDstAmbiguousEndpointIP(t *testing.T) {
+	ready := true
+	e := newTestEnricher(t,
+		[]*corev1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "insights", Name: "shared-pod"},
+				Status:     corev1.PodStatus{PodIP: "10.244.0.1", Phase: corev1.PodRunning},
+			},
+		},
+		nil,
+		[]*discoveryv1.EndpointSlice{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "a",
+					Name:      "svc-a",
+					Labels:    map[string]string{discoveryv1.LabelServiceName: "svc-a"},
+				},
+				Endpoints: []discoveryv1.Endpoint{
+					{Addresses: []string{"10.244.0.1"}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}},
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "b",
+					Name:      "svc-b",
+					Labels:    map[string]string{discoveryv1.LabelServiceName: "svc-b"},
+				},
+				Endpoints: []discoveryv1.Endpoint{
+					{Addresses: []string{"10.244.0.1"}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}},
+				},
+			},
+		},
+	)
+
+	dst := e.ResolveDst("10.244.0.1", 9999)
+	if dst.Kind != "Pod" || dst.Name != "shared-pod" {
+		t.Fatalf("dst = %#v, want Pod after ambiguous endpoint IP miss", dst)
+	}
+}
+
+func TestResolveDstLinkLocal(t *testing.T) {
+	e := newTestEnricher(t, nil, nil, nil)
+
+	dst := e.ResolveDst("169.254.169.254", 80)
+	if dst.Kind != "LinkLocal" || dst.Name != "metadata" || dst.Addr != "169.254.169.254" {
+		t.Fatalf("dst = %#v, want LinkLocal metadata", dst)
+	}
+
+	dst = e.ResolveDst("fe80::1", 80)
+	if dst.Kind != "LinkLocal" || dst.Name != "metadata" {
+		t.Fatalf("dst = %#v, want LinkLocal for IPv6", dst)
+	}
+}
+
+func TestResolveDstPartialListFailure(t *testing.T) {
+	e := newTestEnricher(t,
+		nil,
+		[]*corev1.Service{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "prod", Name: "postgres"},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "10.96.0.10",
+					Ports:     []corev1.ServicePort{{Port: 5432}},
+				},
+			},
+		},
+		nil,
+	)
+	e.epSliceLister = nil // EndpointSlice list unavailable
+
+	dst := e.ResolveDst("10.96.0.10", 9999)
+	if dst.Kind != "Service" || dst.Name != "postgres" {
+		t.Fatalf("dst = %#v, want ClusterIP resolve when EndpointSlice list fails", dst)
+	}
+}
+
+func TestResolveDstBothListsFailStillResolvesLoopbackAndLinkLocal(t *testing.T) {
+	e := newTestEnricher(t, nil, nil, nil)
+	e.svcLister = nil
+	e.epSliceLister = nil
+
+	dst := e.ResolveDst("127.0.0.1", 8080)
+	if dst.Kind != "Loopback" || dst.Name != "localhost" {
+		t.Fatalf("dst = %#v, want Loopback when service lists fail", dst)
+	}
+
+	dst = e.ResolveDst("169.254.169.254", 80)
+	if dst.Kind != "LinkLocal" || dst.Name != "metadata" {
+		t.Fatalf("dst = %#v, want LinkLocal when service lists fail", dst)
 	}
 }
