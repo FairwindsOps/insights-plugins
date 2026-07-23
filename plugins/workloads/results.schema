@@ -577,6 +577,218 @@
         }
       ]
     },
+    "NodePools": {
+      "type": "array",
+      "description": "Karpenter NodePool CRDs (karpenter.sh/v1). Always present; empty when CRDs/RBAC absent or none configured.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Kind": { "type": "string" },
+          "Name": { "type": "string" },
+          "UID": { "type": "string" },
+          "APIVersion": { "type": "string" },
+          "Labels": { "type": ["object", "null"] },
+          "Annotations": { "type": ["object", "null"] },
+          "Weight": { "type": ["integer", "null"] },
+          "Limits": {
+            "type": ["object", "null"],
+            "additionalProperties": { "type": "string" }
+          },
+          "NodeClassRef": {
+            "type": ["object", "null"],
+            "properties": {
+              "Group": { "type": "string" },
+              "Kind": { "type": "string" },
+              "Name": { "type": "string" }
+            }
+          },
+          "Requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Key": { "type": "string" },
+                "Operator": { "type": "string" },
+                "Values": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          },
+          "Disruption": {
+            "type": ["object", "null"],
+            "properties": {
+              "ConsolidationPolicy": { "type": "string" },
+              "ConsolidateAfter": { "type": "string" },
+              "Budgets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Nodes": { "type": "string" },
+                    "Schedule": { "type": "string" },
+                    "Duration": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "Conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Type": { "type": "string" },
+                "Status": { "type": "string" },
+                "Reason": { "type": "string" },
+                "Message": { "type": "string" },
+                "LastTransitionTime": { "type": "string" }
+              }
+            }
+          }
+        },
+        "required": ["Kind", "Name", "UID"]
+      }
+    },
+    "NodeClaims": {
+      "type": "array",
+      "description": "Karpenter NodeClaim CRDs (karpenter.sh/v1). Always present; empty when CRDs/RBAC absent or none configured.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Kind": { "type": "string" },
+          "Name": { "type": "string" },
+          "UID": { "type": "string" },
+          "APIVersion": { "type": "string" },
+          "Labels": { "type": ["object", "null"] },
+          "Annotations": { "type": ["object", "null"] },
+          "NodePool": { "type": "string" },
+          "NodeClassRef": {
+            "type": ["object", "null"],
+            "properties": {
+              "Group": { "type": "string" },
+              "Kind": { "type": "string" },
+              "Name": { "type": "string" }
+            }
+          },
+          "Requirements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Key": { "type": "string" },
+                "Operator": { "type": "string" },
+                "Values": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          },
+          "ProviderID": { "type": "string" },
+          "NodeName": { "type": "string" },
+          "Conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Type": { "type": "string" },
+                "Status": { "type": "string" },
+                "Reason": { "type": "string" },
+                "Message": { "type": "string" },
+                "LastTransitionTime": { "type": "string" }
+              }
+            }
+          }
+        },
+        "required": ["Kind", "Name", "UID"]
+      }
+    },
+    "EC2NodeClasses": {
+      "type": "array",
+      "description": "AWS Karpenter EC2NodeClass CRDs (karpenter.k8s.aws/v1). Always present; empty when CRDs/RBAC absent or none configured. Azure/GCP NodeClasses are out of scope.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Kind": { "type": "string" },
+          "Name": { "type": "string" },
+          "UID": { "type": "string" },
+          "APIVersion": { "type": "string" },
+          "Labels": { "type": ["object", "null"] },
+          "Annotations": { "type": ["object", "null"] },
+          "Role": { "type": "string" },
+          "InstanceProfile": { "type": "string" },
+          "AMIFamily": { "type": "string" },
+          "Tags": {
+            "type": ["object", "null"],
+            "additionalProperties": { "type": "string" }
+          },
+          "SubnetSelectorTerms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ID": { "type": "string" },
+                "Name": { "type": "string" },
+                "Alias": { "type": "string" },
+                "Owner": { "type": "string" },
+                "Tags": {
+                  "type": ["object", "null"],
+                  "additionalProperties": { "type": "string" }
+                }
+              }
+            }
+          },
+          "SecurityGroupSelectorTerms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ID": { "type": "string" },
+                "Name": { "type": "string" },
+                "Alias": { "type": "string" },
+                "Owner": { "type": "string" },
+                "Tags": {
+                  "type": ["object", "null"],
+                  "additionalProperties": { "type": "string" }
+                }
+              }
+            }
+          },
+          "AMISelectorTerms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ID": { "type": "string" },
+                "Name": { "type": "string" },
+                "Alias": { "type": "string" },
+                "Owner": { "type": "string" },
+                "Tags": {
+                  "type": ["object", "null"],
+                  "additionalProperties": { "type": "string" }
+                }
+              }
+            }
+          },
+          "Conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Type": { "type": "string" },
+                "Status": { "type": "string" },
+                "Reason": { "type": "string" },
+                "Message": { "type": "string" },
+                "LastTransitionTime": { "type": "string" }
+              }
+            }
+          }
+        },
+        "required": ["Kind", "Name", "UID"]
+      }
+    },
     "Controllers": {
       "type": "array",
       "items": [

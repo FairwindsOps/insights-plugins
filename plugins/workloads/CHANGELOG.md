@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.15.0
+* **Karpenter inventory:** emit top-level **`NodePools[]`**, **`NodeClaims[]`**, and **`EC2NodeClasses[]`** from cluster CRDs (dynamic list; AWS EC2NodeClass only). Arrays are always present (including empty) so consumers can detect empty pools vs omitted fields. Soft-fail (warn + empty arrays) when CRDs are absent or RBAC forbids list. EC2NodeClass includes role/instanceProfile, amiFamily, tags, and subnet/SG/AMI selector terms.
+
 ## 2.14.0
 * **Controller node placement:** Controllers emit optional **`NodeNames[]`** — unique names of nodes where **Running** pods are scheduled (from live pods; empty `NodeName` skipped). Enables Inventory deep node topology (node → workload edges).
 
