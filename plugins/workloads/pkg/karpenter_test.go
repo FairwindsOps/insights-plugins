@@ -183,24 +183,40 @@ func TestFormatNodePoolEmptySpec(t *testing.T) {
 	require.Nil(t, got.Requirements)
 }
 
-func TestKarpenterEmptyArraysJSONContract(t *testing.T) {
-	report := ClusterWorkloadReport{
-		NodePools:      []NodePool{},
-		NodeClaims:     []NodeClaim{},
-		EC2NodeClasses: []EC2NodeClass{},
-	}
-	raw, err := json.Marshal(report)
-	require.NoError(t, err)
+func TestKarpenterJSONContract(t *testing.T) {
+	t.Run("omitted when nil", func(t *testing.T) {
+		report := ClusterWorkloadReport{}
+		raw, err := json.Marshal(report)
+		require.NoError(t, err)
 
-	var decoded map[string]any
-	require.NoError(t, json.Unmarshal(raw, &decoded))
-	require.Contains(t, decoded, "NodePools")
-	require.Contains(t, decoded, "NodeClaims")
-	require.Contains(t, decoded, "EC2NodeClasses")
-	require.IsType(t, []any{}, decoded["NodePools"])
-	require.Empty(t, decoded["NodePools"])
-	require.Empty(t, decoded["NodeClaims"])
-	require.Empty(t, decoded["EC2NodeClasses"])
+		var decoded map[string]any
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+		require.NotContains(t, decoded, "Karpenter")
+	})
+
+	t.Run("nested empty arrays when present", func(t *testing.T) {
+		report := ClusterWorkloadReport{
+			Karpenter: &Karpenter{
+				NodePools:      []NodePool{},
+				NodeClaims:     []NodeClaim{},
+				EC2NodeClasses: []EC2NodeClass{},
+			},
+		}
+		raw, err := json.Marshal(report)
+		require.NoError(t, err)
+
+		var decoded map[string]any
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+		require.Contains(t, decoded, "Karpenter")
+		karp, ok := decoded["Karpenter"].(map[string]any)
+		require.True(t, ok)
+		require.Contains(t, karp, "NodePools")
+		require.Contains(t, karp, "NodeClaims")
+		require.Contains(t, karp, "EC2NodeClasses")
+		require.Empty(t, karp["NodePools"])
+		require.Empty(t, karp["NodeClaims"])
+		require.Empty(t, karp["EC2NodeClasses"])
+	})
 }
 
 func karpenterListKinds() map[schema.GroupVersionResource]string {
@@ -241,14 +257,15 @@ func TestListKarpenterInventorySuccess(t *testing.T) {
 	}}
 
 	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), karpenterListKinds(), np, nc, ec2)
-	pools, claims, classes := listKarpenterInventory(context.Background(), client)
-	require.Len(t, pools, 1)
-	require.Equal(t, "default", pools[0].Name)
-	require.Len(t, claims, 1)
-	require.Equal(t, "default", claims[0].NodePool)
-	require.Len(t, classes, 1)
-	require.Equal(t, "NodeRole", classes[0].Role)
-	require.Equal(t, "AL2023", classes[0].AMIFamily)
+	got := listKarpenterInventory(context.Background(), client)
+	require.NotNil(t, got)
+	require.Len(t, got.NodePools, 1)
+	require.Equal(t, "default", got.NodePools[0].Name)
+	require.Len(t, got.NodeClaims, 1)
+	require.Equal(t, "default", got.NodeClaims[0].NodePool)
+	require.Len(t, got.EC2NodeClasses, 1)
+	require.Equal(t, "NodeRole", got.EC2NodeClasses[0].Role)
+	require.Equal(t, "AL2023", got.EC2NodeClasses[0].AMIFamily)
 }
 
 func TestListKarpenterInventorySoftFailForbidden(t *testing.T) {
@@ -257,25 +274,30 @@ func TestListKarpenterInventorySoftFailForbidden(t *testing.T) {
 		return true, nil, apierrors.NewForbidden(action.GetResource().GroupResource(), "", nil)
 	})
 
-	pools, claims, classes := listKarpenterInventory(context.Background(), client)
-	require.NotNil(t, pools)
-	require.NotNil(t, claims)
-	require.NotNil(t, classes)
-	require.Empty(t, pools)
-	require.Empty(t, claims)
-	require.Empty(t, classes)
+	got := listKarpenterInventory(context.Background(), client)
+	require.NotNil(t, got)
+	require.Empty(t, got.NodePools)
+	require.Empty(t, got.NodeClaims)
+	require.Empty(t, got.EC2NodeClasses)
 }
 
-func TestListKarpenterInventorySoftFailNotFound(t *testing.T) {
+func TestListKarpenterInventoryOmitsWhenNotInstalled(t *testing.T) {
 	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), karpenterListKinds())
 	client.PrependReactor("list", "*", func(action clienttesting.Action) (bool, runtime.Object, error) {
 		return true, nil, apierrors.NewNotFound(action.GetResource().GroupResource(), "")
 	})
 
-	pools, claims, classes := listKarpenterInventory(context.Background(), client)
-	require.Empty(t, pools)
-	require.Empty(t, claims)
-	require.Empty(t, classes)
+	got := listKarpenterInventory(context.Background(), client)
+	require.Nil(t, got)
+}
+
+func TestListKarpenterInventoryPresentWithEmptyPools(t *testing.T) {
+	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), karpenterListKinds())
+	got := listKarpenterInventory(context.Background(), client)
+	require.NotNil(t, got)
+	require.Empty(t, got.NodePools)
+	require.Empty(t, got.NodeClaims)
+	require.Empty(t, got.EC2NodeClasses)
 }
 
 func TestListClusterUnstructuredPagination(t *testing.T) {
