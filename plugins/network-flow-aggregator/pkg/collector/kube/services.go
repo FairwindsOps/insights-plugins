@@ -44,13 +44,13 @@ func (b BackendIdentity) MatchesService(namespace, name string) bool {
 func buildServiceIndex(services []*corev1.Service) serviceIndex {
 	idx := make(serviceIndex)
 	for _, svc := range services {
-		if svc == nil || svc.Spec.ClusterIP == "" || svc.Spec.ClusterIP == corev1.ClusterIPNone {
+		if svc == nil {
 			continue
 		}
-		for _, p := range svc.Spec.Ports {
-			idx[servicePortKey{clusterIP: svc.Spec.ClusterIP, port: uint32(p.Port)}] = serviceRef{
-				Namespace: svc.Namespace,
-				Name:      svc.Name,
+		ref := serviceRef{Namespace: svc.Namespace, Name: svc.Name}
+		for _, addr := range collectServiceAddrs(svc) {
+			for _, p := range svc.Spec.Ports {
+				idx[servicePortKey{clusterIP: addr, port: uint32(p.Port)}] = ref
 			}
 		}
 	}
@@ -67,31 +67,118 @@ type clusterIPIndexEntry struct {
 	ambiguous bool
 }
 
-// clusterIPIndex maps a unique ClusterIP (any port) to its Service.
+// clusterIPIndex maps a unique service address (any port) to its Service.
 type clusterIPIndex map[string]clusterIPIndexEntry
 
 func buildClusterIPIndex(services []*corev1.Service) clusterIPIndex {
 	idx := make(clusterIPIndex)
 	for _, svc := range services {
-		if svc == nil || svc.Spec.ClusterIP == "" || svc.Spec.ClusterIP == corev1.ClusterIPNone {
+		if svc == nil {
 			continue
 		}
 		ref := serviceRef{Namespace: svc.Namespace, Name: svc.Name}
-		ent, ok := idx[svc.Spec.ClusterIP]
-		if !ok {
-			idx[svc.Spec.ClusterIP] = clusterIPIndexEntry{ref: ref}
-			continue
+		for _, addr := range collectServiceAddrs(svc) {
+			addClusterIPIndexEntry(idx, addr, ref)
 		}
-		if ent.ambiguous || ent.ref == ref {
-			continue
-		}
-		idx[svc.Spec.ClusterIP] = clusterIPIndexEntry{ambiguous: true}
 	}
 	return idx
 }
 
+func addClusterIPIndexEntry(idx clusterIPIndex, addr string, ref serviceRef) {
+	ent, ok := idx[addr]
+	if !ok {
+		idx[addr] = clusterIPIndexEntry{ref: ref}
+		return
+	}
+	if ent.ambiguous || ent.ref == ref {
+		return
+	}
+	idx[addr] = clusterIPIndexEntry{ambiguous: true}
+}
+
 func (idx clusterIPIndex) lookup(clusterIP string) (serviceRef, bool) {
 	ent, ok := idx[clusterIP]
+	if !ok || ent.ambiguous {
+		return serviceRef{}, false
+	}
+	return ent.ref, true
+}
+
+// collectServiceAddrs returns ClusterIP(s), ExternalIPs, and LB ingress IPs.
+// Headless ClusterIP/ClusterIPs ("None") are skipped; ExternalIPs and LB IPs are still included.
+func collectServiceAddrs(svc *corev1.Service) []string {
+	if svc == nil {
+		return nil
+	}
+	var addrs []string
+	seen := make(map[string]struct{})
+	add := func(ip string) {
+		if ip == "" || ip == corev1.ClusterIPNone {
+			return
+		}
+		if _, ok := seen[ip]; ok {
+			return
+		}
+		seen[ip] = struct{}{}
+		addrs = append(addrs, ip)
+	}
+
+	if svc.Spec.ClusterIP != corev1.ClusterIPNone {
+		add(svc.Spec.ClusterIP)
+		for _, ip := range svc.Spec.ClusterIPs {
+			add(ip)
+		}
+	}
+	for _, ip := range svc.Spec.ExternalIPs {
+		add(ip)
+	}
+	for _, ing := range svc.Status.LoadBalancer.Ingress {
+		add(ing.IP)
+	}
+	return addrs
+}
+
+type endpointIPIndexEntry struct {
+	ref       serviceRef
+	ambiguous bool
+}
+
+// endpointIPIndex maps a unique ready EndpointSlice address (any port) to its Service.
+type endpointIPIndex map[string]endpointIPIndexEntry
+
+func buildEndpointIPIndex(slices []*discoveryv1.EndpointSlice) endpointIPIndex {
+	idx := make(endpointIPIndex)
+	for _, slice := range slices {
+		if slice == nil {
+			continue
+		}
+		svcName := slice.Labels[discoveryv1.LabelServiceName]
+		if svcName == "" {
+			continue
+		}
+		ref := serviceRef{Namespace: slice.Namespace, Name: svcName}
+		for _, ep := range slice.Endpoints {
+			if ep.Conditions.Ready != nil && !*ep.Conditions.Ready {
+				continue
+			}
+			for _, addr := range ep.Addresses {
+				ent, ok := idx[addr]
+				if !ok {
+					idx[addr] = endpointIPIndexEntry{ref: ref}
+					continue
+				}
+				if ent.ambiguous || ent.ref == ref {
+					continue
+				}
+				idx[addr] = endpointIPIndexEntry{ambiguous: true}
+			}
+		}
+	}
+	return idx
+}
+
+func (idx endpointIPIndex) lookup(addr string) (serviceRef, bool) {
+	ent, ok := idx[addr]
 	if !ok || ent.ambiguous {
 		return serviceRef{}, false
 	}

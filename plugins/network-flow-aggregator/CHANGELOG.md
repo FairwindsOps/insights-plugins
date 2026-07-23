@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.15
+* Continue Pod/Node/Loopback/LinkLocal resolution when Service or EndpointSlice lists partially fail
+* Classify link-local destinations (`169.254.0.0/16`, `fe80::/10`) as `LinkLocal`/`metadata`
+* Index dual-stack ClusterIPs, ExternalIPs, and LoadBalancer ingress IPs for Service matching
+* Resolve unique EndpointSlice addresses to their Service on any port
+
 ## 0.0.14
 * Bump library google.golang.org/grpc to v1.82.1
 

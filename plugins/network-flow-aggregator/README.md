@@ -73,11 +73,13 @@ DNS responses from `trace_dns` populate an in-memory IP-to-hostname cache (TTL m
 
 1. Kubernetes Service (ClusterIP / EndpointSlice `(IP, port)`)
 2. Unique ClusterIP with any port (port-mismatch fallback)
-3. Pod IP (`IP` only, any port) rolled up to top-controller workload
-4. Node IP (`InternalIP` / `ExternalIP` → `dst_ref.kind = Node`)
-5. Loopback (`127.0.0.1` / `::1` → `dst_ref.kind = Loopback`)
-6. Workload-scoped DNS cache (`namespace` + `pod` + IP)
-7. Cluster-scoped DNS cache (IP only)
+3. Unique EndpointSlice IP with any port (port-mismatch fallback)
+4. Pod IP (`IP` only, any port) rolled up to top-controller workload
+5. Node IP (`InternalIP` / `ExternalIP` → `dst_ref.kind = Node`)
+6. Loopback (`127.0.0.1` / `::1` → `dst_ref.kind = Loopback`)
+7. Link-local (`169.254.0.0/16` / `fe80::/10` → `dst_ref.kind = LinkLocal`)
+8. Workload-scoped DNS cache (`namespace` + `pod` + IP)
+9. Cluster-scoped DNS cache (IP only)
 
 Pod-IP resolution skips `hostNetwork` pods and IPs shared by multiple distinct pods (ambiguous). Those node/hostNetwork peers resolve as `Node` when the address matches a unique node IP; they are not attributed to a DaemonSet sharing the node IP. Remaining unlabeled destinations stay empty until DNS cache fills `ExternalHostname`, or appear as unlabeled/`External` downstream. Real egress resolves to `dst_ref.kind = ExternalHostname` with the queried hostname (e.g. `api.stripe.com`).
 
