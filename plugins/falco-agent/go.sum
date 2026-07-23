@@ -26,8 +26,8 @@ github.com/evanphx/json-patch/v5 v5.9.11 h1:/8HVnzMq13/3x9TPvjG08wUGqBTmZBsCWzjT
 github.com/evanphx/json-patch/v5 v5.9.11/go.mod h1:3j+LviiESTElxA4p3EMKAB9HXj3/XEtnUf6OZxqIQTM=
 github.com/fairwindsops/controller-utils v0.3.4 h1:t1qulL2GVDVUJTIE4icpBy3KnsxFTavnNAbFnd60blc=
 github.com/fairwindsops/controller-utils v0.3.4/go.mod h1:9/hOHX70/LG40RgtFAjtXFiMWEpItqm6Scf+obRFB2Y=
-github.com/falcosecurity/falcosidekick v0.0.0-20260706151659-3762836e2f2b h1:UklHH7ywiTvPPhZpnxBSPUbLZ4GrtdHuR1tr1NP4n/I=
-github.com/falcosecurity/falcosidekick v0.0.0-20260706151659-3762836e2f2b/go.mod h1:WqUXGQXe0xTQw0N62y+vjcNZecZThNmKZhL23PWe1xU=
+github.com/falcosecurity/falcosidekick v0.0.0-20260716134831-240c6416d746 h1:xzcKLCYcr81TP5A1DToGRymC+TUIx35lJ02hHqS8xY8=
+github.com/falcosecurity/falcosidekick v0.0.0-20260716134831-240c6416d746/go.mod h1:or9hVIUpOX5AeP3oP3+6XM98OQZex84ozxx3ne1bt9s=
 github.com/fsnotify/fsnotify v1.10.1 h1:b0/UzAf9yR5rhf3RPm9gf3ehBPpf0oZKIjtpKrx59Ho=
 github.com/fsnotify/fsnotify v1.10.1/go.mod h1:TLheqan6HD6GBK6PrDWyDPBaEV8LspOxvPSjC+bVfgo=
 github.com/fxamacker/cbor/v2 v2.9.1 h1:2rWm8B193Ll4VdjsJY28jxs70IdDsHRWgQYAI80+rMQ=
