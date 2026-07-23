@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -130,53 +132,87 @@ type EC2NodeClass struct {
 	Conditions                 []KarpenterCondition    `json:",omitempty"`
 }
 
-func listKarpenterInventory(
-	ctx context.Context,
-	dynamicClient dynamic.Interface,
-) (nodePools []NodePool, nodeClaims []NodeClaim, ec2NodeClasses []EC2NodeClass) {
-	nodePools = listKarpenterNodePools(ctx, dynamicClient)
-	nodeClaims = listKarpenterNodeClaims(ctx, dynamicClient)
-	ec2NodeClasses = listEC2NodeClasses(ctx, dynamicClient)
-	return nodePools, nodeClaims, ec2NodeClasses
+// Karpenter is optional Karpenter inventory nested under ClusterWorkloadReport.
+// Omitted (nil) when karpenter.sh CRDs are not installed.
+type Karpenter struct {
+	NodePools      []NodePool
+	NodeClaims     []NodeClaim
+	EC2NodeClasses []EC2NodeClass // AWS only; empty when EC2NodeClass CRDs/RBAC absent
 }
 
-func listKarpenterNodePools(ctx context.Context, dynamicClient dynamic.Interface) []NodePool {
+// listKarpenterInventory returns nil when karpenter.sh is not installed (NodePool and
+// NodeClaim lists both report absent CRDs). When Karpenter is present, nested arrays are
+// always set (possibly empty). Forbidden list is treated as present-but-unreadable.
+func listKarpenterInventory(ctx context.Context, dynamicClient dynamic.Interface) *Karpenter {
+	nodePools, poolsErr := listKarpenterNodePools(ctx, dynamicClient)
+	nodeClaims, claimsErr := listKarpenterNodeClaims(ctx, dynamicClient)
+
+	if poolsErr != nil && claimsErr != nil && isKarpenterAbsent(poolsErr) && isKarpenterAbsent(claimsErr) {
+		return nil
+	}
+
+	if poolsErr != nil {
+		logrus.Warnf("error listing Karpenter NodePools, continuing with empty NodePools: %v", poolsErr)
+		nodePools = []NodePool{}
+	}
+	if claimsErr != nil {
+		logrus.Warnf("error listing Karpenter NodeClaims, continuing with empty NodeClaims: %v", claimsErr)
+		nodeClaims = []NodeClaim{}
+	}
+
+	ec2NodeClasses, ec2Err := listEC2NodeClasses(ctx, dynamicClient)
+	if ec2Err != nil {
+		if !isKarpenterAbsent(ec2Err) {
+			logrus.Warnf("error listing EC2NodeClasses, continuing with empty EC2NodeClasses: %v", ec2Err)
+		}
+		ec2NodeClasses = []EC2NodeClass{}
+	}
+
+	return &Karpenter{
+		NodePools:      nodePools,
+		NodeClaims:     nodeClaims,
+		EC2NodeClasses: ec2NodeClasses,
+	}
+}
+
+func isKarpenterAbsent(err error) bool {
+	return apierrors.IsNotFound(err) || meta.IsNoMatchError(err)
+}
+
+func listKarpenterNodePools(ctx context.Context, dynamicClient dynamic.Interface) ([]NodePool, error) {
 	items, err := listClusterUnstructured(ctx, dynamicClient, nodePoolGVR)
 	if err != nil {
-		logrus.Warnf("error listing Karpenter NodePools, continuing with empty NodePools: %v", err)
-		return []NodePool{}
+		return nil, err
 	}
 	out := make([]NodePool, 0, len(items))
 	for _, item := range items {
 		out = append(out, formatNodePool(item))
 	}
-	return out
+	return out, nil
 }
 
-func listKarpenterNodeClaims(ctx context.Context, dynamicClient dynamic.Interface) []NodeClaim {
+func listKarpenterNodeClaims(ctx context.Context, dynamicClient dynamic.Interface) ([]NodeClaim, error) {
 	items, err := listClusterUnstructured(ctx, dynamicClient, nodeClaimGVR)
 	if err != nil {
-		logrus.Warnf("error listing Karpenter NodeClaims, continuing with empty NodeClaims: %v", err)
-		return []NodeClaim{}
+		return nil, err
 	}
 	out := make([]NodeClaim, 0, len(items))
 	for _, item := range items {
 		out = append(out, formatNodeClaim(item))
 	}
-	return out
+	return out, nil
 }
 
-func listEC2NodeClasses(ctx context.Context, dynamicClient dynamic.Interface) []EC2NodeClass {
+func listEC2NodeClasses(ctx context.Context, dynamicClient dynamic.Interface) ([]EC2NodeClass, error) {
 	items, err := listClusterUnstructured(ctx, dynamicClient, ec2NodeClassGVR)
 	if err != nil {
-		logrus.Warnf("error listing EC2NodeClasses, continuing with empty EC2NodeClasses: %v", err)
-		return []EC2NodeClass{}
+		return nil, err
 	}
 	out := make([]EC2NodeClass, 0, len(items))
 	for _, item := range items {
 		out = append(out, formatEC2NodeClass(item))
 	}
-	return out
+	return out, nil
 }
 
 func listClusterUnstructured(

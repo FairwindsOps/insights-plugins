@@ -4,7 +4,7 @@ Retrieves metadata about running workloads in the current cluster: controllers (
 
 ## Report highlights (2.15+)
 
-* **Karpenter inventory** — top-level `NodePools[]`, `NodeClaims[]`, and `EC2NodeClasses[]` (AWS only; Azure/GCP NodeClasses out of scope). Always emitted, including empty arrays. Listed via the dynamic client with explicit `karpenter.sh/v1` / `karpenter.k8s.aws/v1` GVRs; soft-fail (warn + empty arrays) when CRDs are not installed or list is forbidden. Agent ClusterRoles need companion `list` rules for these resources or the arrays stay empty in production.
+* **Karpenter inventory** — optional top-level `Karpenter` with `NodePools[]`, `NodeClaims[]`, and `EC2NodeClasses[]` (AWS only; Azure/GCP NodeClasses out of scope). Omitted when `karpenter.sh` is not installed; when present, nested arrays are always emitted (including empty). Listed via the dynamic client with explicit `karpenter.sh/v1` / `karpenter.k8s.aws/v1` GVRs; soft-fail (warn + empty nested arrays) when list is forbidden. Agent ClusterRoles need companion `list` rules for these resources or nested arrays stay empty in production.
 
 ## Report highlights (2.14+)
 
@@ -36,7 +36,7 @@ In addition to existing workloads list permissions, inventory and full `Namespac
 * `resourcequotas`
 * `limitranges`
 * `networkpolicies` (`networking.k8s.io`)
-* `nodepools`, `nodeclaims` (`karpenter.sh`) — optional; missing list leaves Karpenter arrays present but empty
-* `ec2nodeclasses` (`karpenter.k8s.aws`) — optional; missing list leaves `EC2NodeClasses` present but empty
+* `nodepools`, `nodeclaims` (`karpenter.sh`) — optional; missing CRDs omit top-level `Karpenter`; forbidden list leaves nested arrays empty
+* `ec2nodeclasses` (`karpenter.k8s.aws`) — optional; missing list leaves `Karpenter.EC2NodeClasses` empty when Karpenter is present
 
-If ResourceQuota / LimitRange / NetworkPolicy / Karpenter CRD lists are forbidden or CRDs are absent, the plugin logs a warning and leaves the corresponding fields empty/`0` instead of failing the report. Missing Service or PVC list permission fails the report (same as Ingress). Pod and ingress counts still populate from data already fetched for the report.
+If ResourceQuota / LimitRange / NetworkPolicy lists are forbidden, or Karpenter list is forbidden, the plugin logs a warning and leaves the corresponding fields empty/`0` instead of failing the report. When Karpenter CRDs are absent, `Karpenter` is omitted. Missing Service or PVC list permission fails the report (same as Ingress). Pod and ingress counts still populate from data already fetched for the report.

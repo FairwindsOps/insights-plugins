@@ -270,15 +270,10 @@ type ClusterWorkloadReport struct {
 	Services               []Service
 	PersistentVolumeClaims []PersistentVolumeClaim
 	Images []discovery.ImageResult
-	// NodePools are Karpenter NodePool CRDs (2.15+). Always emitted (possibly empty) so
-	// consumers can distinguish soft-fail / absent CRDs from omitted fields. Soft-fail
-	// leaves an empty array when CRDs/RBAC are absent.
-	NodePools []NodePool
-	// NodeClaims are Karpenter NodeClaim CRDs (2.15+). Always emitted (possibly empty).
-	NodeClaims []NodeClaim
-	// EC2NodeClasses are AWS Karpenter EC2NodeClass CRDs (2.15+). Always emitted (possibly empty).
-	// Azure/GCP NodeClasses are out of scope for this release.
-	EC2NodeClasses []EC2NodeClass
+	// Karpenter is optional inventory of Karpenter CRDs (2.15+). Nil/omitted when
+	// karpenter.sh is not installed. When present, nested arrays are always emitted
+	// (possibly empty). Azure/GCP NodeClasses are out of scope for this release.
+	Karpenter *Karpenter `json:",omitempty"`
 }
 
 func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
@@ -929,7 +924,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		images = imageDiscovery.Images
 	}
 
-	nodePools, nodeClaims, ec2NodeClasses := listKarpenterInventory(ctx, dynamicClient)
+	karpenter := listKarpenterInventory(ctx, dynamicClient)
 
 	clusterWorkloadReport := ClusterWorkloadReport{
 		ServerVersion:          serverVersion.Major + "." + serverVersion.Minor,
@@ -944,9 +939,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		Services:               services,
 		PersistentVolumeClaims: pvcs,
 		Images:                 images,
-		NodePools:              nodePools,
-		NodeClaims:             nodeClaims,
-		EC2NodeClasses:         ec2NodeClasses,
+		Karpenter:              karpenter,
 	}
 	return &clusterWorkloadReport, nil
 }
