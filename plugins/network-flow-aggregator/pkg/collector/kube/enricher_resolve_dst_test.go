@@ -104,6 +104,27 @@ func TestResolveDstPodIPEphemeralPort(t *testing.T) {
 	)
 
 	dst := e.ResolveDst("172.20.108.47", 52912)
+	if dst.Kind != "" || dst.Name != "" {
+		t.Fatalf("dst = %#v, want empty identity for ephemeral pod-IP port", dst)
+	}
+	if dst.Addr != "172.20.108.47" {
+		t.Fatalf("addr = %q", dst.Addr)
+	}
+}
+
+func TestResolveDstPodIPNonEphemeralPort(t *testing.T) {
+	e := newTestEnricher(t,
+		[]*corev1.Pod{
+			{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "fwinsights-be-main", Name: "fwinsights-api-abc"},
+				Status:     corev1.PodStatus{PodIP: "172.20.108.47", Phase: corev1.PodRunning},
+			},
+		},
+		nil,
+		nil,
+	)
+
+	dst := e.ResolveDst("172.20.108.47", 8080)
 	if dst.Kind != "Pod" || dst.Name != "fwinsights-api-abc" || dst.Namespace != "fwinsights-be-main" {
 		t.Fatalf("dst = %#v, want Pod fwinsights-api-abc in fwinsights-be-main", dst)
 	}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.16
+* Blank destination on server-observed TCP to avoid false service-map edges from recycled pod IPs
+* Refuse pod-IP destination attribution on ephemeral ports (`>= 32768`)
+
 ## 0.0.15
 * Continue Pod/Node/Loopback/LinkLocal resolution when Service or EndpointSlice lists partially fail
 * Classify link-local destinations (`169.254.0.0/16`, `fe80::/10`) as `LinkLocal`/`metadata`
