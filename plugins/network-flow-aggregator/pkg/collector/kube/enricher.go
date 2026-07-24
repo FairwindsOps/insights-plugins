@@ -213,8 +213,12 @@ func (e *Enricher) ResolveDst(addr string, port uint32) DstIdentity {
 		}
 	}
 
-	if dst, ok := e.resolveDstFromPodIP(addr); ok {
-		return dst
+	// Refuse pod-IP → workload attribution on ephemeral ports. Reply-side clients
+	// use ephemeral ports; attributing a recycled pod IP creates false edges.
+	if port < linuxDefaultEphemeralPortMin {
+		if dst, ok := e.resolveDstFromPodIP(addr); ok {
+			return dst
+		}
 	}
 
 	if dst, ok := e.resolveDstFromNodeIP(addr); ok {

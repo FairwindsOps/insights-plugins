@@ -15,9 +15,16 @@ import (
 
 type mockFlowEnricher struct {
 	endpoints map[string]kube.EndpointEntry
+	dstByKey  map[string]kube.DstIdentity
+	srcByKey  map[string]kube.WorkloadIdentity
 }
 
 func (m *mockFlowEnricher) ResolveSrcWorkload(namespace, podName string) kube.WorkloadIdentity {
+	if m.srcByKey != nil {
+		if wl, ok := m.srcByKey[fmt.Sprintf("%s/%s", namespace, podName)]; ok {
+			return wl
+		}
+	}
 	if namespace == "payments" && podName == "backend-6f9c48f647-vnbzk" {
 		return kube.WorkloadIdentity{Namespace: "payments", Kind: "Deployment", Name: "backend"}
 	}
@@ -25,6 +32,11 @@ func (m *mockFlowEnricher) ResolveSrcWorkload(namespace, podName string) kube.Wo
 }
 
 func (m *mockFlowEnricher) ResolveDst(addr string, port uint32) kube.DstIdentity {
+	if m.dstByKey != nil {
+		if dst, ok := m.dstByKey[fmt.Sprintf("%s:%d", addr, port)]; ok {
+			return dst
+		}
+	}
 	if port == 8080 && (addr == "10.96.89.41" || addr == "10.244.0.95") {
 		return kube.DstIdentity{Namespace: "payments", Kind: "Service", Name: "backend", Addr: addr}
 	}
@@ -232,6 +244,74 @@ func TestEnrichEventDNSResponseRecordsCache(t *testing.T) {
 	host, ok := cache.Lookup("default", "frontend", "93.184.216.34")
 	if !ok || host != "example.com" {
 		t.Fatalf("cache lookup = %q ok=%v", host, ok)
+	}
+}
+
+func TestEnrichEventBlanksDstOnServerObservedReverse(t *testing.T) {
+	// Server reverse with LookupEndpoint(src) + recycled client IP wrongly labeled as CronJob.
+	mock := &mockFlowEnricher{
+		endpoints: map[string]kube.EndpointEntry{
+			"10.244.0.50:5432": {
+				ServiceNamespace: "insights",
+				ServiceName:      "insights-timescale-rw",
+				PodNamespace:     "insights",
+				PodName:          "timescale-0",
+			},
+		},
+		dstByKey: map[string]kube.DstIdentity{
+			"10.96.0.20:5432": {
+				Namespace: "insights",
+				Kind:      "Service",
+				Name:      "insights-timescale-rw",
+				Addr:      "10.96.0.20",
+			},
+			"10.244.0.94:39620": {
+				Namespace: "fwinsights",
+				Kind:      "CronJob",
+				Name:      "action-items-statistics",
+				Addr:      "10.244.0.94",
+			},
+		},
+		srcByKey: map[string]kube.WorkloadIdentity{
+			"insights/timescale-0": {Namespace: "insights", Kind: "StatefulSet", Name: "timescale"},
+			"fwinsights/img-vulns-pod": {
+				Namespace: "fwinsights",
+				Kind:      "CronJob",
+				Name:      "img-vulns-on-demand-refresh",
+			},
+		},
+	}
+	s := &Server{enricher: mock, peerIndex: peerindex.New(time.Minute), log: slog.Default()}
+	now := time.Now()
+
+	reverse := s.enrichEvent(&aggregv1.FlowEvent{
+		EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+		Protocol:          aggregv1.Protocol_PROTOCOL_TCP,
+		TimestampUnixNano: now.UnixNano(),
+		Src:               &aggregv1.WorkloadRef{Namespace: "insights", Pod: "timescale-0"},
+		SrcEndpoint:       &aggregv1.Endpoint{Addr: "10.244.0.50", Port: 5432},
+		Dst:               &aggregv1.Endpoint{Addr: "10.244.0.94", Port: 39620},
+	})
+	if reverse.DstKind != "" || reverse.DstName != "" {
+		t.Fatalf("reverse dst should be blank, got %+v", reverse)
+	}
+	if reverse.SrcWorkloadKind != "StatefulSet" || reverse.SrcWorkloadName != "timescale" {
+		t.Fatalf("reverse src = %+v", reverse)
+	}
+
+	client := s.enrichEvent(&aggregv1.FlowEvent{
+		EventKind:         aggregv1.FlowEventKind_FLOW_EVENT_KIND_TRAFFIC,
+		Protocol:          aggregv1.Protocol_PROTOCOL_TCP,
+		TimestampUnixNano: now.UnixNano(),
+		Src:               &aggregv1.WorkloadRef{Namespace: "fwinsights", Pod: "img-vulns-pod"},
+		SrcEndpoint:       &aggregv1.Endpoint{Addr: "10.244.0.94", Port: 39620},
+		Dst:               &aggregv1.Endpoint{Addr: "10.96.0.20", Port: 5432},
+	})
+	if client.DstKind != "Service" || client.DstName != "insights-timescale-rw" {
+		t.Fatalf("client dst = %+v", client)
+	}
+	if client.BackendPodName != "timescale-0" {
+		t.Fatalf("peer-index backend after reverse = %+v", client)
 	}
 }
 

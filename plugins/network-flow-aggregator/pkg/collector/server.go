@@ -111,6 +111,19 @@ func (s *Server) enrichEvent(event *aggregv1.FlowEvent) store.Enrichment {
 		}
 	}
 
+	enrichment := store.Enrichment{
+		SrcNamespace:    src.Namespace,
+		SrcWorkloadKind: src.Kind,
+		SrcWorkloadName: src.Name,
+	}
+
+	// Server-observed / reply-shaped TCP: keep peer-index correlation, but do not
+	// attribute dst to a workload (pod IP reuse creates false dependency edges).
+	if s.isServerObservedTCP(event) {
+		s.recordServerPeer(event, src)
+		return enrichment
+	}
+
 	var dst kube.DstIdentity
 	if s.enricher != nil {
 		dst = s.enricher.ResolveDst(event.GetDst().GetAddr(), event.GetDst().GetPort())
@@ -123,14 +136,9 @@ func (s *Server) enrichEvent(event *aggregv1.FlowEvent) store.Enrichment {
 		}
 	}
 
-	enrichment := store.Enrichment{
-		SrcNamespace:    src.Namespace,
-		SrcWorkloadKind: src.Kind,
-		SrcWorkloadName: src.Name,
-		DstNamespace:    dst.Namespace,
-		DstKind:         dst.Kind,
-		DstName:         dst.Name,
-	}
+	enrichment.DstNamespace = dst.Namespace
+	enrichment.DstKind = dst.Kind
+	enrichment.DstName = dst.Name
 
 	s.recordServerPeer(event, src)
 	if dst.Kind == "Service" {
@@ -144,6 +152,24 @@ func (s *Server) enrichEvent(event *aggregv1.FlowEvent) store.Enrichment {
 	}
 
 	return enrichment
+}
+
+// isServerObservedTCP reports whether this TCP event is seen from the listening
+// side (reply direction): src (addr, port) matches a ready Service endpoint.
+// Cluster-agnostic — derived from EndpointSlices, not a port allowlist.
+// When this misses, ResolveDst still refuses pod-IP attribution on ephemeral
+// destination ports, which blocks the recycled-IP false-edge case.
+func (s *Server) isServerObservedTCP(event *aggregv1.FlowEvent) bool {
+	if event.GetProtocol() != aggregv1.Protocol_PROTOCOL_TCP || s.enricher == nil {
+		return false
+	}
+	srcAddr := event.GetSrcEndpoint().GetAddr()
+	srcPort := event.GetSrcEndpoint().GetPort()
+	if srcAddr == "" || srcPort == 0 {
+		return false
+	}
+	_, ok := s.enricher.LookupEndpoint(srcAddr, srcPort)
+	return ok
 }
 
 func (s *Server) recordServerPeer(event *aggregv1.FlowEvent, src kube.WorkloadIdentity) {

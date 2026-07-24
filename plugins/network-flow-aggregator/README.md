@@ -74,14 +74,14 @@ DNS responses from `trace_dns` populate an in-memory IP-to-hostname cache (TTL m
 1. Kubernetes Service (ClusterIP / EndpointSlice `(IP, port)`)
 2. Unique ClusterIP with any port (port-mismatch fallback)
 3. Unique EndpointSlice IP with any port (port-mismatch fallback)
-4. Pod IP (`IP` only, any port) rolled up to top-controller workload
+4. Pod IP (`IP` only, non-ephemeral ports `< 32768`) rolled up to top-controller workload
 5. Node IP (`InternalIP` / `ExternalIP` → `dst_ref.kind = Node`)
 6. Loopback (`127.0.0.1` / `::1` → `dst_ref.kind = Loopback`)
 7. Link-local (`169.254.0.0/16` / `fe80::/10` → `dst_ref.kind = LinkLocal`)
 8. Workload-scoped DNS cache (`namespace` + `pod` + IP)
 9. Cluster-scoped DNS cache (IP only)
 
-Pod-IP resolution skips `hostNetwork` pods and IPs shared by multiple distinct pods (ambiguous). Those node/hostNetwork peers resolve as `Node` when the address matches a unique node IP; they are not attributed to a DaemonSet sharing the node IP. Remaining unlabeled destinations stay empty until DNS cache fills `ExternalHostname`, or appear as unlabeled/`External` downstream. Real egress resolves to `dst_ref.kind = ExternalHostname` with the queried hostname (e.g. `api.stripe.com`).
+Pod-IP resolution skips `hostNetwork` pods, IPs shared by multiple distinct pods (ambiguous), and **ephemeral destination ports** (`>= 32768`, Linux default local range). Reply-side clients use ephemeral ports; attributing a recycled pod IP on those rows creates false service-map edges. Those node/hostNetwork peers resolve as `Node` when the address matches a unique node IP; they are not attributed to a DaemonSet sharing the node IP. Remaining unlabeled destinations stay empty until DNS cache fills `ExternalHostname`, or appear as unlabeled/`External` downstream. Real egress resolves to `dst_ref.kind = ExternalHostname` with the queried hostname (e.g. `api.stripe.com`).
 
 Node resolution requires the aggregator's ServiceAccount to `get`/`list`/`watch` `nodes` (in addition to pods, services, endpointslices, and workload controllers).
 
@@ -94,7 +94,18 @@ For TCP flows where `dst_ref.kind = Service`, the collector attempts to identify
 
 Backend identity is attached only on **client→Service** rows (`backend_workload`, `backend_pod` on `EnrichedFlowEvent`). Server-side rows are correlation inputs only; byte totals on Service→backend edges use client-side TRAFFIC bytes to avoid double-counting.
 
-**Limitations:** SNAT/NodePort/external clients, missing agents on backend nodes, ephemeral port reuse, ambiguous node or pod IP ownership, and Service ports advertised on node addresses (matched as `Service` when `(IP, port)` hits an EndpointSlice) may leave destination or backend fields empty or labeled only as `Node`. The collector does not invent replicas or spread bytes evenly across backends.
+**Server-observed / reverse TCP:** when `src (addr, port)` matches a ready Service endpoint (from EndpointSlices — any Service, any port), the collector still runs peer-index correlation (`recordServerPeer`) but leaves `dst_ref` empty. Empty destinations become `Unresolved` in Insights CAGGs and are excluded from the default service map. As defense in depth, pod-IP destination resolution also refuses ephemeral ports, so a missed reverse gate cannot attribute a recycled client IP to whatever pod currently owns it.
+
+**Limitations:** SNAT/NodePort/external clients, missing agents on backend nodes, ephemeral port reuse, ambiguous node or pod IP ownership, and Service ports advertised on node addresses (matched as `Service` when `(IP, port)` hits an EndpointSlice) may leave destination or backend fields empty or labeled only as `Node`. The collector does not invent replicas or spread bytes evenly across backends. Pre-existing bad CAGG edges from before this reverse gate are not rewritten; they age out with retention/truncation.
+
+### QA: reverse-flow / IP-reuse (staging)
+
+Staging CronJobs recycle pod IPs aggressively. After deploying a new aggregator:
+
+1. Pick a known client→Service pair (e.g. CronJob → `*:5432`).
+2. In raw `network_flow_events` (not only the service-map API), find matching 5-tuples around the same timestamp: client `(ephemeral → :5432)` and server `(:5432 → ephemeral)`.
+3. Confirm the server-side row has empty/`Unresolved` destination, and the client-side row still resolves to the Service (with optional backend via peer index).
+4. Confirm the service map shows the client→Service edge and does **not** grow a reverse Service/Cluster → unrelated CronJob edge for new traffic.
 
 ## Insights upstream
 
