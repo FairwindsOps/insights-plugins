@@ -274,6 +274,10 @@ type ClusterWorkloadReport struct {
 	// karpenter.sh is not installed. When present, nested arrays are always emitted
 	// (possibly empty). Azure/GCP NodeClasses are out of scope for this release.
 	Karpenter *Karpenter `json:",omitempty"`
+	// GatewayAPI is optional inventory of Gateway API CRDs (2.16+). Nil/omitted when
+	// gateway.networking.k8s.io is not installed. When present, nested arrays are always
+	// emitted (including empty).
+	GatewayAPI *GatewayAPI `json:",omitempty"`
 }
 
 func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
@@ -925,6 +929,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 	}
 
 	karpenter := listKarpenterInventory(ctx, dynamicClient)
+	gatewayAPI := listGatewayAPIInventory(ctx, dynamicClient)
 
 	clusterWorkloadReport := ClusterWorkloadReport{
 		ServerVersion:          serverVersion.Major + "." + serverVersion.Minor,
@@ -940,6 +945,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 		PersistentVolumeClaims: pvcs,
 		Images:                 images,
 		Karpenter:              karpenter,
+		GatewayAPI:             gatewayAPI,
 	}
 	return &clusterWorkloadReport, nil
 }
