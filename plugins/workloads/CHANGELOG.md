@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.16.0
+* **Gateway API inventory:** optional top-level **`GatewayAPI`** object with **`Gateways[]`** and **`HTTPRoutes[]`**. Omitted when `gateway.networking.k8s.io` CRDs are not installed; when present, nested arrays are always emitted (including empty). Soft-fail (warn + empty nested arrays) when list is forbidden. Gateways include gatewayClassName, listeners (protocol/port/hostname/TLS), addresses, and conditions. HTTPRoutes include hostnames, parentRefs, and rules (path matches + backendRefs).
+
 ## 2.15.0
 * **Karpenter inventory:** optional top-level **`Karpenter`** object with **`NodePools[]`**, **`NodeClaims[]`**, and **`EC2NodeClasses[]`** (AWS EC2NodeClass only). Omitted when `karpenter.sh` CRDs are not installed; when present, nested arrays are always emitted (including empty). Soft-fail (warn + empty nested arrays) when list is forbidden. EC2NodeClass includes role/instanceProfile, amiFamily, tags, and subnet/SG/AMI selector terms.
 
