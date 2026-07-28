@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.18
+* Bump library github.com/fairwindsops/polaris to v0.0.0-20260721161925-4bdf5315b6a8
+
 ## 2.3.17
 * Bump library github.com/fairwindsops/pluto/v5 to v5.24.1
 
