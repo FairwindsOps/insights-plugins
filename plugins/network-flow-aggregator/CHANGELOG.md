@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.17
+* Bump library k8s.io/api to v0.36.3
+* Bump library k8s.io/apimachinery to v0.36.3
+* Bump library k8s.io/client-go to v0.36.3
+* Bump indirect libraries dependencies
+
 ## 0.0.16
 * Blank destination on server-observed TCP to avoid false service-map edges from recycled pod IPs
 * Refuse pod-IP destination attribution on ephemeral ports (`>= 32768`)
