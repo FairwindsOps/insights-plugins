@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.16.2
+* Bump library k8s.io/utils to v0.0.0-20260707023825-cf1189d6abe3
+
 ## 2.16.1
 * Bump library k8s.io/api to v0.36.3
 * Bump library k8s.io/apimachinery to v0.36.3
