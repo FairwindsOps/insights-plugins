@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.16.1
+* Bump library k8s.io/api to v0.36.3
+* Bump library k8s.io/apimachinery to v0.36.3
+* Bump library k8s.io/client-go to v0.36.3
+* Bump indirect libraries dependencies
+
 ## 2.16.0
 * **Gateway API inventory:** optional top-level **`GatewayAPI`** object with **`Gateways[]`** and **`HTTPRoutes[]`**. Omitted when `gateway.networking.k8s.io` CRDs are not installed; when present, nested arrays are always emitted (including empty). Soft-fail (warn + empty nested arrays) when list is forbidden. Gateways include gatewayClassName, listeners (protocol/port/hostname/TLS), addresses, and conditions. HTTPRoutes include hostnames, parentRefs, and rules (path matches + backendRefs).
 

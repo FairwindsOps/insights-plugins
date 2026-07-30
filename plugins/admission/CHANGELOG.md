@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.19
+* Bump library k8s.io/api to v0.36.3
+* Bump library k8s.io/apimachinery to v0.36.3
+* Bump library k8s.io/client-go to v0.36.3
+* Bump indirect libraries dependencies
+
 ## 2.3.18
 * Bump library github.com/fairwindsops/polaris to v0.0.0-20260721161925-4bdf5315b6a8
 
