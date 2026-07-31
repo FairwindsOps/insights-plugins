@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.24
+* Bump library github.com/prometheus/client_golang to v1.24.1
+* Bump indirect libraries dependencies
+
 ## 0.6.23
 * Bump library k8s.io/api to v0.36.3
 * Bump library k8s.io/apimachinery to v0.36.3
