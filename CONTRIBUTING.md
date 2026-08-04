@@ -46,3 +46,7 @@ Each new pull request should:
 * Make sure you update the `version.txt` in the plugin that you've changed
 * Update the `CHANGELOG.md` in the plugin with any changes
 * If you're changing the major/minor version, be sure to change the [Helm chart](https://github.com/FairwindsOps/charts/stable/insights-agent) accordingly.
+
+## Publishing plugin images
+
+Plugins publish Docker images via GoReleaser. Quay remains required (`quay.io/fairwinds/<name>`). The same image name is also pushed to Google Artifact Registry under `us-docker.pkg.dev/fairwinds-ops/oss/<name>`. See `plugins/_template/.goreleaser.yml.envsubst` for the dual-push pattern (Quay + GAR `image_templates` and matching `docker_manifests`).
