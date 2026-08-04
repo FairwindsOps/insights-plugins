@@ -235,7 +235,7 @@ jobs:
           command: |
             if [ "$CIRCLE_BRANCH" != "main" ]
             then
-              ./scripts/scan-all.sh $CIRCLE_BRANCH "${CHANGED[*]}"
+              ./scripts/scan-all.sh $CIRCLE_SHA1 "${CHANGED[*]}"
             else
               ./scripts/scan-all.sh
             fi

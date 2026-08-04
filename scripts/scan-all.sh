@@ -1,10 +1,10 @@
 #! /bin/bash
 set -eo pipefail
 
-declare branch_name=$1
+# On feature branches, changed plugins are tagged with the git commit SHA on GAR
+# (no floating/feature tags). Pass CIRCLE_SHA1 as $1 when scanning PR builds.
+declare override_tag=$1
 declare -a changed_plugins=($2)
-
-branch_name=$(echo "${branch_name:0:26}" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/-\+$//')
 
 novaVersion=v3.12.0
 plutoVersion=v5.24.0
@@ -24,48 +24,53 @@ for d in ./plugins/*/ ; do
       continue
     fi
     version=$(cat $d/version.txt)
-    repo=$(cat "$d/.goreleaser.yml.envsubst" | grep "quay.io" | head -1 | sed s/:.*// | sed 's/^  - "//')
+    # Prefer GAR (same short name as Quay). Pin semver from version.txt — GAR has no latest/major/major.minor.
+    repo=$(grep -oE 'us-docker\.pkg\.dev/fairwinds-ops/oss/[^:"[:space:]]+' "$d/.goreleaser.yml.envsubst" | head -1)
     name="$repo:$version"
     images+=($name)
 done
 
 echo "regenerating image list in fairwinds-insights.yaml"
-sed -i -n '/images:/q;p' fairwinds-insights.yaml
-echo -e "images:" >> ./fairwinds-insights.yaml
-echo -e "  docker:" >> ./fairwinds-insights.yaml
-for name in "${images[@]}"; do
-  echo -e "    - $name" >> ./fairwinds-insights.yaml
-done
+tmp=$(mktemp)
+awk '/^images:/{exit} {print}' fairwinds-insights.yaml > "$tmp"
+{
+  echo "images:"
+  echo "  docker:"
+  for name in "${images[@]}"; do
+    echo "    - $name"
+  done
+} >> "$tmp"
+mv "$tmp" fairwinds-insights.yaml
 
 declare -A changed_plugins_map
 for plugin in "${changed_plugins[@]}"; do
   changed_plugins_map[$plugin]=1
 done
 
-# create a map to match images in images array to the plugin name
+# Match images in images array to the plugin name (GAR paths).
 declare -A plugin_map
-plugin_map["quay.io/fairwinds/insights-admission-controller"]="admission"
-plugin_map["quay.io/fairwinds/insights-ci"]="ci"
-plugin_map["quay.io/fairwinds/cloud-costs"]="cloud-costs"
-plugin_map["quay.io/fairwinds/falco-agent"]="falco-agent"
-plugin_map["quay.io/fairwinds/fw-kube-bench-aggregator"]="kube-bench-aggregator"
-plugin_map["quay.io/fairwinds/fw-kube-bench"]="kube-bench"
-plugin_map["quay.io/fairwinds/network-flow-aggregator"]="network-flow-aggregator"
-plugin_map["quay.io/fairwinds/network-flow"]="network-flow"
-plugin_map["quay.io/fairwinds/kubectl"]="kubectl"
-plugin_map["quay.io/fairwinds/kyverno"]="kyverno"
-plugin_map["quay.io/fairwinds/fw-opa"]="opa"
-plugin_map["quay.io/fairwinds/prometheus-collector"]="prometheus"
-plugin_map["quay.io/fairwinds/rbac-reporter"]="rbac-reporter"
-plugin_map["quay.io/fairwinds/right-sizer"]="right-sizer"
-plugin_map["quay.io/fairwinds/fw-trivy"]="trivy"
-plugin_map["quay.io/fairwinds/image-trust"]="image-trust"
-plugin_map["quay.io/fairwinds/insights-uploader"]="uploader"
-plugin_map["quay.io/fairwinds/insights-utils"]="utils"
-plugin_map["quay.io/fairwinds/workloads"]="workloads"
-plugin_map["quay.io/fairwinds/on-demand-job-runner"]="on-demand-job-runner"
-plugin_map["quay.io/fairwinds/kyverno-policy-sync"]="kyverno-policy-sync"
-plugin_map["quay.io/fairwinds/insights-event-watcher"]="event-watcher"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/insights-admission-controller"]="admission"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/insights-ci"]="ci"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs"]="cloud-costs"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/falco-agent"]="falco-agent"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator"]="kube-bench-aggregator"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench"]="kube-bench"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/network-flow-aggregator"]="network-flow-aggregator"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/network-flow"]="network-flow"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/kubectl"]="kubectl"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/kyverno"]="kyverno"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/fw-opa"]="opa"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/prometheus-collector"]="prometheus"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/rbac-reporter"]="rbac-reporter"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/right-sizer"]="right-sizer"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/fw-trivy"]="trivy"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/image-trust"]="image-trust"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/insights-uploader"]="uploader"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/insights-utils"]="utils"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/workloads"]="workloads"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/on-demand-job-runner"]="on-demand-job-runner"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/kyverno-policy-sync"]="kyverno-policy-sync"
+plugin_map["us-docker.pkg.dev/fairwinds-ops/oss/insights-event-watcher"]="event-watcher"
 
 echo "scanning all images"
 for name in "${images[@]}"; do
@@ -74,13 +79,13 @@ for name in "${images[@]}"; do
     fi
 
     name_without_tag=$(echo $name | sed "s/:.*//")
-    if [[ $name_without_tag == "quay.io/fairwinds/postgres-partman" ]]; then
+    if [[ $name_without_tag == "us-docker.pkg.dev/fairwinds-ops/oss/postgres-partman" ]]; then
       echo "skipping postgres-partman"
       continue
-    fi    
+    fi
     if [[ -n ${plugin_map[$name_without_tag]} ]]; then
-      if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]]; then
-        name=$(echo $name_without_tag:$branch_name)
+      if [[ -n ${changed_plugins_map[${plugin_map[$name_without_tag]}]} ]] && [[ -n $override_tag ]]; then
+        name="${name_without_tag}:${override_tag}"
       fi
     fi
     echo "scanning $name"
