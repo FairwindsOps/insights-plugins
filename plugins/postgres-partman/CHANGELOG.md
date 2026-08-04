@@ -1,5 +1,8 @@
 # Changelog
 
+## 18.0.1
+* Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
+
 ## 18.0.0
 * BREAKING CHANGE: upgrade to Postgres 18 (cloudnative-pg `18.4-minimal-trixie`)
 * Add `docker-entrypoint.sh` so local `pg-docker` works (CNPG 18 images ship no entrypoint)

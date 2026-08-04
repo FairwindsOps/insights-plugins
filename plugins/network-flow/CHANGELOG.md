@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.14
+* Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
+
 ## 0.0.13
 * Bump library github.com/inspektor-gadget/inspektor-gadget to v0.54.1
 * Bump indirect libraries dependencies

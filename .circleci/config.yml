@@ -49,6 +49,7 @@ commands:
         name: Build Plugin Docker Images
         command: |
           docker login quay.io -u="${FAIRWINDS_QUAY_USER}" -p="${FAIRWINDS_QUAY_TOKEN}"
+          docker login -u _json_key -p "$(echo $GCP_ARTIFACTREADWRITE_JSON_KEY | base64 -d)" us-docker.pkg.dev
           for plugin in "${CHANGED[@]}"; do
             if [ "${plugin}" == "_template" ] ; then
               continue

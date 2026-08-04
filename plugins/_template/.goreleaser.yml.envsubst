@@ -25,21 +25,25 @@ builds:
 dockers:
   # There are multiple images to match the `--platform` docker build flag with
   # combinations of `GOOS`, `GOARCH`, and `GOARM`
+  # Dual-push: Quay + GAR (same short name under us-docker.pkg.dev/fairwinds-ops/oss)
 - image_templates:
   - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
 - image_templates:
   - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
   build_flag_templates:
   - "--platform=linux/arm64"
 docker_manifests:
-# Create DOcker manifests that make multiple architectures available within a tag,
+# Create Docker manifests that make multiple architectures available within a tag,
 # and provide partial-version tags like 2, and 2.2.
+# Quay manifests
 - name_template: quay.io/fairwinds/newplugin:{{ .FullCommit }}
   image_templates:
   - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
@@ -74,3 +78,14 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
+# GAR manifests — immutable tags only (FullCommit + semver Tag).
+# Floating tags (latest, major, major.minor, feature) are Quay-only.
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .Tag }}
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"

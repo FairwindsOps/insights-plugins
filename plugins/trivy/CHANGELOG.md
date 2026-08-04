@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.37
+* Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
+
 ## 0.34.36
 * Bump library k8s.io/api to v0.36.3
 * Bump library k8s.io/apimachinery to v0.36.3

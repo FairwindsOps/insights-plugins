@@ -23,11 +23,13 @@ dockers:
   # combinations of `GOOS`, `GOARCH`, and `GOARM`
 - image_templates:
   - "quay.io/fairwinds/fw-kube-bench-aggregator:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .FullCommit }}-amd64"
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
 - image_templates:
   - "quay.io/fairwinds/fw-kube-bench-aggregator:{{ .FullCommit }}-arm64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
@@ -70,3 +72,15 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/fw-kube-bench-aggregator:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/fw-kube-bench-aggregator:{{ .FullCommit }}-arm64"
+# GAR manifests — immutable tags only (FullCommit + semver Tag).
+# Floating tags (latest, major, major.minor, feature) are Quay-only.
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .FullCommit }}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .Tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:{{ .FullCommit }}-arm64"

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.8
+* Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
+
 ## 1.1.7
 * AWS CUR (legacy + CUR 2.0): include `line_item_resource_id` in Athena SELECT/GROUP BY so Insights can join node billed cost to inventory `cloudResourceID`.
 * GCP BigQuery: include `resource.name` as `resource_name` so Insights can join GCE instance costs to inventory node names.

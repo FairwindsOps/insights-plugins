@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.29
+* Dual-push images to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`) alongside Quay. GAR uses immutable tags only (commit SHA + semver); floating tags stay Quay-only.
+
 ## 0.1.28
 * Build with Go 1.26.5 via module `go` version and `GOTOOLCHAIN=go1.26.5` in release builds.
 
