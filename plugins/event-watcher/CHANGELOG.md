@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.53
+* Bump library github.com/aws/aws-sdk-go-v2 to v1.43.1
+* Bump library github.com/aws/aws-sdk-go-v2/config to v1.32.32
+* Bump library github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to v1.80.1
+* Bump indirect libraries dependencies
+
 ## 0.2.52
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 
