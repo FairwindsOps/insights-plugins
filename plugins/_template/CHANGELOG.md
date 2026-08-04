@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.30
+* Document that CI scan / Insights image lists prefer GAR and pin semver
+
 ## 0.1.29
 * Dual-push images to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`) alongside Quay. GAR uses immutable tags only (commit SHA + semver); floating tags stay Quay-only.
 
