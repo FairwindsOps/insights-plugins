@@ -78,32 +78,13 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/newplugin:{{ .FullCommit }}-arm64"
-# GAR manifests (same tags / skip_push as Quay)
+# GAR manifests — immutable tags only (FullCommit + semver Tag).
+# Floating tags (latest, major, major.minor, feature) are Quay-only.
 - name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}
   image_templates:
   - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
   - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"
-- name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .Env.feature_docker_tag }}
-  skip_push: ${skip_feature_docker_tags}
-  image_templates:
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"
-- name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:latest
-  skip_push: ${skip_main_docker_tags}
-  image_templates:
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"
 - name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .Tag }}
-  skip_push: ${skip_main_docker_tags}
-  image_templates:
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"
-- name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .Major }}
-  skip_push: ${skip_main_docker_tags}
-  image_templates:
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"
-  - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-arm64"
-- name_template: us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .Major }}.{{ .Minor }}
   skip_push: ${skip_main_docker_tags}
   image_templates:
   - "us-docker.pkg.dev/fairwinds-ops/oss/newplugin:{{ .FullCommit }}-amd64"

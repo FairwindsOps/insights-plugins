@@ -49,4 +49,6 @@ Each new pull request should:
 
 ## Publishing plugin images
 
-Plugins publish Docker images via GoReleaser. Quay remains required (`quay.io/fairwinds/<name>`). The same image name is also pushed to Google Artifact Registry under `us-docker.pkg.dev/fairwinds-ops/oss/<name>`. See `plugins/_template/.goreleaser.yml.envsubst` for the dual-push pattern (Quay + GAR `image_templates` and matching `docker_manifests`).
+Plugins publish Docker images via GoReleaser. Quay remains required (`quay.io/fairwinds/<name>`) and still receives floating tags (`latest`, major, major.minor, feature branch).
+
+The same short name is also pushed to Google Artifact Registry under `us-docker.pkg.dev/fairwinds-ops/oss/<name>`. GAR uses immutable tags, so only commit SHA and semver (`{{ .Tag }}`) are published there — not `latest`, major, major.minor, or feature tags. See `plugins/_template/.goreleaser.yml.envsubst` for the dual-push pattern.
