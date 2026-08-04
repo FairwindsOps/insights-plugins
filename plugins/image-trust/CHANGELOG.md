@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.10
+* Document GAR as preferred image registry
+
 ## 0.1.9
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 

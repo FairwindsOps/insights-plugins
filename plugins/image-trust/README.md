@@ -149,7 +149,7 @@ Progress is logged during verification (`processed image trust checks for N/M im
 
 | Component | Status |
 |-----------|--------|
-| Plugin binary + Docker image | `quay.io/fairwinds/image-trust` |
+| Plugin binary + Docker image | `us-docker.pkg.dev/fairwinds-ops/oss/image-trust` (also Quay) |
 | Uploader datatype | `image-trust` → `/data/image-trust` |
 | On-demand jobs | `image-trust` report type in `on-demand-job-runner` |
 | JSON schema | `plugins/image-trust/results.schema` |

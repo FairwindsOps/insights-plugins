@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.30
+* Prefer GAR image refs in mock client (workloads)
+
 ## 0.2.29
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 

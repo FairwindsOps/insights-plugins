@@ -82,8 +82,8 @@ func TestRecordContainerImageStripsDockerPullablePrefix(t *testing.T) {
 
 	status := corev1.ContainerStatus{
 		Name:    "app",
-		Image:   "quay.io/fairwinds/goldilocks:v2.2.0",
-		ImageID: "docker-pullable://quay.io/fairwinds/goldilocks@sha256:abc123",
+		Image:   "us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v2.2.0",
+		ImageID: "docker-pullable://us-docker.pkg.dev/fairwinds-ops/oss/goldilocks@sha256:abc123",
 	}
 	owner := OwnerResult{Namespace: "insights-agent", Kind: "Deployment", Name: "goldilocks"}
 
@@ -91,8 +91,8 @@ func TestRecordContainerImageStripsDockerPullablePrefix(t *testing.T) {
 
 	require.Len(t, keyToImage, 1)
 	for _, img := range keyToImage {
-		require.Equal(t, "quay.io/fairwinds/goldilocks@sha256:abc123", img.ID)
-		require.Equal(t, "quay.io/fairwinds/goldilocks@sha256:abc123", img.PullRef)
+		require.Equal(t, "us-docker.pkg.dev/fairwinds-ops/oss/goldilocks@sha256:abc123", img.ID)
+		require.Equal(t, "us-docker.pkg.dev/fairwinds-ops/oss/goldilocks@sha256:abc123", img.PullRef)
 	}
 }
 
@@ -353,11 +353,12 @@ func TestPodPhaseContributesImages(t *testing.T) {
 func TestListImagesPrefersPodSpecOverTruncatedStatusImage(t *testing.T) {
 	pod := completedPod("insights-agent", "workloads-29732785-x9h2f", corev1.PodSucceeded, corev1.ContainerStatus{
 		Name:    "workloads",
-		Image:   "quay.io/fairwinds/workloads:2",
-		ImageID: "quay.io/fairwinds/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd",
+		// Simulate CRI truncating a dotted tag (2.16.4 -> 2); GAR does not publish floating tags.
+		Image:   "us-docker.pkg.dev/fairwinds-ops/oss/workloads:2",
+		ImageID: "us-docker.pkg.dev/fairwinds-ops/oss/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd",
 	})
 	pod.Spec.Containers = []corev1.Container{
-		{Name: "workloads", Image: "quay.io/fairwinds/workloads:2.10"},
+		{Name: "workloads", Image: "us-docker.pkg.dev/fairwinds-ops/oss/workloads:2.16.4"},
 	}
 	podUnstructured, err := podToUnstructured(pod)
 	require.NoError(t, err)
@@ -384,15 +385,15 @@ func TestListImagesPrefersPodSpecOverTruncatedStatusImage(t *testing.T) {
 	result, err := ListImages(context.Background(), client, controllers)
 	require.NoError(t, err)
 	require.Len(t, result.Images, 1)
-	require.Equal(t, "quay.io/fairwinds/workloads:2.10", result.Images[0].Name)
-	require.Equal(t, "quay.io/fairwinds/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd", result.Images[0].ID)
+	require.Equal(t, "us-docker.pkg.dev/fairwinds-ops/oss/workloads:2.16.4", result.Images[0].Name)
+	require.Equal(t, "us-docker.pkg.dev/fairwinds-ops/oss/workloads@sha256:f27ac6e9a73c92f987b80aa15036ef6944916e9435ac2df59cabdc7f7fe5a5dd", result.Images[0].ID)
 }
 
 func TestListImagesCronJobCompletedPodPass(t *testing.T) {
 	pod := completedPod("insights-agent", "trivy-29732745-84kb8", corev1.PodSucceeded, corev1.ContainerStatus{
 		Name:    "trivy",
-		Image:   "quay.io/fairwinds/trivy:1.0",
-		ImageID: "docker-pullable://quay.io/fairwinds/trivy@sha256:trivy",
+		Image:   "us-docker.pkg.dev/fairwinds-ops/oss/fw-trivy:0.34.37",
+		ImageID: "docker-pullable://us-docker.pkg.dev/fairwinds-ops/oss/fw-trivy@sha256:trivy",
 	})
 	podUnstructured, err := podToUnstructured(pod)
 	require.NoError(t, err)
@@ -424,7 +425,7 @@ func TestListImagesCronJobCompletedPodPass(t *testing.T) {
 	require.Equal(t, "insights-agent", result.Images[0].Owners[0].Namespace)
 	require.Equal(t, "trivy", result.Images[0].Owners[0].Container)
 	require.Empty(t, result.Images[0].Owners[0].Labels)
-	require.Equal(t, "quay.io/fairwinds/trivy@sha256:trivy", result.Images[0].ID)
+	require.Equal(t, "us-docker.pkg.dev/fairwinds-ops/oss/fw-trivy@sha256:trivy", result.Images[0].ID)
 }
 
 func TestListImagesDeploymentIgnoresSucceededPod(t *testing.T) {
@@ -490,8 +491,8 @@ func TestListImagesCompletedJobOwnedByCronJob(t *testing.T) {
 	}
 	pod := completedPod("insights-agent", "polaris-29732742-mt86f", corev1.PodSucceeded, corev1.ContainerStatus{
 		Name:    "polaris",
-		Image:   "quay.io/fairwinds/polaris:9.0",
-		ImageID: "docker-pullable://quay.io/fairwinds/polaris@sha256:polaris",
+		Image:   "us-docker.pkg.dev/fairwinds-ops/oss/polaris:v10.2.0",
+		ImageID: "docker-pullable://us-docker.pkg.dev/fairwinds-ops/oss/polaris@sha256:polaris",
 	})
 	pod.Labels = map[string]string{"job-name": "polaris-29732742"}
 	pod.OwnerReferences = []metav1.OwnerReference{

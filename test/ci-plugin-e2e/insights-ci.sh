@@ -100,7 +100,7 @@ for img in ${fairwinds_images_docker[@]}; do
     fi
 done
 
-docker pull quay.io/fairwinds/insights-ci:$image_version
+docker pull us-docker.pkg.dev/fairwinds-ops/oss/insights-ci:$image_version
 
 docker create --name insights-ci \
   -e SCRIPT_VERSION=$script_version \
@@ -116,7 +116,7 @@ docker create --name insights-ci \
   -e REPOSITORY_NAME \
   -e ORIGIN_URL \
   -e SKOPEO_ARGS \
-  quay.io/fairwinds/insights-ci:$image_version
+  us-docker.pkg.dev/fairwinds-ops/oss/insights-ci:$image_version
 
 docker cp . insights-ci:/insights
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.16.4
+* Prefer GAR image refs in unit tests (pin semver; keep truncated-tag scenario for CRI preference)
+
 ## 2.16.3
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 

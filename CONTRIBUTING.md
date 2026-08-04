@@ -49,6 +49,9 @@ Each new pull request should:
 
 ## Publishing plugin images
 
-Plugins publish Docker images via GoReleaser. Quay remains required (`quay.io/fairwinds/<name>`) and still receives floating tags (`latest`, major, major.minor, feature branch).
+Plugins dual-push via GoReleaser: Quay (`quay.io/fairwinds/<name>`) and Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss/<name>`, same short name).
 
-The same short name is also pushed to Google Artifact Registry under `us-docker.pkg.dev/fairwinds-ops/oss/<name>`. GAR uses immutable tags, so only commit SHA and semver (`{{ .Tag }}`) are published there — not `latest`, major, major.minor, or feature tags. See `plugins/_template/.goreleaser.yml.envsubst` for the dual-push pattern.
+- **Quay** keeps floating tags (`latest`, major, major.minor, feature branch).
+- **GAR** is immutable only: commit SHA + semver (`{{ .Tag }}`). No `latest` / major / major.minor / feature tags.
+
+CI vulnerability scanning and `fairwinds-insights.yaml` prefer GAR and pin **semver** (regenerate with `SKIP_TRIVY=true ./scripts/scan-all.sh`). See `plugins/_template/.goreleaser.yml.envsubst` for the dual-push pattern.

@@ -4,7 +4,7 @@ This is a template plugin. When adding a new plugin you can start by copying thi
 
 This ReadMe section should include a description of what your plugin does.
 
-Both a goreleaser configuration and a Dockerfile are required (the included sample is for a Go-based plugin). Images still publish to Quay (`quay.io/fairwinds/<name>` — create the Quay repository if needed). The same short name is also pushed to Google Artifact Registry at `us-docker.pkg.dev/fairwinds-ops/oss/<name>` (shared `oss` repo; no new GAR repository required). GAR tags are immutable: only commit SHA and semver are pushed there; floating tags (`latest`, major, major.minor, feature) stay Quay-only.
+Both a goreleaser configuration and a Dockerfile are required (the included sample is for a Go-based plugin). Images dual-push to Quay (`quay.io/fairwinds/<name>` — create the Quay repository if needed) and Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss/<name>`, shared `oss` repo). CI scan / Insights image lists prefer GAR and pin semver. GAR tags are immutable (commit SHA + semver only); floating tags (`latest`, major, major.minor, feature) stay Quay-only.
 
 ## Running locally
 
