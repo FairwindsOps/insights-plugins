@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.18
+* Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
+
 ## 1.9.17
 * Bump library github.com/prometheus/client_golang to v1.24.1
 

@@ -31,6 +31,7 @@ dockers:
   # combinations of `GOOS`, `GOARCH`, and `GOARM`
 - image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-amd64"
   use: buildx
   ids:
   - network-flow
@@ -40,6 +41,7 @@ dockers:
   - "--build-arg=IG_VERSION={{ .Env.IG_VERSION }}"
 - image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
@@ -86,3 +88,38 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/network-flow:{{ .FullCommit }}-arm64"
+# GAR manifests (same tags / skip_push as Quay)
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/network-flow:latest
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .Tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .Major }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .Major }}.{{ .Minor }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/network-flow:{{ .FullCommit }}-arm64"

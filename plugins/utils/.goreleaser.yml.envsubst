@@ -17,11 +17,13 @@ dockers:
   # combinations of `GOOS`, `GOARCH`, and `GOARM`
 - image_templates:
   - "quay.io/fairwinds/insights-utils:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-amd64"
   use: buildx
   build_flag_templates:
   - "--platform=linux/amd64"
 - image_templates:
   - "quay.io/fairwinds/insights-utils:{{ .FullCommit }}-arm64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-arm64"
   use: buildx
   goarch: arm64
   goos: linux
@@ -64,3 +66,38 @@ docker_manifests:
   image_templates:
   - "quay.io/fairwinds/insights-utils:{{ .FullCommit }}-amd64"
   - "quay.io/fairwinds/insights-utils:{{ .FullCommit }}-arm64"
+# GAR manifests (same tags / skip_push as Quay)
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .Env.feature_docker_tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_feature_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:latest
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .Tag }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .Major }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-arm64"
+- name_template: us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .Major }}.{{ .Minor }}
+  # This is replaced using `envsubst`, depending on the git branch.
+  skip_push: ${skip_main_docker_tags}
+  image_templates:
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-amd64"
+  - "us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:{{ .FullCommit }}-arm64"

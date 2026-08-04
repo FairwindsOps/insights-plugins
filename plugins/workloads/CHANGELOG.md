@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.16.3
+* Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
+
 ## 2.16.2
 * Bump library k8s.io/utils to v0.0.0-20260707023825-cf1189d6abe3
 
