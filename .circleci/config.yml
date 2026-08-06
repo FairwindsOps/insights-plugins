@@ -342,6 +342,7 @@ jobs:
 workflows:
   version: 2
   release:
+    when: pipeline.trigger_source != "scheduled_pipeline"
     jobs:
       - bump_renovate_pr_versions:
           filters:
@@ -377,27 +378,16 @@ workflows:
             - build_and_push_plugins
             - End-To-End Kubernetes 1.30
 
+  # Daily vuln + version check on tip of main 
   check_vulnerabilities:
+    when: pipeline.trigger_source == "scheduled_pipeline" and pipeline.schedule.name == "check_vulnerabilities"
     jobs:
       - scan_for_vulnerabilities
       - check_versions
-    triggers:
-      - schedule:
-          cron: "0 12 * * *"
-          filters:
-            branches:
-              only:
-                - main
 
+  # Weekday rebuild + scan of tip of main
   rebuild:
-    triggers:
-      - schedule:
-          # At 00:00 every day monday-friday
-          cron: "0 0 * * 1-5"
-          filters:
-            branches:
-              only:
-                - main
+    when: pipeline.trigger_source == "scheduled_pipeline" and pipeline.schedule.name == "rebuild"
     jobs:
       - build_and_push_plugins
       - scan_for_vulnerabilities
