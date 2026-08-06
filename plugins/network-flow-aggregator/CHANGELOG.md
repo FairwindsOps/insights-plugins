@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.19
+* Bump library google.golang.org/grpc to v1.83.0
+* Bump indirect libraries dependencies
+
 ## 0.0.18
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 
