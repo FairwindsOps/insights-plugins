@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.16.5
+* Bump library k8s.io/client-go to v1.5.2
+
 ## 2.16.4
 * Prefer GAR image refs in unit tests (pin semver; keep truncated-tag scenario for CRI preference)
 

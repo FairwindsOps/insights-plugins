@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.31
+* Bump library k8s.io/client-go to v1.5.2
+
 ## 0.2.30
 * Prefer GAR image refs in mock client (workloads)
 

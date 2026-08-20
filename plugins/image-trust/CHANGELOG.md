@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.11
+* Bump library k8s.io/client-go to v1.5.2
+
 ## 0.1.10
 * Document GAR as preferred image registry
 

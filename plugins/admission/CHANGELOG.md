@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.21
+* Bump library k8s.io/client-go to v1.5.2
+
 ## 2.3.20
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 
