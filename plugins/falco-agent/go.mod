@@ -10,7 +10,7 @@ require (
 	github.com/spf13/afero v1.15.0
 	k8s.io/api v0.36.3
 	k8s.io/apimachinery v0.36.3
-	k8s.io/client-go v0.36.3
+	k8s.io/client-go v1.5.2
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 
