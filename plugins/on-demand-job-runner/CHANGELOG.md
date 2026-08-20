@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.31
+* Bump dependencies
+
 ## 0.2.30
 * Prefer GAR image refs in mock client (workloads)
 
