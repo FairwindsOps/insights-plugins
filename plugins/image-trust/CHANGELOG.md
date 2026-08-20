@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.11
+* Bump dependencies
+
 ## 0.1.10
 * Document GAR as preferred image registry
 

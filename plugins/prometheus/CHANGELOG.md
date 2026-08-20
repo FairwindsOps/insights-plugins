@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.19
+* Bump dependencies
+
 ## 1.9.18
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.34
+* Bump dependencies
+
 ## 0.4.33
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 

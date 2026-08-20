@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.16.5
+* Bump dependencies
+
 ## 2.16.4
 * Prefer GAR image refs in unit tests (pin semver; keep truncated-tag scenario for CRI preference)
 
