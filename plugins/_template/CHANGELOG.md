@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.31
+* Build with Go 1.26.6 via module `go` version and `GOTOOLCHAIN=go1.26.6` in release builds.
+
 ## 0.1.30
 * Document that CI scan / Insights image lists prefer GAR and pin semver
 
