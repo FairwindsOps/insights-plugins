@@ -15,34 +15,45 @@ const (
 	kGatewayAPIVersion = "gateway.kgateway.dev/v1alpha1"
 )
 
-var kGatewayResources = []struct {
+type kGatewayDescriptor struct {
 	kind     string
 	resource string
-}{
-	{kind: "Backend", resource: "backends"},
-	{kind: "BackendConfigPolicy", resource: "backendconfigpolicies"},
-	{kind: "DirectResponse", resource: "directresponses"},
-	{kind: "GatewayExtension", resource: "gatewayextensions"},
-	{kind: "GatewayParameters", resource: "gatewayparameters"},
-	{kind: "HTTPListenerPolicy", resource: "httplistenerpolicies"},
-	{kind: "ListenerPolicy", resource: "listenerpolicies"},
-	{kind: "TrafficPolicy", resource: "trafficpolicies"},
+	slice    func(*KGateway) *[]KGatewayResource
+}
+
+var kGatewayResources = []kGatewayDescriptor{
+	{"Backend", "backends", func(k *KGateway) *[]KGatewayResource { return &k.Backends }},
+	{"BackendConfigPolicy", "backendconfigpolicies", func(k *KGateway) *[]KGatewayResource { return &k.BackendConfigPolicies }},
+	{"DirectResponse", "directresponses", func(k *KGateway) *[]KGatewayResource { return &k.DirectResponses }},
+	{"GatewayExtension", "gatewayextensions", func(k *KGateway) *[]KGatewayResource { return &k.GatewayExtensions }},
+	{"GatewayParameters", "gatewayparameters", func(k *KGateway) *[]KGatewayResource { return &k.GatewayParameters }},
+	{"HTTPListenerPolicy", "httplistenerpolicies", func(k *KGateway) *[]KGatewayResource { return &k.HTTPListenerPolicies }},
+	{"ListenerPolicy", "listenerpolicies", func(k *KGateway) *[]KGatewayResource { return &k.ListenerPolicies }},
+	{"TrafficPolicy", "trafficpolicies", func(k *KGateway) *[]KGatewayResource { return &k.TrafficPolicies }},
+}
+
+// GatewayTargetSelector is a label selector used by kgateway policies (targetSelectors).
+type GatewayTargetSelector struct {
+	Group       string            `json:",omitempty"`
+	Kind        string            `json:",omitempty"`
+	MatchLabels map[string]string `json:",omitempty"`
 }
 
 // KGatewayResource is a safe inventory summary shared by kgateway CRDs.
 type KGatewayResource struct {
-	Kind        string
-	Name        string
-	Namespace   string
-	Annotations map[string]string
-	Labels      map[string]string
-	UID         string
-	APIVersion  string
-	TargetRefs  []GatewayObjectRef `json:",omitempty"`
-	SpecFields  []string           `json:",omitempty"`
-	Type        string             `json:",omitempty"`
-	StatusCode  int32              `json:",omitempty"`
-	Conditions  []GatewayCondition `json:",omitempty"`
+	Kind            string
+	Name            string
+	Namespace       string
+	Annotations     map[string]string
+	Labels          map[string]string
+	UID             string
+	APIVersion      string
+	TargetRefs      []GatewayObjectRef      `json:",omitempty"`
+	TargetSelectors []GatewayTargetSelector `json:",omitempty"`
+	SpecFields      []string                `json:",omitempty"`
+	Type            string                  `json:",omitempty"`
+	StatusCode      int32                   `json:",omitempty"`
+	Conditions      []GatewayCondition      `json:",omitempty"`
 }
 
 // KGateway is optional kgateway inventory nested under GatewayAPI.
@@ -78,61 +89,17 @@ func listKGatewayInventory(ctx context.Context, dynamicClient dynamic.Interface)
 		for _, item := range items {
 			resources = append(resources, formatKGatewayResource(descriptor.kind, item))
 		}
-		setKGatewayResources(result, descriptor.kind, resources)
+		*descriptor.slice(result) = resources
 	}
 	if !present {
 		return nil
 	}
-	ensureKGatewayArrays(result)
+	for _, descriptor := range kGatewayResources {
+		if *descriptor.slice(result) == nil {
+			*descriptor.slice(result) = []KGatewayResource{}
+		}
+	}
 	return result
-}
-
-func setKGatewayResources(inventory *KGateway, kind string, resources []KGatewayResource) {
-	switch kind {
-	case "Backend":
-		inventory.Backends = resources
-	case "BackendConfigPolicy":
-		inventory.BackendConfigPolicies = resources
-	case "DirectResponse":
-		inventory.DirectResponses = resources
-	case "GatewayExtension":
-		inventory.GatewayExtensions = resources
-	case "GatewayParameters":
-		inventory.GatewayParameters = resources
-	case "HTTPListenerPolicy":
-		inventory.HTTPListenerPolicies = resources
-	case "ListenerPolicy":
-		inventory.ListenerPolicies = resources
-	case "TrafficPolicy":
-		inventory.TrafficPolicies = resources
-	}
-}
-
-func ensureKGatewayArrays(inventory *KGateway) {
-	if inventory.Backends == nil {
-		inventory.Backends = []KGatewayResource{}
-	}
-	if inventory.BackendConfigPolicies == nil {
-		inventory.BackendConfigPolicies = []KGatewayResource{}
-	}
-	if inventory.DirectResponses == nil {
-		inventory.DirectResponses = []KGatewayResource{}
-	}
-	if inventory.GatewayExtensions == nil {
-		inventory.GatewayExtensions = []KGatewayResource{}
-	}
-	if inventory.GatewayParameters == nil {
-		inventory.GatewayParameters = []KGatewayResource{}
-	}
-	if inventory.HTTPListenerPolicies == nil {
-		inventory.HTTPListenerPolicies = []KGatewayResource{}
-	}
-	if inventory.ListenerPolicies == nil {
-		inventory.ListenerPolicies = []KGatewayResource{}
-	}
-	if inventory.TrafficPolicies == nil {
-		inventory.TrafficPolicies = []KGatewayResource{}
-	}
 }
 
 func formatKGatewayResource(kind string, item unstructured.Unstructured) KGatewayResource {
@@ -142,20 +109,62 @@ func formatKGatewayResource(kind string, item unstructured.Unstructured) KGatewa
 		apiVersion = kGatewayAPIVersion
 	}
 	out := KGatewayResource{
-		Kind:        kind,
-		Name:        item.GetName(),
-		Namespace:   item.GetNamespace(),
-		Annotations: item.GetAnnotations(),
-		Labels:      item.GetLabels(),
-		UID:         string(item.GetUID()),
-		APIVersion:  apiVersion,
-		TargetRefs:  formatGatewayObjectRefs(asAnySlice(spec["targetRefs"])),
-		SpecFields:  configuredSpecFields(spec),
-		Type:        inferKGatewayType(kind, spec),
-		Conditions:  formatGatewayConditions(nestedSlice(item.Object, "status", "conditions")),
+		Kind:            kind,
+		Name:            item.GetName(),
+		Namespace:       item.GetNamespace(),
+		Annotations:     inventoryAnnotations(item.GetAnnotations()),
+		Labels:          item.GetLabels(),
+		UID:             string(item.GetUID()),
+		APIVersion:      apiVersion,
+		TargetRefs:      formatGatewayObjectRefs(asAnySlice(spec["targetRefs"])),
+		TargetSelectors: formatGatewayTargetSelectors(asAnySlice(spec["targetSelectors"])),
+		SpecFields:      configuredSpecFields(spec),
+		Type:            inferKGatewayType(kind, spec),
+		Conditions:      formatKGatewayConditions(item.Object),
 	}
 	if kind == "DirectResponse" {
 		out.StatusCode = asInt32(spec["status"])
+	}
+	return out
+}
+
+func formatGatewayTargetSelectors(raw []any) []GatewayTargetSelector {
+	if len(raw) == 0 {
+		return nil
+	}
+	out := make([]GatewayTargetSelector, 0, len(raw))
+	for _, item := range raw {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		sel := GatewayTargetSelector{
+			Group:       asString(m["group"]),
+			Kind:        asString(m["kind"]),
+			MatchLabels: asStringMap(m["matchLabels"]),
+		}
+		if sel.Group == "" && sel.Kind == "" && len(sel.MatchLabels) == 0 {
+			continue
+		}
+		out = append(out, sel)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func formatKGatewayConditions(obj map[string]any) []GatewayCondition {
+	out := formatGatewayConditions(nestedSlice(obj, "status", "conditions"))
+	for _, ancestor := range nestedSlice(obj, "status", "ancestors") {
+		m, ok := ancestor.(map[string]any)
+		if !ok {
+			continue
+		}
+		out = append(out, formatGatewayConditions(asAnySlice(m["conditions"]))...)
+	}
+	if len(out) == 0 {
+		return nil
 	}
 	return out
 }

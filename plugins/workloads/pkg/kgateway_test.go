@@ -43,6 +43,66 @@ func TestFormatKGatewayResource(t *testing.T) {
 	require.Len(t, got.Conditions, 1)
 }
 
+func TestFormatKGatewayTargetSelectorsOnly(t *testing.T) {
+	item := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "global-transform"},
+		"spec": map[string]any{
+			"targetSelectors": []any{
+				map[string]any{
+					"group": "gateway.networking.k8s.io",
+					"kind":  "HTTPRoute",
+					"matchLabels": map[string]any{
+						"global-policy": "transformation",
+					},
+				},
+			},
+			"transformation": map[string]any{},
+		},
+	}}
+
+	got := formatKGatewayResource("TrafficPolicy", item)
+	require.Empty(t, got.TargetRefs)
+	require.Len(t, got.TargetSelectors, 1)
+	require.Equal(t, "HTTPRoute", got.TargetSelectors[0].Kind)
+	require.Equal(t, "transformation", got.TargetSelectors[0].MatchLabels["global-policy"])
+	require.Equal(t, []string{"transformation"}, got.SpecFields)
+}
+
+func TestFormatKGatewayAncestorConditions(t *testing.T) {
+	item := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "api-security"},
+		"status": map[string]any{
+			"ancestors": []any{
+				map[string]any{
+					"conditions": []any{
+						map[string]any{"type": "Accepted", "status": "True"},
+					},
+				},
+			},
+		},
+	}}
+
+	got := formatKGatewayResource("TrafficPolicy", item)
+	require.Len(t, got.Conditions, 1)
+	require.Equal(t, "Accepted", got.Conditions[0].Type)
+}
+
+func TestFormatKGatewayStripsLastAppliedAnnotation(t *testing.T) {
+	item := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{
+			"name": "api-security",
+			"annotations": map[string]any{
+				lastAppliedAnnotation: `{"spec":{"body":"secret"}}`,
+				"app":                 "edge",
+			},
+		},
+	}}
+
+	got := formatKGatewayResource("TrafficPolicy", item)
+	require.Equal(t, "edge", got.Annotations["app"])
+	require.NotContains(t, got.Annotations, lastAppliedAnnotation)
+}
+
 func TestFormatKGatewaySpecializedFields(t *testing.T) {
 	directResponse := unstructured.Unstructured{Object: map[string]any{
 		"metadata": map[string]any{"name": "maintenance"},

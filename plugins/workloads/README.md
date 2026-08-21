@@ -4,7 +4,7 @@ Retrieves metadata about running workloads in the current cluster: controllers (
 
 ## Report highlights (2.17+)
 
-* **Gateway ecosystem inventory** — `GatewayAPI` now includes cluster-scoped `GatewayClasses[]`, HTTPRoute extension references, and optional `KGateway` inventory for all eight `gateway.kgateway.dev/v1alpha1` CRDs. kgateway summaries include metadata, target references, configured top-level spec fields, type, status code for DirectResponse, and conditions; response bodies and complete policy configuration are not collected.
+* **Gateway ecosystem inventory** — `GatewayAPI` now includes cluster-scoped `GatewayClasses[]`, HTTPRoute extension references, and optional `KGateway` inventory for all eight `gateway.kgateway.dev/v1alpha1` CRDs. kgateway summaries include metadata, target references and selectors, configured top-level spec fields, type, status code for DirectResponse, and conditions (including policy ancestor conditions); response bodies, complete policy configuration, and `kubectl.kubernetes.io/last-applied-configuration` are not collected.
 
 ## Report highlights (2.16+)
 

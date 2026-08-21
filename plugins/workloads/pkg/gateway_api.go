@@ -19,6 +19,8 @@ const (
 	KindHTTPRoute    = "HTTPRoute"
 
 	gatewayAPIVersion = "gateway.networking.k8s.io/v1"
+
+	lastAppliedAnnotation = "kubectl.kubernetes.io/last-applied-configuration"
 )
 
 var (
@@ -136,6 +138,9 @@ type GatewayAPI struct {
 // listGatewayAPIInventory returns nil when Gateway API CRDs are not installed.
 // When present, nested arrays are always set (possibly empty). Forbidden list is
 // treated as present-but-unreadable (warn + empty array).
+//
+// kgateway is nested here because it extends Gateway API. If those CRDs are
+// absent we skip kgateway lists rather than paying eight 404s on typical clusters.
 func listGatewayAPIInventory(ctx context.Context, dynamicClient dynamic.Interface) *GatewayAPI {
 	gateways, gatewaysErr := listGateways(ctx, dynamicClient)
 	gatewayClasses, classesErr := listGatewayClasses(ctx, dynamicClient)
@@ -237,7 +242,7 @@ func formatGateway(item unstructured.Unstructured) Gateway {
 		Kind:             KindGateway,
 		Name:             item.GetName(),
 		Namespace:        item.GetNamespace(),
-		Annotations:      item.GetAnnotations(),
+		Annotations:      inventoryAnnotations(item.GetAnnotations()),
 		Labels:           item.GetLabels(),
 		UID:              string(item.GetUID()),
 		APIVersion:       apiVersion,
@@ -261,7 +266,7 @@ func formatHTTPRoute(item unstructured.Unstructured) HTTPRoute {
 		Kind:        KindHTTPRoute,
 		Name:        item.GetName(),
 		Namespace:   item.GetNamespace(),
-		Annotations: item.GetAnnotations(),
+		Annotations: inventoryAnnotations(item.GetAnnotations()),
 		Labels:      item.GetLabels(),
 		UID:         string(item.GetUID()),
 		APIVersion:  apiVersion,
@@ -286,7 +291,7 @@ func formatGatewayClass(item unstructured.Unstructured) GatewayClass {
 	return GatewayClass{
 		Kind:           KindGatewayClass,
 		Name:           item.GetName(),
-		Annotations:    item.GetAnnotations(),
+		Annotations:    inventoryAnnotations(item.GetAnnotations()),
 		Labels:         item.GetLabels(),
 		UID:            string(item.GetUID()),
 		APIVersion:     apiVersion,
@@ -470,6 +475,26 @@ func formatHTTPRouteMatches(raw []any) []HTTPRouteMatch {
 			continue
 		}
 		out = append(out, match)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func inventoryAnnotations(annos map[string]string) map[string]string {
+	if len(annos) == 0 {
+		return annos
+	}
+	if _, ok := annos[lastAppliedAnnotation]; !ok {
+		return annos
+	}
+	out := make(map[string]string, len(annos)-1)
+	for k, v := range annos {
+		if k == lastAppliedAnnotation {
+			continue
+		}
+		out[k] = v
 	}
 	if len(out) == 0 {
 		return nil

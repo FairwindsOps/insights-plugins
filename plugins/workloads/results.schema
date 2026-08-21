@@ -591,6 +591,8 @@
               "Namespace": { "type": "string" },
               "UID": { "type": "string" },
               "APIVersion": { "type": "string" },
+              "Labels": { "type": ["object", "null"] },
+              "Annotations": { "type": ["object", "null"] },
               "GatewayClassName": { "type": "string" },
               "Listeners": { "type": "array" },
               "Addresses": { "type": "array" },
@@ -608,6 +610,8 @@
               "Name": { "type": "string" },
               "UID": { "type": "string" },
               "APIVersion": { "type": "string" },
+              "Labels": { "type": ["object", "null"] },
+              "Annotations": { "type": ["object", "null"] },
               "ControllerName": { "type": "string" },
               "ParametersRef": { "$ref": "#/definitions/GatewayObjectRef" },
               "Conditions": { "type": "array", "items": { "$ref": "#/definitions/GatewayCondition" } }
@@ -625,6 +629,8 @@
               "Namespace": { "type": "string" },
               "UID": { "type": "string" },
               "APIVersion": { "type": "string" },
+              "Labels": { "type": ["object", "null"] },
+              "Annotations": { "type": ["object", "null"] },
               "Hostnames": { "type": "array", "items": { "type": "string" } },
               "ParentRefs": { "type": "array", "items": { "$ref": "#/definitions/GatewayObjectRef" } },
               "Rules": {
@@ -1102,6 +1108,14 @@
         "LastTransitionTime": { "type": "string" }
       }
     },
+    "GatewayTargetSelector": {
+      "type": "object",
+      "properties": {
+        "Group": { "type": "string" },
+        "Kind": { "type": "string" },
+        "MatchLabels": { "type": ["object", "null"], "additionalProperties": { "type": "string" } }
+      }
+    },
     "KGatewayResource": {
       "type": "object",
       "properties": {
@@ -1110,7 +1124,10 @@
         "Namespace": { "type": "string" },
         "UID": { "type": "string" },
         "APIVersion": { "type": "string" },
+        "Labels": { "type": ["object", "null"] },
+        "Annotations": { "type": ["object", "null"] },
         "TargetRefs": { "type": "array", "items": { "$ref": "#/definitions/GatewayObjectRef" } },
+        "TargetSelectors": { "type": "array", "items": { "$ref": "#/definitions/GatewayTargetSelector" } },
         "SpecFields": { "type": "array", "items": { "type": "string" } },
         "Type": { "type": "string" },
         "StatusCode": { "type": "integer" },

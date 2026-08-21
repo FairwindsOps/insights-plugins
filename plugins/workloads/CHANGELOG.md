@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2.17.0
-* Add GatewayClass inventory, HTTPRoute extension references, and summaries for all `gateway.kgateway.dev/v1alpha1` resources.
+* Add GatewayClass inventory, HTTPRoute extension references, and summaries for all `gateway.kgateway.dev/v1alpha1` resources (target refs/selectors, spec field names, ancestor conditions; no policy bodies or last-applied annotations).
 
 ## 2.16.5
 * Bump dependencies
