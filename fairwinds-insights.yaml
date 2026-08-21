@@ -30,4 +30,4 @@ images:
     - us-docker.pkg.dev/fairwinds-ops/oss/fw-trivy:0.34.37
     - us-docker.pkg.dev/fairwinds-ops/oss/insights-uploader:0.6.12
     - us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:0.0.17
-    - us-docker.pkg.dev/fairwinds-ops/oss/workloads:2.16.4
+    - us-docker.pkg.dev/fairwinds-ops/oss/workloads:2.17.0

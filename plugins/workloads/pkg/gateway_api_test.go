@@ -96,6 +96,16 @@ func TestFormatHTTPRoute(t *testing.T) {
 							"weight": int64(100),
 						},
 					},
+					"filters": []any{
+						map[string]any{
+							"type": "ExtensionRef",
+							"extensionRef": map[string]any{
+								"group": "gateway.kgateway.dev",
+								"kind":  "DirectResponse",
+								"name":  "maintenance",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -116,6 +126,33 @@ func TestFormatHTTPRoute(t *testing.T) {
 	require.Equal(t, "api-svc", got.Rules[0].BackendRefs[0].Name)
 	require.NotNil(t, got.Rules[0].BackendRefs[0].Port)
 	require.Equal(t, int32(80), *got.Rules[0].BackendRefs[0].Port)
+	require.Len(t, got.Rules[0].ExtensionRefs, 1)
+	require.Equal(t, "DirectResponse", got.Rules[0].ExtensionRefs[0].Kind)
+	require.Equal(t, "maintenance", got.Rules[0].ExtensionRefs[0].Name)
+}
+
+func TestFormatGatewayClass(t *testing.T) {
+	item := unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "gateway.networking.k8s.io/v1",
+		"kind":       "GatewayClass",
+		"metadata":   map[string]any{"name": "kgateway", "uid": "gc-uid"},
+		"spec": map[string]any{
+			"controllerName": "kgateway.dev/kgateway",
+			"parametersRef": map[string]any{
+				"group":     "gateway.kgateway.dev",
+				"kind":      "GatewayParameters",
+				"name":      "default",
+				"namespace": "kgateway-system",
+			},
+		},
+	}}
+
+	got := formatGatewayClass(item)
+	require.Equal(t, KindGatewayClass, got.Kind)
+	require.Equal(t, "kgateway.dev/kgateway", got.ControllerName)
+	require.NotNil(t, got.ParametersRef)
+	require.Equal(t, "GatewayParameters", got.ParametersRef.Kind)
+	require.Equal(t, "kgateway-system", got.ParametersRef.Namespace)
 }
 
 func TestIsGatewayAPIAbsent(t *testing.T) {
