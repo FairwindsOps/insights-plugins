@@ -1,12 +1,16 @@
 package workloads
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 func TestFormatGateway(t *testing.T) {
@@ -18,6 +22,10 @@ func TestFormatGateway(t *testing.T) {
 			"namespace": "default",
 			"uid":       "gw-uid",
 			"labels":    map[string]any{"app": "edge"},
+			"annotations": map[string]any{
+				lastAppliedAnnotation: `{"spec":{"listeners":[]}}`,
+				"app":                 "edge",
+			},
 		},
 		"spec": map[string]any{
 			"gatewayClassName": "istio",
@@ -63,6 +71,8 @@ func TestFormatGateway(t *testing.T) {
 	require.Equal(t, "203.0.113.10", got.Addresses[0].Value)
 	require.Len(t, got.Conditions, 1)
 	require.Equal(t, "Programmed", got.Conditions[0].Type)
+	require.Equal(t, "edge", got.Annotations["app"])
+	require.NotContains(t, got.Annotations, lastAppliedAnnotation)
 }
 
 func TestFormatHTTPRoute(t *testing.T) {
@@ -96,6 +106,16 @@ func TestFormatHTTPRoute(t *testing.T) {
 							"weight": int64(100),
 						},
 					},
+					"filters": []any{
+						map[string]any{
+							"type": "ExtensionRef",
+							"extensionRef": map[string]any{
+								"group": "gateway.kgateway.dev",
+								"kind":  "DirectResponse",
+								"name":  "maintenance",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -116,9 +136,74 @@ func TestFormatHTTPRoute(t *testing.T) {
 	require.Equal(t, "api-svc", got.Rules[0].BackendRefs[0].Name)
 	require.NotNil(t, got.Rules[0].BackendRefs[0].Port)
 	require.Equal(t, int32(80), *got.Rules[0].BackendRefs[0].Port)
+	require.Len(t, got.Rules[0].ExtensionRefs, 1)
+	require.Equal(t, "DirectResponse", got.Rules[0].ExtensionRefs[0].Kind)
+	require.Equal(t, "maintenance", got.Rules[0].ExtensionRefs[0].Name)
+}
+
+func TestFormatGatewayClass(t *testing.T) {
+	item := unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "gateway.networking.k8s.io/v1",
+		"kind":       "GatewayClass",
+		"metadata":   map[string]any{"name": "kgateway", "uid": "gc-uid"},
+		"spec": map[string]any{
+			"controllerName": "kgateway.dev/kgateway",
+			"parametersRef": map[string]any{
+				"group":     "gateway.kgateway.dev",
+				"kind":      "GatewayParameters",
+				"name":      "default",
+				"namespace": "kgateway-system",
+			},
+		},
+	}}
+
+	got := formatGatewayClass(item)
+	require.Equal(t, KindGatewayClass, got.Kind)
+	require.Equal(t, "kgateway.dev/kgateway", got.ControllerName)
+	require.NotNil(t, got.ParametersRef)
+	require.Equal(t, "GatewayParameters", got.ParametersRef.Kind)
+	require.Equal(t, "kgateway-system", got.ParametersRef.Namespace)
 }
 
 func TestIsGatewayAPIAbsent(t *testing.T) {
 	require.True(t, isGatewayAPIAbsent(apierrors.NewNotFound(schema.GroupResource{Group: "gateway.networking.k8s.io", Resource: "gateways"}, "")))
 	require.False(t, isGatewayAPIAbsent(apierrors.NewForbidden(schema.GroupResource{Group: "gateway.networking.k8s.io", Resource: "gateways"}, "", nil)))
+}
+
+func TestListGatewayAPIInventoryOmitsKGatewayWhenAbsent(t *testing.T) {
+	client := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), mergeListKinds(gatewayAPIListKinds(), kGatewayListKinds()))
+	for _, descriptor := range kGatewayResources {
+		resource := descriptor.resource
+		client.PrependReactor("list", resource, func(action clienttesting.Action) (bool, runtime.Object, error) {
+			if action.GetResource().Group != kGatewayAPIGroup {
+				return false, nil, nil
+			}
+			return true, nil, apierrors.NewNotFound(action.GetResource().GroupResource(), "")
+		})
+	}
+
+	got := listGatewayAPIInventory(context.Background(), client)
+	require.NotNil(t, got)
+	require.NotNil(t, got.Gateways)
+	require.NotNil(t, got.HTTPRoutes)
+	require.NotNil(t, got.GatewayClasses)
+	require.Nil(t, got.KGateway)
+}
+
+func gatewayAPIListKinds() map[schema.GroupVersionResource]string {
+	return map[schema.GroupVersionResource]string{
+		gatewayGVR:      "GatewayList",
+		httpRouteGVR:    "HTTPRouteList",
+		gatewayClassGVR: "GatewayClassList",
+	}
+}
+
+func mergeListKinds(parts ...map[schema.GroupVersionResource]string) map[schema.GroupVersionResource]string {
+	out := map[schema.GroupVersionResource]string{}
+	for _, part := range parts {
+		for gvr, kind := range part {
+			out[gvr] = kind
+		}
+	}
+	return out
 }

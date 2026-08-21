@@ -14,10 +14,13 @@ import (
 )
 
 const (
-	KindGateway   = "Gateway"
-	KindHTTPRoute = "HTTPRoute"
+	KindGateway      = "Gateway"
+	KindGatewayClass = "GatewayClass"
+	KindHTTPRoute    = "HTTPRoute"
 
 	gatewayAPIVersion = "gateway.networking.k8s.io/v1"
+
+	lastAppliedAnnotation = "kubectl.kubernetes.io/last-applied-configuration"
 )
 
 var (
@@ -26,6 +29,9 @@ var (
 	}
 	httpRouteGVR = schema.GroupVersionResource{
 		Group: "gateway.networking.k8s.io", Version: "v1", Resource: "httproutes",
+	}
+	gatewayClassGVR = schema.GroupVersionResource{
+		Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gatewayclasses",
 	}
 )
 
@@ -42,12 +48,12 @@ type GatewayObjectRef struct {
 
 // GatewayListener is a Gateway listener summary.
 type GatewayListener struct {
-	Name             string            `json:",omitempty"`
-	Protocol         string            `json:",omitempty"`
-	Port             int32             `json:",omitempty"`
-	Hostname         string            `json:",omitempty"`
-	TLSMode          string            `json:",omitempty"`
-	CertificateRefs  []GatewayObjectRef `json:",omitempty"`
+	Name            string             `json:",omitempty"`
+	Protocol        string             `json:",omitempty"`
+	Port            int32              `json:",omitempty"`
+	Hostname        string             `json:",omitempty"`
+	TLSMode         string             `json:",omitempty"`
+	CertificateRefs []GatewayObjectRef `json:",omitempty"`
 }
 
 // GatewayAddress is a status address entry.
@@ -80,6 +86,19 @@ type Gateway struct {
 	Conditions       []GatewayCondition `json:",omitempty"`
 }
 
+// GatewayClass is a cluster-scoped Gateway API class.
+type GatewayClass struct {
+	Kind           string
+	Name           string
+	Annotations    map[string]string
+	Labels         map[string]string
+	UID            string
+	APIVersion     string
+	ControllerName string             `json:",omitempty"`
+	ParametersRef  *GatewayObjectRef  `json:",omitempty"`
+	Conditions     []GatewayCondition `json:",omitempty"`
+}
+
 // HTTPRouteMatch is a path match summary.
 type HTTPRouteMatch struct {
 	PathType string `json:",omitempty"`
@@ -88,8 +107,9 @@ type HTTPRouteMatch struct {
 
 // HTTPRouteRule is a match + backendRefs rule.
 type HTTPRouteRule struct {
-	Matches     []HTTPRouteMatch  `json:",omitempty"`
-	BackendRefs []GatewayObjectRef `json:",omitempty"`
+	Matches       []HTTPRouteMatch   `json:",omitempty"`
+	BackendRefs   []GatewayObjectRef `json:",omitempty"`
+	ExtensionRefs []GatewayObjectRef `json:",omitempty"`
 }
 
 // HTTPRoute is a Gateway API HTTPRoute inventory object (namespaced).
@@ -101,26 +121,33 @@ type HTTPRoute struct {
 	Labels      map[string]string
 	UID         string
 	APIVersion  string
-	Hostnames   []string          `json:",omitempty"`
+	Hostnames   []string           `json:",omitempty"`
 	ParentRefs  []GatewayObjectRef `json:",omitempty"`
-	Rules       []HTTPRouteRule   `json:",omitempty"`
+	Rules       []HTTPRouteRule    `json:",omitempty"`
 }
 
 // GatewayAPI is optional Gateway API inventory nested under ClusterWorkloadReport.
 // Omitted (nil) when gateway.networking.k8s.io CRDs are not installed.
 type GatewayAPI struct {
-	Gateways   []Gateway
-	HTTPRoutes []HTTPRoute
+	Gateways       []Gateway
+	GatewayClasses []GatewayClass
+	HTTPRoutes     []HTTPRoute
+	KGateway       *KGateway `json:",omitempty"`
 }
 
 // listGatewayAPIInventory returns nil when Gateway API CRDs are not installed.
 // When present, nested arrays are always set (possibly empty). Forbidden list is
 // treated as present-but-unreadable (warn + empty array).
+//
+// kgateway is nested here because it extends Gateway API. If those CRDs are
+// absent we skip kgateway lists rather than paying eight 404s on typical clusters.
 func listGatewayAPIInventory(ctx context.Context, dynamicClient dynamic.Interface) *GatewayAPI {
 	gateways, gatewaysErr := listGateways(ctx, dynamicClient)
+	gatewayClasses, classesErr := listGatewayClasses(ctx, dynamicClient)
 	httpRoutes, routesErr := listHTTPRoutes(ctx, dynamicClient)
 
-	if gatewaysErr != nil && routesErr != nil && isGatewayAPIAbsent(gatewaysErr) && isGatewayAPIAbsent(routesErr) {
+	if gatewaysErr != nil && classesErr != nil && routesErr != nil &&
+		isGatewayAPIAbsent(gatewaysErr) && isGatewayAPIAbsent(classesErr) && isGatewayAPIAbsent(routesErr) {
 		return nil
 	}
 
@@ -132,10 +159,16 @@ func listGatewayAPIInventory(ctx context.Context, dynamicClient dynamic.Interfac
 		logrus.Warnf("error listing HTTPRoutes, continuing with empty HTTPRoutes: %v", routesErr)
 		httpRoutes = []HTTPRoute{}
 	}
+	if classesErr != nil {
+		logrus.Warnf("error listing GatewayClasses, continuing with empty GatewayClasses: %v", classesErr)
+		gatewayClasses = []GatewayClass{}
+	}
 
 	return &GatewayAPI{
-		Gateways:   gateways,
-		HTTPRoutes: httpRoutes,
+		Gateways:       gateways,
+		GatewayClasses: gatewayClasses,
+		HTTPRoutes:     httpRoutes,
+		KGateway:       listKGatewayInventory(ctx, dynamicClient),
 	}
 }
 
@@ -163,6 +196,18 @@ func listHTTPRoutes(ctx context.Context, dynamicClient dynamic.Interface) ([]HTT
 	out := make([]HTTPRoute, 0, len(items))
 	for _, item := range items {
 		out = append(out, formatHTTPRoute(item))
+	}
+	return out, nil
+}
+
+func listGatewayClasses(ctx context.Context, dynamicClient dynamic.Interface) ([]GatewayClass, error) {
+	items, err := listClusterUnstructured(ctx, dynamicClient, gatewayClassGVR)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]GatewayClass, 0, len(items))
+	for _, item := range items {
+		out = append(out, formatGatewayClass(item))
 	}
 	return out, nil
 }
@@ -197,7 +242,7 @@ func formatGateway(item unstructured.Unstructured) Gateway {
 		Kind:             KindGateway,
 		Name:             item.GetName(),
 		Namespace:        item.GetNamespace(),
-		Annotations:      item.GetAnnotations(),
+		Annotations:      inventoryAnnotations(item.GetAnnotations()),
 		Labels:           item.GetLabels(),
 		UID:              string(item.GetUID()),
 		APIVersion:       apiVersion,
@@ -221,13 +266,38 @@ func formatHTTPRoute(item unstructured.Unstructured) HTTPRoute {
 		Kind:        KindHTTPRoute,
 		Name:        item.GetName(),
 		Namespace:   item.GetNamespace(),
-		Annotations: item.GetAnnotations(),
+		Annotations: inventoryAnnotations(item.GetAnnotations()),
 		Labels:      item.GetLabels(),
 		UID:         string(item.GetUID()),
 		APIVersion:  apiVersion,
 		Hostnames:   hostnames,
 		ParentRefs:  formatGatewayObjectRefs(nestedSlice(item.Object, "spec", "parentRefs")),
 		Rules:       formatHTTPRouteRules(nestedSlice(item.Object, "spec", "rules")),
+	}
+}
+
+func formatGatewayClass(item unstructured.Unstructured) GatewayClass {
+	apiVersion := item.GetAPIVersion()
+	if apiVersion == "" {
+		apiVersion = gatewayAPIVersion
+	}
+	var parametersRef *GatewayObjectRef
+	if raw := nestedMap(item.Object, "spec", "parametersRef"); raw != nil {
+		refs := formatGatewayObjectRefs([]any{raw})
+		if len(refs) > 0 {
+			parametersRef = &refs[0]
+		}
+	}
+	return GatewayClass{
+		Kind:           KindGatewayClass,
+		Name:           item.GetName(),
+		Annotations:    inventoryAnnotations(item.GetAnnotations()),
+		Labels:         item.GetLabels(),
+		UID:            string(item.GetUID()),
+		APIVersion:     apiVersion,
+		ControllerName: nestedString(item.Object, "spec", "controllerName"),
+		ParametersRef:  parametersRef,
+		Conditions:     formatGatewayConditions(nestedSlice(item.Object, "status", "conditions")),
 	}
 }
 
@@ -361,12 +431,29 @@ func formatHTTPRouteRules(raw []any) []HTTPRouteRule {
 		if backends, ok := m["backendRefs"].([]any); ok {
 			rule.BackendRefs = formatGatewayObjectRefs(backends)
 		}
+		if filters, ok := m["filters"].([]any); ok {
+			rule.ExtensionRefs = formatHTTPRouteExtensionRefs(filters)
+		}
 		out = append(out, rule)
 	}
 	if len(out) == 0 {
 		return nil
 	}
 	return out
+}
+
+func formatHTTPRouteExtensionRefs(raw []any) []GatewayObjectRef {
+	refs := make([]any, 0, len(raw))
+	for _, item := range raw {
+		filter, ok := item.(map[string]any)
+		if !ok || asString(filter["type"]) != "ExtensionRef" {
+			continue
+		}
+		if ref, ok := filter["extensionRef"].(map[string]any); ok {
+			refs = append(refs, ref)
+		}
+	}
+	return formatGatewayObjectRefs(refs)
 }
 
 func formatHTTPRouteMatches(raw []any) []HTTPRouteMatch {
@@ -388,6 +475,26 @@ func formatHTTPRouteMatches(raw []any) []HTTPRouteMatch {
 			continue
 		}
 		out = append(out, match)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func inventoryAnnotations(annos map[string]string) map[string]string {
+	if len(annos) == 0 {
+		return annos
+	}
+	if _, ok := annos[lastAppliedAnnotation]; !ok {
+		return annos
+	}
+	out := make(map[string]string, len(annos)-1)
+	for k, v := range annos {
+		if k == lastAppliedAnnotation {
+			continue
+		}
+		out[k] = v
 	}
 	if len(out) == 0 {
 		return nil
