@@ -1,6 +1,14 @@
 # Workload
 
-Retrieves metadata about running workloads in the current cluster: controllers (and their pods), namespaces, nodes, ingresses, services, persistent volume claims, images, Karpenter CRDs (when present), and per-namespace object counts.
+Retrieves metadata about running workloads in the current cluster: controllers (and their pods), namespaces, nodes, ingresses, services, persistent volume claims, images, Gateway API and kgateway resources, Karpenter CRDs (when present), and per-namespace object counts.
+
+## Report highlights (2.17+)
+
+* **Gateway ecosystem inventory** — `GatewayAPI` now includes cluster-scoped `GatewayClasses[]`, HTTPRoute extension references, and optional `KGateway` inventory for all eight `gateway.kgateway.dev/v1alpha1` CRDs. kgateway summaries include metadata, target references and selectors, configured top-level spec fields, type, status code for DirectResponse, and conditions (including policy ancestor conditions); response bodies, complete policy configuration, and `kubectl.kubernetes.io/last-applied-configuration` are not collected.
+
+## Report highlights (2.16+)
+
+* **Gateway API inventory** — optional top-level `GatewayAPI` with `Gateways[]` and `HTTPRoutes[]`. Omitted when Gateway API CRDs are absent and soft-fails individual forbidden lists to empty arrays.
 
 ## Report highlights (2.15+)
 
@@ -38,5 +46,7 @@ In addition to existing workloads list permissions, inventory and full `Namespac
 * `networkpolicies` (`networking.k8s.io`)
 * `nodepools`, `nodeclaims` (`karpenter.sh`) — optional; missing CRDs omit top-level `Karpenter`; forbidden list leaves nested arrays empty
 * `ec2nodeclasses` (`karpenter.k8s.aws`) — optional; missing list leaves `Karpenter.EC2NodeClasses` empty when Karpenter is present
+* `gateways`, `gatewayclasses`, `httproutes` (`gateway.networking.k8s.io`) — optional Gateway API inventory
+* `backends`, `backendconfigpolicies`, `directresponses`, `gatewayextensions`, `gatewayparameters`, `httplistenerpolicies`, `listenerpolicies`, `trafficpolicies` (`gateway.kgateway.dev`) — optional kgateway inventory
 
-If ResourceQuota / LimitRange / NetworkPolicy lists are forbidden, or Karpenter list is forbidden, the plugin logs a warning and leaves the corresponding fields empty/`0` instead of failing the report. When Karpenter CRDs are absent, `Karpenter` is omitted. Missing Service or PVC list permission fails the report (same as Ingress). Pod and ingress counts still populate from data already fetched for the report.
+If optional inventory lists are forbidden, the plugin logs a warning and leaves the corresponding fields empty instead of failing the report. When Karpenter or kgateway CRDs are absent, their optional inventory object is omitted. Missing Service or PVC list permission fails the report (same as Ingress). Pod and ingress counts still populate from data already fetched for the report.

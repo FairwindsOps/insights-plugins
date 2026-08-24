@@ -276,7 +276,8 @@ type ClusterWorkloadReport struct {
 	Karpenter *Karpenter `json:",omitempty"`
 	// GatewayAPI is optional inventory of Gateway API CRDs (2.16+). Nil/omitted when
 	// gateway.networking.k8s.io is not installed. When present, nested arrays are always
-	// emitted (including empty).
+	// emitted (including empty). KGateway (2.17+) is nested here and omitted when
+	// gateway.kgateway.dev CRDs are absent.
 	GatewayAPI *GatewayAPI `json:",omitempty"`
 }
 

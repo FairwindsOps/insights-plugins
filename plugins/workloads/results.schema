@@ -577,6 +577,93 @@
         }
       ]
     },
+    "GatewayAPI": {
+      "type": ["object", "null"],
+      "description": "Optional Gateway API inventory (2.16+), including GatewayClass and kgateway extensions in 2.17+.",
+      "properties": {
+        "Gateways": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Kind": { "type": "string" },
+              "Name": { "type": "string" },
+              "Namespace": { "type": "string" },
+              "UID": { "type": "string" },
+              "APIVersion": { "type": "string" },
+              "Labels": { "type": ["object", "null"] },
+              "Annotations": { "type": ["object", "null"] },
+              "GatewayClassName": { "type": "string" },
+              "Listeners": { "type": "array" },
+              "Addresses": { "type": "array" },
+              "Conditions": { "type": "array", "items": { "$ref": "#/definitions/GatewayCondition" } }
+            },
+            "required": ["Kind", "Name", "Namespace", "UID", "APIVersion"]
+          }
+        },
+        "GatewayClasses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Kind": { "type": "string" },
+              "Name": { "type": "string" },
+              "UID": { "type": "string" },
+              "APIVersion": { "type": "string" },
+              "Labels": { "type": ["object", "null"] },
+              "Annotations": { "type": ["object", "null"] },
+              "ControllerName": { "type": "string" },
+              "ParametersRef": { "$ref": "#/definitions/GatewayObjectRef" },
+              "Conditions": { "type": "array", "items": { "$ref": "#/definitions/GatewayCondition" } }
+            },
+            "required": ["Kind", "Name", "UID", "APIVersion"]
+          }
+        },
+        "HTTPRoutes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Kind": { "type": "string" },
+              "Name": { "type": "string" },
+              "Namespace": { "type": "string" },
+              "UID": { "type": "string" },
+              "APIVersion": { "type": "string" },
+              "Labels": { "type": ["object", "null"] },
+              "Annotations": { "type": ["object", "null"] },
+              "Hostnames": { "type": "array", "items": { "type": "string" } },
+              "ParentRefs": { "type": "array", "items": { "$ref": "#/definitions/GatewayObjectRef" } },
+              "Rules": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Matches": { "type": "array" },
+                    "BackendRefs": { "type": "array", "items": { "$ref": "#/definitions/GatewayObjectRef" } },
+                    "ExtensionRefs": { "type": "array", "items": { "$ref": "#/definitions/GatewayObjectRef" } }
+                  }
+                }
+              }
+            },
+            "required": ["Kind", "Name", "Namespace", "UID", "APIVersion"]
+          }
+        },
+        "KGateway": {
+          "type": ["object", "null"],
+          "description": "Optional gateway.kgateway.dev/v1alpha1 inventory. Omitted when kgateway CRDs are absent.",
+          "properties": {
+            "Backends": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } },
+            "BackendConfigPolicies": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } },
+            "DirectResponses": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } },
+            "GatewayExtensions": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } },
+            "GatewayParameters": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } },
+            "HTTPListenerPolicies": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } },
+            "ListenerPolicies": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } },
+            "TrafficPolicies": { "type": "array", "items": { "$ref": "#/definitions/KGatewayResource" } }
+          }
+        }
+      }
+    },
     "Karpenter": {
       "type": ["object", "null"],
       "description": "Optional Karpenter inventory (2.15+). Omitted/null when karpenter.sh CRDs are not installed. When present, nested arrays are always emitted (possibly empty).",
@@ -996,6 +1083,57 @@
           ]
         }
       ]
+    }
+  },
+  "definitions": {
+    "GatewayObjectRef": {
+      "type": "object",
+      "properties": {
+        "Group": { "type": "string" },
+        "Kind": { "type": "string" },
+        "Name": { "type": "string" },
+        "Namespace": { "type": "string" },
+        "SectionName": { "type": "string" },
+        "Port": { "type": ["integer", "null"] },
+        "Weight": { "type": ["integer", "null"] }
+      }
+    },
+    "GatewayCondition": {
+      "type": "object",
+      "properties": {
+        "Type": { "type": "string" },
+        "Status": { "type": "string" },
+        "Reason": { "type": "string" },
+        "Message": { "type": "string" },
+        "LastTransitionTime": { "type": "string" }
+      }
+    },
+    "GatewayTargetSelector": {
+      "type": "object",
+      "properties": {
+        "Group": { "type": "string" },
+        "Kind": { "type": "string" },
+        "MatchLabels": { "type": ["object", "null"], "additionalProperties": { "type": "string" } }
+      }
+    },
+    "KGatewayResource": {
+      "type": "object",
+      "properties": {
+        "Kind": { "type": "string" },
+        "Name": { "type": "string" },
+        "Namespace": { "type": "string" },
+        "UID": { "type": "string" },
+        "APIVersion": { "type": "string" },
+        "Labels": { "type": ["object", "null"] },
+        "Annotations": { "type": ["object", "null"] },
+        "TargetRefs": { "type": "array", "items": { "$ref": "#/definitions/GatewayObjectRef" } },
+        "TargetSelectors": { "type": "array", "items": { "$ref": "#/definitions/GatewayTargetSelector" } },
+        "SpecFields": { "type": "array", "items": { "type": "string" } },
+        "Type": { "type": "string" },
+        "StatusCode": { "type": "integer" },
+        "Conditions": { "type": "array", "items": { "$ref": "#/definitions/GatewayCondition" } }
+      },
+      "required": ["Kind", "Name", "Namespace", "UID", "APIVersion"]
     }
   },
   "required": [
