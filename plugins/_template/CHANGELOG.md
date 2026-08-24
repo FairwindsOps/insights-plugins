@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.32
+* Only push the GAR version tag when it has not been published, since GAR tags are immutable
+
 ## 0.1.31
 * Build with Go 1.26.6 via module `go` version and `GOTOOLCHAIN=go1.26.6` in release builds.
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.20
+* Only push the GAR version tag when it has not been published, since GAR tags are immutable
+
 ## 1.9.19
 * Bump dependencies
 

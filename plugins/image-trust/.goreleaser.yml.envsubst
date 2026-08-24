@@ -71,7 +71,7 @@ docker_manifests:
   - "us-docker.pkg.dev/fairwinds-ops/oss/image-trust:{{ .FullCommit }}-amd64"
   - "us-docker.pkg.dev/fairwinds-ops/oss/image-trust:{{ .FullCommit }}-arm64"
 - name_template: us-docker.pkg.dev/fairwinds-ops/oss/image-trust:{{ .Tag }}
-  skip_push: ${skip_main_docker_tags}
+  skip_push: ${skip_gar_version_tag}
   image_templates:
   - "us-docker.pkg.dev/fairwinds-ops/oss/image-trust:{{ .FullCommit }}-amd64"
   - "us-docker.pkg.dev/fairwinds-ops/oss/image-trust:{{ .FullCommit }}-arm64"

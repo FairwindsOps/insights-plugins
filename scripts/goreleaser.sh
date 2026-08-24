@@ -54,6 +54,16 @@ else
   echo "${this_script} also using docker tag ${feature_docker_tag} since ${CIRCLE_BRANCH} is a feature branch"
 fi
 
+export skip_gar_version_tag=true
+if [ "${skip_main_docker_tags}" == "false" ] ; then
+  gar_image=$(grep -o 'us-docker\.pkg\.dev/[^:]*' .goreleaser.yml.envsubst | head -n 1)
+  if [ "${gar_image}" != "" ] && docker buildx imagetools inspect "${gar_image}:${temporary_git_tag}" >/dev/null 2>&1 ; then
+    echo "${this_script} not pushing ${gar_image}:${temporary_git_tag}, which is already published and immutable"
+  else
+    export skip_gar_version_tag=false
+  fi
+fi
+
 git restore ../../go.work.sum # something on the releaser process is changing the go.work.sum file
 
 if [ ! -f go.mod ] ; then
