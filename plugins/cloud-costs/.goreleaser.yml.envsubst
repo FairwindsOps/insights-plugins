@@ -79,8 +79,8 @@ docker_manifests:
   - "us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs:{{ .FullCommit }}-amd64"
   - "us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs:{{ .FullCommit }}-arm64"
 - name_template: us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs:{{ .Tag }}
-  # This is replaced using `envsubst`, depending on the git branch.
-  skip_push: ${skip_main_docker_tags}
+  # This is replaced using `envsubst`; GAR version tags can only be pushed once.
+  skip_push: ${skip_gar_version_tag}
   image_templates:
   - "us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs:{{ .FullCommit }}-amd64"
   - "us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs:{{ .FullCommit }}-arm64"

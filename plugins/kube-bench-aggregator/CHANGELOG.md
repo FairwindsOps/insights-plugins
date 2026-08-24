@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.25
+* Only push the GAR version tag when it has not been published, since GAR tags are immutable
+
 ## 0.4.24
 * Bump dependencies
 

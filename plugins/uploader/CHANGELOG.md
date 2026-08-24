@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.13
+* Only push the GAR version tag when it has not been published, since GAR tags are immutable
+
 ## 0.6.12
 * Also publish image to Google Artifact Registry (`us-docker.pkg.dev/fairwinds-ops/oss`)
 
