@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.17
+* Bump library google.golang.org/grpc to v1.83.1
+* Bump indirect libraries dependencies
+
 ## 0.0.16
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 
