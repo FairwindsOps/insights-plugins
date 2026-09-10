@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@6.1.3
-  rok8s-scripts: fairwinds/rok8s-scripts@16.0.0
+  rok8s-scripts: fairwinds/rok8s-scripts@17.0.0
 
 commands:
   install_goreleaser_dependencies:
@@ -85,7 +85,7 @@ commands:
 executors:
   ci-images:
     docker:
-      - image: quay.io/reactiveops/ci-images:v14.1-bullseye
+      - image: quay.io/reactiveops/ci-images:v17.0-cimg-24.04
   goreleaser:
     resource_class: large
     docker:
@@ -97,7 +97,7 @@ references:
   # to GitHub branch protection to show the Required tag in CircleCI.
   kind_e2e_configuration: &kind_e2e_configuration
     kind_node_image: "kindest/node:v1.30.13"
-    command_runner_image: quay.io/reactiveops/ci-images:v15.0-alpine
+    command_runner_image: quay.io/reactiveops/ci-images:v17.0-cimg-24.04
     pre_script: test/plugins-e2e/pre.sh
     script: test/plugins-e2e/ci.sh
     store-artifacts: /workspace/output
@@ -182,7 +182,7 @@ jobs:
 
   check_versions:
     docker:
-      - image: quay.io/reactiveops/ci-images:v14.1-bullseye
+      - image: quay.io/reactiveops/ci-images:v17.0-cimg-24.04
     steps:
       - checkout
       - set_vault
