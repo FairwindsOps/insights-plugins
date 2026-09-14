@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.17.2
+* Images inventory: skip empty ImageID with no warning when the container never started (Pending / not pulled). Still warn if it ran but `status.imageID` is empty.
+
 ## 2.17.1
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 

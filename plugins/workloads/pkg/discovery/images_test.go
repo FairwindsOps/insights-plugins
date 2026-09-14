@@ -159,6 +159,19 @@ func TestRecordContainerImageSkipsEmptyImageID(t *testing.T) {
 	require.Empty(t, imageOwners)
 }
 
+func TestContainerRuntimeStarted(t *testing.T) {
+	require.False(t, containerRuntimeStarted(corev1.ContainerStatus{}))
+	require.False(t, containerRuntimeStarted(corev1.ContainerStatus{
+		State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "ContainerCreating"}},
+	}))
+	require.True(t, containerRuntimeStarted(corev1.ContainerStatus{
+		State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+	}))
+	require.True(t, containerRuntimeStarted(corev1.ContainerStatus{
+		State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 0}},
+	}))
+}
+
 func TestOrphanPodHasPodOwnerKind(t *testing.T) {
 	pod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
