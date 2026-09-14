@@ -331,6 +331,10 @@ func containerSpecImage(pod corev1.Pod, containerName string) string {
 	return ""
 }
 
+func containerRuntimeStarted(status corev1.ContainerStatus) bool {
+	return status.State.Running != nil || status.State.Terminated != nil
+}
+
 func recordContainerImage(
 	status corev1.ContainerStatus,
 	owner OwnerResult,
@@ -353,7 +357,9 @@ func recordContainerImage(
 	imageID = strings.TrimPrefix(imageID, dockerIOPrefix)
 
 	if imageID == "" {
-		logrus.Warnf("skipping container %s image %s: empty ImageID after normalization", status.Name, status.Image)
+		if containerRuntimeStarted(status) {
+			logrus.Warnf("skipping container %s image %s: empty ImageID after normalization (kubelet started: %t)", status.Name, status.Image, containerRuntimeStarted(status))
+		}
 		return keyToImage, imageOwners
 	}
 
