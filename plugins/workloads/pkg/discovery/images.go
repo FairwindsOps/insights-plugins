@@ -358,7 +358,7 @@ func recordContainerImage(
 
 	if imageID == "" {
 		if containerRuntimeStarted(status) {
-			logrus.Warnf("skipping container %s image %s: empty ImageID after normalization", status.Name, status.Image)
+			logrus.Warnf("skipping container %s image %s: empty ImageID after normalization (kubelet started: %t)", status.Name, status.Image, containerRuntimeStarted(status))
 		}
 		return keyToImage, imageOwners
 	}
