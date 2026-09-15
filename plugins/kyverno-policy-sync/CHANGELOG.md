@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.33
+* Bump library github.com/imroc/req/v3 to v3.61.0
+* Bump library github.com/stretchr/testify to v1.12.1
+* Bump library k8s.io/apimachinery to v0.37.0
+* Bump library k8s.io/client-go to v0.37.0
+* Bump indirect libraries dependencies
+
 ## 0.2.32
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 

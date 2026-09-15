@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.2.30
+* Bump library github.com/sirupsen/logrus to v1.10.2
+* Bump library github.com/stretchr/testify to v1.12.1
+* Bump indirect libraries dependencies
+
 ## 6.2.29
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 

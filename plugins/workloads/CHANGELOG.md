@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.17.3
+* Bump library github.com/sirupsen/logrus to v1.10.2
+* Bump library github.com/stretchr/testify to v1.12.1
+* Bump library k8s.io/api to v0.37.0
+* Bump library k8s.io/apimachinery to v0.37.0
+* Bump library k8s.io/client-go to v0.37.0
+* Bump library sigs.k8s.io/controller-runtime to v0.25.0
+* Bump indirect libraries dependencies
+
 ## 2.17.2
 * Images inventory: skip empty ImageID with no warning when the container never started (Pending / not pulled). Still warn if it ran but `status.imageID` is empty.
 
