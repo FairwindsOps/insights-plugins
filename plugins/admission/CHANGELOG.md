@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.23
+* Rebuild Alpine runtime image to pick up libssl3/libcrypto3 3.5.8-r0 (CVE-2026-63072, CVE-2026-63073, CVE-2026-63074, CVE-2026-63075, CVE-2026-63076, CVE-2026-14456, CVE-2026-14457, CVE-2026-18798, CVE-2026-54874, CVE-2026-75803).
+* Bump library golang.org/x/mod to v0.40.0 (CVE-2026-56864, CVE-2026-56865).
+* Bump library golang.org/x/crypto to v0.56.0 (CVE-2026-56854, CVE-2026-56855, CVE-2026-78662).
+
 ## 2.3.22
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 
