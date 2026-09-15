@@ -9,7 +9,7 @@ declare -a changed_plugins=($2)
 novaVersion=v3.12.0
 plutoVersion=v5.24.0
 goldilocksVersion=v4.15.0
-polarisVersion=v10.2.0
+polarisVersion=v10.2.3
 
 # Hard-coding four external images we own. Versions taken from insights-agent. OSS images live on Artifact Registry
 images=(us-docker.pkg.dev/fairwinds-ops/oss/polaris:${polarisVersion} us-docker.pkg.dev/fairwinds-ops/oss/nova:${novaVersion} us-docker.pkg.dev/fairwinds-ops/oss/pluto:${plutoVersion} us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:${goldilocksVersion})
