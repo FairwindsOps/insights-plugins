@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.29
+* Build with Go 1.27.1 via module `go` version and `GOTOOLCHAIN=go1.27.1` in release builds.
+
 ## 0.6.28
 * Bump library k8s.io/api to v0.37.0
 * Bump library k8s.io/apimachinery to v0.37.0

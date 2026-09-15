@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.20
+* Build with Go 1.27.1 via module `go` version and `GOTOOLCHAIN=go1.27.1` in release builds.
+
 ## 0.0.19
 * Bump library github.com/inspektor-gadget/inspektor-gadget to v0.56.0
 * Bump indirect libraries dependencies
