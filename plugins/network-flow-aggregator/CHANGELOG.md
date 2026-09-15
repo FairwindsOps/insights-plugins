@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.23
+* Bump library google.golang.org/protobuf to v1.36.12
+* Bump library k8s.io/api to v0.37.0
+* Bump library k8s.io/apimachinery to v0.37.0
+* Bump library k8s.io/client-go to v0.37.0
+* Bump indirect libraries dependencies
+
 ## 0.0.22
 * Bump library google.golang.org/grpc to v1.83.2
 * Bump indirect libraries dependencies

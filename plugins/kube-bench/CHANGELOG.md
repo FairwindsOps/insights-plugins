@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.30
+* Bump library github.com/aquasecurity/kube-bench to v0.16.0
+* Bump library github.com/sirupsen/logrus to v1.10.2
+* Bump indirect libraries dependencies
+
 ## 0.6.29
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.57
+* Bump library github.com/allegro/bigcache/v3 to v3.2.0
+* Bump library github.com/aws/aws-sdk-go-v2 to v1.46.0
+* Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.3
+* Bump library github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to v1.86.0
+* Bump library github.com/stretchr/testify to v1.12.1
+* Bump library golang.org/x/time to v0.16.0
+* Bump library k8s.io/api to v0.37.0
+* Bump library k8s.io/apimachinery to v0.37.0
+* Bump library k8s.io/client-go to v0.37.0
+* Bump library sigs.k8s.io/controller-runtime to v0.25.0
+* Bump indirect libraries dependencies
+
 ## 0.2.56
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 
