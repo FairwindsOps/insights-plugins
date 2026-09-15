@@ -1,8 +1,10 @@
 # Changelog
 
-## 0.2.33
+## 0.2.34
 * Rebuild Alpine runtime image to pick up libssl3/libcrypto3 3.5.8-r0 (CVE-2026-63072, CVE-2026-63073, CVE-2026-63074, CVE-2026-63075, CVE-2026-63076, CVE-2026-14456, CVE-2026-14457, CVE-2026-18798, CVE-2026-54874, CVE-2026-75803).
 * Bump library golang.org/x/crypto to v0.56.0 (CVE-2026-56854, CVE-2026-56855, CVE-2026-78662).
+
+## 0.2.33
 * Bump library github.com/imroc/req/v3 to v3.61.0
 * Bump library github.com/stretchr/testify to v1.12.1
 * Bump library k8s.io/api to v0.37.0
