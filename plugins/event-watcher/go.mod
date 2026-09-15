@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/event-watcher
 
-go 1.26.6
+go 1.27.1
 
 require (
 	github.com/allegro/bigcache/v3 v3.2.0

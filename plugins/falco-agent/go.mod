@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/falco-agent
 
-go 1.26.6
+go 1.27.1
 
 require (
 	github.com/fairwindsops/controller-utils v0.3.4

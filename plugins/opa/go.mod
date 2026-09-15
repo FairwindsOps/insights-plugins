@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/opa
 
-go 1.26.6
+go 1.27.1
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
