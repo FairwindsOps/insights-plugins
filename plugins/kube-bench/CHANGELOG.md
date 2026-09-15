@@ -2,6 +2,8 @@
 
 ## 0.6.31
 * Rebuild Alpine runtime image to pick up libssl3/libcrypto3 3.5.8-r0 (CVE-2026-63072, CVE-2026-63073, CVE-2026-63074, CVE-2026-63075, CVE-2026-63076, CVE-2026-14456, CVE-2026-14457, CVE-2026-18798, CVE-2026-54874, CVE-2026-75803).
+* Bump bundled kubectl to v1.37.0.
+* Upgrade jq to 1.8.2-r0 (CVE-2026-32316, CVE-2026-40164).
 
 ## 0.6.30
 * Bump library github.com/aquasecurity/kube-bench to v0.16.0

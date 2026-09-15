@@ -1,13 +1,13 @@
 FROM alpine:3.24.1 AS downloader
 ARG TARGETARCH
-ENV COSIGN_VERSION=3.0.6
+ENV COSIGN_VERSION=3.1.3
 RUN apk --no-cache add ca-certificates curl \
     && if [ "${TARGETARCH}" = "amd64" ]; then \
          cosign_arch="amd64"; \
-         cosign_sha256="c956e5dfcac53d52bcf058360d579472f0c1d2d9b69f55209e256fe7783f4c74"; \
+         cosign_sha256="4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71"; \
        elif [ "${TARGETARCH}" = "arm64" ]; then \
          cosign_arch="arm64"; \
-         cosign_sha256="bedac92e8c3729864e13d4a17048007cfafa79d5deca993a43a90ffe018ef2b8"; \
+         cosign_sha256="c5d324e091826b0d7a78eb16fef316450b4eb9aaec045611c08ba06f5e73220a"; \
        else \
          echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1; \
        fi \

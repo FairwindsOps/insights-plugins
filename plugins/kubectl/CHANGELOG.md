@@ -2,6 +2,7 @@
 
 ## 0.21.13
 * Rebuild Alpine runtime image to pick up libssl3/libcrypto3 3.5.8-r0 (CVE-2026-63072, CVE-2026-63073, CVE-2026-63074, CVE-2026-63075, CVE-2026-63076, CVE-2026-14456, CVE-2026-14457, CVE-2026-18798, CVE-2026-54874, CVE-2026-75803).
+* Bump bundled kubectl to v1.37.0.
 
 ## 0.21.12
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
