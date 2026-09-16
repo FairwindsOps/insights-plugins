@@ -31,6 +31,8 @@ const configFileName = "fairwinds-insights.yaml"
 const maxLinesForPrint = 8
 
 const filesModifiedFileName = "files_modified"
+const repoScanJobIDEnv = "REPO_SCAN_JOB_ID"
+const repoScanJobIDHeader = "X-Repo-Scan-Job-ID"
 
 var podSpecFields = []string{"jobTemplate", "spec", "template"}
 var containerSpecFields = []string{"containers", "initContainers"}
@@ -389,6 +391,7 @@ func (ci *CIScan) sendResults(reports []*models.ReportInfo) (*models.ScanResults
 	req.Header.Set("X-Script-Version", os.Getenv("SCRIPT_VERSION"))
 	req.Header.Set("X-Image-Version", os.Getenv("IMAGE_VERSION"))
 	req.Header.Set("X-CI-Runner", string(ci.config.Options.CIRunner))
+	setOptionalRepoScanJobIDHeader(req.Header)
 	for _, report := range reports {
 		req.Header.Set("X-Fairwinds-Report-Version-"+report.Report, strings.TrimSuffix(report.Version, "\n"))
 	}
@@ -727,6 +730,12 @@ func (ci *CIScan) ProcessRepository() ([]*models.ReportInfo, error) {
 
 func hasEnvVar(s string) bool {
 	return strings.Contains(s, "$")
+}
+
+func setOptionalRepoScanJobIDHeader(h http.Header) {
+	if id := strings.TrimSpace(os.Getenv(repoScanJobIDEnv)); id != "" {
+		h.Set(repoScanJobIDHeader, id)
+	}
 }
 
 func getDockerImages(dockerImagesStr []string, autoScan bool) []trivymodels.DockerImage {

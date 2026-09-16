@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -69,6 +70,17 @@ func TestUnmarshalAndOverrideConfig(t *testing.T) {
 	expected := models.Configuration{}
 	expected.Reports.Polaris.Enabled = new(true)
 	assert.Equal(t, expected, cfg)
+}
+
+func TestSetOptionalRepoScanJobIDHeader(t *testing.T) {
+	h := make(http.Header)
+	setOptionalRepoScanJobIDHeader(h)
+	assert.Empty(t, h.Get(repoScanJobIDHeader))
+
+	t.Setenv(repoScanJobIDEnv, " 102779 ")
+	h = make(http.Header)
+	setOptionalRepoScanJobIDHeader(h)
+	assert.Equal(t, "102779", h.Get(repoScanJobIDHeader))
 }
 
 func TestHasEnvSubstitution(t *testing.T) {
