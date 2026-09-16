@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.10
+* Bump Azure CLI base image to 2.89.0-azurelinux3.0 and `CLOUD_SDK_VERSION` to 584.0.0.
+* Strip Cloud SDK/Azure `cryptography` from `python3.*` site-packages so the cleanup still works after the bundled interpreter moved to 3.14.
+
 ## 1.1.9
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 

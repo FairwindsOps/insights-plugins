@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.33
+* Bump bundled Polaris CLI to v10.2.4 (Alpine libssl3/libcrypto3 CVE-2026-14456).
+
 ## 6.2.32
 * Relay optional `REPO_SCAN_JOB_ID` as `X-Repo-Scan-Job-ID` on scan-results uploads so Insights can link the job without guessing.
 
