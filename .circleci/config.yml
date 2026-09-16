@@ -1,393 +1,146 @@
+## DO NOT EDIT - Managed by Terraform
 version: 2.1
 
 orbs:
-  slack: circleci/slack@6.1.3
-  rok8s-scripts: fairwinds/rok8s-scripts@17.0.0
-
-commands:
-  install_goreleaser_dependencies:
-    description: Installs dependencies for CI scripts
-    steps:
-    - run: apk update
-    # gettext provides envsubst
-    - run: apk add gettext
-    # Register other docker platforms, to build arm64.
-    # This shouldn't be needed, why TBD.
-    - run: docker run --privileged --rm tonistiigi/binfmt --install all
-
-  set_environment_variables:
-    description: Sets environment variables for this job.
-    steps:
-    - run: ./.circleci/scripts/env.sh
-
-  set_tags:
-    description: Figures out which plugins have been changed etc
-    steps:
-    - run: ./.circleci/set_tags.sh
-
-  set_vault:
-    description: Install and configure vault 
-    steps:
-      - run: ./.circleci/scripts/vault.sh
-      - rok8s-scripts/get_vault_env:
-          vault_path: repo/global/env
-
-  goreleaser:
-    description: Build binaries and build/push docker Images depending on the git branch
-    steps:
-    - checkout
-    - setup_remote_docker:
-        version: default
-        # Docker Layer Caching saves /var/lib/docker in a persistent volume,
-        # for Dockerfiles that use `RUN --mount=type=cache. . .`
-        docker_layer_caching: true
-    - install_goreleaser_dependencies
-    - set_environment_variables
-    - set_tags
-    - set_vault
-    - run:
-        name: Build Plugin Docker Images
-        command: |
-          docker login quay.io -u="${FAIRWINDS_QUAY_USER}" -p="${FAIRWINDS_QUAY_TOKEN}"
-          docker login -u _json_key -p "$(echo $GCP_ARTIFACTREADWRITE_JSON_KEY | base64 -d)" us-docker.pkg.dev
-          for plugin in "${CHANGED[@]}"; do
-            if [ "${plugin}" == "_template" ] ; then
-              continue
-            fi
-            cd ./plugins/$plugin
-            ../../scripts/goreleaser.sh
-            cd ../..
-          done
-
-  check_version_changed:
-    description: Check that version.txt changed if folder changed
-    steps:
-    - set_vault
-    - run:
-        name: Check version.txt
-        command: |
-          if [ "$CIRCLE_BRANCH" == "main" ]
-          then
-            exit 0
-          fi
-          for plugin in "${CHANGED[@]}"; do
-            if git diff --name-only --exit-code origin/main "./plugins/$plugin/version.txt" ; then
-              echo "Please update ./plugins/$plugin/version.txt"
-              exit 1
-            elif ! grep -q "## $(cat ./plugins/$plugin/version.txt)" "./plugins/$plugin/CHANGELOG.md"; then
-              echo "Please update ./plugins/$plugin/CHANGELOG.md"
-              exit 1
-            else
-              echo "Update to ./plugins/$plugin/version.txt found"
-            fi
-          done
-
-executors:
-  ci-images:
-    docker:
-      - image: quay.io/reactiveops/ci-images:v17.0-cimg-24.04
-  goreleaser:
-    resource_class: large
-    docker:
-      - image: goreleaser/goreleaser:v2.17.1
+  rok8s: fairwinds/rok8s-scripts@17.0.0
 
 references:
-  # Job name matches other Fairwinds repos (End-To-End Kubernetes X.XX) so the
-  # status context is ci/circleci: End-To-End Kubernetes 1.30. Add that check
-  # to GitHub branch protection to show the Required tag in CircleCI.
-  kind_e2e_configuration: &kind_e2e_configuration
-    kind_node_image: "kindest/node:v1.30.13"
-    command_runner_image: quay.io/reactiveops/ci-images:v17.0-cimg-24.04
-    pre_script: test/plugins-e2e/pre.sh
-    script: test/plugins-e2e/ci.sh
-    store-artifacts: /workspace/output
-    requires:
-      - test
-      - check_version_changed
-      - build_and_push_plugins
-    filters:
-      branches:
-        only: /.*/
-      tags:
-        ignore: /.*/
+  install_vault_machine: &install_vault_machine
+    run:
+      name: install hashicorp vault
+      command: |
+        sudo apt-get update -y && sudo apt-get install -y curl unzip
+        cd /tmp
+        curl -LO https://releases.hashicorp.com/vault/1.21.4/vault_1.21.4_linux_amd64.zip
+        echo '889b681990fe221b884b7932fa9c9dd0ee9811b9349554f1aa287ab63c9f3dae  vault_1.21.4_linux_amd64.zip' | sha256sum -c
+        unzip -o vault_1.21.4_linux_amd64.zip
+        sudo mv vault /usr/bin/vault
+  setup_qemu_binfmt: &setup_qemu_binfmt
+    run:
+      name: Setup QEMU for multi-arch Docker builds
+      command: |
+        sudo apt-get update -y
+        sudo apt-get install -y qemu-user-static binfmt-support
+        docker buildx create --use || true
+        docker buildx inspect --bootstrap
 
 jobs:
-  build_and_push_plugins:
-    executor: goreleaser
-    steps:
-      - checkout
-      - set_vault
-      - goreleaser
-      - slack/notify:
-          event: fail
-          branch_pattern: main
-          template: basic_fail_1
-
-  lint:
-    docker:
-      - image: cimg/go:1.27.1
-    steps:
-      - checkout
-      - set_vault
-      - set_environment_variables
-      - set_tags
-      - run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
-      - run:
-          name: golangci-lint (new vs origin/main)
-          command: |
-            set -euo pipefail
-            git fetch origin main
-            for plugin in "${CHANGED[@]}"; do
-              if [ "${plugin}" == "_template" ] || [ ! -f "plugins/$plugin/go.mod" ]; then
-                continue
-              fi
-              echo "linting $plugin"
-              (cd "plugins/$plugin" && golangci-lint run --new-from-merge-base=origin/main ./...)
-            done
-      - slack/notify:
-          event: fail
-          branch_pattern: main
-          template: basic_fail_1
-
   test:
     docker:
       - image: cimg/go:1.27.1
-    resource_class: large
     steps:
       - checkout
-      - set_vault
-      - set_environment_variables
-      - run: cd plugins/opa ; go test ./... ; cd ../..
-      - run: cd plugins/admission ; go test ./... ; cd ../..
-      - run: cd plugins/ci ; go test ./... ; cd ../..
-      - run: cd plugins/falco-agent ; go test ./...; cd ../..
-      - run: cd plugins/trivy ; go test ./... ; cd ../..
-      - run: cd plugins/image-trust ; go test ./... ; cd ../..
-      - run: cd plugins/network-flow ; go test ./... ; cd ../..
-      - run: cd plugins/network-flow-aggregator ; go test ./... ; cd ../..
-      - slack/notify:
-          event: fail
-          branch_pattern: main
-          template: basic_fail_1
-
-  check_version_changed:
-    docker:
-      - image: cimg/go:1.27.1
-    steps:
-      - checkout
-      - set_vault
-      - set_environment_variables
-      - set_tags
-      - check_version_changed
-
-  check_versions:
-    docker:
-      - image: quay.io/reactiveops/ci-images:v17.0-cimg-24.04
-    steps:
-      - checkout
-      - set_vault
-      - set_environment_variables
-      - run: ./scripts/check-all-versions.sh
-      - slack/notify:
-          event: fail
-          custom: |
-            {
-                "text": "One or more versions in insights-plugins are out of date!",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "One or more versions in insights-plugins are out of date!\n\n$OUTDATED_VERSIONS_LIST"
-                        }
-                    }
-                ]
-            }
-      - slack/notify:
-          event: pass
-          custom: |
-            {
-                "text": "All versions in insights-plugins are up to date",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": ":tada: All versions in insights-plugins are up to date!"
-                        }
-                    }
-                ]
-            }
-
-  scan_for_vulnerabilities:
-    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
-    executor: ci-images
-    resource_class: large
-    steps:
-      - checkout
-      - set_vault
-      - set_environment_variables
-      - setup_remote_docker
-      - run: ./.circleci/scripts/install-trivy.sh
-      - set_tags
       - run:
-          name: Scan for vulnerabilities
+          name: Go Mod Download
+          command: go mod download && go mod verify
+      - run:
+          name: golangci-lint
           command: |
-            if [ "$CIRCLE_BRANCH" != "main" ]
-            then
-              ./scripts/scan-all.sh $CIRCLE_SHA1 "${CHANGED[*]}"
-            else
-              ./scripts/scan-all.sh
-            fi
-      - run: |
-          if ! git diff --exit-code fairwinds-insights.yaml; then
-            echo "Please run `SKIP_TRIVY=true ./scripts/scan-all.sh` to regenerate fairwinds-insights.yaml"
-            exit 1
-          fi
-      - slack/notify:
-          event: fail
-          branch_pattern: main
-          custom: |
-            {
-                "text": "One or more images in insights-plugins have vulnerabilities",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "One or more images in insights-plugins have vulnerabilities!\n\n$VULNERABLE_IMAGES_LIST"
-                        }
-                    }
-                ]
-            }
-      - slack/notify:
-          event: pass
-          branch_pattern: main
-          custom: |
-            {
-                "text": "All images in insights-plugins are clean",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": ":tada: All images in insights-plugins are clean!"
-                        }
-                    }
-                ]
-            }
-
-  validate_modified_opa_policies:
-    working_directory: /go/src/github.com/fairwindsops/insights-plugins/
-    executor: ci-images
-    steps:
-      - checkout
-      - set_vault
-      - set_environment_variables
-      - setup_remote_docker
-      - run: ./.circleci/scripts/install-insights-cli.sh
-      - run: ./scripts/validate-modified-opa-policies.sh
-      - slack/notify:
-          event: fail
-          custom: |
-            {
-                "text": "One or more modified OPA policies in insights-plugins has failed validation",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "One or more modified OPA policies in insights-plugins has failed validation!\n\n$FAILED_OPA_POLICIES_MARKDOWN"
-                        }
-                    }
-                ]
-            }
-      - slack/notify:
-          event: pass
-          custom: |
-            {
-                "text": "All modified OPA policies in insights-plugins have passed validation",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": ":tada: All modified OPA policies in insights-plugins have passed validation!"
-                        }
-                    }
-                ]
-            }
-
-  ci_plugin_e2e:
-    executor: ci-images
-    steps:
-      - checkout
-      - setup_remote_docker
-      - set_vault
-      - set_environment_variables
-      - set_tags
-      - run: ./.circleci/scripts/ci-plugin-e2e-test.sh
-
-  # On Renovate PRs, bump plugins/*/version.txt + CHANGELOG.md and push to the PR branch.
-  bump_renovate_pr_versions:
-    docker:
-      - image: cimg/go:1.27.1
-    steps:
-      - checkout
-      - set_vault
+            curl -fsSL -o golangci-lint.tar.gz https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz
+            echo '2277d43b98ec0054280f2ac26b53268bae97682444678a59a657dd565da021d6  golangci-lint.tar.gz' | sha256sum -c
+            tar -xzf golangci-lint.tar.gz
+            mv golangci-lint-2.13.2-linux-amd64/golangci-lint "$(go env GOPATH)/bin/golangci-lint"
+            golangci-lint run --timeout 5m
       - run:
-          name: Bump version and changelog for Renovate PR
-          command: ./.circleci/scripts/bump-renovate-pr.sh
+          name: test
+          command: |
+            go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+            go vet ./...
+      - run:
+          name: e2e setup
+          command: .circleci/scripts/e2e-env.sh
+      - *install_vault_machine
+      - rok8s/get_vault_env:
+          vault_path: repo/insights-cli/env
+      - run:
+          name: e2e tests
+          command: go test -v -tags e2e ./...
+  snapshot:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large
+    steps:
+      - checkout
+      - *setup_qemu_binfmt
+      - run:
+          name: Run GoReleaser snapshot
+          command: |
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$(pwd):/workspace" -w /workspace \
+              -e CIRCLE_SHA1 \
+              -e CIRCLE_BRANCH \
+              -e CIRCLE_TAG \
+              goreleaser/goreleaser:v2.18.1 release --snapshot --skip=sign
+      - store_artifacts:
+          path: dist
+          destination: snapshot
+  release:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large
+    shell: /bin/bash
+    steps:
+      - checkout
+      - *install_vault_machine
+      - rok8s/get_vault_env:
+          vault_path: repo/global/env
+      - rok8s/get_vault_env:
+          vault_path: repo/insights-cli/env
+      - run:
+          name: docker login Google Artifact Registry
+          command: |
+            echo "$GCP_ARTIFACTREADWRITE_JSON_KEY" | base64 -d | docker login -u _json_key --password-stdin us-docker.pkg.dev
+      - *setup_qemu_binfmt
+      - run:
+          name: Run GoReleaser release
+          command: |
+            export GORELEASER_CURRENT_TAG="${CIRCLE_TAG}"
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$(pwd):/workspace" -w /workspace \
+              -v "${HOME}/.docker:/root/.docker" \
+              -e GORELEASER_CURRENT_TAG \
+              -e CIRCLE_TAG \
+              -e CIRCLE_SHA1 \
+              -e GO111MODULE=on \
+              -e GITHUB_TOKEN \
+              -e VAULT_ADDR \
+              -e VAULT_TOKEN \
+              goreleaser/goreleaser:v2.18.1 release
 
 workflows:
   version: 2
-  release:
-    when: pipeline.trigger_source != "scheduled_pipeline"
+  test_and_build:
     jobs:
-      - bump_renovate_pr_versions:
+      - test:
           filters:
-            branches:
-              only: /renovate\/.*/
-      - lint
-      - test
-      - check_version_changed
-      - validate_modified_opa_policies:
-          name: Validate Modified OPA Policies
-          requires:
-            - lint
-            - test
-            - check_version_changed
-      - build_and_push_plugins:
+            tags:
+              ignore: /.*/
           context: org-global
+      - snapshot:
           requires:
             - test
-            - check_version_changed
           filters:
             branches:
-              ignore:
-              - /pull\/[0-9]+/
-      - rok8s-scripts/kubernetes_e2e_tests:
-          name: "End-To-End Kubernetes 1.30"
-          executor:
-            name: ci-images
-          <<: *kind_e2e_configuration
-      - ci_plugin_e2e:
+              only: /.*/
+            tags:
+              ignore: /.*/
+  release:
+    jobs:
+      - test:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v.*/
+          context: org-global
+      - release:
           requires:
             - test
-            - check_version_changed
-            - build_and_push_plugins
-            - End-To-End Kubernetes 1.30
-
-  # Daily vuln + version check on tip of main 
-  check_vulnerabilities:
-    when: pipeline.trigger_source == "scheduled_pipeline" and pipeline.schedule.name == "check_vulnerabilities"
-    jobs:
-      - scan_for_vulnerabilities
-      - check_versions
-
-  # Weekday rebuild + scan of tip of main
-  rebuild:
-    when: pipeline.trigger_source == "scheduled_pipeline" and pipeline.schedule.name == "rebuild"
-    jobs:
-      - build_and_push_plugins
-      - scan_for_vulnerabilities
+          context: org-global
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v.*/
