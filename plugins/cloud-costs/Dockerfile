@@ -1,9 +1,9 @@
-FROM mcr.microsoft.com/azure-cli:2.83.0-azurelinux3.0
+FROM mcr.microsoft.com/azure-cli:2.89.0-azurelinux3.0
 
 ARG TARGETARCH
 ARG TARGETOS
 
-ENV CLOUD_SDK_VERSION=570.0.0
+ENV CLOUD_SDK_VERSION=584.0.0
 
 # Install base dependencies
 RUN tdnf -y update && \
@@ -34,9 +34,9 @@ RUN set -eux; \
     rm "google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${googleArch}.tar.gz"; \
     /google-cloud-sdk/install.sh --quiet --path-update=false; \
     rm -rf /google-cloud-sdk/platform/gsutil/third_party; \
-    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/cryptography*; \
-    rm -rf /usr/lib/az/lib/python3.12/site-packages/cryptography*; \
-    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.13/site-packages/docs
+    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.*/site-packages/cryptography*; \
+    rm -rf /usr/lib/az/lib/python3.*/site-packages/cryptography*; \
+    rm -rf /google-cloud-sdk/platform/bundledpythonunix/lib/python3.*/site-packages/docs
 ENV PATH=$PATH:/google-cloud-sdk/bin
 
 # Azure CLI writes config to AZURE_CONFIG_DIR; use writable path (root fs is read-only in K8s)
