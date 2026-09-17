@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.59
+* Bump library github.com/aws/aws-sdk-go-v2 to v1.47.0
+* Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.4
+* Bump library github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to v1.87.0
+* Bump indirect libraries dependencies
+
 ## 0.2.58
 * Build with Go 1.27.1 via module `go` version and `GOTOOLCHAIN=go1.27.1` in release builds.
 * Rebuild Alpine runtime image to pick up libssl3/libcrypto3 3.5.8-r0 (CVE-2026-63072, CVE-2026-63073, CVE-2026-63074, CVE-2026-63075, CVE-2026-63076, CVE-2026-14456, CVE-2026-14457, CVE-2026-18798, CVE-2026-54874, CVE-2026-75803).
