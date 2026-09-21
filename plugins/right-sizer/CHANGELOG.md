@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.30
+* Bump library sigs.k8s.io/controller-runtime to v0.25.1
+
 ## 0.6.29
 * Build with Go 1.27.1 via module `go` version and `GOTOOLCHAIN=go1.27.1` in release builds.
 
