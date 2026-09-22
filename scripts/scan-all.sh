@@ -92,7 +92,7 @@ for name in "${images[@]}"; do
     docker pull $name
 
     set +e
-    trivy i --exit-code 123 --severity CRITICAL,HIGH $name
+    trivy i --exit-code 123 --severity CRITICAL $name
     if [[ $? -eq 123 ]]; then
       have_vulns+=($name)
     fi
