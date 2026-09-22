@@ -384,10 +384,3 @@ workflows:
     jobs:
       - scan_for_vulnerabilities
       - check_versions
-
-  # Weekday rebuild + scan of tip of main
-  rebuild:
-    when: pipeline.trigger_source == "scheduled_pipeline" and pipeline.schedule.name == "rebuild"
-    jobs:
-      - build_and_push_plugins
-      - scan_for_vulnerabilities
