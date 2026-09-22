@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.61
+* Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.5
+* Bump indirect libraries dependencies
+
 ## 0.2.60
 * Bump library sigs.k8s.io/controller-runtime to v0.25.1
 
