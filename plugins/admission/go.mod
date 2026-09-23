@@ -7,7 +7,7 @@ require (
 	github.com/fairwindsops/insights-plugins/plugins/opa v0.0.0-20260311165234-dec7bf83ba9c
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
-	github.com/fairwindsops/pluto/v5 v5.24.3
+	github.com/fairwindsops/pluto/v5 v5.24.4
 	github.com/fairwindsops/polaris v0.0.0-20260721161925-4bdf5315b6a8
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.53.0
@@ -97,7 +97,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.56.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

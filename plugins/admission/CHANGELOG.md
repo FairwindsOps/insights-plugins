@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.26
+* Bump library github.com/fairwindsops/pluto/v5 to v5.24.4
+* Bump indirect libraries dependencies
+
 ## 2.3.25
 * Bump library gomodules.xyz/jsonpatch/v2 to v2.5.0
 * Bump library sigs.k8s.io/controller-runtime to v0.25.1
