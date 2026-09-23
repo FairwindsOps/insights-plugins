@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@6.1.3
-  rok8s-scripts: fairwinds/rok8s-scripts@17.0.0
+  rok8s-scripts: fairwinds/rok8s-scripts@17.1.0
 
 commands:
   install_goreleaser_dependencies:
