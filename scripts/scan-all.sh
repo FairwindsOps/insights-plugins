@@ -88,13 +88,27 @@ for name in "${images[@]}"; do
         name="${name_without_tag}:${override_tag}"
       fi
     fi
-    echo "scanning $name"
-    docker pull $name
 
+    pulled=""
+    sha_ref="${name_without_tag}:${CIRCLE_SHA1:-}"
+    for cand in "$sha_ref" "$name"; do
+      [[ -n "${cand##*:}" ]] || continue
+      echo "trying $cand"
+      if docker pull "$cand"; then
+        pulled=$cand
+        break
+      fi
+    done
+    if [[ -z "$pulled" ]]; then
+      echo "no image for $name_without_tag (sha or tag)" >&2
+      exit 1
+    fi
+
+    echo "scanning $pulled"
     set +e
-    trivy i --exit-code 123 --severity CRITICAL $name
+    trivy i --exit-code 123 --severity CRITICAL $pulled
     if [[ $? -eq 123 ]]; then
-      have_vulns+=($name)
+      have_vulns+=($pulled)
     fi
     set -e
     echo "done with scan!"

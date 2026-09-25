@@ -247,6 +247,7 @@ jobs:
       - slack/notify:
           event: fail
           branch_pattern: main
+          channel: CPYBX810T
           custom: |
             {
                 "text": "One or more images in insights-plugins have vulnerabilities",
@@ -256,22 +257,6 @@ jobs:
                         "text": {
                             "type": "mrkdwn",
                             "text": "One or more images in insights-plugins have vulnerabilities!\n\n$VULNERABLE_IMAGES_LIST"
-                        }
-                    }
-                ]
-            }
-      - slack/notify:
-          event: pass
-          branch_pattern: main
-          custom: |
-            {
-                "text": "All images in insights-plugins are clean",
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": ":tada: All images in insights-plugins are clean!"
                         }
                     }
                 ]
@@ -378,7 +363,7 @@ workflows:
             - build_and_push_plugins
             - End-To-End Kubernetes 1.30
 
-  # Daily vuln + version check on tip of main 
+  # Daily vuln + version check on tip of main
   check_vulnerabilities:
     when: pipeline.trigger_source == "scheduled_pipeline" and pipeline.schedule.name == "check_vulnerabilities"
     jobs:
