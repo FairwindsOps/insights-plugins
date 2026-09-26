@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.24
+* Bump dependencies
+
 ## 1.9.23
 * Bump library sigs.k8s.io/controller-runtime to v0.25.1
 

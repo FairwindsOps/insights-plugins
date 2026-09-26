@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.34
+* Bump dependencies
+
 ## 6.2.33
 * Bump bundled Polaris CLI to v10.2.4 (Alpine libssl3/libcrypto3 CVE-2026-14456).
 
