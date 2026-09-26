@@ -1,4 +1,4 @@
-FROM alpine:3.24.1 AS downloader
+FROM alpine:3.24.2 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
 ENV trivyVersion=0.74.0
