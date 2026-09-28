@@ -19,6 +19,17 @@
   "customManagers": [
     {
       "customType": "regex",
+      "description": "Trivy version in CircleCI install-trivy.sh",
+      "managerFilePatterns": ["(^|/)\\.circleci/scripts/install-trivy\\.sh$"],
+      "matchStrings": [
+        "trivyVersion=[\"']?(?<currentValue>[\\d.]+)[\"']?"
+      ],
+      "depNameTemplate": "aquasecurity/trivy",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
       "description": "Pinned GitHub release versions in Dockerfiles (ENV *_Version / PG_PARTMAN_VERSION)",
       "managerFilePatterns": ["(^|/)Dockerfile$"],
       "matchStrings": [
