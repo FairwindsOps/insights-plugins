@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.34
+* Bumped versions
+
 ## 0.1.33
 * Build with Go 1.27.1 via module `go` version and `GOTOOLCHAIN=go1.27.1` in release builds.
 

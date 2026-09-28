@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.43
+* Bump dependencies
+
 ## 0.34.42
 * Bump `CLOUD_SDK_VERSION` to 584.0.0.
 * Strip Cloud SDK `cryptography` from `python3.*` site-packages so the cleanup still works after the bundled interpreter moved to 3.14.
