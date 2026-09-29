@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.21
+* Bump library google.golang.org/grpc to v1.84.0
+* Bump indirect libraries dependencies
+
 ## 0.0.20
 * Build with Go 1.27.1 via module `go` version and `GOTOOLCHAIN=go1.27.1` in release builds.
 
