@@ -3,7 +3,7 @@ module github.com/fairwindsops/insights-plugins/plugins/image-trust
 go 1.27.1
 
 require (
-	github.com/bmatcuk/doublestar/v4 v4.10.0
+	github.com/bmatcuk/doublestar/v4 v4.10.2
 	github.com/fairwindsops/controller-utils v0.3.4
 	github.com/google/go-containerregistry v0.22.1
 	github.com/samber/lo v1.53.0
