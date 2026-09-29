@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.17
+* Bump library github.com/bmatcuk/doublestar/v4 to v4.10.2
+
 ## 0.1.16
 * Bump dependencies
 
