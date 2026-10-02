@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   slack: circleci/slack@6.1.3
-  rok8s-scripts: fairwinds/rok8s-scripts@17.1.0
+  rok8s-scripts: fairwinds/rok8s-scripts@17.1.1
 
 commands:
   install_goreleaser_dependencies:
@@ -89,7 +89,7 @@ executors:
   goreleaser:
     resource_class: large
     docker:
-      - image: goreleaser/goreleaser:v2.18.1
+      - image: goreleaser/goreleaser:v2.18.2
 
 references:
   # Job name matches other Fairwinds repos (End-To-End Kubernetes X.XX) so the
