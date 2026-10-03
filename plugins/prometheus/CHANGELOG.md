@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.25
+* Bump library k8s.io/api to v0.37.1
+* Bump library k8s.io/apimachinery to v0.37.1
+* Bump library k8s.io/client-go to v0.37.1
+
 ## 1.9.24
 * Bump dependencies
 
