@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.18
+* Bump library k8s.io/api to v0.37.1
+* Bump library k8s.io/apimachinery to v0.37.1
+* Bump library k8s.io/client-go to v0.37.1
+
 ## 0.1.17
 * Bump library github.com/bmatcuk/doublestar/v4 to v4.10.2
 
