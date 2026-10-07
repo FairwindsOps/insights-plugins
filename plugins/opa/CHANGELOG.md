@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.42
+* Bump library github.com/open-policy-agent/opa to v1.21.1
+
 ## 3.1.41
 * Bump library github.com/open-policy-agent/opa to v1.21.0
 * Bump library k8s.io/api to v0.37.1
