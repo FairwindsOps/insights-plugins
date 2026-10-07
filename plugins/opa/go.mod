@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/open-policy-agent/opa v1.21.0
+	github.com/open-policy-agent/opa v1.21.1
 	github.com/samber/lo v1.53.0
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
