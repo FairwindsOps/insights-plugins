@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.29
+* Bump library sigs.k8s.io/controller-runtime to v0.25.2
+
 ## 2.3.28
 * Bump library k8s.io/api to v0.37.1
 * Bump library k8s.io/apimachinery to v0.37.1
