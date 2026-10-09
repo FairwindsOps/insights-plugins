@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.42
+* Bump library sigs.k8s.io/controller-runtime to v0.25.2
+
 ## 0.4.41
 * Bump library github.com/falcosecurity/falcosidekick to v0.0.0-20260928151501-3e3f5536f798
 * Bump indirect libraries dependencies
