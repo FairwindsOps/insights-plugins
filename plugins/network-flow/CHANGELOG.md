@@ -2,6 +2,7 @@
 
 ## 0.0.23
 * Bump library github.com/inspektor-gadget/inspektor-gadget to v0.56.2
+* Bump indirect libraries dependencies
 
 ## 0.0.22
 * Bump library github.com/inspektor-gadget/inspektor-gadget to v0.56.1

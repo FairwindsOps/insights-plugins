@@ -2,6 +2,7 @@
 
 ## 3.1.43
 * Bump library sigs.k8s.io/controller-runtime to v0.25.2
+* Bump indirect libraries dependencies
 
 ## 3.1.42
 * Bump library github.com/open-policy-agent/opa to v1.21.1
