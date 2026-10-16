@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.35
+* Bump dependencies
+
 ## 1.4.34
 * Bump library sigs.k8s.io/controller-runtime to v0.25.2
 * Bump indirect libraries dependencies
