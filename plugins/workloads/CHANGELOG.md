@@ -1,7 +1,8 @@
 # Changelog
 
 ## 2.17.9
-* Bump dependencies
+* Update Go module directive to 1.27.2
+* Bump indirect libraries dependencies
 
 ## 2.17.8
 * Bump library sigs.k8s.io/controller-runtime to v0.25.2

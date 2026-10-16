@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.0.25
-* Bump dependencies
+* Update Go module directive to 1.27.2
 
 ## 0.0.24
 * Bump library github.com/inspektor-gadget/inspektor-gadget to v0.57.0

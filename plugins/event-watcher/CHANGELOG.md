@@ -1,7 +1,8 @@
 # Changelog
 
 ## 0.2.68
-* Bump dependencies
+* Update Go module directive to 1.27.2
+* Bump indirect libraries dependencies
 
 ## 0.2.67
 * Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.7

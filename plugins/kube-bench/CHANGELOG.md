@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.6.33
-* Bump dependencies
+* Update Go module directive to 1.27.2
 
 ## 0.6.32
 * Bump indirect libraries dependencies
