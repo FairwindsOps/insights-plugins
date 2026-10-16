@@ -1,6 +1,6 @@
 module github.com/FairwindsOps/insights-plugins/realtime-reporter
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/aereal/go-httpretryafter v0.1.0
