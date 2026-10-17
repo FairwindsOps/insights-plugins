@@ -8,12 +8,12 @@ require (
 	// IMPORTANT: Please also update the const  constant in pkg/pluto/pluto.go
 	// when updating the below Pluto version.
 	github.com/fairwindsops/pluto/v5 v5.24.4
-	github.com/fairwindsops/polaris v0.0.0-20260721161925-4bdf5315b6a8
+	github.com/fairwindsops/polaris v0.0.0-20261008151027-ca9a859482ee
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/samber/lo v1.53.0
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/mod v0.41.0
+	golang.org/x/mod v0.42.0
 	gomodules.xyz/jsonpatch/v2 v2.5.0
 	k8s.io/api v0.37.1
 	k8s.io/apimachinery v0.37.1
