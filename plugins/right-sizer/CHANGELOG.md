@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.34
+* Bump library github.com/prometheus/client_golang to v1.25.0
+* Bump indirect libraries dependencies
+
 ## 0.6.33
 * Update Go module directive to 1.27.2
 * Bump indirect libraries dependencies
