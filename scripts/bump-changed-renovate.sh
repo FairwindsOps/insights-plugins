@@ -58,13 +58,14 @@ should_bump_renovate_ci() {
   main_ver=$(git show "origin/main:${rel}version.txt" 2>/dev/null | tr -d '\n\r' || true)
   head_ver=$(tr -d '\n\r' < "${d}version.txt")
   last_ver_commit=$(git log -1 --format=%H -- "${d}version.txt" 2>/dev/null || true)
-  if [[ -z "$last_ver_commit" ]]; then
-    return 1
-  fi
-
-  changed_since_ver=$(git diff --name-only "$last_ver_commit" HEAD -- "$d" | grep -vE 'version\.txt$|CHANGELOG\.md$' || true)
-  if [[ -n "$changed_since_ver" ]]; then
-    return 0
+  # Diff against the working tree so an in-job go work sync counts.
+  # A shallow checkout may not contain the version.txt commit; still bump
+  # when the plugin changed and its version matches main.
+  if [[ -n "$last_ver_commit" ]]; then
+    changed_since_ver=$(git diff --name-only "$last_ver_commit" -- "$d" | grep -vE 'version\.txt$|CHANGELOG\.md$' || true)
+    if [[ -n "$changed_since_ver" ]]; then
+      return 0
+    fi
   fi
   if [[ "$main_ver" == "$head_ver" ]]; then
     return 0
