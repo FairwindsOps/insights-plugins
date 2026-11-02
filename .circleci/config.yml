@@ -327,7 +327,7 @@ jobs:
 workflows:
   version: 2
   release:
-    when: pipeline.trigger_source != "scheduled_pipeline"
+    when: pipeline.trigger.type != "schedule"
     jobs:
       - bump_renovate_pr_versions:
           filters:
@@ -365,7 +365,7 @@ workflows:
 
   # Daily vuln + version check on tip of main
   check_vulnerabilities:
-    when: pipeline.trigger_source == "scheduled_pipeline" and pipeline.schedule.name == "check_vulnerabilities"
+    when: pipeline.trigger.type == "schedule" and pipeline.trigger.name == "check_vulnerabilities"
     jobs:
       - scan_for_vulnerabilities
       - check_versions

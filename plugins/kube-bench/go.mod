@@ -8,9 +8,9 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.47.1 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.47.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/securityhub v1.75.3 // indirect
-	github.com/aws/smithy-go v1.28.1 // indirect
+	github.com/aws/smithy-go v1.28.5 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/golang/glog v1.2.5 // indirect
@@ -25,9 +25,9 @@ require (
 	github.com/spf13/viper v1.21.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/net v0.59.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
+	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/client-go v0.37.1 // indirect

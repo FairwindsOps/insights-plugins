@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.36
+* Bump indirect libraries dependencies
+
 ## 1.4.35
 * Update Go module directive to 1.27.2
 * Bump indirect libraries dependencies

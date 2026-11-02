@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.21
+* Bump library github.com/bmatcuk/doublestar/v4 to v4.10.3
+
 ## 0.1.20
 * Update Go module directive to 1.27.2
 * Bump indirect libraries dependencies

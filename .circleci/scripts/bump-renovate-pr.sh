@@ -35,6 +35,12 @@ if [[ -n "${CIRCLE_PR_NUMBER:-}" && -n "${CIRCLE_PROJECT_USERNAME:-}" && -n "${C
   fi
 fi
 
+# Renovate updates only the modules it touches. Sync the workspace build list
+# into every module so the bump below sees those go.mod changes too.
+if [[ -f go.work ]]; then
+  go work sync
+fi
+
 ./scripts/bump-changed-renovate.sh "$MSG"
 
 if git diff --quiet; then
@@ -45,7 +51,14 @@ fi
 git config --global user.name "Insights CI"
 git config --global user.email insights@fairwinds.com
 
-git add plugins/*/version.txt plugins/*/CHANGELOG.md
+git add -- \
+  go.work.sum \
+  plugins/*/go.mod \
+  plugins/*/go.sum \
+  plugins/*/version.txt \
+  plugins/*/CHANGELOG.md \
+  realtime-reporter/go.mod \
+  realtime-reporter/go.sum
 git commit -m "chore: bump version.txt and CHANGELOG.md for changed plugins"
 
 git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"

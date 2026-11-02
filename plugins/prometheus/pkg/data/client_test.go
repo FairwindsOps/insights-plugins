@@ -46,7 +46,7 @@ func TestTenantRoundTripper(t *testing.T) {
 	require.NotNil(t, client)
 
 	// Make a request (any query will do)
-	_, _, err = client.Query(t.Context(), "up", time.Now())
+	_, _, _, err = client.Query(t.Context(), "up", time.Now())
 	require.NoError(t, err)
 
 	// Verify the tenant header was set
@@ -75,7 +75,7 @@ func TestTenantRoundTripperWithBearerToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	_, _, err = client.Query(t.Context(), "up", time.Now())
+	_, _, _, err = client.Query(t.Context(), "up", time.Now())
 	require.NoError(t, err)
 
 	// Verify both headers are set
@@ -99,7 +99,7 @@ func TestClientWithoutTenantID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	_, _, err = client.Query(t.Context(), "up", time.Now())
+	_, _, _, err = client.Query(t.Context(), "up", time.Now())
 	require.NoError(t, err)
 
 	// Verify the tenant header is NOT set
@@ -124,7 +124,7 @@ func TestGetClientBackwardCompatibility(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	_, _, err = client.Query(t.Context(), "up", time.Now())
+	_, _, _, err = client.Query(t.Context(), "up", time.Now())
 	require.NoError(t, err)
 
 	// Verify bearer token is set and tenant header is NOT set
@@ -148,7 +148,7 @@ func TestGetClientWithEmptyBearerToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	_, _, err = client.Query(t.Context(), "up", time.Now())
+	_, _, _, err = client.Query(t.Context(), "up", time.Now())
 	require.NoError(t, err)
 
 	// Verify no Authorization header is set
@@ -199,7 +199,7 @@ func TestMimirPathHandling(t *testing.T) {
 	client, err := GetClientWithOptions(mimirStyleURL, WithTenantID("test-tenant"))
 	require.NoError(t, err)
 
-	_, _, err = client.Query(t.Context(), "up", time.Now())
+	_, _, _, err = client.Query(t.Context(), "up", time.Now())
 	require.NoError(t, err)
 
 	// Verify the path includes both /prometheus and /api/v1/query
