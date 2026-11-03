@@ -1,6 +1,6 @@
 module github.com/FairwindsOps/insights-plugins/kyverno-policy-sync
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/imroc/req/v3 v3.61.0
