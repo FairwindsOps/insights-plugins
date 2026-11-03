@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.17.11
+* Bump dependencies
+
 ## 2.17.10
 * Bump indirect libraries dependencies
 

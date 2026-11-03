@@ -1,4 +1,4 @@
-FROM alpine:3.24.2 AS downloader
+FROM alpine:3.24.3 AS downloader
 ARG TARGETARCH
 ENV COSIGN_VERSION=3.1.3
 RUN apk --no-cache add ca-certificates curl \
@@ -15,7 +15,7 @@ RUN apk --no-cache add ca-certificates curl \
     && echo "${cosign_sha256}  /usr/local/bin/cosign" | sha256sum -c - \
     && chmod +x /usr/local/bin/cosign
 
-FROM alpine:3.24.2
+FROM alpine:3.24.3
 WORKDIR /usr/local/bin
 RUN apk --no-cache add ca-certificates \
     && apk --no-cache add --upgrade libcrypto3 libssl3 zlib

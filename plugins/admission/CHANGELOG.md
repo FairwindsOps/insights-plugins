@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.32
+* Bump dependencies
+
 ## 2.3.31
 * Bump library github.com/fairwindsops/polaris to v0.0.0-20261008151027-ca9a859482ee
 * Bump library golang.org/x/mod to v0.42.0

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.21
+* Bump dependencies
+
 ## 0.0.20
 * Bump dependencies
 
