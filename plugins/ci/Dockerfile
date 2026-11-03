@@ -1,7 +1,7 @@
 FROM alpine:3.24.3 AS downloader
 ARG TARGETARCH
 ARG TARGETOS
-ENV trivyVersion=0.74.0
+ENV trivyVersion=0.76.1
 ENV polarisVersion=10.2.4
 ENV plutoVersion=5.24.4
 ENV helmVersion=4.3.0

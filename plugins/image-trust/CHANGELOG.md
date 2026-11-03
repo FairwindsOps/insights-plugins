@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.23
+* Build with Go 1.27.3 (stdlib CVE-2026-111943) via module `go` version and `GOTOOLCHAIN=go1.27.3` in release builds.
+* Bump bundled Cosign to v3.1.4 (built with Go 1.27.3, CVE-2026-111943).
+
 ## 0.1.22
 * Bump dependencies
 

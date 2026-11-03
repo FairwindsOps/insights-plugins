@@ -1,6 +1,6 @@
 module github.com/fairwindsops/insights-plugins/plugins/image-trust
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.10.3

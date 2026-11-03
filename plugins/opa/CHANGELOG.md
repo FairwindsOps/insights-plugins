@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.47
+* Build with Go 1.27.3 (stdlib CVE-2026-111943) via module `go` version and `GOTOOLCHAIN=go1.27.3` in release builds.
+
 ## 3.1.46
 * Bump dependencies
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.37
+* Build with Go 1.27.3 (stdlib CVE-2026-111943) via `GOTOOLCHAIN=go1.27.3` in release builds.
+
 ## 0.1.36
 * Update alpine Docker tag to v3.24.3
 
