@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.70
+* Bump dependencies
+
 ## 0.2.69
 * Bump library github.com/aws/aws-sdk-go-v2 to v1.47.3
 * Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.9
