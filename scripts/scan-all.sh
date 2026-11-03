@@ -6,10 +6,10 @@ set -eo pipefail
 declare override_tag=$1
 declare -a changed_plugins=($2)
 
-novaVersion=v3.12.1
-plutoVersion=v5.24.4
-goldilocksVersion=v4.16.2
-polarisVersion=v10.2.4
+novaVersion=v3.12.3
+plutoVersion=v5.24.5
+goldilocksVersion=v4.16.3
+polarisVersion=v10.2.6
 
 # Hard-coding four external images we own. Versions taken from insights-agent. OSS images live on Artifact Registry
 images=(us-docker.pkg.dev/fairwinds-ops/oss/polaris:${polarisVersion} us-docker.pkg.dev/fairwinds-ops/oss/nova:${novaVersion} us-docker.pkg.dev/fairwinds-ops/oss/pluto:${plutoVersion} us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:${goldilocksVersion})
