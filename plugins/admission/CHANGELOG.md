@@ -1,8 +1,10 @@
 # Changelog
 
-## 2.3.34
+## 2.3.35
 * Bump library github.com/fairwindsops/pluto/v5 to v5.24.5 and the report version in pkg/pluto/pluto.go.
 * Bump library github.com/fairwindsops/polaris to v0.0.0-20261103175922-6e76dd36aea6 (v10.2.6).
+
+## 2.3.34
 * Bump indirect libraries dependencies
 
 ## 2.3.33

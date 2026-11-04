@@ -1,7 +1,9 @@
 # Changelog
 
-## 6.2.40
+## 6.2.41
 * Bump bundled Polaris CLI to v10.2.6 and Pluto CLI to v5.24.5 (built with Go 1.27.3, CVE-2026-111943).
+
+## 6.2.40
 * Bump indirect libraries dependencies
 
 ## 6.2.39
