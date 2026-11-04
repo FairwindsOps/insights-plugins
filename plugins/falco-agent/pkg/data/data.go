@@ -18,6 +18,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+var ignoredOutputNames = map[string]struct{}{
+	"lost+found": {},
+	".snapshot":  {},
+	".snapshots": {},
+	".zfs":       {},
+}
+
 func isLessThan24hrs(t time.Time) bool {
 	return time.Since(t) < 24*time.Hour
 }
@@ -53,26 +60,31 @@ func Aggregate24hrsData(fsWrapper afero.Fs, dir string) (aggregatedData []FalcoO
 	var fileStat fs.FileInfo
 
 	for _, file := range tmpfiles {
-		if file.Type().Perm().IsRegular() {
-			filename := filepath.Join(dir, file.Name())
-			fileStat, err = fsWrapper.Stat(filename)
+		if _, ignored := ignoredOutputNames[file.Name()]; ignored {
+			continue
+		}
+		if !file.Type().IsRegular() {
+			continue
+		}
+		filename := filepath.Join(dir, file.Name())
+		fileStat, err = fsWrapper.Stat(filename)
+		if err != nil {
+			return
+		}
+		if isLessThan24hrs(fileStat.ModTime()) {
+			var output FalcoOutput
+			output, err = readDataFromFile(fsWrapper, filename)
+			// skip malformed files and continue
+			if err != nil {
+				logrus.Warnf("Error reading file: %v", err)
+				err = nil
+				continue
+			}
+			aggregatedData = append(aggregatedData, output)
+		} else {
+			err = deleteOlderFile(fsWrapper, filename)
 			if err != nil {
 				return
-			}
-			if isLessThan24hrs(fileStat.ModTime()) {
-				var output FalcoOutput
-				output, err = readDataFromFile(fsWrapper, filename)
-				// skip malformed files and continue
-				if err != nil {
-					logrus.Warnf("Error reading file: %v", err)
-					continue
-				}
-				aggregatedData = append(aggregatedData, output)
-			} else {
-				err = deleteOlderFile(fsWrapper, filename)
-				if err != nil {
-					return
-				}
 			}
 		}
 	}
