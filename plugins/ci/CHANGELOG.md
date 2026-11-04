@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.40
+* Bump indirect libraries dependencies
+
 ## 6.2.39
 * Build with Go 1.27.3 (stdlib CVE-2026-111943) via module `go` version and `GOTOOLCHAIN=go1.27.3` in release builds.
 * Bump bundled Trivy to 0.76.1 (built with Go 1.27.3, CVE-2026-111943).
