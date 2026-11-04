@@ -3,6 +3,7 @@
 ## 2.3.34
 * Bump library github.com/fairwindsops/pluto/v5 to v5.24.5 and the report version in pkg/pluto/pluto.go.
 * Bump library github.com/fairwindsops/polaris to v0.0.0-20261103175922-6e76dd36aea6 (v10.2.6).
+* Bump indirect libraries dependencies
 
 ## 2.3.33
 * Build with Go 1.27.3 (stdlib CVE-2026-111943) via module `go` version and `GOTOOLCHAIN=go1.27.3` in release builds.

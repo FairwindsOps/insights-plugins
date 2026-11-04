@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.17.13
+* Bump library k8s.io/utils to v0.0.0-20261023123148-ca04ba58ecab
+
 ## 2.17.12
 * Build with Go 1.27.3 (stdlib CVE-2026-111943) via module `go` version and `GOTOOLCHAIN=go1.27.3` in release builds.
 

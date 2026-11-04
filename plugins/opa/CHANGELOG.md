@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.48
+* Bump library github.com/open-policy-agent/opa to v1.21.4
+* Bump indirect libraries dependencies
+
 ## 3.1.47
 * Build with Go 1.27.3 (stdlib CVE-2026-111943) via module `go` version and `GOTOOLCHAIN=go1.27.3` in release builds.
 
