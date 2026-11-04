@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.48
+* Skip persistent-volume metadata such as `lost+found` when aggregating falco output, and keep one unreadable file from failing the report
+
 ## 0.4.47
 * Bump indirect libraries dependencies
 
