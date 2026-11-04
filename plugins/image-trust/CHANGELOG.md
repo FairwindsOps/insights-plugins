@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.24
+* Bump library github.com/bmatcuk/doublestar/v4 to v4.10.4
+* Bump indirect libraries dependencies
+
 ## 0.1.23
 * Build with Go 1.27.3 (stdlib CVE-2026-111943) via module `go` version and `GOTOOLCHAIN=go1.27.3` in release builds.
 * Bump bundled Cosign to v3.1.4 (built with Go 1.27.3, CVE-2026-111943).
