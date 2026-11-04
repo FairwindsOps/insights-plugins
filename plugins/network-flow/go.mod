@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	github.com/fairwindsops/insights-plugins/plugins/network-flow-aggregator v0.0.0
 	github.com/inspektor-gadget/inspektor-gadget v0.57.0
-	google.golang.org/grpc v1.84.0
+	google.golang.org/grpc v1.85.0
 )
 
 require (
