@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.33
+* Bump library github.com/prometheus/common to v0.73.0
+* Bump library k8s.io/api to v0.37.2
+* Bump library k8s.io/apimachinery to v0.37.2
+* Bump library k8s.io/client-go to v0.37.2
+* Bump indirect libraries dependencies
+
 ## 1.9.32
 * Bump indirect libraries dependencies
 
