@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -64,6 +65,19 @@ func TestApplyControllerStatus(t *testing.T) {
 	applyControllerStatus(unstructured.Unstructured{Object: map[string]any{"kind": "Pod"}}, &got)
 	require.Nil(t, got.Suspend)
 	require.Nil(t, got.ReadyReplicas)
+
+	raw, err := json.Marshal(ControllerResult{
+		Kind:               "CronJob",
+		Name:               "trivy",
+		Namespace:          "insights-agent",
+		Suspend:            new(true),
+		LastScheduleTime:   new(time.Date(2026, 6, 12, 17, 0, 0, 0, time.UTC)),
+		LastSuccessfulTime: new(time.Date(2026, 6, 11, 17, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"Suspend":true`)
+	require.Contains(t, string(raw), `"LastScheduleTime":"2026-06-12T17:00:00Z"`)
+	require.Contains(t, string(raw), `"LastSuccessfulTime":"2026-06-11T17:00:00Z"`)
 }
 
 func TestFormatNodeConditions(t *testing.T) {
