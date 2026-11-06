@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.17.15
+## 2.18.0
 * Include CronJob suspend and schedule times, and Deployment or StatefulSet replica counts, on each controller
 
 ## 2.17.14
