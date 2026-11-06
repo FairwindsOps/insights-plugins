@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -20,6 +21,64 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/utils/ptr"
 )
+
+func TestApplyControllerStatus(t *testing.T) {
+	cron := unstructured.Unstructured{Object: map[string]any{
+		"kind": "CronJob",
+		"spec": map[string]any{"suspend": true},
+		"status": map[string]any{
+			"lastScheduleTime":   "2026-06-12T17:00:00Z",
+			"lastSuccessfulTime": "2026-06-11T17:00:00Z",
+		},
+	}}
+	var got ControllerResult
+	applyControllerStatus(cron, &got)
+	require.NotNil(t, got.Suspend)
+	require.True(t, *got.Suspend)
+	require.True(t, got.LastScheduleTime.Equal(time.Date(2026, 6, 12, 17, 0, 0, 0, time.UTC)))
+	require.True(t, got.LastSuccessfulTime.Equal(time.Date(2026, 6, 11, 17, 0, 0, 0, time.UTC)))
+
+	unsuspended := unstructured.Unstructured{Object: map[string]any{"kind": "CronJob", "spec": map[string]any{}}}
+	got = ControllerResult{}
+	applyControllerStatus(unsuspended, &got)
+	require.NotNil(t, got.Suspend)
+	require.False(t, *got.Suspend)
+	require.Nil(t, got.LastScheduleTime)
+
+	deploy := unstructured.Unstructured{Object: map[string]any{
+		"kind":   "Deployment",
+		"spec":   map[string]any{"replicas": int64(2)},
+		"status": map[string]any{"readyReplicas": int64(1)},
+	}}
+	got = ControllerResult{}
+	applyControllerStatus(deploy, &got)
+	require.Equal(t, 2, *got.DesiredReplicas)
+	require.Equal(t, 1, *got.ReadyReplicas)
+
+	down := unstructured.Unstructured{Object: map[string]any{"kind": "StatefulSet"}}
+	got = ControllerResult{}
+	applyControllerStatus(down, &got)
+	require.Equal(t, 1, *got.DesiredReplicas)
+	require.Equal(t, 0, *got.ReadyReplicas)
+
+	got = ControllerResult{}
+	applyControllerStatus(unstructured.Unstructured{Object: map[string]any{"kind": "Pod"}}, &got)
+	require.Nil(t, got.Suspend)
+	require.Nil(t, got.ReadyReplicas)
+
+	raw, err := json.Marshal(ControllerResult{
+		Kind:               "CronJob",
+		Name:               "trivy",
+		Namespace:          "insights-agent",
+		Suspend:            new(true),
+		LastScheduleTime:   new(time.Date(2026, 6, 12, 17, 0, 0, 0, time.UTC)),
+		LastSuccessfulTime: new(time.Date(2026, 6, 11, 17, 0, 0, 0, time.UTC)),
+	})
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"Suspend":true`)
+	require.Contains(t, string(raw), `"LastScheduleTime":"2026-06-12T17:00:00Z"`)
+	require.Contains(t, string(raw), `"LastSuccessfulTime":"2026-06-11T17:00:00Z"`)
+}
 
 func TestFormatNodeConditions(t *testing.T) {
 	require.Nil(t, formatNodeConditions(nil))
