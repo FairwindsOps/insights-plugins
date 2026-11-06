@@ -47,13 +47,18 @@ type ControllerResult struct {
 	// VolumeClaims lists PersistentVolumeClaim refs from the pod template and running pods.
 	VolumeClaims []VolumeClaimRef `json:",omitempty"`
 	// NodeNames are unique nodes where Running pods for this controller are scheduled.
-	NodeNames []string `json:",omitempty"`
+	NodeNames          []string   `json:",omitempty"`
+	Suspend            *bool      `json:",omitempty"`
+	LastScheduleTime   *time.Time `json:",omitempty"`
+	LastSuccessfulTime *time.Time `json:",omitempty"`
+	ReadyReplicas      *int       `json:",omitempty"`
+	DesiredReplicas    *int       `json:",omitempty"`
 }
 
 // VolumeClaimRef is a pod volume that references a PersistentVolumeClaim.
 type VolumeClaimRef struct {
 	Name      string `json:",omitempty"` // volume name in the pod spec
-	ClaimName string                   // PersistentVolumeClaim.claimName
+	ClaimName string // PersistentVolumeClaim.claimName
 }
 
 // IngressBackendSummary is a service or resource backend for an Ingress path/default.
@@ -269,7 +274,7 @@ type ClusterWorkloadReport struct {
 	Ingresses              []Ingress
 	Services               []Service
 	PersistentVolumeClaims []PersistentVolumeClaim
-	Images []discovery.ImageResult
+	Images                 []discovery.ImageResult
 	// Karpenter is optional inventory of Karpenter CRDs (2.15+). Nil/omitted when
 	// karpenter.sh is not installed. When present, nested arrays are always emitted
 	// (possibly empty). Azure/GCP NodeClasses are out of scope for this release.
@@ -287,6 +292,65 @@ func getOwnerUID(ownerReferences []metav1.OwnerReference) string {
 		ownerUID = string(ownerReferences[0].UID)
 	}
 	return ownerUID
+}
+
+func applyControllerStatus(obj unstructured.Unstructured, result *ControllerResult) {
+	switch obj.GetKind() {
+	case "CronJob":
+		suspended, found, err := unstructured.NestedBool(obj.Object, "spec", "suspend")
+		if err == nil && !found {
+			suspended = false
+		}
+		if err == nil {
+			result.Suspend = &suspended
+		}
+		if schedule, ok := nestedTimestamp(obj.Object, "status", "lastScheduleTime"); ok {
+			result.LastScheduleTime = &schedule
+		}
+		if success, ok := nestedTimestamp(obj.Object, "status", "lastSuccessfulTime"); ok {
+			result.LastSuccessfulTime = &success
+		}
+	case "Deployment", "StatefulSet":
+		desired, desiredFound := nestedNumber(obj.Object, "spec", "replicas")
+		ready, readyFound := nestedNumber(obj.Object, "status", "readyReplicas")
+		if !desiredFound {
+			desired = 1
+		}
+		if !readyFound {
+			ready = 0
+		}
+		result.DesiredReplicas = new(desired)
+		result.ReadyReplicas = new(ready)
+	}
+}
+
+func nestedTimestamp(obj map[string]any, fields ...string) (time.Time, bool) {
+	raw, found, err := unstructured.NestedString(obj, fields...)
+	if err != nil || !found || raw == "" {
+		return time.Time{}, false
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, raw)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return parsed.UTC(), true
+}
+
+func nestedNumber(obj map[string]any, fields ...string) (int, bool) {
+	val, found, err := unstructured.NestedFieldNoCopy(obj, fields...)
+	if err != nil || !found || val == nil {
+		return 0, false
+	}
+	switch n := val.(type) {
+	case int:
+		return n, true
+	case int64:
+		return int(n), true
+	case float64:
+		return int(n), true
+	default:
+		return 0, false
+	}
 }
 
 func formatControllers(kind, name, namespace, uid string, ownerReferences []metav1.OwnerReference, containers []ContainerResult, annotations, labels, podLabels, podAnnotations map[string]string) ControllerResult {
@@ -832,6 +896,7 @@ func CreateResourceProviderFromAPI(ctx context.Context, dynamicClient dynamic.In
 			podAnnotations = workload.PodMetadata.Annotations
 		}
 		controller := formatControllers(topController.GetKind(), topController.GetName(), topController.GetNamespace(), string(topController.GetUID()), topController.GetOwnerReferences(), containers, topController.GetAnnotations(), topController.GetLabels(), podLabels, podAnnotations)
+		applyControllerStatus(topController, &controller)
 		controller.PodCount = float64(workload.RunningPodCount)
 		controller.VolumeClaims = collectControllerVolumeClaims(workload.PodSpec, workload.Pods)
 		controller.NodeNames = collectControllerNodeNames(workload.Pods)

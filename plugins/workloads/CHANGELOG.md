@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.17.15
+* Include CronJob suspend and schedule times, and Deployment or StatefulSet replica counts, on each controller
+
 ## 2.17.14
 * Bump library k8s.io/api to v0.37.2
 * Bump library k8s.io/apimachinery to v0.37.2
