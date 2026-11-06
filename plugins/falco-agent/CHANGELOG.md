@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.49
+* Bump library k8s.io/api to v0.37.2
+* Bump library k8s.io/apimachinery to v0.37.2
+* Bump library k8s.io/client-go to v0.37.2
+* Bump indirect libraries dependencies
+
 ## 0.4.48
 * Skip persistent-volume metadata such as `lost+found` when aggregating falco output, and keep one unreadable file from failing the report
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.29
+* Bump indirect libraries dependencies
+
 ## 0.0.28
 * Bump library google.golang.org/grpc to v1.85.0
 * Bump indirect libraries dependencies
