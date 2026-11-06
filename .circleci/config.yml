@@ -365,7 +365,7 @@ workflows:
 
   # Daily vuln + version check on tip of main
   check_vulnerabilities:
-    when: pipeline.trigger.type == "schedule" and pipeline.trigger.name == "check_vulnerabilities"
+    when: pipeline.trigger.type == "schedule" and pipeline.schedule.name == "check_vulnerabilities"
     jobs:
       - scan_for_vulnerabilities
       - check_versions
