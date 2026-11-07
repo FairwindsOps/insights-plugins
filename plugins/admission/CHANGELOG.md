@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.37
+* Bump indirect libraries dependencies
+
 ## 2.3.36
 * Bump library k8s.io/api to v0.37.2
 * Bump library k8s.io/apimachinery to v0.37.2
