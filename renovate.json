@@ -53,11 +53,11 @@
       "description": "Kind node image for rok8s-scripts kubernetes_e2e_tests (orb job parameter)",
       "managerFilePatterns": ["(^|/)\\.circleci/config\\.yml$"],
       "matchStrings": [
-        "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^\"\\s]+)\""
+        "kind_node_image:\\s*\"kindest/node:(?<currentValue>v[^\"@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?\""
       ],
       "depNameTemplate": "kindest/node",
       "datasourceTemplate": "docker",
-      "autoReplaceStringTemplate": "kind_node_image: \"kindest/node:{{{newValue}}}\""
+      "autoReplaceStringTemplate": "kind_node_image: \"kindest/node:{{{newValue}}}{{#if newDigest}}@{{{newDigest}}}{{/if}}\""
     },
     {
       "customType": "regex",
@@ -134,6 +134,11 @@
       "matchFileNames": ["**/Dockerfile"],
       "matchUpdateTypes": ["major"],
       "groupName": "Dockerfile major updates"
+    },
+    {
+      "description": "Pin the kind node image digest from the same kind release",
+      "matchDepNames": ["kindest/node"],
+      "pinDigests": true
     },
     {
       "matchManagers": ["circleci"],
