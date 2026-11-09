@@ -93,10 +93,10 @@ executors:
 
 references:
   # Job name matches other Fairwinds repos (End-To-End Kubernetes X.XX) so the
-  # status context is ci/circleci: End-To-End Kubernetes 1.30. Add that check
+  # status context is ci/circleci: End-To-End Kubernetes 1.37. Add that check
   # to GitHub branch protection to show the Required tag in CircleCI.
   kind_e2e_configuration: &kind_e2e_configuration
-    kind_node_image: "kindest/node:v1.30.13"
+    kind_node_image: "kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5"
     command_runner_image: quay.io/reactiveops/ci-images:v17.0-cimg-24.04
     pre_script: test/plugins-e2e/pre.sh
     script: test/plugins-e2e/ci.sh
@@ -352,7 +352,7 @@ workflows:
               ignore:
               - /pull\/[0-9]+/
       - rok8s-scripts/kubernetes_e2e_tests:
-          name: "End-To-End Kubernetes 1.30"
+          name: "End-To-End Kubernetes 1.37"
           executor:
             name: ci-images
           <<: *kind_e2e_configuration
@@ -361,7 +361,7 @@ workflows:
             - test
             - check_version_changed
             - build_and_push_plugins
-            - End-To-End Kubernetes 1.30
+            - End-To-End Kubernetes 1.37
 
   # Daily vuln + version check on tip of main
   check_vulnerabilities:
