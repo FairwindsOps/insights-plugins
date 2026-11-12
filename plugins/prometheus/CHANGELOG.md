@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.35
+* Bump indirect libraries dependencies
+
 ## 1.9.34
 * Bump library github.com/prometheus/common to v0.73.1
 * Bump indirect libraries dependencies

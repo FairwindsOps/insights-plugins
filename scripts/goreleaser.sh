@@ -70,10 +70,12 @@ if [ ! -f go.mod ] ; then
   export GOWORK=off
   echo "${this_script} set GOWORK=off because this plugin has no go.mod"
 elif grep -q 'github.com/inspektor-gadget/inspektor-gadget' go.mod ; then
-  # Resolve before goreleaser runs. Do not rely on go list alone: it can fail when the
-  # local Go/GOTOOLCHAIN is older than go.work, while goreleaser itself later builds with
-  # a newer toolchain from .goreleaser.yml — leaving IG_VERSION empty and breaking Docker FROM.
-  IG_VERSION="$(go list -m -f '{{.Version}}' github.com/inspektor-gadget/inspektor-gadget 2>/dev/null || true)"
+  # Resolve before goreleaser runs. GOWORK=off so this lookup reads the plugin go.mod
+  # and does not rewrite the workspace go.work.sum; goreleaser fails its dirty check if that
+  # file changes. Do not rely on go list alone: it can fail when the local Go/GOTOOLCHAIN is
+  # older than the plugin, while goreleaser itself later builds with a newer toolchain from
+  # .goreleaser.yml — leaving IG_VERSION empty and breaking Docker FROM.
+  IG_VERSION="$(GOWORK=off go list -m -f '{{.Version}}' github.com/inspektor-gadget/inspektor-gadget 2>/dev/null || true)"
   if [ -z "${IG_VERSION}" ] ; then
     IG_VERSION="$(awk '/github\.com\/inspektor-gadget\/inspektor-gadget($|[[:space:]])/ {print $2; exit}' go.mod)"
   fi
