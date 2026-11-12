@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.53
+* Bump `CLOUD_SDK_VERSION` to 592.0.0 (certifi GHSA-6q48-6c7w-9gw2).
+
 ## 0.34.52
 * Bump indirect libraries dependencies
 
