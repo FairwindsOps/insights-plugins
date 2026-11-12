@@ -1,6 +1,13 @@
 #! /bin/bash
 set -xeo pipefail
 
+# Feature branch: a plugin that differs from main is pulled by commit SHA.
+# A plugin that does not differ is pulled by its version.txt tag.
+sha="${CI_SHA1:-$CIRCLE_SHA1}"
+
+git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main 2>/dev/null || \
+  git fetch origin main --depth=200 || true
+
 changed=()
 plugins=()
 go_pkgs=()
@@ -39,10 +46,10 @@ for plugin in ./plugins/*; do
 
   if [ "$CIRCLE_BRANCH" != "main" ]; then
     for changed_id in "${changed[@]}"; do
-      if [ $id == $changed_id ]; then
-        tag=$CI_SHA1
+      if [ "$id" = "$changed_id" ]; then
+        tag=$sha
+        break
       fi
-      export ${varname}_tag=$CI_SHA1
     done
   fi
 
