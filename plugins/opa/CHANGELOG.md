@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.51
+* Bump indirect libraries dependencies
+
 ## 3.1.50
 * Bump library github.com/open-policy-agent/opa to v1.22.0
 * Bump indirect libraries dependencies

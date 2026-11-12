@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.31
+* Bump library github.com/inspektor-gadget/inspektor-gadget to v0.58.0
+* Bump indirect libraries dependencies
+
 ## 0.0.30
 * Bump dependencies
 

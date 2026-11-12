@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.4.42
+* Bump indirect libraries dependencies
+
 ## 1.4.41
 * Bump indirect libraries dependencies
 
