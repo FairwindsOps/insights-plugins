@@ -2,12 +2,6 @@
 # Wrap goreleaser by using envsubst on .goreleaser.yml,
 # and creating a temporary git tag from an Insights plugin the version.txt file.
 
-# drop_published_gar_tags STRIP_AMD64 STRIP_ARM64
-# Reads a goreleaser config on stdin and writes the config to run on stdout.
-# GAR arch tags are immutable, and Quay shares the dockers image_templates
-# list, so a retry drops only the published GAR lines. Manifest refs stay.
-# ponytail: line filter, not a YAML parser. Assumes dockers: and
-# docker_manifests: are column-0 keys and each GAR arch tag is its own line.
 drop_published_gar_tags() {
   awk -v strip_amd64="$1" -v strip_arm64="$2" '
     /^dockers:/ { in_dockers = 1 }
