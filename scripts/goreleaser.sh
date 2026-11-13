@@ -12,11 +12,6 @@ drop_published_gar_tags() {
   '
 }
 
-if [ "${1}" = "--prepare-config" ] ; then
-  drop_published_gar_tags "$2" "$3"
-  exit $?
-fi
-
 cleanup() {
   if [ "${CIRCLE_TAG}" == "" ] ; then
     echo "${this_script} deleting git tag ${temporary_git_tag} for goreleaser"

@@ -158,7 +158,6 @@ jobs:
       - set_vault
       - set_environment_variables
       - run: bash test/set-tags-published-version.sh
-      - run: sh scripts/goreleaser_prepare_test.sh
       - run: cd plugins/opa ; go test ./... ; cd ../..
       - run: cd plugins/admission ; go test ./... ; cd ../..
       - run: cd plugins/ci ; go test ./... ; cd ../..
