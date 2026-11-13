@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.12
+* Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
+
 ## 1.1.11
 * Bump Azure CLI base image to 2.92.0-azurelinux3.0 and `CLOUD_SDK_VERSION` to 592.0.0 (certifi GHSA-6q48-6c7w-9gw2).
 
