@@ -81,6 +81,8 @@ docker_manifests:
 # GAR manifests — immutable tags only (FullCommit + semver Tag).
 # Floating tags (latest, major, major.minor, feature) are Quay-only.
 - name_template: us-docker.pkg.dev/fairwinds-ops/oss/kyverno-policy-sync:{{ .FullCommit }}
+  # This is replaced using `envsubst`; GAR commit tags can only be pushed once.
+  skip_push: ${skip_gar_commit_tag}
   image_templates:
   - "us-docker.pkg.dev/fairwinds-ops/oss/kyverno-policy-sync:{{ .FullCommit }}-amd64"
   - "us-docker.pkg.dev/fairwinds-ops/oss/kyverno-policy-sync:{{ .FullCommit }}-arm64"
