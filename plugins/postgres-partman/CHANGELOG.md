@@ -1,5 +1,8 @@
 # Changelog
 
+## 18.0.3
+* Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
+
 ## 18.0.2
 * Only push the GAR version tag when it has not been published, since GAR tags are immutable
 

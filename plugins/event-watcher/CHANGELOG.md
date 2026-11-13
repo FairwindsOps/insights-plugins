@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.76
+* Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
+
 ## 0.2.75
 * Bump library github.com/aws/aws-sdk-go-v2 to v1.47.6
 * Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.14

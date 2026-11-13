@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.32
+* Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
+
 ## 0.0.31
 * Bump library github.com/inspektor-gadget/inspektor-gadget to v0.58.0
 * Bump indirect libraries dependencies

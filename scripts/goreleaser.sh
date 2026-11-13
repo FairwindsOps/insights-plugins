@@ -2,6 +2,16 @@
 # Wrap goreleaser by using envsubst on .goreleaser.yml,
 # and creating a temporary git tag from an Insights plugin the version.txt file.
 
+drop_published_gar_tags() {
+  awk -v strip_amd64="$1" -v strip_arm64="$2" '
+    /^dockers:/ { in_dockers = 1 }
+    /^docker_manifests:/ { in_dockers = 0 }
+    in_dockers && strip_amd64 == "true" && /us-docker\.pkg\.dev/ && /\.FullCommit }}-amd64/ { next }
+    in_dockers && strip_arm64 == "true" && /us-docker\.pkg\.dev/ && /\.FullCommit }}-arm64/ { next }
+    { print }
+  '
+}
+
 cleanup() {
   if [ "${CIRCLE_TAG}" == "" ] ; then
     echo "${this_script} deleting git tag ${temporary_git_tag} for goreleaser"
@@ -54,13 +64,36 @@ else
   echo "${this_script} also using docker tag ${feature_docker_tag} since ${CIRCLE_BRANCH} is a feature branch"
 fi
 
+# Buildx provenance turns an arch tag into an index, which `docker manifest
+# create` cannot use as a single image. SBOM attestations are off by default.
+export BUILDX_NO_DEFAULT_ATTESTATIONS=1
+
+gar_image=$(grep -o 'us-docker\.pkg\.dev/[^:]*' .goreleaser.yml.envsubst | head -n 1)
+full_commit=$(git rev-parse HEAD)
+strip_amd64=false
+strip_arm64=false
+export skip_gar_commit_tag=true
 export skip_gar_version_tag=true
-if [ "${skip_main_docker_tags}" == "false" ] ; then
-  gar_image=$(grep -o 'us-docker\.pkg\.dev/[^:]*' .goreleaser.yml.envsubst | head -n 1)
-  if [ "${gar_image}" != "" ] && docker buildx imagetools inspect "${gar_image}:${temporary_git_tag}" >/dev/null 2>&1 ; then
-    echo "${this_script} not pushing ${gar_image}:${temporary_git_tag}, which is already published and immutable"
+if [ "${gar_image}" != "" ] ; then
+  if docker buildx imagetools inspect "${gar_image}:${full_commit}-amd64" >/dev/null 2>&1 ; then
+    strip_amd64=true
+    echo "${this_script} not pushing ${gar_image}:${full_commit}-amd64, which is already published and immutable"
+  fi
+  if docker buildx imagetools inspect "${gar_image}:${full_commit}-arm64" >/dev/null 2>&1 ; then
+    strip_arm64=true
+    echo "${this_script} not pushing ${gar_image}:${full_commit}-arm64, which is already published and immutable"
+  fi
+  if docker buildx imagetools inspect "${gar_image}:${full_commit}" >/dev/null 2>&1 ; then
+    echo "${this_script} not pushing ${gar_image}:${full_commit}, which is already published and immutable"
   else
-    export skip_gar_version_tag=false
+    export skip_gar_commit_tag=false
+  fi
+  if [ "${skip_main_docker_tags}" == "false" ] ; then
+    if docker buildx imagetools inspect "${gar_image}:${temporary_git_tag}" >/dev/null 2>&1 ; then
+      echo "${this_script} not pushing ${gar_image}:${temporary_git_tag}, which is already published and immutable"
+    else
+      export skip_gar_version_tag=false
+    fi
   fi
 fi
 
@@ -92,7 +125,9 @@ if grep -q 'IG_VERSION' .goreleaser.yml.envsubst && [ -z "${IG_VERSION}" ] ; the
   exit 1
 fi
 
-cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml
+envsubst < .goreleaser.yml.envsubst > "${TMPDIR}/goreleaser.yml.unprepared"
+drop_published_gar_tags "${strip_amd64}" "${strip_arm64}" < "${TMPDIR}/goreleaser.yml.unprepared" > .goreleaser.yml
+rm -f "${TMPDIR}/goreleaser.yml.unprepared"
 goreleaser $@
 if [ $? -eq 0 ] ; then
   echo "${this_script} removing the temporary .goreleaser.yml since goreleaser was successful"
