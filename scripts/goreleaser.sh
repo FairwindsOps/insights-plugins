@@ -2,6 +2,42 @@
 # Wrap goreleaser by using envsubst on .goreleaser.yml,
 # and creating a temporary git tag from an Insights plugin the version.txt file.
 
+# prepare_goreleaser_config STRIP_AMD64 STRIP_ARM64 SKIP_COMMIT_MANIFEST
+# Reads a goreleaser config on stdin and writes the config to run on stdout.
+# GAR commit tags are immutable. A retry must not include a tag Buildx would
+# push again, but Quay shares that image_templates list, so drop only the GAR
+# arch lines under dockers. Manifests still reference the tags already in GAR.
+# --provenance=false keeps each arch tag a single image so `docker manifest
+# create tag@digest` can see it on Quay.
+prepare_goreleaser_config() {
+  awk -v strip_amd64="$1" -v strip_arm64="$2" -v skip_commit_manifest="$3" '
+    BEGIN { in_dockers = 0 }
+    /^dockers:/ { in_dockers = 1 }
+    /^docker_manifests:/ { in_dockers = 0 }
+    in_dockers && strip_amd64 == "true" && /us-docker\.pkg\.dev/ && /\.FullCommit }}-amd64/ { next }
+    in_dockers && strip_arm64 == "true" && /us-docker\.pkg\.dev/ && /\.FullCommit }}-arm64/ { next }
+    skip_commit_manifest == "true" && /name_template:.*us-docker\.pkg\.dev/ && /\.FullCommit }}[[:space:]]*$/ {
+      print
+      print "  skip_push: true"
+      next
+    }
+    {
+      print
+      if (in_dockers && $0 ~ /^[[:space:]]*- "--platform=/) {
+        match($0, /^[[:space:]]*/)
+        indent = substr($0, 1, RLENGTH)
+        print indent "- \"--provenance=false\""
+        print indent "- \"--sbom=false\""
+      }
+    }
+  '
+}
+
+if [ "${1}" = "--prepare-config" ] ; then
+  prepare_goreleaser_config "$2" "$3" "$4"
+  exit $?
+fi
+
 cleanup() {
   if [ "${CIRCLE_TAG}" == "" ] ; then
     echo "${this_script} deleting git tag ${temporary_git_tag} for goreleaser"
@@ -54,13 +90,31 @@ else
   echo "${this_script} also using docker tag ${feature_docker_tag} since ${CIRCLE_BRANCH} is a feature branch"
 fi
 
+gar_image=$(grep -o 'us-docker\.pkg\.dev/[^:]*' .goreleaser.yml.envsubst | head -n 1)
+full_commit=$(git rev-parse HEAD)
+strip_amd64=false
+strip_arm64=false
+skip_gar_commit_tag=false
 export skip_gar_version_tag=true
-if [ "${skip_main_docker_tags}" == "false" ] ; then
-  gar_image=$(grep -o 'us-docker\.pkg\.dev/[^:]*' .goreleaser.yml.envsubst | head -n 1)
-  if [ "${gar_image}" != "" ] && docker buildx imagetools inspect "${gar_image}:${temporary_git_tag}" >/dev/null 2>&1 ; then
-    echo "${this_script} not pushing ${gar_image}:${temporary_git_tag}, which is already published and immutable"
-  else
-    export skip_gar_version_tag=false
+if [ "${gar_image}" != "" ] ; then
+  if docker buildx imagetools inspect "${gar_image}:${full_commit}-amd64" >/dev/null 2>&1 ; then
+    strip_amd64=true
+    echo "${this_script} not pushing ${gar_image}:${full_commit}-amd64, which is already published and immutable"
+  fi
+  if docker buildx imagetools inspect "${gar_image}:${full_commit}-arm64" >/dev/null 2>&1 ; then
+    strip_arm64=true
+    echo "${this_script} not pushing ${gar_image}:${full_commit}-arm64, which is already published and immutable"
+  fi
+  if docker buildx imagetools inspect "${gar_image}:${full_commit}" >/dev/null 2>&1 ; then
+    skip_gar_commit_tag=true
+    echo "${this_script} not pushing ${gar_image}:${full_commit}, which is already published and immutable"
+  fi
+  if [ "${skip_main_docker_tags}" == "false" ] ; then
+    if docker buildx imagetools inspect "${gar_image}:${temporary_git_tag}" >/dev/null 2>&1 ; then
+      echo "${this_script} not pushing ${gar_image}:${temporary_git_tag}, which is already published and immutable"
+    else
+      export skip_gar_version_tag=false
+    fi
   fi
 fi
 
@@ -92,7 +146,9 @@ if grep -q 'IG_VERSION' .goreleaser.yml.envsubst && [ -z "${IG_VERSION}" ] ; the
   exit 1
 fi
 
-cat .goreleaser.yml.envsubst |envsubst >.goreleaser.yml
+envsubst < .goreleaser.yml.envsubst > "${TMPDIR}/goreleaser.yml.unprepared"
+prepare_goreleaser_config "${strip_amd64}" "${strip_arm64}" "${skip_gar_commit_tag}" < "${TMPDIR}/goreleaser.yml.unprepared" > .goreleaser.yml
+rm -f "${TMPDIR}/goreleaser.yml.unprepared"
 goreleaser $@
 if [ $? -eq 0 ] ; then
   echo "${this_script} removing the temporary .goreleaser.yml since goreleaser was successful"
