@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.37
+* Bump library golang.org/x/oauth2 to v0.38.0
+
 ## 1.9.36
 * Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
 

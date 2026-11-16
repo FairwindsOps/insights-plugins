@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.1.53
+* Bump library github.com/open-policy-agent/opa to v1.22.2
+* Bump indirect libraries dependencies
+
 ## 3.1.52
 * Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.40
+* Bump indirect libraries dependencies
+
 ## 2.3.39
 * Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
 
