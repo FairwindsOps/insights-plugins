@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.18
+* Bump dependencies
+
 ## 0.6.17
 * Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
 
