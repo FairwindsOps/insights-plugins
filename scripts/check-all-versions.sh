@@ -51,7 +51,7 @@ latest_versions["admission"]=$(cat ../plugins/admission/version.txt)
 used_versions["admission"]=$(yq e ".appVersion" ./charts/stable/insights-admission/Chart.yaml)
 
 latest_versions["admission-chart"]=$(yq e ".version" ./charts/stable/insights-admission/Chart.yaml)
-used_versions["admission-chart"]=$(yq e ".dependencies[] | select(.name == \"insights-admission\").version" ./charts/stable/insights-agent/requirements.yaml)
+used_versions["admission-chart"]=$(yq e ".dependencies[] | select(.name == \"insights-admission\").version" ./charts/stable/insights-agent/Chart.yaml)
 
 #right-sizer version is oom-detection tag inside right-sizer
 used_versions["right-sizer"]=$(yq e ".right-sizer.oom-detection.image.tag" $values_file)
