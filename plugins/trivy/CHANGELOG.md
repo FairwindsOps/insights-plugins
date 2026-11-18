@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.34.56
+* Bump dependencies
+
 ## 0.34.55
 * Bump indirect libraries dependencies
 

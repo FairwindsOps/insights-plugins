@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.38
+* Bump dependencies
+
 ## 1.9.37
 * Bump library golang.org/x/oauth2 to v0.38.0
 

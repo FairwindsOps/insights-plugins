@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.39
+* Update alpine Docker tag to v3.24.4
+
 ## 0.1.38
 * Skip already-published GAR commit and architecture tags on release reruns, since those tags are immutable
 

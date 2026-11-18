@@ -1,4 +1,4 @@
-FROM alpine:3.24.3
+FROM alpine:3.24.4
 WORKDIR /usr/local/bin
 RUN apk --no-cache add ca-certificates openssl \
     && apk --no-cache add --upgrade libcrypto3 libssl3 zlib

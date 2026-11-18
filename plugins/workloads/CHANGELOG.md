@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.18.5
+* Bump dependencies
+
 ## 2.18.4
 * Bump indirect libraries dependencies
 
