@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.39
+* Bump dependencies
+
 ## 1.9.38
 * Bump dependencies
 

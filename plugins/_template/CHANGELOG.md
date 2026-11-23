@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.40
+* Build with Go 1.27.4 via `GOTOOLCHAIN=go1.27.4` in release builds.
+
 ## 0.1.39
 * Update alpine Docker tag to v3.24.4
 
