@@ -242,7 +242,7 @@ jobs:
             fi
       - run: |
           if ! git diff --exit-code fairwinds-insights.yaml; then
-            echo "Please run `SKIP_TRIVY=true ./scripts/scan-all.sh` to regenerate fairwinds-insights.yaml"
+            echo 'Please run SKIP_TRIVY=true ./scripts/scan-all.sh to regenerate fairwinds-insights.yaml'
             exit 1
           fi
       - slack/notify:

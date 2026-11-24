@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
-# Bump plugins/*/version.txt and CHANGELOG.md on Renovate dependency PRs (CircleCI).
+# Bump plugins/*/version.txt, CHANGELOG.md, and fairwinds-insights.yaml on Renovate dependency PRs (CircleCI).
 # Runs only if the latest commit is by renovate[bot].
 # Requires GITHUB_TOKEN (repo scope) in project env or a context (e.g. org-global).
 set -euo pipefail
@@ -43,6 +43,10 @@ fi
 
 ./scripts/bump-changed-renovate.sh "$MSG"
 
+# version.txt is the tag scan-all.sh writes into fairwinds-insights.yaml.
+# The scheduled vuln scan fails when that file is left on the previous tags.
+SKIP_TRIVY=true ./scripts/scan-all.sh
+
 if git diff --quiet; then
   echo "No version/changelog updates needed."
   exit 0
@@ -57,9 +61,10 @@ git add -- \
   plugins/*/go.sum \
   plugins/*/version.txt \
   plugins/*/CHANGELOG.md \
+  fairwinds-insights.yaml \
   realtime-reporter/go.mod \
   realtime-reporter/go.sum
-git commit -m "chore: bump version.txt and CHANGELOG.md for changed plugins"
+git commit -m "chore: bump version.txt, CHANGELOG.md, and fairwinds-insights.yaml for changed plugins"
 
 git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
 git push origin "HEAD:${CIRCLE_BRANCH}"
