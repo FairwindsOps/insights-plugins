@@ -37,7 +37,8 @@ for proj in ${plugin_projects[@]}; do
 done
 rewrites["falco-agent"]="falco"
 rewrites["kube-bench-aggregator"]="kube-bench.aggregator"
-rewrites["network-flow-aggregator"]="network-flow.aggregator"
+rewrites["network-flow"]="network-observability.agent"
+rewrites["network-flow-aggregator"]="network-observability.aggregator"
 rewrites["prometheus"]="prometheus-metrics"
 rewrites["event-watcher"]="insights-event-watcher"
 
