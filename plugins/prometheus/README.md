@@ -14,7 +14,7 @@ The collector is configured via environment variables:
 | `CLUSTER_NAME` | No | Name of the cluster to filter metrics |
 | `SKIP_NON_ZERO_METRICS_CHECK` | No | Skip validation for cAdvisor metrics |
 | `SKIP_KSM_NON_ZERO_METRICS_CHECK` | No | Skip validation for kube-state-metrics |
-| `LOGRUS_LEVEL` | No | Log level (trace, debug, info, warning, error, fatal, panic) |
+| `LOG_LEVEL` | No | Log level (trace, debug, info, warn, error, fatal, panic). `LOGRUS_LEVEL` is used when unset |
 
 ## Standard Prometheus Usage
 

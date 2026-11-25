@@ -86,6 +86,12 @@ func startOPAReporter() {
 	if viper.GetBool("debug") {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debugf("Debugging is enabled...")
+	} else if level := os.Getenv("LOG_LEVEL"); level != "" {
+		lvl, err := logrus.ParseLevel(level)
+		if err != nil {
+			logrus.Fatalf("invalid LOG_LEVEL %q: %v", level, err)
+		}
+		logrus.SetLevel(lvl)
 	}
 	opa.CLIKubeTargets = opa.ProcessCLIKubeResourceTargets(viper.GetStringSlice("target-resource"))
 	logrus.Info("Starting OPA reporter")

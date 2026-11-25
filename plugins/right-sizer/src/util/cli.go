@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"reflect"
 	"strconv"
+	"strings"
 	"syscall"
 
 	flags "github.com/jessevdk/go-flags"
@@ -44,6 +45,10 @@ func fixGlog(options any) {
 	verbose := reflect.ValueOf(options).Elem().FieldByName("Verbose")
 	if verbose.IsValid() {
 		flag.Set("v", strconv.Itoa(verbose.Interface().(int)))
+	}
+	// glog cannot filter Info/Warning/Error calls, so LOG_LEVEL only raises verbosity.
+	if v := flag.Lookup("v"); v != nil && v.Value.String() == "0" && strings.EqualFold(os.Getenv("LOG_LEVEL"), "debug") {
+		_ = flag.Set("v", "2")
 	}
 	flag.CommandLine.Parse([]string{})
 }

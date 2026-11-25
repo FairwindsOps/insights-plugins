@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.81
+* Add `LOG_LEVEL` environment variable to set the log level (`debug`, `info`, `warn`, `error`; default `info`). `--verbose` still forces `debug`
+
 ## 0.2.80
 * Bump library github.com/aws/aws-sdk-go-v2 to v1.48.0
 * Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.19

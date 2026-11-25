@@ -13,3 +13,7 @@ docker run --network host --privileged \
   -v $HOME/.kube/kind-config-kind:/root/.kubeconfig \
   fw-trivy
 ```
+
+## Logging
+
+Set the `LOG_LEVEL` environment variable to `debug`, `info`, `warn` or `error` (default `info`).

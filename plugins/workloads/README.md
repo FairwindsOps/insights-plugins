@@ -50,3 +50,7 @@ In addition to existing workloads list permissions, inventory and full `Namespac
 * `backends`, `backendconfigpolicies`, `directresponses`, `gatewayextensions`, `gatewayparameters`, `httplistenerpolicies`, `listenerpolicies`, `trafficpolicies` (`gateway.kgateway.dev`) — optional kgateway inventory
 
 If optional inventory lists are forbidden, the plugin logs a warning and leaves the corresponding fields empty instead of failing the report. When Karpenter or kgateway CRDs are absent, their optional inventory object is omitted. Missing Service or PVC list permission fails the report (same as Ingress). Pod and ingress counts still populate from data already fetched for the report.
+
+## Logging
+
+Set the `LOG_LEVEL` environment variable to `debug`, `info`, `warn` or `error` (default `info`).

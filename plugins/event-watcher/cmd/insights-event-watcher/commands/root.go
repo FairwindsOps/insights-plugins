@@ -68,11 +68,10 @@ func getInsightsToken(consoleMode bool) string {
 }
 
 func setupLogging() {
-	var level slog.Level
+	var level slog.Level // zero value is info; an unset or unknown LOG_LEVEL keeps it
+	_ = level.UnmarshalText([]byte(os.Getenv("LOG_LEVEL")))
 	if verbose {
 		level = slog.LevelDebug
-	} else {
-		level = slog.LevelInfo
 	}
 
 	opts := &slog.HandlerOptions{

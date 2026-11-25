@@ -14,6 +14,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -114,10 +115,11 @@ func main() {
 }
 
 func setLogLevel() {
-	if os.Getenv("LOGRUS_LEVEL") != "" {
-		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+	level := cmp.Or(os.Getenv("LOG_LEVEL"), os.Getenv("LOGRUS_LEVEL"))
+	if level != "" {
+		lvl, err := logrus.ParseLevel(level)
 		if err != nil {
-			panic(fmt.Errorf("invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", os.Getenv("LOGRUS_LEVEL"), err))
+			panic(fmt.Errorf("invalid log level %q (should be one of trace, debug, info, warning, error, fatal, panic), error: %v", level, err))
 		}
 		logrus.SetLevel(lvl)
 	} else {

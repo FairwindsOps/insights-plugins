@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"os"
 	"strings"
 
@@ -43,8 +44,9 @@ func main() {
 }
 
 func setLogLevel() {
-	if os.Getenv("LOGRUS_LEVEL") != "" {
-		lvl, err := logrus.ParseLevel(os.Getenv("LOGRUS_LEVEL"))
+	level := cmp.Or(os.Getenv("LOG_LEVEL"), os.Getenv("LOGRUS_LEVEL"))
+	if level != "" {
+		lvl, err := logrus.ParseLevel(level)
 		if err != nil {
 			panic(err)
 		}

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.3.44
+* Add `LOG_LEVEL` environment variable to set the log level (`debug`, `info`, `warn`, `error`; default `info`). `LOGRUS_LEVEL` is still honored when `LOG_LEVEL` is unset
+
 ## 2.3.43
 * Bump library golang.org/x/mod to v0.43.0
 * Bump library sigs.k8s.io/controller-runtime to v0.25.3

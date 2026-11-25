@@ -26,6 +26,7 @@ type Client struct {
 }
 
 func main() {
+	setLogLevel()
 	logrus.Info("Starting Kyverno plugin")
 	client, err := getKubeClient()
 	if err != nil {
@@ -334,4 +335,16 @@ func (c *Client) ListResources(ctx context.Context, resourceType string, dynamic
 		return nil, err
 	}
 	return list.Items, nil
+}
+
+func setLogLevel() {
+	level := os.Getenv("LOG_LEVEL")
+	if level == "" {
+		return
+	}
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		logrus.Fatalf("invalid LOG_LEVEL %q: %v", level, err)
+	}
+	logrus.SetLevel(lvl)
 }

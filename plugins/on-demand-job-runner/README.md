@@ -60,3 +60,7 @@ To simulate interactions and assist in debugging, enable the mock client:
 ```bash
 MOCK_INSIGHTS_CLIENT=true NAMESPACE=insights-agent go run main.go
 ```
+
+## Logging
+
+Set the `LOG_LEVEL` environment variable to `debug`, `info`, `warn` or `error` (default `info`).

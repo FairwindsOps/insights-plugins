@@ -34,3 +34,7 @@ End-to-end testing against a kind cluster:
 ```bash
 ./test/network-flow-e2e/kind-e2e.sh all
 ```
+
+## Logging
+
+Set the `LOG_LEVEL` environment variable to `debug`, `info`, `warn` or `error` (default `info`).

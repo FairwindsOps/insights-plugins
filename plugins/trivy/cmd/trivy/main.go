@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,7 +24,7 @@ const outputFile = image.TempDir + "/final-report.json"
  */
 func main() {
 	ctx := context.TODO()
-	setLogLevel(os.Getenv("LOGRUS_LEVEL"))
+	setLogLevel(cmp.Or(os.Getenv("LOG_LEVEL"), os.Getenv("LOGRUS_LEVEL")))
 	cfg, err := config.LoadFromEnvironment()
 	if err != nil {
 		logrus.Fatalf("could not set environment variables: %v", err)

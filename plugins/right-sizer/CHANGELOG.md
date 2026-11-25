@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.44
+* `LOG_LEVEL=debug` sets glog verbosity to 2 when `-v`/`VERBOSE` is not set
+
 ## 0.6.43
 * Bump library sigs.k8s.io/controller-runtime to v0.25.3
 * Bump indirect libraries dependencies

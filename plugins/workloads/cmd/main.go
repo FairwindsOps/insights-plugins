@@ -19,6 +19,7 @@ import (
 const tempFile = "/output/workloads-temp.json"
 
 func main() {
+	setLogLevel()
 	ctx := context.Background()
 	auditOutputFile := flag.String("output-file", "", "Destination file for audit results")
 	flag.Parse()
@@ -75,4 +76,16 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, kubernetes.Interface, 
 	}
 	restMapper := restmapper.NewDiscoveryRESTMapper(resources)
 	return dynamicClient, restMapper, kube, kubeConf.Host, nil
+}
+
+func setLogLevel() {
+	level := os.Getenv("LOG_LEVEL")
+	if level == "" {
+		return
+	}
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		logrus.Fatalf("invalid LOG_LEVEL %q: %v", level, err)
+	}
+	logrus.SetLevel(lvl)
 }

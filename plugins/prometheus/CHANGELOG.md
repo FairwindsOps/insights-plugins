@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.41
+* Add `LOG_LEVEL` environment variable to set the log level (`debug`, `info`, `warn`, `error`; default `info`). `LOGRUS_LEVEL` is still honored when `LOG_LEVEL` is unset
+
 ## 1.9.40
 * Bump library github.com/prometheus/common to v0.74.0
 * Bump library sigs.k8s.io/controller-runtime to v0.25.3

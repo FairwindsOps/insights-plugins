@@ -30,7 +30,7 @@ A Kubernetes plugin that watches policy-related resources and events, with speci
 ./insights-event-watcher --log-source=local
 
 # Set log level
-./insights-event-watcher --log-level=debug --log-source=local
+LOG_LEVEL=debug ./insights-event-watcher --log-source=local
 
 # Run with Insights API integration
 export FAIRWINDS_TOKEN=your-api-token
@@ -69,7 +69,8 @@ The watcher uses environment variables for sensitive configuration, following Fa
 ### Command Line Options
 
 #### General Options
-- `--log-level`: Log level - debug, info, warn, error (default: `info`)
+- `LOG_LEVEL`: Environment variable setting the log level - debug, info, warn, error (default: `info`)
+- `--verbose`, `-v`: Force the `debug` log level
 - `--insights-host`: Fairwinds Insights hostname (optional)
 - `--organization`: Fairwinds organization name (required if insights-host provided)
 - `--cluster`: Cluster name (required if insights-host provided)

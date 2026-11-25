@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.18.8
+* Add `LOG_LEVEL` environment variable to set the log level (`debug`, `info`, `warn`, `error`; default `info`)
+
 ## 2.18.7
 * Bump library sigs.k8s.io/controller-runtime to v0.25.3
 * Bump indirect libraries dependencies

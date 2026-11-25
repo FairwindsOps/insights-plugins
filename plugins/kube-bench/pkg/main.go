@@ -66,6 +66,7 @@ func updateModel() {
 }
 
 func main() {
+	setLogLevel()
 	logrus.Info("Starting:")
 	model.Name = os.Getenv("NODE_NAME")
 	model.Controls = make([]check.Controls, 0)
@@ -124,4 +125,16 @@ func main() {
 	}()
 	logrus.Fatal(http.ListenAndServe(":8080", nil))
 
+}
+
+func setLogLevel() {
+	level := os.Getenv("LOG_LEVEL")
+	if level == "" {
+		return
+	}
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		logrus.Fatalf("invalid LOG_LEVEL %q: %v", level, err)
+	}
+	logrus.SetLevel(lvl)
 }
