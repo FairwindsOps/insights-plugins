@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.43
+* Bump library golang.org/x/mod to v0.43.0
+* Bump library sigs.k8s.io/controller-runtime to v0.25.3
+* Bump indirect libraries dependencies
+
 ## 2.3.42
 * Bump dependencies
 

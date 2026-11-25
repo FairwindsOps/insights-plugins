@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.56
+* Bump library github.com/open-policy-agent/opa to v1.22.4
+* Bump library sigs.k8s.io/controller-runtime to v0.25.3
+* Bump indirect libraries dependencies
+
 ## 3.1.55
 * Bump dependencies
 
