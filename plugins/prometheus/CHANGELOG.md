@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.40
+* Bump library github.com/prometheus/common to v0.74.0
+* Bump library sigs.k8s.io/controller-runtime to v0.25.3
+* Bump indirect libraries dependencies
+
 ## 1.9.39
 * Bump dependencies
 

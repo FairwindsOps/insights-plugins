@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.80
+* Bump library github.com/aws/aws-sdk-go-v2 to v1.48.0
+* Bump library github.com/aws/aws-sdk-go-v2/config to v1.33.19
+* Bump library github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs to v1.92.2
+* Bump library sigs.k8s.io/controller-runtime to v0.25.3
+* Bump indirect libraries dependencies
+
 ## 0.2.79
 * Bump dependencies
 

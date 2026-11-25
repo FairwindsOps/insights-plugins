@@ -8,26 +8,26 @@ images:
     - us-docker.pkg.dev/fairwinds-ops/oss/nova:v3.12.3
     - us-docker.pkg.dev/fairwinds-ops/oss/pluto:v5.24.5
     - us-docker.pkg.dev/fairwinds-ops/oss/goldilocks:v4.16.3
-    - us-docker.pkg.dev/fairwinds-ops/oss/insights-admission-controller:2.3.42
-    - us-docker.pkg.dev/fairwinds-ops/oss/insights-ci:6.2.48
+    - us-docker.pkg.dev/fairwinds-ops/oss/insights-admission-controller:2.3.43
+    - us-docker.pkg.dev/fairwinds-ops/oss/insights-ci:6.2.49
     - us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs:1.1.12
-    - us-docker.pkg.dev/fairwinds-ops/oss/insights-event-watcher:0.2.79
-    - us-docker.pkg.dev/fairwinds-ops/oss/falco-agent:0.4.55
-    - us-docker.pkg.dev/fairwinds-ops/oss/image-trust:0.1.31
-    - us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench:0.6.41
-    - us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:0.4.40
+    - us-docker.pkg.dev/fairwinds-ops/oss/insights-event-watcher:0.2.80
+    - us-docker.pkg.dev/fairwinds-ops/oss/falco-agent:0.4.56
+    - us-docker.pkg.dev/fairwinds-ops/oss/image-trust:0.1.32
+    - us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench:0.6.42
+    - us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench-aggregator:0.4.41
     - us-docker.pkg.dev/fairwinds-ops/oss/kubectl:0.21.17
-    - us-docker.pkg.dev/fairwinds-ops/oss/kyverno:0.6.29
-    - us-docker.pkg.dev/fairwinds-ops/oss/kyverno-policy-sync:0.2.49
-    - us-docker.pkg.dev/fairwinds-ops/oss/network-flow:0.0.34
-    - us-docker.pkg.dev/fairwinds-ops/oss/network-flow-aggregator:0.0.39
-    - us-docker.pkg.dev/fairwinds-ops/oss/on-demand-job-runner:0.2.49
-    - us-docker.pkg.dev/fairwinds-ops/oss/fw-opa:3.1.55
+    - us-docker.pkg.dev/fairwinds-ops/oss/kyverno:0.6.30
+    - us-docker.pkg.dev/fairwinds-ops/oss/kyverno-policy-sync:0.2.50
+    - us-docker.pkg.dev/fairwinds-ops/oss/network-flow:0.0.35
+    - us-docker.pkg.dev/fairwinds-ops/oss/network-flow-aggregator:0.0.40
+    - us-docker.pkg.dev/fairwinds-ops/oss/on-demand-job-runner:0.2.50
+    - us-docker.pkg.dev/fairwinds-ops/oss/fw-opa:3.1.56
     - us-docker.pkg.dev/fairwinds-ops/oss/postgres-partman:18.0.3
-    - us-docker.pkg.dev/fairwinds-ops/oss/prometheus-collector:1.9.39
-    - us-docker.pkg.dev/fairwinds-ops/oss/rbac-reporter:1.4.46
-    - us-docker.pkg.dev/fairwinds-ops/oss/right-sizer:0.6.42
-    - us-docker.pkg.dev/fairwinds-ops/oss/fw-trivy:0.34.57
+    - us-docker.pkg.dev/fairwinds-ops/oss/prometheus-collector:1.9.40
+    - us-docker.pkg.dev/fairwinds-ops/oss/rbac-reporter:1.4.47
+    - us-docker.pkg.dev/fairwinds-ops/oss/right-sizer:0.6.43
+    - us-docker.pkg.dev/fairwinds-ops/oss/fw-trivy:0.34.58
     - us-docker.pkg.dev/fairwinds-ops/oss/insights-uploader:0.6.18
     - us-docker.pkg.dev/fairwinds-ops/oss/insights-utils:0.0.23
-    - us-docker.pkg.dev/fairwinds-ops/oss/workloads:2.18.6
+    - us-docker.pkg.dev/fairwinds-ops/oss/workloads:2.18.7
