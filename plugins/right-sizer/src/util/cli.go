@@ -48,7 +48,7 @@ func fixGlog(options any) {
 	}
 	// glog cannot filter Info/Warning/Error calls, so LOG_LEVEL only raises verbosity.
 	if v := flag.Lookup("v"); v != nil && v.Value.String() == "0" && strings.EqualFold(os.Getenv("LOG_LEVEL"), "debug") {
-		flag.Set("v", "2")
+		_ = flag.Set("v", "2")
 	}
 	flag.CommandLine.Parse([]string{})
 }
