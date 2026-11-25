@@ -181,3 +181,7 @@ Cosign **v3.0.6** is included in the published Dockerfile with release checksum 
 ## Local smoke test (kind)
 
 See [smoke/README.md](smoke/README.md) for a kind-based smoke test using public images only (`setup.sh`, `run.sh`, `assert.sh`). Report is written to `output/image-trust.json`.
+
+## Logging
+
+Set the `LOG_LEVEL` environment variable to `debug`, `info`, `warn` or `error` (default `info`).

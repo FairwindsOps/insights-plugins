@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.1.57
+* Add `LOG_LEVEL` environment variable to set the log level (`debug`, `info`, `warn`, `error`; default `info`). `--debug` still forces `debug`
+
 ## 3.1.56
 * Bump library github.com/open-policy-agent/opa to v1.22.4
 * Bump library sigs.k8s.io/controller-runtime to v0.25.3

@@ -29,7 +29,7 @@ docker run -v /Users/vvezani/fairwinds/insights-plugins/plugins/ci/.tmp:/app/rep
       -e "GITHUB_ACCESS_TOKEN=" \
       -e "ORG_NAME=acme-co" \
       -e "HOSTNAME=https://be-main.k8s.insights.fairwinds.com" \
-      -e "LOGRUS_LEVEL=debug" \
+      -e "LOG_LEVEL=debug" \
       -e 'REGISTRY_CREDENTIALS=[{"domain": "docker.io", "username": "my-user", "password": "my-pass"}]' \
       -e 'REPORTS_CONFIG={"autoScan": {"polaris": {"enabledOnAutoDiscovery": true}, "opa": {"enabledOnAutoDiscovery": true}, "pluto": {"enabledOnAutoDiscovery": true}, "trivy": {"enabledOnAutoDiscovery": true}, "tfsec": {"enabledOnAutoDiscovery": true}}}' \
   insights-ci:latest && \ 

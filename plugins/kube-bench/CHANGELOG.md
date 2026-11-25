@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.43
+* Add `LOG_LEVEL` environment variable to set the log level (`debug`, `info`, `warn`, `error`; default `info`)
+
 ## 0.6.42
 * Bump indirect libraries dependencies
 

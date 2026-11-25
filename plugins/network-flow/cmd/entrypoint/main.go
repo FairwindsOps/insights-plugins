@@ -14,7 +14,9 @@ import (
 )
 
 func main() {
-	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	var level slog.Level // zero value is info; an unset or unknown LOG_LEVEL keeps it
+	_ = level.UnmarshalText([]byte(os.Getenv("LOG_LEVEL")))
+	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 
 	igBin := envOr("IG_BIN", "/bin/gadgettracermanager")
 	agentBin := envOr("AGENT_BIN", "/usr/local/bin/network-flow")

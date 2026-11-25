@@ -15,6 +15,7 @@ import (
 const tempFile = "/output/rbac-reporter-temp.json"
 
 func main() {
+	setLogLevel()
 	auditOutputFile := flag.String("output-file", "", "Destination file for audit results")
 	flag.Parse()
 
@@ -58,4 +59,16 @@ func main() {
 			logrus.Fatalf("Error renaming output file: %v", err)
 		}
 	}
+}
+
+func setLogLevel() {
+	level := os.Getenv("LOG_LEVEL")
+	if level == "" {
+		return
+	}
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		logrus.Fatalf("invalid LOG_LEVEL %q: %v", level, err)
+	}
+	logrus.SetLevel(lvl)
 }

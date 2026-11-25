@@ -1,5 +1,8 @@
 # Changelog
 
+## 6.2.50
+* Add `LOG_LEVEL` environment variable to set the log level (`debug`, `info`, `warn`, `error`; default `info`). `LOGRUS_LEVEL` is still honored when `LOG_LEVEL` is unset
+
 ## 6.2.49
 * Bump indirect libraries dependencies
 

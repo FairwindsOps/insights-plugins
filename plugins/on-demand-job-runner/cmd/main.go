@@ -55,7 +55,9 @@ func loadConfig() (*ondemandjobs.Config, error) {
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	var level slog.Level // zero value is info; an unset or unknown LOG_LEVEL keeps it
+	_ = level.UnmarshalText([]byte(os.Getenv("LOG_LEVEL")))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 	slog.SetDefault(logger)
 	viper.WithLogger(logger)
 

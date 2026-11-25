@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 )
 
 func main() {
+	setLogLevel()
 	ctx := context.Background()
 
 	cfg, err := config.LoadFromEnvironment()
@@ -104,4 +106,16 @@ func verifyImages(ctx context.Context, cfg *config.Config, registryCreds registr
 		results[i].LastCheckedAt = now.UTC()
 	}
 	return results, nil
+}
+
+func setLogLevel() {
+	level := os.Getenv("LOG_LEVEL")
+	if level == "" {
+		return
+	}
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		logrus.Fatalf("invalid LOG_LEVEL %q: %v", level, err)
+	}
+	logrus.SetLevel(lvl)
 }

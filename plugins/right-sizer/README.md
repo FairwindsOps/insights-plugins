@@ -29,6 +29,8 @@ For debugging, the current Insights report can be retrieved from a right-sizer c
 
 The right-sizer controller pod can be run with the `-v X` argument to increase verbosity - using `X` of 1 or 2 temporarily will get sufficient detail. NOTE that increasing verbosity beyond 2 will log all events the controller sees, this could be undesirable in a busy cluster.
 
+Setting `LOG_LEVEL=debug` has the same effect as `-v 2` when `-v` is not set. Other `LOG_LEVEL` values have no effect because glog cannot filter Info, Warning and Error messages.
+
 ## Running locally
 
 To test the right-sizer controller locally using a [kind](https://kind.sigs.k8s.io/) cluster, either:

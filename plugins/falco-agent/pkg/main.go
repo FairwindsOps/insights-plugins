@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ import (
 const port = "3031"
 
 func main() {
+	setLogLevel()
 	r := mux.NewRouter()
 	dynamic, restMapper, err := getKubeClient()
 	if err != nil {
@@ -65,4 +67,16 @@ func getKubeClient() (dynamic.Interface, meta.RESTMapper, error) {
 	}
 	restMapper = restmapper.NewDiscoveryRESTMapper(resources)
 	return dynamicClient, restMapper, nil
+}
+
+func setLogLevel() {
+	level := os.Getenv("LOG_LEVEL")
+	if level == "" {
+		return
+	}
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		logrus.Fatalf("invalid LOG_LEVEL %q: %v", level, err)
+	}
+	logrus.SetLevel(lvl)
 }
