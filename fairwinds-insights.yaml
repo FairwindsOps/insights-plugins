@@ -11,7 +11,7 @@ images:
     - us-docker.pkg.dev/fairwinds-ops/oss/insights-admission-controller:2.3.43
     - us-docker.pkg.dev/fairwinds-ops/oss/insights-ci:6.2.49
     - us-docker.pkg.dev/fairwinds-ops/oss/cloud-costs:1.1.12
-    - us-docker.pkg.dev/fairwinds-ops/oss/insights-event-watcher:0.2.80
+    - us-docker.pkg.dev/fairwinds-ops/oss/insights-event-watcher:0.2.81
     - us-docker.pkg.dev/fairwinds-ops/oss/falco-agent:0.4.56
     - us-docker.pkg.dev/fairwinds-ops/oss/image-trust:0.1.32
     - us-docker.pkg.dev/fairwinds-ops/oss/fw-kube-bench:0.6.42
